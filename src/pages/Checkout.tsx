@@ -78,6 +78,24 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
+      // Send order notification emails
+      try {
+        await supabase.functions.invoke("send-order-notifications", {
+          body: {
+            orderId: orderData.id,
+            customerEmail: formData.email,
+            customerName: formData.name,
+            storeOwnerId: profileData.id,
+            totalAmount: getTotalPrice(),
+            orderItems: orderItems,
+          },
+        });
+        console.log("Order notification emails sent successfully");
+      } catch (emailError) {
+        console.error("Error sending notification emails:", emailError);
+        // Don't block order completion if email fails
+      }
+
       toast({
         title: "Pedido realizado com sucesso!",
         description: "Você receberá uma confirmação por email em breve.",
