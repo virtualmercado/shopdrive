@@ -13,6 +13,7 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -22,6 +23,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -31,9 +33,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Settings, label: "Configurações", path: "/dashboard/settings" },
   ];
 
-  const handleLogout = () => {
-    // TODO: Implementar logout com Lovable Cloud
-    navigate("/login");
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/", { replace: true });
   };
 
   return (

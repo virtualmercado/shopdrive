@@ -1,11 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Store } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+
+const registerSchema = z.object({
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
+  email: z.string().email("Email inválido").max(255),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(100),
+  confirmPassword: z.string(),
+  storeName: z.string().min(3, "Nome da loja deve ter no mínimo 3 caracteres").max(100),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,38 +29,38 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user, signUp } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
-        variant: "destructive",
-      });
-      return;
+
+    try {
+      registerSchema.parse(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      // TODO: Implementar registro com Lovable Cloud
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Redirecionando para configurar sua loja...",
-      });
+      const { error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.storeName
+      );
       
-      setTimeout(() => {
+      if (!error) {
         navigate("/dashboard");
-      }, 1500);
-    } catch (error) {
-      toast({
-        title: "Erro ao criar conta",
-        description: "Tente novamente mais tarde",
-        variant: "destructive",
-      });
+      }
     } finally {
       setLoading(false);
     }

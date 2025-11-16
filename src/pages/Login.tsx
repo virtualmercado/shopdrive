@@ -1,51 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Store } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user, signIn } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // TODO: Implementar autenticação com Lovable Cloud
-      // Simulação temporária
-      if (email && password) {
-        toast({
-          title: "Login realizado!",
-          description: "Redirecionando para o painel...",
-        });
-        
-        // Redirecionar baseado no tipo de usuário
-        if (email.includes("admin")) {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/dashboard");
-        }
-      } else {
-        toast({
-          title: "Erro",
-          description: "Preencha email e senha",
-          variant: "destructive",
-        });
+      const { error } = await signIn(email, password);
+      
+      if (!error) {
+        navigate("/dashboard");
       }
-    } catch (error) {
-      toast({
-        title: "Erro ao fazer login",
-        description: "Verifique suas credenciais",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
