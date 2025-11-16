@@ -11,9 +11,13 @@ import Products from "./pages/dashboard/Products";
 import Orders from "./pages/dashboard/Orders";
 import Customize from "./pages/dashboard/Customize";
 import Settings from "./pages/dashboard/Settings";
+import StorePreview from "./pages/dashboard/StorePreview";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Subscribers from "./pages/admin/Subscribers";
 import Plans from "./pages/admin/Plans";
+import Store from "./pages/Store";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
@@ -35,9 +39,16 @@ const App = () => (
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
           <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/dashboard/store" element={<ProtectedRoute><StorePreview /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/subscribers" element={<AdminRoute><Subscribers /></AdminRoute>} />
           <Route path="/admin/plans" element={<AdminRoute><Plans /></AdminRoute>} />
+          
+          {/* Public Store Routes */}
+          <Route path="/store/:storeSlug" element={<Store />} />
+          <Route path="/store/:storeSlug/cart" element={<Cart />} />
+          <Route path="/store/:storeSlug/checkout" element={<Checkout />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
