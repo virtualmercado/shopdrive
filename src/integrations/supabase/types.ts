@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      platform_stats: {
+        Row: {
+          active_subscriptions: number
+          created_at: string
+          id: string
+          monthly_revenue: number
+          snapshot_date: string
+          total_revenue: number
+          total_stores: number
+          total_users: number
+        }
+        Insert: {
+          active_subscriptions?: number
+          created_at?: string
+          id?: string
+          monthly_revenue?: number
+          snapshot_date?: string
+          total_revenue?: number
+          total_stores?: number
+          total_users?: number
+        }
+        Update: {
+          active_subscriptions?: number
+          created_at?: string
+          id?: string
+          monthly_revenue?: number
+          snapshot_date?: string
+          total_revenue?: number
+          total_stores?: number
+          total_users?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -37,6 +70,92 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json | null
+          id: string
+          interval: string
+          is_active: boolean
+          name: string
+          order_limit: number
+          price: number
+          product_limit: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          interval: string
+          is_active?: boolean
+          name: string
+          order_limit?: number
+          price: number
+          product_limit?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          interval?: string
+          is_active?: boolean
+          name?: string
+          order_limit?: number
+          price?: number
+          product_limit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

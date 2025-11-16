@@ -11,8 +11,12 @@ import Products from "./pages/dashboard/Products";
 import Orders from "./pages/dashboard/Orders";
 import Customize from "./pages/dashboard/Customize";
 import Settings from "./pages/dashboard/Settings";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import Subscribers from "./pages/admin/Subscribers";
+import Plans from "./pages/admin/Plans";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +35,9 @@ const App = () => (
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
           <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/subscribers" element={<AdminRoute><Subscribers /></AdminRoute>} />
+          <Route path="/admin/plans" element={<AdminRoute><Plans /></AdminRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
