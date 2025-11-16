@@ -1,0 +1,144 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+export interface OrderItem {
+  id: string;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  customer_address: string | null;
+  total_amount: number;
+  status: string;
+  payment_method: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  order_items?: OrderItem[];
+}
+
+export const useOrders = () => {
+  return useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          id,
+          customer_name,
+          customer_email,
+          customer_phone,
+          customer_address,
+          total_amount,
+          status,
+          payment_method,
+          notes,
+          created_at,
+          updated_at
+        `)
+        .eq("store_owner_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Order[];
+    },
+  });
+};
+
+export const useOrderDetails = (orderId: string) => {
+  return useQuery({
+    queryKey: ["order", orderId],
+    queryFn: async () => {
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId);
+
+      if (itemsError) throw itemsError;
+
+      return {
+        ...orderData,
+        order_items: itemsData,
+      } as Order;
+    },
+    enabled: !!orderId,
+  });
+};
+
+export const useOrderStats = () => {
+  return useQuery({
+    queryKey: ["order-stats"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("orders")
+        .select("status, total_amount")
+        .eq("store_owner_id", user.id);
+
+      if (error) throw error;
+
+      const totalOrders = data.length;
+      const paidOrders = data.filter(o => o.status === "paid").length;
+      const processingOrders = data.filter(o => o.status === "processing").length;
+
+      return {
+        totalOrders,
+        paidOrders,
+        processingOrders,
+      };
+    },
+  });
+};
+
+export const useUpdateOrderStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status })
+        .eq("id", orderId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order-stats"] });
+      toast({
+        title: "Status atualizado",
+        description: "O status do pedido foi atualizado com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status do pedido.",
+        variant: "destructive",
+      });
+    },
+  });
+};
