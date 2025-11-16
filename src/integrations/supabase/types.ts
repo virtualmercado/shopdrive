@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          product_price: number
+          quantity: number
+          subtotal: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          product_price: number
+          quantity: number
+          subtotal: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          product_price?: number
+          quantity?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_address: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          status: string
+          store_owner_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          status?: string
+          store_owner_id: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          status?: string
+          store_owner_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_stats: {
         Row: {
           active_subscriptions: number
@@ -88,21 +181,36 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          primary_color: string | null
+          secondary_color: string | null
+          store_description: string | null
+          store_logo_url: string | null
           store_name: string | null
+          store_slug: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           full_name: string
           id: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_description?: string | null
+          store_logo_url?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           full_name?: string
           id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_description?: string | null
+          store_logo_url?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
         }
         Relationships: []

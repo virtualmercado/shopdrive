@@ -29,6 +29,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Package, label: "Produtos", path: "/dashboard/products" },
     { icon: ShoppingCart, label: "Pedidos", path: "/dashboard/orders" },
+    { icon: Store, label: "Minha Loja", path: "/dashboard/store" },
     { icon: Palette, label: "Personalizar", path: "/dashboard/customize" },
     { icon: Settings, label: "Configurações", path: "/dashboard/settings" },
   ];
