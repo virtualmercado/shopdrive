@@ -61,7 +61,7 @@ const Home = () => {
           </nav>
             <div className="flex items-center gap-3">
               <Link to="/login">
-                <Button variant="outline" className="border-gray-700 text-gray-700 hover:bg-gray-100">Entrar</Button>
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all">Entrar</Button>
               </Link>
               <Link to="/register">
                 <Button className="bg-secondary hover:bg-secondary/90">Criar Loja Grátis</Button>
