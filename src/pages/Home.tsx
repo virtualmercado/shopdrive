@@ -103,7 +103,7 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{backgroundImage: `url(${heroBackground})`}}>
         {/* Overlay para garantir contraste */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-background/85 to-secondary/30"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-background/90 to-secondary/50"></div>
         
         {/* Conteúdo */}
         <div className="container mx-auto text-center max-w-4xl relative z-10">
