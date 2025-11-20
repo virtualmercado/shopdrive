@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroBackground from "@/assets/hero-background.jpg";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
 const Home = () => {
@@ -55,9 +54,36 @@ const Home = () => {
               <img src={logoMenu} alt="VirtualMercado" className="h-10" />
             </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#beneficios" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Benefícios</a>
-            <a href="#planos" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Planos</a>
-            <a href="#como-funciona" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Como Funciona</a>
+            <a 
+              href="#beneficios" 
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+            >
+              Benefícios
+            </a>
+            <a 
+              href="#planos" 
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+            >
+              Planos
+            </a>
+            <a 
+              href="#como-funciona" 
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+            >
+              Como Funciona
+            </a>
           </nav>
             <div className="flex items-center gap-3">
               <Link to="/login">
@@ -72,23 +98,17 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{
-      backgroundImage: `url(${heroBackground})`
-    }}>
-        {/* Overlay para garantir contraste */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-purple-900/50"></div>
-        
+      <section className="relative py-24 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         {/* Conteúdo */}
-        <div className="container mx-auto text-center max-w-4xl relative z-10">
+        <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-6">
-            🇧🇷 Plataforma 100% brasileira
+            🇧🇷 Plataforma 100% Nacional - BR
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Crie sua Loja Virtual em Minutos
+            Crie sua loja virtual e seu catálogo digital em menos de 01 minuto. É GRÁTIS, FÁCIL e 100% online!
           </h1>
-          <p className="text-xl text-white mb-8 max-w-2xl mx-auto">
-            A maneira mais rápida e fácil de vender online. Sem complicação, sem burocracia. 
-            Comece gratuitamente e escale seu negócio.
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Plataforma simples e moderna, venda 24h por dia o ano inteiro direto do celular. Comece gratuitamente hoje mesmo.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="text-lg px-8">
@@ -98,7 +118,7 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm text-white/80 mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
+          <p className="text-sm text-muted-foreground mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
         </div>
       </section>
 
