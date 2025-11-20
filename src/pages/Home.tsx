@@ -5,7 +5,7 @@ import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-reac
 import { Link } from "react-router-dom";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
-import heroImage from "@/assets/hero-image.png";
+import heroImage from "@/assets/hero-banner.jpg";
 const Home = () => {
   const plans = [{
     name: "Grátis",
@@ -102,8 +102,8 @@ const Home = () => {
       <section className="relative py-24 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         {/* Conteúdo */}
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge variant="secondary" className="mb-6 rounded-lg">
-            🇧🇷 BR - Plataforma 100% Nacional
+          <Badge variant="secondary" className="mb-6">
+            🇧🇷 Plataforma 100% Nacional
           </Badge>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Crie sua loja virtual e seu catálogo digital em menos de 01 minuto. É GRÁTIS, FÁCIL e 100% online!
@@ -124,7 +124,7 @@ const Home = () => {
             <img 
               src={heroImage} 
               alt="VirtualMercado Preview" 
-              className="max-w-full w-full md:max-w-[600px] h-auto rounded-lg shadow-lg"
+              className="max-w-full w-full md:max-w-[600px] h-auto shadow-lg"
             />
           </div>
         </div>
