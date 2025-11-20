@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp } from "lucide-react";
+import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
@@ -174,10 +174,10 @@ const Home = () => {
           <Badge variant="secondary" className="mb-6">
             🇧🇷 Plataforma 100% Nacional
           </Badge>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-black">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-black leading-tight">
             Crie sua loja virtual e seu catálogo digital em menos de 01 minuto. É GRÁTIS, FÁCIL e 100% online!
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-xl mb-8 max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>
             Plataforma simples e moderna, venda 24h por dia o ano inteiro direto do celular. Comece gratuitamente hoje mesmo.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
@@ -188,7 +188,7 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground mb-8">Plano FREE, vitalício, sem taxas ou cartão de crédito.</p>
+          <p className="text-sm mb-8" style={{ color: '#5A5A5A' }}>Plano FREE, vitalício, sem taxas ou cartão de crédito.</p>
           <div className="flex justify-center">
             <img 
               src={heroImage} 
@@ -204,30 +204,34 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Side - Text and Icons */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">
                   Seus produtos disponíveis em todos os lugares
                 </h2>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-lg" style={{ color: '#5A5A5A' }}>
                   Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes de qualquer hora e lugar.
                 </p>
               </div>
               
               {/* Social Media Icons */}
-              <div className="flex gap-6 items-center">
-                <Instagram className="h-8 w-8 text-primary" />
-                <Facebook className="h-8 w-8 text-primary" />
-                <Youtube className="h-8 w-8 text-primary" />
-                <svg className="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
+              <div className="flex flex-wrap gap-6 items-center justify-center md:justify-start">
+                <Instagram className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" />
+                <Facebook className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" />
+                <Youtube className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" />
+                <svg className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+                <Linkedin className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" />
+                <svg className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/>
                 </svg>
               </div>
               
               {/* Credibility Text */}
-              <div className="flex items-center gap-3 pt-4">
-                <TrendingUp className="h-6 w-6 text-primary" />
-                <p className="text-base font-medium">
+              <div className="flex items-center gap-4 pt-2">
+                <TrendingUp className="h-8 w-8 text-primary transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer flex-shrink-0" />
+                <p className="text-lg md:text-xl font-semibold">
                   Mais de 10 mil empreendedores já criaram suas lojas com a VirtualMercado
                 </p>
               </div>
@@ -250,7 +254,7 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Por que escolher o VirtualMercado?</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>
               Tudo que você precisa para vender online em uma única plataforma
             </p>
           </div>
@@ -260,7 +264,7 @@ const Home = () => {
                   <benefit.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
-                <p className="text-muted-foreground">{benefit.description}</p>
+                <p style={{ color: '#5A5A5A' }}>{benefit.description}</p>
               </Card>)}
           </div>
         </div>
@@ -271,7 +275,7 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Planos para todos os tamanhos</h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl" style={{ color: '#5A5A5A' }}>
               Comece grátis e cresça com seu negócio
             </p>
           </div>
@@ -310,7 +314,7 @@ const Home = () => {
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Como funciona</h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl" style={{ color: '#5A5A5A' }}>
               3 passos simples para começar a vender
             </p>
           </div>
@@ -333,7 +337,7 @@ const Home = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-semibold mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground text-lg">{item.description}</p>
+                  <p className="text-lg" style={{ color: '#5A5A5A' }}>{item.description}</p>
                 </div>
               </div>)}
           </div>
