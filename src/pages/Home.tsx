@@ -4,77 +4,47 @@ import { Card } from "@/components/ui/card";
 import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBackground from "@/assets/hero-background.jpg";
-
 const Home = () => {
-  const plans = [
-    {
-      name: "Grátis",
-      price: "R$ 0",
-      period: "/mês",
-      features: [
-        "Até 10 produtos",
-        "Loja personalizada",
-        "Pagamentos online",
-        "Suporte por email"
-      ],
-      cta: "Começar Grátis",
-      highlight: false
-    },
-    {
-      name: "Pro",
-      price: "R$ 49",
-      period: "/mês",
-      features: [
-        "Até 100 produtos",
-        "Domínio personalizado",
-        "Relatórios avançados",
-        "Suporte prioritário",
-        "Integrações ilimitadas"
-      ],
-      cta: "Escolher Pro",
-      highlight: true
-    },
-    {
-      name: "Premium",
-      price: "R$ 99",
-      period: "/mês",
-      features: [
-        "Produtos ilimitados",
-        "Multi-lojas",
-        "API completa",
-        "Suporte 24/7",
-        "Consultoria mensal"
-      ],
-      cta: "Escolher Premium",
-      highlight: false
-    }
-  ];
-
-  const benefits = [
-    {
-      icon: Store,
-      title: "Loja Profissional",
-      description: "Crie uma loja virtual com visual profissional em minutos"
-    },
-    {
-      icon: Palette,
-      title: "Personalização Total",
-      description: "Customize cores, fontes e layout da sua loja"
-    },
-    {
-      icon: ShoppingCart,
-      title: "Carrinho Inteligente",
-      description: "Sistema de carrinho e checkout otimizado para conversão"
-    },
-    {
-      icon: BarChart3,
-      title: "Relatórios Completos",
-      description: "Acompanhe vendas e performance em tempo real"
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
+  const plans = [{
+    name: "Grátis",
+    price: "R$ 0",
+    period: "/mês",
+    features: ["Até 10 produtos", "Loja personalizada", "Pagamentos online", "Suporte por email"],
+    cta: "Começar Grátis",
+    highlight: false
+  }, {
+    name: "Pro",
+    price: "R$ 49",
+    period: "/mês",
+    features: ["Até 100 produtos", "Domínio personalizado", "Relatórios avançados", "Suporte prioritário", "Integrações ilimitadas"],
+    cta: "Escolher Pro",
+    highlight: true
+  }, {
+    name: "Premium",
+    price: "R$ 99",
+    period: "/mês",
+    features: ["Produtos ilimitados", "Multi-lojas", "API completa", "Suporte 24/7", "Consultoria mensal"],
+    cta: "Escolher Premium",
+    highlight: false
+  }];
+  const benefits = [{
+    icon: Store,
+    title: "Loja Profissional",
+    description: "Crie uma loja virtual com visual profissional em minutos"
+  }, {
+    icon: Palette,
+    title: "Personalização Total",
+    description: "Customize cores, fontes e layout da sua loja"
+  }, {
+    icon: ShoppingCart,
+    title: "Carrinho Inteligente",
+    description: "Sistema de carrinho e checkout otimizado para conversão"
+  }, {
+    icon: BarChart3,
+    title: "Relatórios Completos",
+    description: "Acompanhe vendas e performance em tempo real"
+  }];
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -101,7 +71,9 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{backgroundImage: `url(${heroBackground})`}}>
+      <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{
+      backgroundImage: `url(${heroBackground})`
+    }}>
         {/* Overlay para garantir contraste */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-purple-900/50"></div>
         
@@ -139,15 +111,13 @@ const Home = () => {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {benefits.map((benefit, index) => (
-              <Card key={index} className="p-6 hover:shadow-lg transition-all border-2 hover:border-primary/20">
+            {benefits.map((benefit, index) => <Card key={index} className="p-6 hover:shadow-lg transition-all border-2 hover:border-primary/20">
                 <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <benefit.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
                 <p className="text-muted-foreground">{benefit.description}</p>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -162,16 +132,10 @@ const Home = () => {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {plans.map((plan, index) => (
-              <Card 
-                key={index} 
-                className={`p-8 relative ${plan.highlight ? 'border-2 border-secondary shadow-xl scale-105' : ''}`}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-white px-4 py-1 rounded-full text-sm font-medium">
+            {plans.map((plan, index) => <Card key={index} className={`p-8 relative ${plan.highlight ? 'border-2 border-secondary shadow-xl scale-105' : ''}`}>
+                {plan.highlight && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-white px-4 py-1 rounded-full text-sm font-medium">
                     Mais Popular
-                  </div>
-                )}
+                  </div>}
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center gap-1">
@@ -180,25 +144,19 @@ const Home = () => {
                   </div>
                 </div>
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-center gap-2">
+                  {plan.features.map((feature, fIndex) => <li key={fIndex} className="flex items-center gap-2">
                       <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <Check className="h-3 w-3 text-primary" />
                       </div>
                       <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
+                    </li>)}
                 </ul>
                 <Link to="/register">
-                  <Button 
-                    className={`w-full ${plan.highlight ? 'bg-secondary hover:bg-secondary/90' : ''}`}
-                    variant={plan.highlight ? 'default' : 'outline'}
-                  >
+                  <Button className={`w-full ${plan.highlight ? 'bg-secondary hover:bg-secondary/90' : ''}`} variant={plan.highlight ? 'default' : 'outline'}>
                     {plan.cta}
                   </Button>
                 </Link>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -213,12 +171,19 @@ const Home = () => {
             </p>
           </div>
           <div className="space-y-8">
-            {[
-              { step: "1", title: "Cadastre-se", description: "Crie sua conta gratuitamente em menos de 2 minutos" },
-              { step: "2", title: "Configure sua loja", description: "Adicione produtos, personalize cores e layout" },
-              { step: "3", title: "Comece a vender", description: "Compartilhe sua loja e receba pedidos online" }
-            ].map((item, index) => (
-              <div key={index} className="flex gap-6 items-start">
+            {[{
+            step: "1",
+            title: "Cadastre-se",
+            description: "Crie sua conta gratuitamente em menos de 2 minutos"
+          }, {
+            step: "2",
+            title: "Configure sua loja",
+            description: "Adicione produtos, personalize cores e layout"
+          }, {
+            step: "3",
+            title: "Comece a vender",
+            description: "Compartilhe sua loja e receba pedidos online"
+          }].map((item, index) => <div key={index} className="flex gap-6 items-start">
                 <div className="h-12 w-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
                   {item.step}
                 </div>
@@ -226,8 +191,7 @@ const Home = () => {
                   <h3 className="text-2xl font-semibold mb-2">{item.title}</h3>
                   <p className="text-muted-foreground text-lg">{item.description}</p>
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -338,14 +302,10 @@ const Home = () => {
 
           {/* Copyright */}
           <div className="mt-12 pt-8 border-t border-gray-700 text-center">
-            <p className="text-gray-400 text-sm">
-              © 2024 VirtualMercado. Todos os direitos reservados.
-            </p>
+            <p className="text-gray-400 text-sm">© 2025 VirtualMercado. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Home;
