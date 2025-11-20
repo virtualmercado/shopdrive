@@ -5,6 +5,7 @@ import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-reac
 import { Link } from "react-router-dom";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
+import heroImage from "@/assets/hero-image.png";
 const Home = () => {
   const plans = [{
     name: "Grátis",
@@ -101,16 +102,16 @@ const Home = () => {
       <section className="relative py-24 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         {/* Conteúdo */}
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge variant="secondary" className="mb-6">
-            🇧🇷 Plataforma 100% Nacional - BR
+          <Badge variant="secondary" className="mb-6 rounded-lg">
+            🇧🇷 BR - Plataforma 100% Nacional
           </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Crie sua loja virtual e seu catálogo digital em menos de 01 minuto. É GRÁTIS, FÁCIL e 100% online!
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Plataforma simples e moderna, venda 24h por dia o ano inteiro direto do celular. Comece gratuitamente hoje mesmo.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
             <Button asChild size="lg" className="text-lg px-8">
               <Link to="/register">Criar Minha Loja Grátis</Link>
             </Button>
@@ -118,7 +119,14 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
+          <p className="text-sm text-muted-foreground mb-8">Plano FREE, vitalício, sem taxas ou cartão de crédito.</p>
+          <div className="flex justify-center">
+            <img 
+              src={heroImage} 
+              alt="VirtualMercado Preview" 
+              className="max-w-full w-full md:max-w-[600px] h-auto rounded-lg shadow-lg"
+            />
+          </div>
         </div>
       </section>
 
