@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import heroBackground from "@/assets/hero-background.jpg";
 
 const Home = () => {
   const plans = [
@@ -99,31 +101,31 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-            <Zap className="h-4 w-4" />
-            <span className="text-sm font-medium">Plataforma 100% brasileira</span>
-          </div>
+      <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{backgroundImage: `url(${heroBackground})`}}>
+        {/* Overlay para garantir contraste */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-background/85 to-secondary/30"></div>
+        
+        {/* Conteúdo */}
+        <div className="container mx-auto text-center max-w-4xl relative z-10">
+          <Badge variant="secondary" className="mb-6">
+            🇧🇷 Plataforma 100% brasileira
+          </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Crie sua Loja Virtual em Minutos
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Plataforma completa para você vender online. Fácil de usar, rápido para configurar e profissional para crescer seu negócio.
+          <p className="text-xl text-foreground/90 mb-8 max-w-2xl mx-auto">
+            A maneira mais rápida e fácil de vender online. Sem complicação, sem burocracia. 
+            Comece gratuitamente e escale seu negócio.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
-              <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-lg px-8">
-                Criar Minha Loja Grátis
-              </Button>
-            </Link>
-            <Button size="lg" variant="outline" className="text-lg px-8">
-              Ver Demonstração
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button asChild size="lg" className="text-lg px-8">
+              <Link to="/register">Criar Minha Loja Grátis</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="text-lg px-8">
+              <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground mt-4">
-            Sem cartão de crédito • Comece em 2 minutos
-          </p>
+          <p className="text-sm text-muted-foreground mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
         </div>
       </section>
 
