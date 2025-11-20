@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBackground from "@/assets/hero-background.jpg";
+import logoMenu from "@/assets/logo-menu.png";
+import logoRodape from "@/assets/logo-rodape.png";
 const Home = () => {
   const plans = [{
     name: "Grátis",
@@ -50,17 +52,16 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Store className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">VirtualMercado</span>
+              <img src={logoMenu} alt="VirtualMercado" className="h-10" />
             </div>
-            <nav className="hidden md:flex items-center gap-6">
-              <a href="#beneficios" className="text-foreground hover:text-primary transition-colors">Benefícios</a>
-              <a href="#planos" className="text-foreground hover:text-primary transition-colors">Planos</a>
-              <a href="#como-funciona" className="text-foreground hover:text-primary transition-colors">Como Funciona</a>
-            </nav>
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="#beneficios" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Benefícios</a>
+            <a href="#planos" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Planos</a>
+            <a href="#como-funciona" className="text-lg font-bold text-foreground hover:text-primary transition-colors">Como Funciona</a>
+          </nav>
             <div className="flex items-center gap-3">
               <Link to="/login">
-                <Button variant="ghost">Entrar</Button>
+                <Button variant="outline" className="border-gray-700 text-gray-700 hover:bg-gray-100">Entrar</Button>
               </Link>
               <Link to="/register">
                 <Button className="bg-secondary hover:bg-secondary/90">Criar Loja Grátis</Button>
@@ -218,11 +219,10 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             {/* Coluna 1: VirtualMercado */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Store className="h-8 w-8 text-[#FB8C00]" />
-                <span className="font-bold text-white text-xl">VirtualMercado</span>
-              </div>
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <img src={logoRodape} alt="VirtualMercado" className="h-10" />
+            </div>
               <p className="text-gray-300 mb-6">Sua loja virtual em minutos.</p>
               <div className="flex gap-4">
                 <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#FB8C00] transition-colors">
