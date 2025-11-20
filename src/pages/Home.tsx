@@ -1,12 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Check, Store, Palette, ShoppingCart, BarChart3, Zap } from "lucide-react";
+import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
 import heroImage from "@/assets/hero-banner.jpg";
 const Home = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  const handleNavClick = (id: string) => {
+    setIsMobileMenuOpen(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  
   const plans = [{
     name: "Grátis",
     price: "R$ 0",
@@ -49,44 +57,48 @@ const Home = () => {
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src={logoMenu} alt="VirtualMercado" className="h-10" />
+              <img src={logoMenu} alt="VirtualMercado" className="h-8 md:h-10" />
             </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a 
-              href="#beneficios" 
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
-            >
-              Benefícios
-            </a>
-            <a 
-              href="#planos" 
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
-            >
-              Planos
-            </a>
-            <a 
-              href="#como-funciona" 
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
-            >
-              Como Funciona
-            </a>
-          </nav>
-            <div className="flex items-center gap-3">
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-6">
+              <a 
+                href="#beneficios" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                Benefícios
+              </a>
+              <a 
+                href="#planos" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                Planos
+              </a>
+              <a 
+                href="#como-funciona" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-lg font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                Como Funciona
+              </a>
+            </nav>
+            
+            {/* Desktop Buttons */}
+            <div className="hidden md:flex items-center gap-3">
               <Link to="/login">
                 <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all">Entrar</Button>
               </Link>
@@ -94,7 +106,63 @@ const Home = () => {
                 <Button className="bg-secondary hover:bg-secondary/90">Criar Loja Grátis</Button>
               </Link>
             </div>
+            
+            {/* Mobile Menu Button and Actions */}
+            <div className="flex md:hidden items-center gap-2">
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all text-xs h-8 px-3">Entrar</Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-xs h-8 px-3">Criar Loja</Button>
+              </Link>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
+          
+          {/* Mobile Navigation Menu */}
+          {isMobileMenuOpen && (
+            <nav className="md:hidden mt-4 pb-4 border-t pt-4">
+              <div className="flex flex-col gap-3">
+                <a 
+                  href="#beneficios" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick('beneficios');
+                  }}
+                  className="text-base font-bold text-foreground hover:text-primary transition-colors cursor-pointer py-2"
+                >
+                  Benefícios
+                </a>
+                <a 
+                  href="#planos" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick('planos');
+                  }}
+                  className="text-base font-bold text-foreground hover:text-primary transition-colors cursor-pointer py-2"
+                >
+                  Planos
+                </a>
+                <a 
+                  href="#como-funciona" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick('como-funciona');
+                  }}
+                  className="text-base font-bold text-foreground hover:text-primary transition-colors cursor-pointer py-2"
+                >
+                  Como Funciona
+                </a>
+              </div>
+            </nav>
+          )}
         </div>
       </header>
 
@@ -105,7 +173,7 @@ const Home = () => {
           <Badge variant="secondary" className="mb-6">
             🇧🇷 Plataforma 100% Nacional
           </Badge>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-black">
             Crie sua loja virtual e seu catálogo digital em menos de 01 minuto. É GRÁTIS, FÁCIL e 100% online!
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
