@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X } from "lucide-react";
+import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
 import heroImage from "@/assets/hero-banner.jpg";
+import benefitsImage from "@/assets/benefits-handshake.jpg";
 const Home = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -194,6 +195,52 @@ const Home = () => {
               alt="VirtualMercado Preview" 
               className="max-w-full w-full md:max-w-[600px] h-auto shadow-lg"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* New Benefits Section with Image */}
+      <section className="py-20 px-4 bg-background">
+        <div className="container mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Text and Icons */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                  Seus produtos disponíveis em todos os lugares
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes de qualquer hora e lugar.
+                </p>
+              </div>
+              
+              {/* Social Media Icons */}
+              <div className="flex gap-6 items-center">
+                <Instagram className="h-8 w-8 text-primary" />
+                <Facebook className="h-8 w-8 text-primary" />
+                <Youtube className="h-8 w-8 text-primary" />
+                <svg className="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+              </div>
+              
+              {/* Credibility Text */}
+              <div className="flex items-center gap-3 pt-4">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                <p className="text-base font-medium">
+                  Mais de 10 mil empreendedores já criaram suas lojas com a VirtualMercado
+                </p>
+              </div>
+            </div>
+            
+            {/* Right Side - Image */}
+            <div className="order-first md:order-last">
+              <img 
+                src={benefitsImage} 
+                alt="Empreendedores de sucesso" 
+                className="w-full h-auto rounded-lg shadow-lg"
+              />
+            </div>
           </div>
         </div>
       </section>
