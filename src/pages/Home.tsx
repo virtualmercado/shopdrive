@@ -103,7 +103,7 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative py-20 px-4 bg-cover bg-center bg-no-repeat" style={{backgroundImage: `url(${heroBackground})`}}>
         {/* Overlay para garantir contraste */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-background/90 to-secondary/50"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-purple-900/50"></div>
         
         {/* Conteúdo */}
         <div className="container mx-auto text-center max-w-4xl relative z-10">
@@ -113,7 +113,7 @@ const Home = () => {
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Crie sua Loja Virtual em Minutos
           </h1>
-          <p className="text-xl text-foreground/90 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-white mb-8 max-w-2xl mx-auto">
             A maneira mais rápida e fácil de vender online. Sem complicação, sem burocracia. 
             Comece gratuitamente e escale seu negócio.
           </p>
@@ -125,7 +125,7 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
+          <p className="text-sm text-white/80 mt-4">Sem cartão de crédito • Comece em 2 minutos</p>
         </div>
       </section>
 
