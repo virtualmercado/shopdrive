@@ -32,6 +32,25 @@ const Checkout = () => {
     setLoading(true);
 
     try {
+      // Input validation and sanitization
+      const sanitizedName = formData.name.trim().slice(0, 100);
+      const sanitizedEmail = formData.email.trim().toLowerCase().slice(0, 255);
+      const sanitizedPhone = formData.phone.trim().slice(0, 20);
+      const sanitizedAddress = formData.address.trim().slice(0, 500);
+      const sanitizedNotes = formData.notes.trim().slice(0, 1000);
+
+      if (!sanitizedName || sanitizedName.length < 2) {
+        throw new Error("Nome inválido");
+      }
+
+      if (!sanitizedEmail || !sanitizedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        throw new Error("Email inválido");
+      }
+
+      if (!sanitizedAddress || sanitizedAddress.length < 10) {
+        throw new Error("Endereço inválido");
+      }
+
       // Get store owner ID
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -47,13 +66,13 @@ const Checkout = () => {
         .insert([
           {
             store_owner_id: profileData.id,
-            customer_name: formData.name,
-            customer_email: formData.email,
-            customer_phone: formData.phone,
-            customer_address: formData.address,
+            customer_name: sanitizedName,
+            customer_email: sanitizedEmail,
+            customer_phone: sanitizedPhone,
+            customer_address: sanitizedAddress,
             total_amount: getTotalPrice(),
             payment_method: formData.paymentMethod,
-            notes: formData.notes,
+            notes: sanitizedNotes,
             status: "pending",
           },
         ])
@@ -83,16 +102,14 @@ const Checkout = () => {
         await supabase.functions.invoke("send-order-notifications", {
           body: {
             orderId: orderData.id,
-            customerEmail: formData.email,
-            customerName: formData.name,
+            customerEmail: sanitizedEmail,
+            customerName: sanitizedName,
             storeOwnerId: profileData.id,
             totalAmount: getTotalPrice(),
             orderItems: orderItems,
           },
         });
-        console.log("Order notification emails sent successfully");
       } catch (emailError) {
-        console.error("Error sending notification emails:", emailError);
         // Don't block order completion if email fails
       }
 

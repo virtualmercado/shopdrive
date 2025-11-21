@@ -42,9 +42,9 @@ const Store = () => {
 
   const fetchStoreData = async () => {
     try {
-      // Fetch store profile
+      // Fetch store profile using public view
       const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("store_name, store_slug, store_description, store_logo_url, primary_color, secondary_color, id")
         .eq("store_slug", storeSlug)
         .single();

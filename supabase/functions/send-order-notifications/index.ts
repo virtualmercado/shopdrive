@@ -42,8 +42,6 @@ const handler = async (req: Request): Promise<Response> => {
       orderItems 
     }: OrderNotificationRequest = await req.json();
 
-    console.log("Sending order notifications for order:", orderId);
-
     // Buscar informações do lojista
     const { data: storeOwner, error: storeOwnerError } = await supabase
       .from("profiles")
@@ -52,7 +50,6 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (storeOwnerError) {
-      console.error("Error fetching store owner:", storeOwnerError);
       throw new Error("Failed to fetch store owner information");
     }
 
@@ -60,7 +57,6 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(storeOwnerId);
     
     if (userError || !user) {
-      console.error("Error fetching store owner email:", userError);
       throw new Error("Failed to fetch store owner email");
     }
 
@@ -157,8 +153,6 @@ const handler = async (req: Request): Promise<Response> => {
       html: customerEmailHtml,
     });
 
-    console.log("Customer email sent:", customerEmailResult);
-
     // Enviar email para o lojista
     const storeOwnerEmailResult = await resend.emails.send({
       from: "Novo Pedido <onboarding@resend.dev>",
@@ -166,8 +160,6 @@ const handler = async (req: Request): Promise<Response> => {
       subject: `Novo Pedido Recebido - ${storeName}`,
       html: storeOwnerEmailHtml,
     });
-
-    console.log("Store owner email sent:", storeOwnerEmailResult);
 
     return new Response(
       JSON.stringify({ 
@@ -184,7 +176,6 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-order-notifications function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
