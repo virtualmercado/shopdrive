@@ -211,7 +211,7 @@ const Home = () => {
                   Seus produtos disponíveis em todos os lugares
                 </h2>
                 <p className="text-lg text-justify" style={{ color: '#5A5A5A' }}>
-                  Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes em qualquer hora e lugar.
+                  Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes a qualquer hora em qualquer lugar.
                 </p>
               </div>
               
@@ -282,11 +282,23 @@ const Home = () => {
                 </p>
               </div>
               
-              {/* Features List with Green Check Icons */}
+              {/* Features List with Minimalist Edit Icons */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <Check className="h-5 w-5 text-white" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="#43A047" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="w-5 h-5"
+                      style={{ transform: 'translate(1px, 1px)' }}
+                    >
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
                   </div>
                   <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Gerador de catálogo de produtos em PDF.
@@ -294,8 +306,20 @@ const Home = () => {
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <Check className="h-5 w-5 text-white" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="#43A047" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="w-5 h-5"
+                      style={{ transform: 'translate(1px, 1px)' }}
+                    >
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
                   </div>
                   <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Confirmação e lista do pedido diretamente no seu WhatsApp.
@@ -303,8 +327,20 @@ const Home = () => {
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <Check className="h-5 w-5 text-white" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="#43A047" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="w-5 h-5"
+                      style={{ transform: 'translate(1px, 1px)' }}
+                    >
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
                   </div>
                   <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Transparência, organização e segurança nas suas vendas.
