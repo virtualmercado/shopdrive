@@ -8,6 +8,7 @@ import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-rodape.png";
 import heroImage from "@/assets/hero-banner.jpg";
 import benefitsImage from "@/assets/benefits-handshake.jpg";
+import benefitsMobile from "@/assets/benefits-mobile.jpg";
 const Home = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -210,7 +211,7 @@ const Home = () => {
                   Seus produtos disponíveis em todos os lugares
                 </h2>
                 <p className="text-lg text-justify" style={{ color: '#5A5A5A' }}>
-                  Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes de qualquer hora e lugar.
+                  Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes em qualquer hora e lugar.
                 </p>
               </div>
               
@@ -255,6 +256,66 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Second Benefits Section - WhatsApp & Payment */}
+      <section className="py-20 px-4 bg-background">
+        <div className="container mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Image */}
+            <div>
+              <img 
+                src={benefitsMobile} 
+                alt="Pagamentos e WhatsApp" 
+                className="w-full h-auto rounded-lg shadow-lg max-w-md mx-auto"
+              />
+            </div>
+            
+            {/* Right Side - Text and Features */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-left">
+                  <span style={{ color: '#000000' }}>Venda através do WhatsApp ou aceite pagamentos no site. </span>
+                  <span style={{ color: '#6a1b9a' }}>LUCRO 24h por dia.</span>
+                </h2>
+                <p className="text-lg mb-8" style={{ color: '#5A5A5A' }}>
+                  Receba pagamentos no cartão de crédito, débito ou via PIX de forma automática e segura, direto na sua conta.
+                </p>
+              </div>
+              
+              {/* Features List with Green Check Icons */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                    <Check className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                    Gerador de catálogo de produtos em PDF.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                    <Check className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                    Confirmação e lista do pedido diretamente no seu WhatsApp.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                    <Check className="h-5 w-5 text-white" />
+                  </div>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                    Transparência, organização e segurança nas suas vendas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* Benefits Section */}
       <section id="beneficios" className="py-20 px-4">
