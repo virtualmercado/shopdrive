@@ -69,6 +69,30 @@ export type Database = {
           },
         ]
       }
+      order_rate_limit: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          order_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+          order_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          order_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -383,6 +407,7 @@ export type Database = {
       }
     }
     Functions: {
+      check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
