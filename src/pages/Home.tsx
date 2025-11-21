@@ -9,6 +9,8 @@ import logoRodape from "@/assets/logo-rodape.png";
 import heroImage from "@/assets/hero-banner.jpg";
 import benefitsImage from "@/assets/benefits-handshake.jpg";
 import benefitsMobile from "@/assets/benefits-mobile.jpg";
+import snapchatIcon from "@/assets/snapchat-icon.png";
+import editIcon from "@/assets/edit-icon.png";
 const Home = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -215,23 +217,49 @@ const Home = () => {
                 </p>
               </div>
               
-              {/* Social Media Icons - 4 per row on mobile/tablet, 2 rows of 4 on tablet */}
+              {/* Social Media Icons - Minimalist Flat Design */}
               <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-6 justify-items-center">
-                <Instagram className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" />
-                <Facebook className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" />
-                <Youtube className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" />
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                {/* Instagram */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
                 </svg>
-                <Linkedin className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" />
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/>
+                {/* Facebook */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
-                <Twitter className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" />
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.206 0C5.483 0 0 5.483 0 12.206c0 5.399 3.514 9.974 8.387 11.582.631.115.859-.273.859-.607 0-.301-.011-1.097-.017-2.153-3.488.758-4.224-1.682-4.224-1.682-.574-1.456-1.401-1.844-1.401-1.844-1.146-.783.087-.767.087-.767 1.266.089 1.933 1.299 1.933 1.299 1.126 1.928 2.953 1.372 3.674 1.049.114-.817.44-1.372.8-1.686-2.802-.319-5.749-1.401-5.749-6.235 0-1.376.492-2.5 1.299-3.381-.131-.319-.563-1.603.123-3.343 0 0 1.058-.339 3.465 1.291 1.006-.28 2.084-.42 3.156-.425 1.071.005 2.15.145 3.158.425 2.404-1.63 3.461-1.291 3.461-1.291.688 1.74.256 3.024.125 3.343.809.881 1.297 2.005 1.297 3.381 0 4.846-2.952 5.912-5.764 6.224.451.389.855 1.158.855 2.334 0 1.685-.015 3.045-.015 3.459 0 .337.226.729.865.606C20.491 22.176 24 17.604 24 12.206 24 5.483 18.517 0 12.206 0z"/>
-                  <path d="M4.544 17.526c-.028.063-.127.082-.218.039-.093-.04-.145-.125-.115-.188.027-.064.126-.082.218-.038.094.04.146.125.115.187zm.511.705c-.06.056-.177.03-.257-.058-.082-.088-.097-.206-.036-.262.062-.056.175-.03.258.058.082.089.098.206.035.262zm.501.915c-.077.054-.202.004-.28-.11-.078-.114-.078-.251.002-.305.078-.054.201-.005.279.108.078.115.078.252-.001.307zm.621.797c-.069.077-.215.056-.321-.048-.108-.103-.138-.25-.069-.327.07-.077.217-.056.323.048.107.103.139.251.067.327zm.842.396c-.03.099-.166.144-.302.101-.136-.044-.225-.162-.196-.262.029-.099.165-.145.302-.102.136.044.225.162.196.263zm1.002.129c.003.104-.112.19-.255.193-.144.003-.261-.081-.263-.184 0-.105.113-.191.256-.193.144-.003.262.081.262.184zm.937-.079c.018.101-.082.205-.225.233-.14.028-.27-.036-.288-.136-.018-.102.083-.206.226-.234.141-.027.269.035.287.137z"/>
+                {/* YouTube */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
+                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
                 </svg>
+                {/* TikTok */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+                </svg>
+                {/* LinkedIn */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                  <rect x="2" y="9" width="4" height="12"/>
+                  <circle cx="4" cy="4" r="2"/>
+                </svg>
+                {/* Pinterest */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8 14s1.5 2 4 2 4-6 4-6-1-2-3-2-4 2-4 5c0 2.5 2.5 4.5 5 4.5"/>
+                </svg>
+                {/* X (Twitter) */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4l11.733 16h4.267l-11.733-16z"/>
+                  <path d="M4 20l6.768-6.768m2.46-2.46L20 4"/>
+                </svg>
+                {/* Snapchat */}
+                <img 
+                  src={snapchatIcon} 
+                  alt="Snapchat" 
+                  className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer"
+                />
               </div>
               
               {/* Credibility Text */}
@@ -285,64 +313,40 @@ const Home = () => {
               {/* Features List with Minimalist Edit Icons */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="#43A047" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className="w-5 h-5"
-                      style={{ transform: 'translate(1px, 1px)' }}
-                    >
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                    </svg>
+                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                    <img 
+                      src={editIcon} 
+                      alt="Editar" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
                     Gerador de catálogo de produtos em PDF.
                   </p>
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="#43A047" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className="w-5 h-5"
-                      style={{ transform: 'translate(1px, 1px)' }}
-                    >
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                    </svg>
+                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                    <img 
+                      src={editIcon} 
+                      alt="Editar" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
                     Confirmação e lista do pedido diretamente no seu WhatsApp.
                   </p>
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center relative transition-all duration-300 hover:scale-110 cursor-pointer" style={{ borderColor: '#43A047' }}>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="#43A047" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className="w-5 h-5"
-                      style={{ transform: 'translate(1px, 1px)' }}
-                    >
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                    </svg>
+                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                    <img 
+                      src={editIcon} 
+                      alt="Editar" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
                     Transparência, organização e segurança nas suas vendas.
                   </p>
                 </div>
