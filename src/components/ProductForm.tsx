@@ -7,6 +7,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
+import { z } from "zod";
+
+const productSchema = z.object({
+  name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
+  description: z.string().max(2000, "Descrição muito longa").optional(),
+  price: z.number({ invalid_type_error: "Preço inválido" })
+    .positive("Preço deve ser positivo")
+    .max(999999.99, "Preço máximo excedido")
+    .finite("Preço inválido"),
+  stock: z.number({ invalid_type_error: "Estoque inválido" })
+    .int("Estoque deve ser um número inteiro")
+    .min(0, "Estoque não pode ser negativo")
+    .max(999999, "Estoque máximo excedido")
+});
 
 interface Product {
   id: string;
@@ -62,7 +76,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       .upload(fileName, imageFile);
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      if (import.meta.env.DEV) {
+        console.error('Upload error:', uploadError);
+      }
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível fazer upload da imagem",
+        variant: "destructive",
+      });
       return null;
     }
 
@@ -90,11 +111,34 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
 
       const imageUrl = await uploadImage(user.id);
 
+      // Validate input data
+      const parsedPrice = parseFloat(price);
+      const parsedStock = parseInt(stock);
+
+      try {
+        productSchema.parse({
+          name,
+          description: description || undefined,
+          price: parsedPrice,
+          stock: parsedStock
+        });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          const firstError = validationError.errors[0];
+          toast({
+            title: "Dados inválidos",
+            description: firstError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       const productData = {
-        name,
-        description: description || null,
-        price: parseFloat(price),
-        stock: parseInt(stock),
+        name: name.trim(),
+        description: description?.trim() || null,
+        price: parsedPrice,
+        stock: parsedStock,
         image_url: imageUrl,
         user_id: user.id,
       };
@@ -128,7 +172,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      console.error('Error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error:', error);
+      }
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao salvar o produto",
