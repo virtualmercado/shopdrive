@@ -217,49 +217,48 @@ const Home = () => {
                 </p>
               </div>
               
-              {/* Social Media Icons - Minimalist Flat Design */}
+              {/* Social Media Icons - All Purple #6a1b9a - Minimalist Flat Design */}
               <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-6 justify-items-center">
                 {/* Instagram */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <circle cx="12" cy="12" r="4" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="#6a1b9a"/>
                 </svg>
                 {/* Facebook */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <path d="M15.5 12.5h-2v7h-3v-7h-2v-2.5h2V8.5c0-1.7 1-3 3-3h2v2.5h-1.5c-.5 0-.5.3-.5.8v1.7h2l-.5 2.5z" fill="#6a1b9a"/>
                 </svg>
                 {/* YouTube */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
-                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="5" width="20" height="14" rx="3" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <path d="M10 8.5L15 12L10 15.5V8.5Z" fill="#6a1b9a" stroke="#6a1b9a" strokeWidth="1"/>
                 </svg>
                 {/* TikTok */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" fill="#6a1b9a" strokeWidth="0"/>
                 </svg>
                 {/* LinkedIn */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-                  <rect x="2" y="9" width="4" height="12"/>
-                  <circle cx="4" cy="4" r="2"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="2" width="20" height="20" rx="2" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <rect x="5" y="9" width="3" height="9" fill="#6a1b9a"/>
+                  <circle cx="6.5" cy="6" r="1.5" fill="#6a1b9a"/>
+                  <path d="M12 9c1.5 0 2.5.5 3 1.5V9h3v9h-3v-5c0-1-.5-2-1.5-2s-1.5 1-1.5 2v5h-3V9h3z" fill="#6a1b9a"/>
                 </svg>
-                {/* Pinterest */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M8 14s1.5 2 4 2 4-6 4-6-1-2-3-2-4 2-4 5c0 2.5 2.5 4.5 5 4.5"/>
+                {/* Pinterest - E-commerce Standard Model */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="#6a1b9a" strokeWidth="1.5"/>
+                  <path d="M12.5 6c2.5 0 4.5 2 4.5 4.5 0 2-1.2 3.5-2.8 3.5-.6 0-1.1-.3-1.3-.8 0 0-.3 1.2-.4 1.4-.2.8-.8 1.6-1.2 2.1-.3.1-.5.1-.6 0 0-.2-.1-.8-.1-1.2 0-.4.5-2.2.5-2.2s-.1-.5-.1-1.1c0-1.1.6-1.9 1.4-1.9.6 0 1 .5 1 1.1 0 .7-.4 1.7-.7 2.6-.2.8.4 1.4 1.2 1.4 1.4 0 2.4-1.8 2.4-3.9 0-1.6-1.1-2.8-3.1-2.8-2.3 0-3.7 1.7-3.7 3.6 0 .7.2 1.2.5 1.6.1.1.1.2.1.3-.1.3-.2.8-.2.9-.1.2-.2.2-.4.1-1-.4-1.5-1.5-1.5-2.7 0-2.1 1.8-4.6 5.3-4.6z" fill="#6a1b9a"/>
                 </svg>
                 {/* X (Twitter) */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 text-primary transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4l11.733 16h4.267l-11.733-16z"/>
-                  <path d="M4 20l6.768-6.768m2.46-2.46L20 4"/>
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#6a1b9a" strokeWidth="0"/>
                 </svg>
-                {/* Snapchat */}
-                <img 
-                  src={snapchatIcon} 
-                  alt="Snapchat" 
-                  className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer"
-                />
+                {/* Snapchat - Thicker lines, purple color */}
+                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12.206 2.003c.88 0 1.654.238 2.298.705.61.443 1.044 1.052 1.292 1.814.097.296.15.608.167.928.011.218.014.664.014 1.328v.156c.227.043.438.063.625.063.405 0 .756-.13 1.042-.385.163-.147.35-.214.556-.214.25 0 .464.091.638.271.173.181.26.397.26.643 0 .318-.13.595-.384.823-.254.228-.553.341-.89.341-.16 0-.32-.024-.477-.07-.156-.047-.335-.124-.532-.228a1.928 1.928 0 01-.304-.192c-.234.88-.584 1.636-1.042 2.25-.458.612-1.024 1.108-1.682 1.476.088.048.197.101.32.156.123.056.246.099.365.128.218.055.42.082.601.082.386 0 .738-.137 1.046-.408.178-.157.382-.236.607-.236.225 0 .42.08.58.238.16.16.239.355.239.585 0 .318-.13.595-.384.823-.254.228-.553.341-.89.341-.16 0-.32-.024-.477-.07-.156-.047-.335-.124-.532-.228a2.084 2.084 0 01-.368-.237c-.218.97-.569 1.79-1.042 2.437-.472.646-1.052 1.164-1.726 1.54-.674.376-1.437.565-2.27.565-.833 0-1.596-.189-2.27-.565-.674-.376-1.254-.894-1.726-1.54-.473-.647-.824-1.467-1.042-2.437a2.084 2.084 0 01-.368.237c-.197.104-.376.181-.532.228-.157.046-.317.07-.477.07-.337 0-.636-.113-.89-.341-.254-.228-.384-.505-.384-.823 0-.23.08-.424.239-.585.16-.158.355-.238.58-.238.225 0 .43.08.607.236.308.271.66.408 1.046.408.181 0 .383-.027.601-.082.119-.03.242-.072.365-.128.123-.055.232-.108.32-.156-.658-.368-1.224-.864-1.682-1.476-.458-.614-.808-1.37-1.042-2.25a1.928 1.928 0 01-.304.192c-.197.104-.376.181-.532.228-.157.046-.317.07-.477.07-.337 0-.636-.113-.89-.341-.254-.228-.384-.505-.384-.823 0-.246.087-.462.26-.643.174-.18.387-.271.638-.271.206 0 .393.067.556.214.286.255.637.385 1.042.385.187 0 .398-.02.625-.063v-.156c0-.664.003-1.11.014-1.328.017-.32.07-.632.167-.928.248-.762.682-1.371 1.292-1.814.644-.467 1.418-.705 2.298-.705z" fill="#6a1b9a" stroke="#6a1b9a" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               
               {/* Credibility Text */}
@@ -310,43 +309,43 @@ const Home = () => {
                 </p>
               </div>
               
-              {/* Features List with Minimalist Edit Icons */}
+              {/* Features List with Smaller Edit Icons */}
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                  <div className="flex-shrink-0 w-9 h-9 transition-all duration-300 hover:scale-110 cursor-pointer">
                     <img 
                       src={editIcon} 
                       alt="Editar" 
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Gerador de catálogo de produtos em PDF.
                   </p>
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                  <div className="flex-shrink-0 w-9 h-9 transition-all duration-300 hover:scale-110 cursor-pointer">
                     <img 
                       src={editIcon} 
                       alt="Editar" 
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Confirmação e lista do pedido diretamente no seu WhatsApp.
                   </p>
                 </div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-11 h-11 transition-all duration-300 hover:scale-110 cursor-pointer">
+                  <div className="flex-shrink-0 w-9 h-9 transition-all duration-300 hover:scale-110 cursor-pointer">
                     <img 
                       src={editIcon} 
                       alt="Editar" 
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <p className="text-lg pt-2" style={{ color: '#5A5A5A' }}>
+                  <p className="text-lg pt-1" style={{ color: '#5A5A5A' }}>
                     Transparência, organização e segurança nas suas vendas.
                   </p>
                 </div>
