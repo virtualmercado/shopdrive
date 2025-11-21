@@ -45,18 +45,18 @@ const Store = () => {
       // Fetch store profile using public view
       const { data: profileData, error: profileError } = await supabase
         .from("public_profiles")
-        .select("store_name, store_slug, store_description, store_logo_url, primary_color, secondary_color, id")
+        .select("store_name, store_slug, store_description, store_logo_url, primary_color, secondary_color")
         .eq("store_slug", storeSlug)
         .single();
 
       if (profileError) throw profileError;
       setStoreProfile(profileData);
 
-      // Fetch products for this store
+      // Fetch products using secure public view (without exposing user_id)
       const { data: productsData, error: productsError } = await supabase
-        .from("products")
-        .select("*")
-        .eq("user_id", profileData.id)
+        .from("public_store_products")
+        .select("id, name, description, price, stock, image_url, created_at")
+        .eq("store_slug", storeSlug)
         .gt("stock", 0)
         .order("created_at", { ascending: false });
 
