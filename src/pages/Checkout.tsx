@@ -102,15 +102,13 @@ const Checkout = () => {
         await supabase.functions.invoke("send-order-notifications", {
           body: {
             orderId: orderData.id,
-            customerEmail: sanitizedEmail,
-            customerName: sanitizedName,
-            storeOwnerId: profileData.id,
-            totalAmount: getTotalPrice(),
-            orderItems: orderItems,
           },
         });
       } catch (emailError) {
         // Don't block order completion if email fails
+        if (import.meta.env.DEV) {
+          console.error("Email notification error:", emailError);
+        }
       }
 
       toast({
@@ -121,7 +119,9 @@ const Checkout = () => {
       clearCart();
       navigate(`/store/${storeSlug}`);
     } catch (error) {
-      console.error("Error:", error);
+      if (import.meta.env.DEV) {
+        console.error("Checkout error:", error);
+      }
       toast({
         title: "Erro ao processar pedido",
         description: "Tente novamente mais tarde",
