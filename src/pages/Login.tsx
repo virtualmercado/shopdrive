@@ -6,6 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Store } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string()
+    .email("Email inválido")
+    .max(255, "Email muito longo")
+    .toLowerCase()
+    .trim(),
+  password: z.string()
+    .min(6, "Senha deve ter pelo menos 6 caracteres")
+    .max(100, "Senha muito longa")
+});
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +26,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -25,10 +39,22 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      // Validate input data
+      const validatedData = loginSchema.parse({ email, password });
+      
+      const { error } = await signIn(validatedData.email, validatedData.password);
       
       if (!error) {
         navigate("/dashboard");
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast({
+          title: "Dados inválidos",
+          description: firstError.message,
+          variant: "destructive",
+        });
       }
     } finally {
       setLoading(false);

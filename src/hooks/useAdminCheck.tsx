@@ -22,7 +22,9 @@ export const useAdminCheck = () => {
         if (error) throw error;
         setIsAdmin(data || false);
       } catch (error) {
-        console.error('Error checking admin role:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error checking admin role:', error);
+        }
         setIsAdmin(false);
       } finally {
         setLoading(false);
