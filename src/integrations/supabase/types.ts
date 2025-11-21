@@ -179,6 +179,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           full_name: string
           id: string
           primary_color: string | null
@@ -191,6 +192,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           full_name: string
           id: string
           primary_color?: string | null
@@ -203,6 +205,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           full_name?: string
           id?: string
           primary_color?: string | null
@@ -321,7 +324,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          store_description: string | null
+          store_logo_url: string | null
+          store_name: string | null
+          store_slug: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -331,6 +369,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_store: { Args: { store_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
