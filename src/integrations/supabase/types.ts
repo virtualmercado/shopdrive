@@ -60,6 +60,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
         ]
       }
       orders: {
@@ -357,6 +364,20 @@ export type Database = {
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
+        }
+        Relationships: []
+      }
+      public_store_products: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          price: number | null
+          stock: number | null
+          store_slug: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
