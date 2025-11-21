@@ -51,9 +51,9 @@ const Checkout = () => {
         throw new Error("Endereço inválido");
       }
 
-      // Get store owner ID
+      // Get store owner ID using public view
       const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("id")
         .eq("store_slug", storeSlug)
         .single();
