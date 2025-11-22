@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import DashboardLayout from '@/components/layout/DashboardLayout';
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Search, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -146,16 +146,16 @@ const Subscribers = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </DashboardLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <AdminLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Gerenciar Assinantes</h1>
@@ -245,7 +245,7 @@ const Subscribers = () => {
           )}
         </Card>
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 };
 
