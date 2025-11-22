@@ -1,29 +1,23 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, DollarSign, TrendingDown, AlertCircle, FileText } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { StatCard } from '@/components/admin/StatCard';
 import { EventFeed } from '@/components/admin/EventFeed';
+import { supabase } from '@/integrations/supabase/client';
+import { Users, DollarSign, TrendingDown, AlertCircle, Ticket } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-
-interface Stats {
-  activeSubscriptions: number;
-  mrr: number;
-  churn: string;
-  pastDue: number;
-  openTickets: number;
-}
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats>({
-    activeSubscriptions: 0,
+  const [stats, setStats] = useState({
+    activeSubscribers: 0,
     mrr: 0,
-    churn: '0%',
+    churnRate: 0,
     pastDue: 0,
-    openTickets: 0
+    openTickets: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [mrrData, setMrrData] = useState<any[]>([]);
+  const [planData, setPlanData] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -31,45 +25,67 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch subscriptions data
+      // Fetch active subscriptions
       const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
-        .select('*, subscription_plans(price, name)');
+        .select('*, subscription_plans(price, name)')
+        .eq('status', 'active');
 
       if (subsError) throw subsError;
 
-      // Calculate stats
-      const activeSubscriptions = subscriptions?.filter(s => s.status === 'active').length || 0;
-      const pastDue = subscriptions?.filter(s => s.status === 'past_due').length || 0;
-      
-      const totalMRR = subscriptions
-        ?.filter(s => s.status === 'active')
-        .reduce((acc, sub: any) => acc + (sub.subscription_plans?.price || 0), 0) || 0;
+      // Fetch past due invoices
+      const { data: pastDueInvoices, error: invoicesError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('status', 'overdue');
 
-      // Calculate churn (simplified - cancelled in last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const cancelledRecently = subscriptions?.filter(
-        s => s.status === 'cancelled' && new Date(s.updated_at) >= thirtyDaysAgo
-      ).length || 0;
-      const churnRate = activeSubscriptions > 0 
-        ? ((cancelledRecently / activeSubscriptions) * 100).toFixed(1) 
-        : '0.0';
+      if (invoicesError) throw invoicesError;
 
       // Fetch open tickets
-      const { data: ticketsData } = await supabase
+      const { data: tickets, error: ticketsError } = await supabase
         .from('support_tickets')
-        .select('id')
+        .select('*')
         .eq('status', 'open');
 
-      setStats({
-        activeSubscriptions,
-        mrr: totalMRR,
-        churn: `${churnRate}%`,
-        pastDue,
-        openTickets: ticketsData?.length || 0
+      if (ticketsError) throw ticketsError;
+
+      // Calculate MRR
+      const mrr = subscriptions?.reduce((sum, sub) => {
+        const price = sub.subscription_plans?.price || 0;
+        return sum + Number(price);
+      }, 0) || 0;
+
+      // Calculate plan distribution
+      const planCounts: { [key: string]: number } = {};
+      subscriptions?.forEach(sub => {
+        const planName = sub.subscription_plans?.name || 'Sem Plano';
+        planCounts[planName] = (planCounts[planName] || 0) + 1;
       });
 
+      const planChartData = Object.entries(planCounts).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
+      setStats({
+        activeSubscribers: subscriptions?.length || 0,
+        mrr,
+        churnRate: 0, // Would need historical data
+        pastDue: pastDueInvoices?.length || 0,
+        openTickets: tickets?.length || 0,
+      });
+
+      setPlanData(planChartData);
+
+      // Mock MRR evolution data
+      setMrrData([
+        { month: 'Jan', mrr: mrr * 0.7 },
+        { month: 'Fev', mrr: mrr * 0.75 },
+        { month: 'Mar', mrr: mrr * 0.8 },
+        { month: 'Abr', mrr: mrr * 0.85 },
+        { month: 'Mai', mrr: mrr * 0.9 },
+        { month: 'Jun', mrr },
+      ]);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching dashboard data:', error);
@@ -79,86 +95,49 @@ export default function AdminDashboard() {
     }
   };
 
-  const mrrData = [
-    { month: 'Jan', value: 12000 },
-    { month: 'Fev', value: 15000 },
-    { month: 'Mar', value: 18000 },
-    { month: 'Abr', value: 22000 },
-    { month: 'Mai', value: 25000 },
-    { month: 'Jun', value: 28000 },
-  ];
-
-  const cycleData = [
-    { month: 'Jan', novos: 25, cancelados: 5, upgrades: 8, downgrades: 3 },
-    { month: 'Fev', novos: 30, cancelados: 7, upgrades: 10, downgrades: 4 },
-    { month: 'Mar', novos: 35, cancelados: 6, upgrades: 12, downgrades: 2 },
-    { month: 'Abr', novos: 40, cancelados: 8, upgrades: 15, downgrades: 5 },
-  ];
-
-  const plansData = [
-    { name: 'Grátis', value: 45 },
-    { name: 'Pro', value: 30 },
-    { name: 'Premium', value: 25 },
-  ];
-
-  const COLORS = ['#6a1b9a', '#FB8C00', '#43A047'];
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', '#FB8C00', '#4CAF50'];
 
   return (
     <AdminLayout>
-      <div className="p-8 space-y-8">
-        {/* Header */}
+      <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard Administrativo</h1>
-          <p className="text-muted-foreground mt-2">Visão geral da plataforma VirtualMercado</p>
+          <p className="text-muted-foreground">Visão geral da plataforma VirtualMercado</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard
-            icon={Users}
             title="Assinantes Ativos"
-            value={stats.activeSubscriptions}
-            color="primary"
+            value={stats.activeSubscribers}
+            icon={Users}
             loading={loading}
           />
-          
           <StatCard
-            icon={DollarSign}
             title="MRR"
-            value={new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL'
-            }).format(stats.mrr)}
-            color="success"
+            value={`R$ ${stats.mrr.toFixed(2)}`}
+            icon={DollarSign}
             loading={loading}
           />
-          
           <StatCard
-            icon={TrendingDown}
             title="Churn Rate"
-            value={stats.churn}
-            color="warning"
+            value={`${stats.churnRate.toFixed(1)}%`}
+            icon={TrendingDown}
             loading={loading}
           />
-          
           <StatCard
-            icon={AlertCircle}
             title="Inadimplentes"
             value={stats.pastDue}
-            color="danger"
+            icon={AlertCircle}
             loading={loading}
           />
-
           <StatCard
-            icon={FileText}
             title="Tickets Abertos"
             value={stats.openTickets}
-            color="info"
+            icon={Ticket}
             loading={loading}
           />
         </div>
 
-        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Evolução do MRR</h3>
@@ -168,46 +147,27 @@ export default function AdminDashboard() {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#6a1b9a" strokeWidth={2} />
+                <Legend />
+                <Line type="monotone" dataKey="mrr" stroke="hsl(var(--primary))" strokeWidth={2} name="MRR" />
               </LineChart>
             </ResponsiveContainer>
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Ciclo de Assinaturas</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cycleData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="novos" fill="#43A047" />
-                <Bar dataKey="cancelados" fill="#E53935" />
-                <Bar dataKey="upgrades" fill="#6a1b9a" />
-                <Bar dataKey="downgrades" fill="#FB8C00" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-
-        {/* Plans and Events */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Planos Mais Utilizados</h3>
+            <h3 className="text-lg font-semibold mb-4">Distribuição de Planos</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={plansData}
+                  data={planData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name}: ${entry.value}%`}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {plansData.map((entry, index) => (
+                  {planData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -215,8 +175,12 @@ export default function AdminDashboard() {
               </PieChart>
             </ResponsiveContainer>
           </Card>
+        </div>
 
-          <EventFeed />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <EventFeed />
+          </div>
         </div>
       </div>
     </AdminLayout>
