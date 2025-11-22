@@ -1,37 +1,28 @@
-import { AdminLayout } from '@/components/layout/AdminLayout';
 import { useEffect, useState } from 'react';
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { Users, DollarSign, TrendingDown, AlertCircle, FileText } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { StatCard } from '@/components/admin/StatCard';
+import { EventFeed } from '@/components/admin/EventFeed';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, DollarSign, AlertTriangle, FileText } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Stats {
-  activeSubscribers: number;
-  overdueSubscribers: number;
-  newSubscriptions: number;
+  activeSubscriptions: number;
   mrr: number;
-  churn: number;
-  overdueInvoices: number;
-}
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  severity: string;
-  created_at: string;
+  churn: string;
+  pastDue: number;
+  openTickets: number;
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
-    activeSubscribers: 0,
-    overdueSubscribers: 0,
-    newSubscriptions: 0,
+    activeSubscriptions: 0,
     mrr: 0,
-    churn: 0,
-    overdueInvoices: 0,
+    churn: '0%',
+    pastDue: 0,
+    openTickets: 0
   });
-  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,43 +31,45 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch active subscriptions
-      const { data: activeData } = await supabase
+      // Fetch subscriptions data
+      const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
-        .select('*', { count: 'exact' })
-        .eq('status', 'active');
+        .select('*, subscription_plans(price, name)');
 
-      // Fetch new subscriptions (last 30 days)
+      if (subsError) throw subsError;
+
+      // Calculate stats
+      const activeSubscriptions = subscriptions?.filter(s => s.status === 'active').length || 0;
+      const pastDue = subscriptions?.filter(s => s.status === 'past_due').length || 0;
+      
+      const totalMRR = subscriptions
+        ?.filter(s => s.status === 'active')
+        .reduce((acc, sub: any) => acc + (sub.subscription_plans?.price || 0), 0) || 0;
+
+      // Calculate churn (simplified - cancelled in last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: newData } = await supabase
-        .from('subscriptions')
-        .select('*', { count: 'exact' })
-        .gte('created_at', thirtyDaysAgo.toISOString());
+      const cancelledRecently = subscriptions?.filter(
+        s => s.status === 'cancelled' && new Date(s.updated_at) >= thirtyDaysAgo
+      ).length || 0;
+      const churnRate = activeSubscriptions > 0 
+        ? ((cancelledRecently / activeSubscriptions) * 100).toFixed(1) 
+        : '0.0';
 
-      // Fetch overdue invoices
-      const { data: overdueData } = await supabase
-        .from('invoices')
-        .select('*', { count: 'exact' })
-        .eq('status', 'overdue');
-
-      // Fetch recent events
-      const { data: eventsData } = await supabase
-        .from('platform_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Fetch open tickets
+      const { data: ticketsData } = await supabase
+        .from('support_tickets')
+        .select('id')
+        .eq('status', 'open');
 
       setStats({
-        activeSubscribers: activeData?.length || 0,
-        overdueSubscribers: 0,
-        newSubscriptions: newData?.length || 0,
-        mrr: 0,
-        churn: 0,
-        overdueInvoices: overdueData?.length || 0,
+        activeSubscriptions,
+        mrr: totalMRR,
+        churn: `${churnRate}%`,
+        pastDue,
+        openTickets: ticketsData?.length || 0
       });
 
-      setEvents(eventsData || []);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching dashboard data:', error);
@@ -110,33 +103,6 @@ export default function AdminDashboard() {
 
   const COLORS = ['#6a1b9a', '#FB8C00', '#43A047'];
 
-  const getSeverityColor = (severity: string) => {
-    const colors: Record<string, string> = {
-      success: 'text-green-600',
-      info: 'text-blue-600',
-      warning: 'text-orange-600',
-      error: 'text-red-600',
-    };
-    return colors[severity] || 'text-gray-600';
-  };
-
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="p-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
       <div className="p-8 space-y-8">
@@ -147,102 +113,49 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Assinantes Ativos</p>
-                <h3 className="text-3xl font-bold mt-2">{stats.activeSubscribers}</h3>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingUp size={16} />
-                  <span className="text-sm">+12%</span>
-                </div>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Users className="text-primary" size={24} />
-              </div>
-            </div>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            icon={Users}
+            title="Assinantes Ativos"
+            value={stats.activeSubscriptions}
+            color="primary"
+            loading={loading}
+          />
+          
+          <StatCard
+            icon={DollarSign}
+            title="MRR"
+            value={new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL'
+            }).format(stats.mrr)}
+            color="success"
+            loading={loading}
+          />
+          
+          <StatCard
+            icon={TrendingDown}
+            title="Churn Rate"
+            value={stats.churn}
+            color="warning"
+            loading={loading}
+          />
+          
+          <StatCard
+            icon={AlertCircle}
+            title="Inadimplentes"
+            value={stats.pastDue}
+            color="danger"
+            loading={loading}
+          />
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Assinantes Inadimplentes</p>
-                <h3 className="text-3xl font-bold mt-2">{stats.overdueSubscribers}</h3>
-                <div className="flex items-center gap-1 mt-2 text-red-600">
-                  <AlertTriangle size={16} />
-                  <span className="text-sm">Ação necessária</span>
-                </div>
-              </div>
-              <div className="p-3 bg-red-100 rounded-lg">
-                <AlertTriangle className="text-red-600" size={24} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Novas Assinaturas (30d)</p>
-                <h3 className="text-3xl font-bold mt-2">{stats.newSubscriptions}</h3>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingUp size={16} />
-                  <span className="text-sm">+8%</span>
-                </div>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <TrendingUp className="text-green-600" size={24} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">MRR</p>
-                <h3 className="text-3xl font-bold mt-2">R$ {stats.mrr.toLocaleString('pt-BR')}</h3>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingUp size={16} />
-                  <span className="text-sm">+15%</span>
-                </div>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <DollarSign className="text-primary" size={24} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Churn</p>
-                <h3 className="text-3xl font-bold mt-2">{stats.churn}%</h3>
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <TrendingDown size={16} />
-                  <span className="text-sm">-2%</span>
-                </div>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <TrendingDown className="text-orange-600" size={24} />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Faturas Atrasadas</p>
-                <h3 className="text-3xl font-bold mt-2">{stats.overdueInvoices}</h3>
-                <div className="flex items-center gap-1 mt-2 text-red-600">
-                  <AlertTriangle size={16} />
-                  <span className="text-sm">Pendente</span>
-                </div>
-              </div>
-              <div className="p-3 bg-red-100 rounded-lg">
-                <FileText className="text-red-600" size={24} />
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            icon={FileText}
+            title="Tickets Abertos"
+            value={stats.openTickets}
+            color="info"
+            loading={loading}
+          />
         </div>
 
         {/* Charts */}
@@ -303,27 +216,7 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Feed de Eventos</h3>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {events.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum evento recente</p>
-              ) : (
-                events.map(event => (
-                  <div key={event.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${getSeverityColor(event.severity)}`}></div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(event.created_at).toLocaleString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
+          <EventFeed />
         </div>
       </div>
     </AdminLayout>
