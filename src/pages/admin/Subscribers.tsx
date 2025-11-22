@@ -1,252 +1,179 @@
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Search, Filter } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { SubscriberDetailsModal } from '@/components/admin/SubscriberDetailsModal';
+import { useSubscribers } from '@/hooks/useSubscribers';
+import { Search, Download, Eye } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface Subscription {
-  id: string;
-  status: string;
-  created_at: string;
-  current_period_end: string;
-  subscription_plans: {
-    name: string;
-    price: number;
-  } | null;
-  profiles: {
-    full_name: string;
-    store_name: string | null;
-  } | null;
-}
-
-const Subscribers = () => {
-  const { toast } = useToast();
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function Subscribers() {
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    planId: '',
+  });
+  const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const { fetchSubscribers, loading } = useSubscribers();
 
   useEffect(() => {
-    fetchSubscriptions();
-  }, []);
+    loadSubscribers();
+  }, [filters]);
 
-  const fetchSubscriptions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          id,
-          status,
-          created_at,
-          current_period_end,
-          user_id,
-          subscription_plans (
-            name,
-            price
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch profiles separately
-      const userIds = data?.map(sub => sub.user_id) || [];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, store_name')
-        .in('id', userIds);
-
-      // Merge the data
-      const mergedData = (data || []).map(sub => {
-        const profile = profilesData?.find(p => p.id === sub.user_id);
-        return {
-          ...sub,
-          profiles: profile ? {
-            full_name: profile.full_name,
-            store_name: profile.store_name
-          } : null
-        };
-      });
-
-      setSubscriptions(mergedData as any);
-    } catch (error) {
-      console.error('Error fetching subscriptions:', error);
-      toast({
-        title: 'Erro ao carregar assinantes',
-        description: 'Não foi possível carregar a lista de assinantes.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+  const loadSubscribers = async () => {
+    const data = await fetchSubscribers(filters);
+    setSubscribers(data);
   };
-
-  const handleStatusChange = async (subscriptionId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ status: newStatus })
-        .eq('id', subscriptionId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Status atualizado',
-        description: 'O status da assinatura foi atualizado com sucesso.',
-      });
-
-      fetchSubscriptions();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: 'Erro ao atualizar',
-        description: 'Não foi possível atualizar o status da assinatura.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const filteredSubscriptions = subscriptions.filter(sub => {
-    const matchesSearch = 
-      sub.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.profiles?.store_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      active: 'default',
-      trialing: 'secondary',
-      canceled: 'destructive',
-      past_due: 'destructive',
-      paused: 'outline',
+    const colors = {
+      active: 'bg-green-500',
+      trialing: 'bg-blue-500',
+      cancelled: 'bg-red-500',
+      past_due: 'bg-yellow-500',
     };
-    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+    return <Badge className={colors[status as keyof typeof colors] || ''}>{status}</Badge>;
   };
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Gerenciar Assinantes</h1>
-          <p className="text-muted-foreground">Visualize e gerencie todas as assinaturas da plataforma</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Gerenciar Assinantes</h1>
+          </div>
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
         </div>
 
-        <Card className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou loja..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por nome, email ou loja..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="trialing">Teste</SelectItem>
-                <SelectItem value="canceled">Cancelado</SelectItem>
-                <SelectItem value="past_due">Vencido</SelectItem>
-                <SelectItem value="paused">Pausado</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+          <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="active">Ativo</SelectItem>
+              <SelectItem value="trialing">Trial</SelectItem>
+              <SelectItem value="cancelled">Cancelado</SelectItem>
+              <SelectItem value="past_due">Inadimplente</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => setFilters({ search: '', status: '', planId: '' })}>
+            Limpar Filtros
+          </Button>
+        </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Assinante</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Loja</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Última Atividade</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead>Assinante</TableHead>
-                  <TableHead>Loja</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Expira em</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    Carregando...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSubscriptions.map((sub) => (
-                  <TableRow key={sub.id}>
-                    <TableCell className="font-medium">
-                      {sub.profiles?.full_name || 'N/A'}
-                    </TableCell>
-                    <TableCell>{sub.profiles?.store_name || 'N/A'}</TableCell>
-                    <TableCell>{sub.subscription_plans?.name || 'N/A'}</TableCell>
-                    <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                    <TableCell>R$ {sub.subscription_plans?.price?.toFixed(2) || '0.00'}</TableCell>
+              ) : subscribers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Nenhum assinante encontrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                subscribers.map((subscriber) => (
+                  <TableRow key={subscriber.id}>
                     <TableCell>
-                      {new Date(sub.current_period_end).toLocaleDateString('pt-BR')}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                          {getInitials(subscriber.full_name)}
+                        </div>
+                        <span className="font-medium">{subscriber.full_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{subscriber.id}</TableCell>
+                    <TableCell>{subscriber.store_name || 'Sem loja'}</TableCell>
+                    <TableCell>
+                      {subscriber.subscriptions?.[0]?.subscription_plans?.name || 'Sem plano'}
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={sub.status}
-                        onValueChange={(value) => handleStatusChange(sub.id, value)}
+                      {subscriber.subscriptions?.[0]
+                        ? getStatusBadge(subscriber.subscriptions[0].status)
+                        : <Badge variant="outline">Sem assinatura</Badge>
+                      }
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {subscriber.last_activity
+                        ? formatDistanceToNow(new Date(subscriber.last_activity), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })
+                        : 'Nunca'}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedSubscriber(subscriber);
+                          setModalOpen(true);
+                        }}
                       >
-                        <SelectTrigger className="w-[130px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Ativo</SelectItem>
-                          <SelectItem value="trialing">Teste</SelectItem>
-                          <SelectItem value="canceled">Cancelado</SelectItem>
-                          <SelectItem value="past_due">Vencido</SelectItem>
-                          <SelectItem value="paused">Pausado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredSubscriptions.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum assinante encontrado</p>
-            </div>
-          )}
-        </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
+
+      <SubscriberDetailsModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        subscriber={selectedSubscriber}
+      />
     </AdminLayout>
   );
-};
-
-export default Subscribers;
+}
