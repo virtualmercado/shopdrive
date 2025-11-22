@@ -418,7 +418,7 @@ export type Database = {
       is_active_store: { Args: { store_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "financeiro" | "suporte" | "tecnico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -546,7 +546,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "financeiro", "suporte", "tecnico"],
     },
   },
 } as const
