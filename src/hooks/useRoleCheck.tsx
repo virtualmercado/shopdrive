@@ -63,5 +63,27 @@ export const useRoleCheck = () => {
     return hasAnyRole(requiredRoles);
   };
 
-  return { roles, hasRole, hasAnyRole, canAccess, loading };
+  const canPerformAction = (action: string): boolean => {
+    const actionPermissions: Record<string, AppRole[]> = {
+      'view_subscribers': ['admin', 'financeiro', 'suporte'],
+      'edit_subscribers': ['admin'],
+      'block_subscribers': ['admin', 'financeiro'],
+      'manage_invoices': ['admin', 'financeiro'],
+      'manage_payments': ['admin', 'financeiro'],
+      'manage_tickets': ['admin', 'suporte'],
+      'view_tickets': ['admin', 'suporte'],
+      'manage_integrations': ['admin', 'tecnico'],
+      'view_reports': ['admin', 'financeiro'],
+      'manage_plans': ['admin'],
+      'view_audit_logs': ['admin'],
+      'impersonate_user': ['admin'],
+    };
+
+    const requiredRoles = actionPermissions[action];
+    if (!requiredRoles) return false;
+    
+    return hasAnyRole(requiredRoles);
+  };
+
+  return { roles, hasRole, hasAnyRole, canAccess, canPerformAction, loading };
 };

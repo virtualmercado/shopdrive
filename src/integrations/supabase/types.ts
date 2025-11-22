@@ -136,6 +136,7 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          payment_link: string | null
           reference_period_end: string
           reference_period_start: string
           status: string
@@ -150,6 +151,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_link?: string | null
           reference_period_end: string
           reference_period_start: string
           status?: string
@@ -164,6 +166,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_link?: string | null
           reference_period_end?: string
           reference_period_start?: string
           status?: string
@@ -491,10 +494,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          cpf_cnpj: string | null
           created_at: string
           display_name: string | null
           full_name: string
           id: string
+          last_activity: string | null
+          phone: string | null
           primary_color: string | null
           secondary_color: string | null
           store_description: string | null
@@ -504,10 +511,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null
           full_name: string
           id: string
+          last_activity?: string | null
+          phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           store_description?: string | null
@@ -517,10 +528,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null
           full_name?: string
           id?: string
+          last_activity?: string | null
+          phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           store_description?: string | null
@@ -580,6 +595,7 @@ export type Database = {
           current_period_end: string
           current_period_start: string
           id: string
+          internal_notes: string | null
           plan_id: string | null
           status: string
           updated_at: string
@@ -591,6 +607,7 @@ export type Database = {
           current_period_end: string
           current_period_start?: string
           id?: string
+          internal_notes?: string | null
           plan_id?: string | null
           status?: string
           updated_at?: string
@@ -602,6 +619,7 @@ export type Database = {
           current_period_end?: string
           current_period_start?: string
           id?: string
+          internal_notes?: string | null
           plan_id?: string | null
           status?: string
           updated_at?: string
