@@ -26,12 +26,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { signOut } = useAuth();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-    { icon: Package, label: "Produtos", path: "/dashboard/products" },
-    { icon: ShoppingCart, label: "Pedidos", path: "/dashboard/orders" },
-    { icon: Store, label: "Minha Loja", path: "/dashboard/store" },
-    { icon: Palette, label: "Personalizar", path: "/dashboard/customize" },
-    { icon: Settings, label: "Configurações", path: "/dashboard/settings" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/lojista" },
+    { icon: Package, label: "Produtos", path: "/lojista/products" },
+    { icon: ShoppingCart, label: "Pedidos", path: "/lojista/orders" },
+    { icon: Store, label: "Minha Loja", path: "/lojista/store" },
+    { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
+    { icon: Settings, label: "Configurações", path: "/lojista/settings" },
   ];
 
   const handleLogout = async () => {
