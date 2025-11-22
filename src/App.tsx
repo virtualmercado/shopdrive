@@ -15,6 +15,10 @@ import StorePreview from "./pages/dashboard/StorePreview";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Subscribers from "./pages/admin/Subscribers";
 import Plans from "./pages/admin/Plans";
+import Invoices from "./pages/admin/Invoices";
+import Reports from "./pages/admin/Reports";
+import Integrations from "./pages/admin/Integrations";
+import Support from "./pages/admin/Support";
 import Store from "./pages/Store";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -43,6 +47,10 @@ const App = () => (
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/subscribers" element={<AdminRoute><Subscribers /></AdminRoute>} />
           <Route path="/admin/plans" element={<AdminRoute><Plans /></AdminRoute>} />
+          <Route path="/admin/invoices" element={<AdminRoute><Invoices /></AdminRoute>} />
+          <Route path="/admin/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+          <Route path="/admin/integrations" element={<AdminRoute><Integrations /></AdminRoute>} />
+          <Route path="/admin/support" element={<AdminRoute><Support /></AdminRoute>} />
           
           {/* Public Store Routes */}
           <Route path="/store/:storeSlug" element={<Store />} />
