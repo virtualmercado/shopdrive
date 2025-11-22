@@ -17,7 +17,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
       if (!user) {
         navigate('/login', { replace: true });
       } else if (!isAdmin) {
-        navigate('/dashboard', { replace: true });
+        navigate('/lojista', { replace: true });
       }
     }
   }, [user, isAdmin, authLoading, adminLoading, navigate]);

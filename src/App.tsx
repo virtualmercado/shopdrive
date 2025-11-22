@@ -34,12 +34,12 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-          <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-          <Route path="/dashboard/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
-          <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/dashboard/store" element={<ProtectedRoute><StorePreview /></ProtectedRoute>} />
+          <Route path="/lojista" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/lojista/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/lojista/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/lojista/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
+          <Route path="/lojista/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/lojista/store" element={<ProtectedRoute><StorePreview /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/subscribers" element={<AdminRoute><Subscribers /></AdminRoute>} />
           <Route path="/admin/plans" element={<AdminRoute><Plans /></AdminRoute>} />

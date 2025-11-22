@@ -33,7 +33,7 @@ const Register = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/lojista', { replace: true });
     }
   }, [user, navigate]);
 
@@ -59,7 +59,7 @@ const Register = () => {
       );
       
       if (!error) {
-        navigate("/dashboard");
+        navigate("/lojista");
       }
     } finally {
       setLoading(false);

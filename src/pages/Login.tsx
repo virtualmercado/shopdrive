@@ -30,7 +30,7 @@ const Login = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/lojista', { replace: true });
     }
   }, [user, navigate]);
 
@@ -45,7 +45,7 @@ const Login = () => {
       const { error } = await signIn(validatedData.email, validatedData.password);
       
       if (!error) {
-        navigate("/dashboard");
+        navigate("/lojista");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
