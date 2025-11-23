@@ -506,35 +506,59 @@ const Home = () => {
 
       {/* How it Works */}
       <section id="como-funciona" className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Como funciona</h2>
             <p className="text-xl" style={{ color: '#5A5A5A' }}>
               3 passos simples para começar a vender
             </p>
           </div>
-          <div className="space-y-8">
-            {[{
-            step: "1",
-            title: "Cadastre-se",
-            description: "Crie sua conta gratuitamente em menos de 2 minutos"
-          }, {
-            step: "2",
-            title: "Configure sua loja",
-            description: "Adicione produtos, personalize cores e layout"
-          }, {
-            step: "3",
-            title: "Comece a vender",
-            description: "Compartilhe sua loja e receba pedidos online"
-          }].map((item, index) => <div key={index} className="flex gap-6 items-start">
-                <div className="h-12 w-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                  {item.step}
+          <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+            {/* Left Side - Steps */}
+            <div className="space-y-10">
+              {[{
+                step: "1",
+                title: "Cadastre-se",
+                description: "Crie sua conta gratuitamente em menos de 2 minutos"
+              }, {
+                step: "2",
+                title: "Configure sua loja",
+                description: "Adicione produtos, personalize cores e layout"
+              }, {
+                step: "3",
+                title: "Comece a vender",
+                description: "Compartilhe sua loja e receba pedidos online"
+              }].map((item, index) => (
+                <div key={index} className="flex gap-6 items-start">
+                  <div className="text-6xl md:text-7xl font-bold flex-shrink-0" style={{ 
+                    color: '#333333',
+                    fontFamily: 'Georgia, serif',
+                    lineHeight: '1'
+                  }}>
+                    {item.step}
+                  </div>
+                  <div className="text-left pt-2">
+                    <h3 className="text-2xl font-semibold mb-2">{item.title}</h3>
+                    <p className="text-lg" style={{ color: '#5A5A5A' }}>{item.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-semibold mb-2">{item.title}</h3>
-                  <p className="text-lg" style={{ color: '#5A5A5A' }}>{item.description}</p>
-                </div>
-              </div>)}
+              ))}
+            </div>
+            
+            {/* Right Side - CTA */}
+            <div className="flex flex-col items-center justify-center space-y-6">
+              <Link to="/register" className="w-full max-w-sm">
+                <Button 
+                  size="lg" 
+                  className="w-full bg-secondary hover:bg-secondary/90 text-white font-semibold text-lg h-14"
+                >
+                  Criar Loja Agora
+                </Button>
+              </Link>
+              <p className="text-center text-lg max-w-sm" style={{ color: '#333333' }}>
+                Junte-se a milhares de lojistas que já vendem com a VirtualMercado
+              </p>
+            </div>
           </div>
         </div>
       </section>
