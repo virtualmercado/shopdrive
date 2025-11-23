@@ -11,6 +11,9 @@ import benefitsImage from "@/assets/benefits-handshake.jpg";
 import benefitsMobile from "@/assets/benefits-mobile.jpg";
 import snapchatIcon from "@/assets/snapchat-icon.png";
 import editIcon from "@/assets/edit-icon.png";
+import testimonialJuliana from "@/assets/testimonial-juliana.jpg";
+import testimonialMarcos from "@/assets/testimonial-marcos.jpg";
+import testimonialCarla from "@/assets/testimonial-carla.jpg";
 const Home = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -430,6 +433,73 @@ const Home = () => {
                   </Button>
                 </Link>
               </Card>)}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section - Prova Social */}
+      <section className="py-20 px-4 bg-background">
+        <div className="container mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">O que dizem nossos clientes</h2>
+            <p className="text-xl max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>
+              Histórias reais de quem transformou suas vendas com o VirtualMercado
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Card 1 - Juliana */}
+            <Card className="p-6 bg-white shadow-sm hover:shadow-lg transition-all">
+              <p className="text-lg mb-6 text-black leading-relaxed">
+                "Em menos de um dia, minha loja estava no ar! A plataforma é super intuitiva e o suporte é nota 10."
+              </p>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={testimonialJuliana} 
+                  alt="Juliana S." 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <p className="font-bold text-black">Juliana S.</p>
+                  <p className="text-sm" style={{ color: '#4A4A4A' }}>Dona da @doceju</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Card 2 - Marcos */}
+            <Card className="p-6 bg-white shadow-sm hover:shadow-lg transition-all">
+              <p className="text-lg mb-6 text-black leading-relaxed">
+                "Consegui organizar meus produtos e agora vendo para todo o Brasil. O editor de fotos me ajudou a deixar tudo mais profissional."
+              </p>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={testimonialMarcos} 
+                  alt="Marcos P." 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <p className="font-bold text-black">Marcos P.</p>
+                  <p className="text-sm" style={{ color: '#4A4A4A' }}>Artesão na @arteemmadeira</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Card 3 - Carla */}
+            <Card className="p-6 bg-white shadow-sm hover:shadow-lg transition-all">
+              <p className="text-lg mb-6 text-black leading-relaxed">
+                "Meus clientes amaram a facilidade de comprar pelo site. A integração com o WhatsApp é perfeita para fechar vendas."
+              </p>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={testimonialCarla} 
+                  alt="Carla F." 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <p className="font-bold text-black">Carla F.</p>
+                  <p className="text-sm" style={{ color: '#4A4A4A' }}>Consultora de Beleza</p>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
       </section>
