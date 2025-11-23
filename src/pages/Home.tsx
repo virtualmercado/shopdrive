@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter } from "lucide-react";
+import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
@@ -57,6 +57,22 @@ const Home = () => {
     icon: BarChart3,
     title: "Relatórios Completos",
     description: "Acompanhe vendas e performance em tempo real"
+  }, {
+    icon: Percent,
+    title: "Sem Taxa de Venda",
+    description: "A plataforma não cobra nenhum valor ou comissão nas suas vendas."
+  }, {
+    icon: LayoutDashboard,
+    title: "Painel Administrativo",
+    description: "Controle total sobre estoque, clientes, pedidos e envios."
+  }, {
+    icon: ImagePlus,
+    title: "Editor de Imagens",
+    description: "Edite de forma profissional as imagens e o cadastro dos seus produtos."
+  }, {
+    icon: Tag,
+    title: "Criador de Cupons",
+    description: "Gere cupons de desconto e aumente o número de vendas e clientes."
   }];
   return <div className="min-h-screen bg-background">
       {/* Header */}
@@ -362,12 +378,12 @@ const Home = () => {
       <section id="beneficios" className="py-20 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Por que escolher o VirtualMercado?</h2>
+            <h2 className="text-4xl font-bold mb-4">Recursos poderosos para suas vendas decolarem</h2>
             <p className="text-xl max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>
-              Tudo que você precisa para vender online em uma única plataforma
+              Ferramentas simples que geram resultados rápidos e lucrativos.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, index) => <Card key={index} className="p-6 hover:shadow-lg transition-all border-2 hover:border-primary/20">
                 <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <benefit.icon className="h-6 w-6 text-primary" />
