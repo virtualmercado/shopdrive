@@ -224,9 +224,9 @@ const Home = () => {
       {/* New Benefits Section with Image */}
       <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-12 items-center">
             {/* Left Side - Text and Icons */}
-            <div className="space-y-8">
+            <div className="space-y-8 order-1">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold mb-4 text-left">
                   Seus produtos disponíveis em todos os lugares
@@ -294,7 +294,7 @@ const Home = () => {
             </div>
             
             {/* Right Side - Image */}
-            <div className="order-first md:order-last">
+            <div className="order-3 md:order-2">
               <img 
                 src={benefitsImage} 
                 alt="Empreendedores de sucesso" 
