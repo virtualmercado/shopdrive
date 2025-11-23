@@ -441,9 +441,9 @@ const Home = () => {
       <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">O que dizem nossos clientes</h2>
+            <h2 className="text-4xl font-bold mb-4">Quem usa, aprova!</h2>
             <p className="text-xl max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>
-              Histórias reais de quem transformou suas vendas com o VirtualMercado
+              Histórias reais de quem transformou e melhorou o jeito de vender.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
