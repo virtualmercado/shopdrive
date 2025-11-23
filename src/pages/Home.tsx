@@ -5,7 +5,7 @@ import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
-import logoRodape from "@/assets/logo-rodape.png";
+import logoRodape from "@/assets/logo-footer.png";
 import heroImage from "@/assets/hero-banner.jpg";
 import benefitsImage from "@/assets/benefits-handshake.jpg";
 import benefitsMobile from "@/assets/benefits-mobile.jpg";
@@ -210,7 +210,7 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-sm mb-8" style={{ color: '#5A5A5A' }}>Plano FREE, vitalício, sem taxas ou cartão de crédito.</p>
+          <p className="text-base md:text-lg mb-8" style={{ color: '#5A5A5A' }}>Plano vitalício, sem taxas ou cartão de crédito</p>
           <div className="flex justify-center">
             <img 
               src={heroImage} 
