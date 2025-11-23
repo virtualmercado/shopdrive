@@ -530,9 +530,9 @@ const Home = () => {
                 description: "Compartilhe sua loja e receba pedidos online"
               }].map((item, index) => (
                 <div key={index} className="flex gap-6 items-start">
-                  <div className="text-6xl md:text-7xl font-bold flex-shrink-0" style={{ 
-                    color: '#333333',
-                    fontFamily: 'Georgia, serif',
+                  <div className="text-7xl md:text-8xl font-bold flex-shrink-0" style={{ 
+                    color: '#B0B0B0',
+                    fontFamily: 'Century Gothic, sans-serif',
                     lineHeight: '1'
                   }}>
                     {item.step}
@@ -563,22 +563,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-primary text-white">
-        <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Pronto para começar a vender?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Junte-se a milhares de lojistas que já vendem com o VirtualMercado
-          </p>
-          <Link to="/register">
-            <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-8">
-              Criar Minha Loja Agora
-            </Button>
-          </Link>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-[#1E1E1E] py-16 px-4">
