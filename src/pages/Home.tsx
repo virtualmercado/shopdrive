@@ -571,7 +571,7 @@ const Home = () => {
             {/* Coluna 1: VirtualMercado */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <img src={logoRodape} alt="VirtualMercado" className="h-10" />
+              <img src={logoRodape} alt="VirtualMercado" className="h-8" />
             </div>
               <p className="mb-6" style={{ color: '#6A1B9A' }}>Sua loja virtual em minutos.</p>
               <div className="flex gap-4">
