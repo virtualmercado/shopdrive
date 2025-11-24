@@ -283,6 +283,15 @@ const Home = () => {
                 </svg>
               </div>
               
+              {/* Mobile Image - Only visible on mobile, positioned after social icons */}
+              <div className="md:hidden mt-8">
+                <img 
+                  src={benefitsImage} 
+                  alt="Empreendedores de sucesso" 
+                  className="w-full h-auto rounded-lg shadow-lg"
+                />
+              </div>
+              
               {/* Credibility Text */}
               <div className="flex items-center gap-4 pt-2">
                 <div className="flex-shrink-0 p-3 bg-[#FB8C00] rounded-lg transition-all duration-300 hover:scale-110 hover:opacity-80 cursor-pointer">
@@ -294,8 +303,8 @@ const Home = () => {
               </div>
             </div>
             
-            {/* Right Side - Image */}
-            <div className="order-3 md:order-2">
+            {/* Right Side - Image - Hidden on mobile, visible on desktop/tablet */}
+            <div className="hidden md:block order-2">
               <img 
                 src={benefitsImage} 
                 alt="Empreendedores de sucesso" 
