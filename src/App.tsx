@@ -17,6 +17,13 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
+import Gestor from "./pages/admin/Gestor";
+import Assinantes from "./pages/admin/Assinantes";
+import Faturas from "./pages/admin/Faturas";
+import Relatorios from "./pages/admin/Relatorios";
+import Integracoes from "./pages/admin/Integracoes";
+import Suporte from "./pages/admin/Suporte";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +43,14 @@ const App = () => (
           <Route path="/lojista/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
           <Route path="/lojista/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/lojista/store" element={<ProtectedRoute><StorePreview /></ProtectedRoute>} />
+          
+          {/* Admin Routes */}
+          <Route path="/gestor" element={<AdminRoute><Gestor /></AdminRoute>} />
+          <Route path="/gestor/assinantes" element={<AdminRoute><Assinantes /></AdminRoute>} />
+          <Route path="/gestor/faturas" element={<AdminRoute><Faturas /></AdminRoute>} />
+          <Route path="/gestor/relatorios" element={<AdminRoute><Relatorios /></AdminRoute>} />
+          <Route path="/gestor/integracoes" element={<AdminRoute><Integracoes /></AdminRoute>} />
+          <Route path="/gestor/suporte" element={<AdminRoute><Suporte /></AdminRoute>} />
           
           {/* Public Store Routes */}
           <Route path="/store/:storeSlug" element={<Store />} />
