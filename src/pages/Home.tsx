@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
@@ -563,6 +564,84 @@ const Home = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">Dúvidas Frequentes</h2>
+            <p className="text-xl" style={{ color: '#5A5A5A' }}>
+              Encontre aqui as respostas para as perguntas mais comuns.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  A VirtualMercado é grátis mesmo?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Sim! Você pode ter uma loja totalmente gratuita, e caso queira recursos exclusivos, pode assinar um plano pago.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Preciso ter CNPJ para começar?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Não! Você pode começar a vender usando apenas seu CPF e, quando seu negócio crescer, pode migrar para um CNPJ facilmente.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Como funciona o recebimento das minhas vendas?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Você pode receber via PIX, que cai na hora na sua conta, ou integrar com outras soluções de pagamento para aceitar cartão e boleto. Tudo de forma segura.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Posso usar um domínio que já tenho?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Sim! No plano PREMIUM, você pode conectar seu próprio domínio (ex: www.sualoja.com.br) para deixar sua loja ainda mais profissional.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Posso cancelar a assinatura quando quiser?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Sim, você pode cancelar sua assinatura a qualquer momento.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Posso usar meu site na plataforma como catálogo de produtos?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Sim! Você pode usar sua loja como um catálogo digital em PDF, exibindo fotos, descrições e preços dos produtos mesmo sem ativar o sistema de vendas online.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-7">
+                <AccordionTrigger className="text-left text-lg font-semibold hover:no-underline">
+                  Como faço o pagamento da minha assinatura aqui na VirtualMercado?
+                </AccordionTrigger>
+                <AccordionContent className="text-base" style={{ color: '#5A5A5A' }}>
+                  Você paga uma mensalidade ou anuidade diretamente pela plataforma. Aceitamos PIX, cartão de crédito, cartão de débito e boleto bancário.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="bg-[#EDE5F8] py-16 px-4">
