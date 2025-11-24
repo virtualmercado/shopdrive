@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Package, 
@@ -8,12 +8,16 @@ import {
   Store,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Copy,
+  Check
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -21,9 +25,45 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [storeUrl, setStoreUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+
+  useEffect(() => {
+    const fetchStoreUrl = async () => {
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("store_slug")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.store_slug) {
+        // Para agora, usar sempre virtualmercado.app
+        // TODO: Implementar lógica de domínio próprio para plano Premium
+        const url = `https://virtualmercado.app/${profile.store_slug}`;
+        setStoreUrl(url);
+      }
+    };
+
+    fetchStoreUrl();
+  }, [user]);
+
+  const handleCopyLink = async () => {
+    if (!storeUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(storeUrl);
+      setCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error("Erro ao copiar link");
+    }
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/lojista" },
@@ -111,10 +151,38 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Header */}
         <header className="bg-white border-b sticky top-0 z-40">
           <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <h1 className="text-2xl font-bold text-foreground">
                 {menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
               </h1>
+              
+              {/* Store Link Badge */}
+              {storeUrl && (
+                <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                  <span className="text-sm font-medium text-black">Seu Link:</span>
+                  <a 
+                    href={storeUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline font-medium"
+                  >
+                    {storeUrl}
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCopyLink}
+                    className="h-8 w-8 hover:bg-gray-100 transition-colors"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-600" />
+                    )}
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-center gap-4">
                 <Link to="/store-preview">
                   <Button variant="outline" className="gap-2">
