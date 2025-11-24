@@ -7,26 +7,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 interface StoreFiltersProps {
   search: string;
   status: string;
   plan: string;
+  dateRange?: DateRange;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onPlanChange: (value: string) => void;
+  onDateRangeChange: (range: DateRange | undefined) => void;
 }
 
 export const StoreFilters = ({
   search,
   status,
   plan,
+  dateRange,
   onSearchChange,
   onStatusChange,
   onPlanChange,
+  onDateRangeChange,
 }: StoreFiltersProps) => {
   return (
-    <div className="flex flex-col md:flex-row gap-4 mb-6">
+    <div className="space-y-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4">
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -60,6 +67,12 @@ export const StoreFilters = ({
           <SelectItem value="premium">Premium</SelectItem>
         </SelectContent>
       </Select>
+      </div>
+
+      <DatePickerWithRange
+        value={dateRange}
+        onChange={onDateRangeChange}
+      />
     </div>
   );
 };

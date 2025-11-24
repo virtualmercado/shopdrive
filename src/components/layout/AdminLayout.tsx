@@ -23,7 +23,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/gestor" },
   { icon: Users, label: "Assinantes", path: "/gestor/assinantes" },
-  { icon: FileText, label: "Faturas", path: "/gestor/faturas" },
+  { icon: FileText, label: "Faturas e Pagamentos", path: "/gestor/faturas" },
   { icon: BarChart3, label: "Relatórios", path: "/gestor/relatorios" },
   { icon: Plug, label: "Integrações", path: "/gestor/integracoes" },
   { icon: HeadphonesIcon, label: "Suporte", path: "/gestor/suporte" },
