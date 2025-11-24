@@ -16,22 +16,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MoreHorizontal, Eye, Edit, Ban, Trash2 } from "lucide-react";
 import { useStoresList } from "@/hooks/useStoresList";
 import { StoreFilters } from "./StoreFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreDetailsDialog } from "./StoreDetailsDialog";
+import { DateRange } from "react-day-picker";
 
 export const StoresList = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [plan, setPlan] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [page, setPage] = useState(0);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStore, setSelectedStore] = useState<any>(null);
 
   const { data, isLoading } = useStoresList(
-    { search, status, plan },
+    {
+      search,
+      status,
+      plan,
+      dateFrom: dateRange?.from?.toISOString(),
+      dateTo: dateRange?.to?.toISOString(),
+    },
     { page, pageSize }
   );
 
@@ -70,9 +85,11 @@ export const StoresList = () => {
         search={search}
         status={status}
         plan={plan}
+        dateRange={dateRange}
         onSearchChange={setSearch}
         onStatusChange={setStatus}
         onPlanChange={setPlan}
+        onDateRangeChange={setDateRange}
       />
 
       <div className="rounded-md border bg-card">
@@ -81,6 +98,7 @@ export const StoresList = () => {
             <TableRow>
               <TableHead>Nome da Loja</TableHead>
               <TableHead>Responsável</TableHead>
+              <TableHead>E-mail</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
@@ -96,6 +114,7 @@ export const StoresList = () => {
                     {store.store_name || "Sem nome"}
                   </TableCell>
                   <TableCell>{store.full_name}</TableCell>
+                  <TableCell>{(store.email as string) || "-"}</TableCell>
                   <TableCell>{store.phone || "-"}</TableCell>
                   <TableCell>{getPlanName(store)}</TableCell>
                   <TableCell>{getStatusBadge(store)}</TableCell>
@@ -144,13 +163,31 @@ export const StoresList = () => {
         </Table>
       </div>
 
-      {data && data.totalCount > pageSize && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {page * pageSize + 1} a{" "}
-            {Math.min((page + 1) * pageSize, data.totalCount)} de{" "}
-            {data.totalCount} lojistas
-          </p>
+      {data && data.totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {page * pageSize + 1} a{" "}
+              {Math.min((page + 1) * pageSize, data.totalCount)} de{" "}
+              {data.totalCount} lojistas
+            </p>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(0);
+              }}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 itens</SelectItem>
+                <SelectItem value="25">25 itens</SelectItem>
+                <SelectItem value="50">50 itens</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"

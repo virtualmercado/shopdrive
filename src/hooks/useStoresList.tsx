@@ -24,6 +24,17 @@ export const useStoresList = (
       const start = pagination.page * pagination.pageSize;
       const end = start + pagination.pageSize - 1;
 
+      // Get user emails from auth
+      const { data: authData } = await supabase.auth.admin.listUsers();
+      const emailMap = new Map<string, string>();
+      if (authData?.users) {
+        authData.users.forEach((u: any) => {
+          if (u.id && u.email) {
+            emailMap.set(u.id, u.email);
+          }
+        });
+      }
+
       let query = supabase
         .from("profiles")
         .select(
@@ -66,8 +77,14 @@ export const useStoresList = (
 
       if (error) throw error;
 
+      // Add emails to stores
+      const storesWithEmails = (data || []).map(store => ({
+        ...store,
+        email: emailMap.get(store.id) || null,
+      }));
+
       return {
-        stores: data || [],
+        stores: storesWithEmails,
         totalCount: count || 0,
       };
     },
