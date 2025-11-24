@@ -17,8 +17,6 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { AdminRoute } from "./components/AdminRoute";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -38,9 +36,6 @@ const App = () => (
           <Route path="/lojista/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
           <Route path="/lojista/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/lojista/store" element={<ProtectedRoute><StorePreview /></ProtectedRoute>} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           
           {/* Public Store Routes */}
           <Route path="/store/:storeSlug" element={<Store />} />
