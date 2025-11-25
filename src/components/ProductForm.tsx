@@ -11,7 +11,7 @@ import { z } from "zod";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
-  description: z.string().max(2000, "Descrição muito longa").optional(),
+  description: z.string().max(4000, "Descrição muito longa").optional(),
   price: z.number({ invalid_type_error: "Preço inválido" })
     .positive("Preço deve ser positivo")
     .max(999999.99, "Preço máximo excedido")
@@ -405,7 +405,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva seu produto..."
               rows={3}
+              maxLength={4000}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {description.length}/4000 caracteres
+            </p>
           </div>
 
           {/* Price and Promotional Price */}
