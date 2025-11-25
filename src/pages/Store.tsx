@@ -14,8 +14,17 @@ interface Product {
   name: string;
   description: string | null;
   price: number;
+  promotional_price: number | null;
   stock: number;
   image_url: string | null;
+  images: any;
+  category_id: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  user_id: string;
 }
 
 interface StoreProfile {
@@ -30,9 +39,12 @@ interface StoreProfile {
 const Store = () => {
   const { storeSlug } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [storeOwnerId, setStoreOwnerId] = useState<string>("");
   const { addToCart, getTotalItems } = useCart();
   const { toast } = useToast();
 
@@ -45,23 +57,35 @@ const Store = () => {
       // Fetch store profile using public view
       const { data: profileData, error: profileError } = await supabase
         .from("public_profiles")
-        .select("store_name, store_slug, store_description, store_logo_url, primary_color, secondary_color")
+        .select("id, store_name, store_slug, store_description, store_logo_url, primary_color, secondary_color")
         .eq("store_slug", storeSlug)
         .single();
 
       if (profileError) throw profileError;
       setStoreProfile(profileData);
+      setStoreOwnerId(profileData.id);
 
-      // Fetch products using secure public view (without exposing user_id)
+      // Fetch products using secure public view
       const { data: productsData, error: productsError } = await supabase
         .from("public_store_products")
-        .select("id, name, description, price, stock, image_url, created_at")
+        .select("*")
         .eq("store_slug", storeSlug)
         .gt("stock", 0)
         .order("created_at", { ascending: false });
 
       if (productsError) throw productsError;
       setProducts(productsData || []);
+
+      // Fetch categories
+      if (profileData.id) {
+        const { data: categoriesData } = await supabase
+          .from("product_categories")
+          .select("*")
+          .eq("user_id", profileData.id)
+          .order("name");
+        
+        if (categoriesData) setCategories(categoriesData);
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -88,9 +112,11 @@ const Store = () => {
     });
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) {
     return (
@@ -155,7 +181,7 @@ const Store = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Search */}
-        <div className="mb-8 max-w-md">
+        <div className="mb-6 max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -166,6 +192,29 @@ const Store = () => {
             />
           </div>
         </div>
+
+        {/* Categories Filter */}
+        {categories.length > 0 && (
+          <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+            <Button
+              variant={selectedCategory === "" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory("")}
+            >
+              Todas
+            </Button>
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category.id)}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {/* Products Grid */}
         {filteredProducts.length > 0 ? (
@@ -193,9 +242,22 @@ const Store = () => {
                     </p>
                   )}
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-2xl font-bold text-primary">
-                      R$ {product.price.toFixed(2)}
-                    </p>
+                    <div>
+                      {product.promotional_price ? (
+                        <div className="flex flex-col">
+                          <p className="text-sm text-muted-foreground line-through">
+                            R$ {product.price.toFixed(2)}
+                          </p>
+                          <p className="text-2xl font-bold text-primary">
+                            R$ {product.promotional_price.toFixed(2)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold text-primary">
+                          R$ {product.price.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                     <Badge variant="secondary">{product.stock} em estoque</Badge>
                   </div>
                   <Button
