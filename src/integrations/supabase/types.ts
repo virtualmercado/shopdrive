@@ -456,41 +456,82 @@ export type Database = {
         }
         Relationships: []
       }
-      products: {
+      product_categories: {
         Row: {
           created_at: string
-          description: string | null
           id: string
-          image_url: string | null
           name: string
-          price: number
-          stock: number
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
           id?: string
-          image_url?: string | null
           name: string
-          price: number
-          stock?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          description?: string | null
           id?: string
-          image_url?: string | null
           name?: string
-          price?: number
-          stock?: number
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          images: Json | null
+          name: string
+          price: number
+          promotional_price: number | null
+          stock: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          images?: Json | null
+          name: string
+          price: number
+          promotional_price?: number | null
+          stock?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          images?: Json | null
+          name?: string
+          price?: number
+          promotional_price?: number | null
+          stock?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -819,17 +860,28 @@ export type Database = {
       }
       public_store_products: {
         Row: {
+          category_id: string | null
           created_at: string | null
           description: string | null
           id: string | null
           image_url: string | null
+          images: Json | null
           name: string | null
           price: number | null
+          promotional_price: number | null
           stock: number | null
           store_slug: string | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

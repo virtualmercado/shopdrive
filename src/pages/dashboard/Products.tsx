@@ -23,13 +23,23 @@ interface Product {
   name: string;
   description: string | null;
   price: number;
+  promotional_price: number | null;
   stock: number;
   image_url: string | null;
+  images: any;
+  category_id: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -39,6 +49,7 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
@@ -60,6 +71,15 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from("product_categories")
+      .select("*")
+      .order("name");
+    
+    if (data) setCategories(data);
   };
 
   const handleEdit = (product: Product) => {
@@ -107,34 +127,61 @@ const Products = () => {
     setSelectedProduct(null);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar produtos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produtos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button 
+              className="bg-secondary hover:bg-secondary/90 gap-2"
+              onClick={() => {
+                setSelectedProduct(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Novo Produto
+            </Button>
           </div>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90 gap-2"
-            onClick={() => {
-              setSelectedProduct(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </Button>
+
+          {/* Categories Filter */}
+          {categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button
+                variant={selectedCategory === "" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory("")}
+              >
+                Todas
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.name}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Products Grid */}
@@ -166,9 +213,22 @@ const Products = () => {
                       {product.description}
                     </p>
                   )}
-                  <p className="text-2xl font-bold text-primary mb-2">
-                    R$ {product.price.toFixed(2)}
-                  </p>
+                  <div className="mb-2">
+                    {product.promotional_price ? (
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-muted-foreground line-through">
+                          R$ {product.price.toFixed(2)}
+                        </p>
+                        <p className="text-2xl font-bold text-primary">
+                          R$ {product.promotional_price.toFixed(2)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-primary">
+                        R$ {product.price.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground mb-4">
                     Estoque: {product.stock} unidades
                   </p>
