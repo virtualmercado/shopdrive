@@ -43,9 +43,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .single();
 
       if (profile?.store_slug) {
-        // Para agora, usar sempre virtualmercado.app
-        // TODO: Implementar lógica de domínio próprio para plano Premium
-        const url = `https://virtualmercado.app/${profile.store_slug}`;
+        const url = `${window.location.origin}/loja/${profile.store_slug}`;
         setStoreUrl(url);
       }
     };
@@ -185,14 +183,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </div>
               )}
 
-              <div className="flex items-center gap-4">
-                <Link to="/store-preview">
-                  <Button variant="outline" className="gap-2">
-                    <Store className="h-4 w-4" />
-                    Ver Loja
-                  </Button>
-                </Link>
-              </div>
+              {storeUrl && (
+                <div className="flex items-center gap-4">
+                  <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" className="gap-2">
+                      <Store className="h-4 w-4" />
+                      Ver Loja
+                    </Button>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </header>
