@@ -103,9 +103,15 @@ const OnlineStore = () => {
 
         <ProductCarousel
           title="Novidades"
-          subtitle="Confira os produtos mais recentes"
+          subtitle="Confira os últimos lançamentos"
           storeOwnerId={storeData.id}
-          newest={true}
+          newest
+        />
+
+        <ProductCarousel
+          title="Todos os Produtos"
+          subtitle="Navegue por todo o catálogo"
+          storeOwnerId={storeData.id}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

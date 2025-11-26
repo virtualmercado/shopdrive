@@ -185,12 +185,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
               {storeUrl && (
                 <div className="flex items-center gap-4">
-                  <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                  <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
                     <Button variant="outline" className="gap-2">
                       <Store className="h-4 w-4" />
                       Ver Loja
                     </Button>
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>
