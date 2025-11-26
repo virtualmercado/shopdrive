@@ -14,6 +14,7 @@ import Settings from "./pages/dashboard/Settings";
 import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
 import OnlineStore from "./pages/OnlineStore";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -38,8 +39,9 @@ function App() {
             <Route path="/lojista/store" element={<ProtectedRoute><StorePreviewEnhanced /></ProtectedRoute>} />
             <Route path="/lojista/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             
-            {/* Public Store Route */}
+            {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
+            <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
