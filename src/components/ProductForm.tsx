@@ -34,6 +34,8 @@ interface Product {
   image_url: string | null;
   images: string[];
   category_id: string | null;
+  is_featured?: boolean;
+  is_new?: boolean;
 }
 
 interface Category {
@@ -60,6 +62,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +83,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       setCategoryId(product.category_id || "");
       setImagePreviews(product.images || []);
       setImageFiles([]);
+      setIsFeatured(product.is_featured || false);
+      setIsNew(product.is_new || false);
     } else if (!open) {
       resetForm();
     }
@@ -253,6 +259,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         image_url: mainImage,
         images: allImages,
         category_id: categoryId || null,
+        is_featured: isFeatured,
+        is_new: isNew,
         user_id: user.id,
       };
 
@@ -309,6 +317,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     setImagePreviews([]);
     setNewCategoryName("");
     setShowNewCategory(false);
+    setIsFeatured(false);
+    setIsNew(false);
   };
 
   return (
@@ -508,6 +518,35 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                 placeholder="0"
                 required
               />
+            </div>
+          </div>
+
+          {/* Product Features */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="is_featured"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="is_featured" className="text-sm font-medium cursor-pointer">
+                Produto em Destaque
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="is_new"
+                checked={isNew}
+                onChange={(e) => setIsNew(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="is_new" className="text-sm font-medium cursor-pointer">
+                Produto Novidade
+              </Label>
             </div>
           </div>
 

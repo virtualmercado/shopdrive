@@ -46,10 +46,11 @@ const ProductCarousel = ({
 
       if (featured) {
         query = query.eq("is_featured", true);
-      }
-
-      if (newest) {
+      } else if (newest) {
         query = query.eq("is_new", true).order("created_at", { ascending: false });
+      } else {
+        // Se não tiver filtros, mostra todos ordenados por mais recente
+        query = query.order("created_at", { ascending: false });
       }
 
       const { data } = await query;
