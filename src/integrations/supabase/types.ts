@@ -609,9 +609,12 @@ export type Database = {
           instagram_url: string | null
           last_activity: string | null
           phone: string | null
+          pickup_address: string | null
           primary_color: string | null
           return_policy_text: string | null
           secondary_color: string | null
+          shipping_fixed_fee: number | null
+          shipping_free_minimum: number | null
           store_description: string | null
           store_logo_url: string | null
           store_name: string | null
@@ -639,9 +642,12 @@ export type Database = {
           instagram_url?: string | null
           last_activity?: string | null
           phone?: string | null
+          pickup_address?: string | null
           primary_color?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
+          shipping_fixed_fee?: number | null
+          shipping_free_minimum?: number | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
@@ -669,9 +675,12 @@ export type Database = {
           instagram_url?: string | null
           last_activity?: string | null
           phone?: string | null
+          pickup_address?: string | null
           primary_color?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
+          shipping_fixed_fee?: number | null
+          shipping_free_minimum?: number | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
