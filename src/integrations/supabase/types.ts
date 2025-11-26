@@ -284,11 +284,15 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone: string | null
+          delivery_fee: number | null
+          delivery_method: string | null
           id: string
           notes: string | null
+          order_number: string | null
           payment_method: string | null
           status: string
           store_owner_id: string
+          subtotal: number | null
           total_amount: number
           updated_at: string
         }
@@ -298,11 +302,15 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone?: string | null
+          delivery_fee?: number | null
+          delivery_method?: string | null
           id?: string
           notes?: string | null
+          order_number?: string | null
           payment_method?: string | null
           status?: string
           store_owner_id: string
+          subtotal?: number | null
           total_amount: number
           updated_at?: string
         }
@@ -312,11 +320,15 @@ export type Database = {
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
+          delivery_fee?: number | null
+          delivery_method?: string | null
           id?: string
           notes?: string | null
+          order_number?: string | null
           payment_method?: string | null
           status?: string
           store_owner_id?: string
+          subtotal?: number | null
           total_amount?: number
           updated_at?: string
         }
@@ -480,6 +492,45 @@ export type Database = {
         }
         Relationships: []
       }
+      product_images: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string | null
@@ -488,6 +539,8 @@ export type Database = {
           id: string
           image_url: string | null
           images: Json | null
+          is_featured: boolean | null
+          is_new: boolean | null
           name: string
           price: number
           promotional_price: number | null
@@ -502,6 +555,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: Json | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
           name: string
           price: number
           promotional_price?: number | null
@@ -516,6 +571,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: Json | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
           name?: string
           price?: number
           promotional_price?: number | null
@@ -967,6 +1024,7 @@ export type Database = {
     }
     Functions: {
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
+      generate_order_number: { Args: never; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
       has_role: {
         Args: {

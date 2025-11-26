@@ -7,6 +7,7 @@ import StoreBanner from "@/components/store/StoreBanner";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCart } from "@/hooks/useCart";
 
 interface StoreData {
   id: string;
@@ -28,6 +29,7 @@ const OnlineStore = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { getItemCount } = useCart();
 
   useEffect(() => {
     const fetchStoreData = async () => {
@@ -82,6 +84,8 @@ const OnlineStore = () => {
         logoUrl={storeData.store_logo_url}
         primaryColor={storeData.primary_color}
         storeOwnerId={storeData.id}
+        storeSlug={storeSlug || ""}
+        cartItemCount={getItemCount()}
       />
       
       <StoreBanner

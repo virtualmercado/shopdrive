@@ -44,8 +44,12 @@ const ProductCarousel = ({
         .gt("stock", 0)
         .limit(9);
 
+      if (featured) {
+        query = query.eq("is_featured", true);
+      }
+
       if (newest) {
-        query = query.order("created_at", { ascending: false });
+        query = query.eq("is_new", true).order("created_at", { ascending: false });
       }
 
       const { data } = await query;

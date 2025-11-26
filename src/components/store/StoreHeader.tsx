@@ -10,6 +10,8 @@ interface StoreHeaderProps {
   logoUrl?: string;
   primaryColor: string;
   storeOwnerId: string;
+  storeSlug: string;
+  cartItemCount: number;
 }
 
 interface Category {
@@ -17,7 +19,7 @@ interface Category {
   name: string;
 }
 
-const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId }: StoreHeaderProps) => {
+const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug, cartItemCount }: StoreHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,12 +71,16 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId }: StoreHe
             <Button variant="ghost" size="icon" className="hover:bg-muted">
               <User className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-muted relative">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
-              </span>
-            </Button>
+            <Link to={`/loja/${storeSlug}/checkout`}>
+              <Button variant="ghost" size="icon" className="hover:bg-muted relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -161,10 +167,12 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId }: StoreHe
                 <User className="h-4 w-4 mr-2" />
                 Entrar
               </Button>
-              <Button variant="outline" className="flex-1 relative">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Carrinho (0)
-              </Button>
+              <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
+                <Button variant="outline" className="w-full relative">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Carrinho ({cartItemCount})
+                </Button>
+              </Link>
             </div>
           </nav>
         </div>
