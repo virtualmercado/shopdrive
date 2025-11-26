@@ -536,54 +536,93 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          banner_desktop_url: string | null
+          banner_mobile_url: string | null
+          banner_rect_1_url: string | null
+          banner_rect_2_url: string | null
           cpf_cnpj: string | null
           created_at: string
           display_name: string | null
+          email: string | null
+          facebook_url: string | null
+          footer_bg_color: string | null
+          footer_text_color: string | null
           full_name: string
           id: string
+          instagram_url: string | null
           last_activity: string | null
           phone: string | null
           primary_color: string | null
+          return_policy_text: string | null
           secondary_color: string | null
           store_description: string | null
           store_logo_url: string | null
           store_name: string | null
           store_slug: string | null
           updated_at: string
+          whatsapp_number: string | null
+          x_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           address?: string | null
+          banner_desktop_url?: string | null
+          banner_mobile_url?: string | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          facebook_url?: string | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
           full_name: string
           id: string
+          instagram_url?: string | null
           last_activity?: string | null
           phone?: string | null
           primary_color?: string | null
+          return_policy_text?: string | null
           secondary_color?: string | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           address?: string | null
+          banner_desktop_url?: string | null
+          banner_mobile_url?: string | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          facebook_url?: string | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
           full_name?: string
           id?: string
+          instagram_url?: string | null
           last_activity?: string | null
           phone?: string | null
           primary_color?: string | null
+          return_policy_text?: string | null
           secondary_color?: string | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -819,6 +858,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          created_at: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          message: string
+          store_owner_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          message: string
+          store_owner_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          message?: string
+          store_owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
