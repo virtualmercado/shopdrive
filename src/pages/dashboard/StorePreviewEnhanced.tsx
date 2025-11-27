@@ -30,6 +30,7 @@ const StorePreviewEnhanced = () => {
     facebook_url: "",
     x_url: "",
     youtube_url: "",
+    phone: "",
     whatsapp_number: "",
     footer_bg_color: "#1a1a1a",
     footer_text_color: "#ffffff",
@@ -79,6 +80,7 @@ const StorePreviewEnhanced = () => {
           facebook_url: data.facebook_url || "",
           x_url: data.x_url || "",
           youtube_url: data.youtube_url || "",
+          phone: data.phone || "",
           whatsapp_number: data.whatsapp_number || "",
           footer_bg_color: data.footer_bg_color || "#1a1a1a",
           footer_text_color: data.footer_text_color || "#ffffff",
@@ -398,19 +400,32 @@ const StorePreviewEnhanced = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
-              <Input
-                id="whatsapp_number"
-                value={storeData.whatsapp_number}
-                onChange={(e) =>
-                  setStoreData({ ...storeData, whatsapp_number: e.target.value })
-                }
-                placeholder="(00) 00000-0000"
-              />
-              <p className="text-xs text-muted-foreground">
-                Será usado no botão flutuante de WhatsApp
-              </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={storeData.phone}
+                  onChange={(e) =>
+                    setStoreData({ ...storeData, phone: e.target.value.replace(/[^0-9()\s-]/g, '') })
+                  }
+                  placeholder="(00) 0000-0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
+                <Input
+                  id="whatsapp_number"
+                  value={storeData.whatsapp_number}
+                  onChange={(e) =>
+                    setStoreData({ ...storeData, whatsapp_number: e.target.value })
+                  }
+                  placeholder="(00) 00000-0000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Será usado no botão flutuante de WhatsApp
+                </p>
+              </div>
             </div>
 
             {/* Campos de Endereço */}
