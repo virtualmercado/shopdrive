@@ -109,8 +109,20 @@ const OnlineStore = () => {
       />
       
       <StoreBanner
-        desktopBannerUrls={storeData.banner_desktop_urls || []}
-        mobileBannerUrls={storeData.banner_mobile_urls || []}
+        desktopBannerUrls={
+          storeData.banner_desktop_urls && storeData.banner_desktop_urls.length > 0
+            ? storeData.banner_desktop_urls
+            : storeData.banner_desktop_url
+            ? [storeData.banner_desktop_url]
+            : []
+        }
+        mobileBannerUrls={
+          storeData.banner_mobile_urls && storeData.banner_mobile_urls.length > 0
+            ? storeData.banner_mobile_urls
+            : storeData.banner_mobile_url
+            ? [storeData.banner_mobile_url]
+            : []
+        }
       />
 
       <main className="container mx-auto px-4 py-8 space-y-12">
