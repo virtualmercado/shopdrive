@@ -177,21 +177,11 @@ const StorePreviewEnhanced = () => {
 
         if (uploadError) throw uploadError;
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("product-images").getPublicUrl(fileName);
+        const { data } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(fileName);
 
-        uploadedUrls.push(publicUrl);
-      }
-
-      // Se nada foi realmente enviado, não sobrescreve o banco
-      if (uploadedUrls.length === 0) {
-        toast({
-          title: "Nenhuma imagem enviada",
-          description: "Tente selecionar os arquivos novamente",
-          variant: "destructive",
-        });
-        return;
+        uploadedUrls.push(data.publicUrl);
       }
 
       const newUrls = [...currentUrls, ...uploadedUrls];
