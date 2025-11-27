@@ -132,8 +132,22 @@ const StorePreviewEnhanced = () => {
     }
   };
 
-  const handleMultipleImageUpload = async (files: FileList, arrayField: "banner_desktop_urls" | "banner_mobile_urls") => {
-    const currentUrls = storeData[arrayField];
+  const handleMultipleImageUpload = async (
+    files: FileList,
+    arrayField: "banner_desktop_urls" | "banner_mobile_urls"
+  ) => {
+    // Garante que existam arquivos selecionados
+    if (!files || files.length === 0) {
+      toast({
+        title: "Nenhum arquivo selecionado",
+        description: "Escolha ao menos uma imagem para enviar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentUrls = (storeData[arrayField] || []) as string[];
+
     if (currentUrls.length >= 3) {
       toast({
         title: "Limite atingido",
@@ -145,7 +159,9 @@ const StorePreviewEnhanced = () => {
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const uploadedUrls: string[] = [];
@@ -154,33 +170,47 @@ const StorePreviewEnhanced = () => {
       for (const file of filesToUpload) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${user.id}/${arrayField}_${Date.now()}_${Math.random()}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("product-images").getPublicUrl(fileName);
 
         uploadedUrls.push(publicUrl);
       }
 
+      // Se nada foi realmente enviado, não sobrescreve o banco
+      if (uploadedUrls.length === 0) {
+        toast({
+          title: "Nenhuma imagem enviada",
+          description: "Tente selecionar os arquivos novamente",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const newUrls = [...currentUrls, ...uploadedUrls];
+
+      // Atualiza estado local para pré-visualização imediata
       setStoreData({
         ...storeData,
         [arrayField]: newUrls,
       });
 
-      // Salvar automaticamente no banco
+      // Salva automaticamente no banco apenas quando há novas imagens
       await supabase
         .from("profiles")
         .update({ [arrayField]: newUrls })
         .eq("id", user.id);
-      
-      toast({ title: `${uploadedUrls.length} imagem(ns) enviada(s) e salva(s) com sucesso!` });
+
+      toast({
+        title: `${uploadedUrls.length} imagem(ns) enviada(s) e salva(s) com sucesso!`,
+      });
     } catch (error: any) {
       toast({
         title: "Erro ao enviar imagens",
