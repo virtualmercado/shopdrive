@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Youtube } from "lucide-react";
+import { Instagram, Facebook, Youtube, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface StoreFooterProps {
@@ -82,7 +82,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
               <div className="flex gap-4">
                 {storeData.instagram_url && (
                   <a
-                    href={storeData.instagram_url}
+                    href={storeData.instagram_url.startsWith('http') ? storeData.instagram_url : `https://${storeData.instagram_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
@@ -92,7 +92,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 )}
                 {storeData.facebook_url && (
                   <a
-                    href={storeData.facebook_url}
+                    href={storeData.facebook_url.startsWith('http') ? storeData.facebook_url : `https://${storeData.facebook_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
@@ -102,7 +102,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 )}
                 {storeData.x_url && (
                   <a
-                    href={storeData.x_url}
+                    href={storeData.x_url.startsWith('http') ? storeData.x_url : `https://${storeData.x_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
@@ -114,7 +114,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 )}
                 {storeData.youtube_url && (
                   <a
-                    href={storeData.youtube_url}
+                    href={storeData.youtube_url.startsWith('http') ? storeData.youtube_url : `https://${storeData.youtube_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
@@ -157,9 +157,10 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   </p>
                 )}
                 {storeData.phone && (
-                  <p className="hover:opacity-70 transition-opacity">
-                    📞 {storeData.phone}
-                  </p>
+                  <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                    <Phone className="h-4 w-4" />
+                    <span>{storeData.phone}</span>
+                  </div>
                 )}
                 {storeData.whatsapp_number && (
                   <p className="hover:opacity-70 transition-opacity">
