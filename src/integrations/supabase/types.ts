@@ -598,6 +598,7 @@ export type Database = {
           address_neighborhood: string | null
           address_number: string | null
           address_state: string | null
+          address_zip_code: string | null
           banner_desktop_url: string | null
           banner_desktop_urls: Json | null
           banner_mobile_url: string | null
@@ -638,6 +639,7 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_state?: string | null
+          address_zip_code?: string | null
           banner_desktop_url?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
@@ -678,6 +680,7 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_state?: string | null
+          address_zip_code?: string | null
           banner_desktop_url?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null

@@ -41,6 +41,7 @@ const StorePreviewEnhanced = () => {
     address_neighborhood: "",
     address_city: "",
     address_state: "",
+    address_zip_code: "",
     banner_desktop_urls: [] as string[],
     banner_mobile_urls: [] as string[],
   });
@@ -89,6 +90,7 @@ const StorePreviewEnhanced = () => {
           address_neighborhood: data.address_neighborhood || "",
           address_city: data.address_city || "",
           address_state: data.address_state || "",
+          address_zip_code: data.address_zip_code || "",
           banner_desktop_urls: (data.banner_desktop_urls as string[]) || [],
           banner_mobile_urls: (data.banner_mobile_urls as string[]) || [],
         });
@@ -241,6 +243,38 @@ const StorePreviewEnhanced = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao remover imagem",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveSingleImage = async (
+    field: "banner_rect_1_url" | "banner_rect_2_url"
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [field]: null })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setStoreData({
+        ...storeData,
+        [field]: "",
+      });
+
+      toast({
+        title: "Minibanner removido",
+        description: "O minibanner foi removido com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover minibanner",
         description: error.message,
         variant: "destructive",
       });
@@ -448,17 +482,31 @@ const StorePreviewEnhanced = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="address_state">Estado</Label>
-                  <Input
-                    id="address_state"
-                    value={storeData.address_state}
-                    onChange={(e) =>
-                      setStoreData({ ...storeData, address_state: e.target.value })
-                    }
-                    placeholder="SP"
-                    maxLength={2}
-                  />
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="address_state">Estado</Label>
+                    <Input
+                      id="address_state"
+                      value={storeData.address_state}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address_state: e.target.value })
+                      }
+                      placeholder="SP"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address_zip_code">CEP</Label>
+                    <Input
+                      id="address_zip_code"
+                      value={storeData.address_zip_code}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address_zip_code: e.target.value.replace(/\D/g, '') })
+                      }
+                      placeholder="12345678"
+                      maxLength={8}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -589,50 +637,100 @@ const StorePreviewEnhanced = () => {
               )}
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4 border-t pt-6">
               <div className="space-y-2">
-                <Label>Banner Retangular 1</Label>
+                <Label>Minibanner 1</Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   Tamanho recomendado: 600x300px
                 </p>
                 {storeData.banner_rect_1_url && (
-                  <img
-                    src={storeData.banner_rect_1_url}
-                    alt="Banner 1"
-                    className="w-full h-24 object-cover rounded-lg mb-2"
-                  />
+                  <div className="relative group mb-2">
+                    <img
+                      src={storeData.banner_rect_1_url}
+                      alt="Minibanner 1"
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSingleImage("banner_rect_1_url")}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Excluir minibanner"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageUpload(file, "banner_rect_1_url");
-                  }}
-                  disabled={uploading}
-                />
+                <div>
+                  <input
+                    type="file"
+                    id="minibanner_1_input"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, "banner_rect_1_url");
+                    }}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="minibanner_1_input"
+                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
+                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                  </label>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Banner Retangular 2</Label>
+                <Label>Minibanner 2</Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   Tamanho recomendado: 600x300px
                 </p>
                 {storeData.banner_rect_2_url && (
-                  <img
-                    src={storeData.banner_rect_2_url}
-                    alt="Banner 2"
-                    className="w-full h-24 object-cover rounded-lg mb-2"
-                  />
+                  <div className="relative group mb-2">
+                    <img
+                      src={storeData.banner_rect_2_url}
+                      alt="Minibanner 2"
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSingleImage("banner_rect_2_url")}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Excluir minibanner"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageUpload(file, "banner_rect_2_url");
-                  }}
-                  disabled={uploading}
-                />
+                <div>
+                  <input
+                    type="file"
+                    id="minibanner_2_input"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, "banner_rect_2_url");
+                    }}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="minibanner_2_input"
+                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
+                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>

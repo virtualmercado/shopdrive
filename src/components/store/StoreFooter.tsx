@@ -19,6 +19,7 @@ interface StoreFooterProps {
     address_neighborhood?: string;
     address_city?: string;
     address_state?: string;
+    address_zip_code?: string;
     footer_bg_color: string;
     footer_text_color: string;
     cpf_cnpj?: string;
@@ -36,11 +37,17 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
     if (storeData.address_complement) parts.push(storeData.address_complement);
     
     const street = parts.join(", ");
-    const city = [
+    const cityParts = [
       storeData.address_neighborhood,
       storeData.address_city,
       storeData.address_state
-    ].filter(Boolean).join(" - ");
+    ].filter(Boolean);
+    
+    if (storeData.address_zip_code) {
+      cityParts.push(`CEP ${storeData.address_zip_code}`);
+    }
+    
+    const city = cityParts.join(" - ");
     
     return [street, city].filter(Boolean).join(" | ");
   };
@@ -171,7 +178,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
       </footer>
 
       {/* Seção Final */}
-      <div className="bg-black text-white py-4">
+      <div className="bg-[#f2f2f2] text-[#333] py-4">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
             <div className="text-center md:text-left">
@@ -186,17 +193,17 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/5/5a/Ssl_logo.png"
                   alt="SSL"
-                  className="h-8"
+                  className="h-8 brightness-0"
                 />
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Google_Safe_Browsing.svg/512px-Google_Safe_Browsing.svg.png"
                   alt="Google Safe Browsing"
-                  className="h-8"
+                  className="h-8 brightness-0"
                 />
               </div>
               <p className="text-xs opacity-70">
                 Criado com{" "}
-                <span className="font-semibold text-[#FB8C00]">VirtualMercado</span>
+                <span className="font-semibold text-[#333]">VirtualMercado</span>
               </p>
             </div>
           </div>
