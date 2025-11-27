@@ -67,18 +67,17 @@ const Customize = () => {
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const fileName = `${userId}/logo_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, file);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from("product-images")
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       const { error: updateError } = await supabase
         .from("profiles")
@@ -231,11 +230,10 @@ const Customize = () => {
                   </Button>
                 </div>
               </div>
-            ) : (
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <p className="text-muted-foreground mb-4">
-                  Arraste uma imagem ou clique para fazer upload
-                </p>
+            ) : null}
+            
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="flex-shrink-0">
                 <label htmlFor="logo-upload">
                   <Button variant="outline" disabled={uploading} asChild>
                     <span className="cursor-pointer">
@@ -252,17 +250,12 @@ const Customize = () => {
                   className="hidden"
                 />
               </div>
-            )}
-            
-            <div className="mt-4 text-sm text-muted-foreground space-y-2 border-t pt-4">
-              <p className="font-medium text-foreground">Formato recomendado: PNG com fundo transparente</p>
-              <p className="font-medium">Tamanhos ideais:</p>
-              <ul className="list-disc list-inside pl-2 space-y-1">
-                <li>Header desktop: 250×80 px</li>
-                <li>Header mobile: 160×50 px</li>
-                <li>Rodapé: 200×60 px</li>
-              </ul>
-              <p className="font-medium mt-2">Tamanho máximo recomendado: 200 KB</p>
+              
+              <div className="text-sm text-muted-foreground space-y-1 flex-1">
+                <p className="font-medium text-foreground">Formato recomendado: PNG com fundo transparente</p>
+                <p className="font-medium">Tamanho recomendado para Header: 250×80 px</p>
+                <p className="font-medium">Tamanho máximo: 200 KB</p>
+              </div>
             </div>
           </div>
         </Card>
