@@ -593,8 +593,15 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
           banner_desktop_url: string | null
+          banner_desktop_urls: Json | null
           banner_mobile_url: string | null
+          banner_mobile_urls: Json | null
           banner_rect_1_url: string | null
           banner_rect_2_url: string | null
           cpf_cnpj: string | null
@@ -626,8 +633,15 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
           banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
           cpf_cnpj?: string | null
@@ -659,8 +673,15 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
           banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
           cpf_cnpj?: string | null

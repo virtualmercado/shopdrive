@@ -35,6 +35,14 @@ const StorePreviewEnhanced = () => {
     footer_text_color: "#ffffff",
     return_policy_text: "",
     email: "",
+    address: "",
+    address_number: "",
+    address_complement: "",
+    address_neighborhood: "",
+    address_city: "",
+    address_state: "",
+    banner_desktop_urls: [] as string[],
+    banner_mobile_urls: [] as string[],
   });
 
   useEffect(() => {
@@ -75,6 +83,14 @@ const StorePreviewEnhanced = () => {
           footer_text_color: data.footer_text_color || "#ffffff",
           return_policy_text: data.return_policy_text || "",
           email: data.email || "",
+          address: data.address || "",
+          address_number: data.address_number || "",
+          address_complement: data.address_complement || "",
+          address_neighborhood: data.address_neighborhood || "",
+          address_city: data.address_city || "",
+          address_state: data.address_state || "",
+          banner_desktop_urls: (data.banner_desktop_urls as string[]) || [],
+          banner_mobile_urls: (data.banner_mobile_urls as string[]) || [],
         });
       }
     } catch (error) {
@@ -116,7 +132,77 @@ const StorePreviewEnhanced = () => {
     }
   };
 
+  const handleMultipleImageUpload = async (files: FileList, arrayField: "banner_desktop_urls" | "banner_mobile_urls") => {
+    const currentUrls = storeData[arrayField];
+    if (currentUrls.length >= 3) {
+      toast({
+        title: "Limite atingido",
+        description: "Você pode enviar no máximo 3 imagens",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const uploadedUrls: string[] = [];
+      const filesToUpload = Array.from(files).slice(0, 3 - currentUrls.length);
+
+      for (const file of filesToUpload) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}/${arrayField}_${Date.now()}_${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setStoreData({
+        ...storeData,
+        [arrayField]: [...currentUrls, ...uploadedUrls],
+      });
+      
+      toast({ title: `${uploadedUrls.length} imagem(ns) enviada(s) com sucesso!` });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar imagens",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = (arrayField: "banner_desktop_urls" | "banner_mobile_urls", index: number) => {
+    const currentUrls = storeData[arrayField];
+    const newUrls = currentUrls.filter((_, i) => i !== index);
+    setStoreData({ ...storeData, [arrayField]: newUrls });
+    toast({ title: "Imagem removida" });
+  };
+
   const handleSave = async () => {
+    // Validação de campos obrigatórios
+    if (!storeData.address || !storeData.address_number || !storeData.address_neighborhood || !storeData.address_city || !storeData.address_state) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos de endereço obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -247,6 +333,92 @@ const StorePreviewEnhanced = () => {
                 Será usado no botão flutuante de WhatsApp
               </p>
             </div>
+
+            {/* Campos de Endereço */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold mb-4">Endereço Completo</h3>
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-2">
+                    <Label htmlFor="address">Endereço (Rua/Avenida) *</Label>
+                    <Input
+                      id="address"
+                      value={storeData.address}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address: e.target.value })
+                      }
+                      placeholder="Rua das Flores"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address_number">Número *</Label>
+                    <Input
+                      id="address_number"
+                      value={storeData.address_number}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address_number: e.target.value })
+                      }
+                      placeholder="123"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_complement">Complemento (opcional)</Label>
+                  <Input
+                    id="address_complement"
+                    value={storeData.address_complement}
+                    onChange={(e) =>
+                      setStoreData({ ...storeData, address_complement: e.target.value })
+                    }
+                    placeholder="Apto 101, Bloco A"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="address_neighborhood">Bairro *</Label>
+                    <Input
+                      id="address_neighborhood"
+                      value={storeData.address_neighborhood}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address_neighborhood: e.target.value })
+                      }
+                      placeholder="Centro"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address_city">Cidade *</Label>
+                    <Input
+                      id="address_city"
+                      value={storeData.address_city}
+                      onChange={(e) =>
+                        setStoreData({ ...storeData, address_city: e.target.value })
+                      }
+                      placeholder="São Paulo"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_state">Estado *</Label>
+                  <Input
+                    id="address_state"
+                    value={storeData.address_state}
+                    onChange={(e) =>
+                      setStoreData({ ...storeData, address_state: e.target.value })
+                    }
+                    placeholder="SP"
+                    maxLength={2}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -254,50 +426,124 @@ const StorePreviewEnhanced = () => {
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Banners</h2>
           <div className="space-y-6">
-            <div className="space-y-2">
-              <Label>Banner Desktop/Tablet</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Tamanho recomendado: 1920x600px
+            {/* Banner Principal Desktop/Tablet */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
+              <p className="text-xs text-muted-foreground">
+                Tamanho recomendado: 1920x600px • Máximo: 3 imagens
               </p>
-              {storeData.banner_desktop_url && (
-                <img
-                  src={storeData.banner_desktop_url}
-                  alt="Banner Desktop"
-                  className="w-full h-32 object-cover rounded-lg mb-2"
-                />
+              
+              {storeData.banner_desktop_urls.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {storeData.banner_desktop_urls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Banner Desktop ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage("banner_desktop_urls", index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        title="Excluir imagem"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file, "banner_desktop_url");
-                }}
-                disabled={uploading}
-              />
+              
+              {storeData.banner_desktop_urls.length < 3 && (
+                <div>
+                  <input
+                    type="file"
+                    id="banner_desktop_input"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        handleMultipleImageUpload(e.target.files, "banner_desktop_urls");
+                        e.target.value = "";
+                      }
+                    }}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="banner_desktop_input"
+                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
+                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                  </label>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Banner Mobile</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Tamanho recomendado: 800x600px
+            {/* Banner Mobile */}
+            <div className="space-y-3 border-t pt-6">
+              <Label className="text-base font-semibold">Banner Mobile (Formato Exclusivo)</Label>
+              <p className="text-xs text-muted-foreground">
+                Tamanho recomendado: 800x600px • Máximo: 3 imagens
               </p>
-              {storeData.banner_mobile_url && (
-                <img
-                  src={storeData.banner_mobile_url}
-                  alt="Banner Mobile"
-                  className="w-full h-32 object-cover rounded-lg mb-2"
-                />
+              
+              {storeData.banner_mobile_urls.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {storeData.banner_mobile_urls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Banner Mobile ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage("banner_mobile_urls", index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        title="Excluir imagem"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file, "banner_mobile_url");
-                }}
-                disabled={uploading}
-              />
+              
+              {storeData.banner_mobile_urls.length < 3 && (
+                <div>
+                  <input
+                    type="file"
+                    id="banner_mobile_input"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        handleMultipleImageUpload(e.target.files, "banner_mobile_urls");
+                        e.target.value = "";
+                      }
+                    }}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="banner_mobile_input"
+                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
+                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
