@@ -133,7 +133,7 @@ const StorePreviewEnhanced = () => {
   };
 
   const handleMultipleImageUpload = async (
-    files: FileList,
+    files: File[],
     arrayField: "banner_desktop_urls" | "banner_mobile_urls"
   ) => {
     // Garante que existam arquivos selecionados
@@ -165,7 +165,7 @@ const StorePreviewEnhanced = () => {
       if (!user) return;
 
       const uploadedUrls: string[] = [];
-      const filesToUpload = Array.from(files).slice(0, 3 - currentUrls.length);
+      const filesToUpload = files.slice(0, 3 - currentUrls.length);
 
       for (const file of filesToUpload) {
         const fileExt = file.name.split(".").pop();
@@ -182,6 +182,16 @@ const StorePreviewEnhanced = () => {
           .getPublicUrl(fileName);
 
         uploadedUrls.push(data.publicUrl);
+      }
+
+      // Segurança extra: evita mensagem de sucesso com 0 imagens
+      if (uploadedUrls.length === 0) {
+        toast({
+          title: "Nenhuma imagem enviada",
+          description: "Tente selecionar os arquivos novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const newUrls = [...currentUrls, ...uploadedUrls];
@@ -499,7 +509,7 @@ const StorePreviewEnhanced = () => {
                     multiple
                     onChange={(e) => {
                       if (e.target.files) {
-                        handleMultipleImageUpload(e.target.files, "banner_desktop_urls");
+                        handleMultipleImageUpload(Array.from(e.target.files), "banner_desktop_urls");
                         e.target.value = "";
                       }
                     }}
@@ -559,7 +569,7 @@ const StorePreviewEnhanced = () => {
                     multiple
                     onChange={(e) => {
                       if (e.target.files) {
-                        handleMultipleImageUpload(e.target.files, "banner_mobile_urls");
+                        handleMultipleImageUpload(Array.from(e.target.files), "banner_mobile_urls");
                         e.target.value = "";
                       }
                     }}
