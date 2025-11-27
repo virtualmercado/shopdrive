@@ -18,11 +18,19 @@ interface StoreData {
   secondary_color: string;
   banner_desktop_url: string;
   banner_mobile_url: string;
+  banner_desktop_urls?: string[];
+  banner_mobile_urls?: string[];
   banner_rect_1_url: string;
   banner_rect_2_url: string;
   footer_bg_color: string;
   footer_text_color: string;
   whatsapp_number: string;
+  address?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_neighborhood?: string;
+  address_city?: string;
+  address_state?: string;
 }
 
 const OnlineStore = () => {
@@ -47,7 +55,19 @@ const OnlineStore = () => {
         return;
       }
 
-      setStoreData(data);
+      const desktopUrls = Array.isArray(data.banner_desktop_urls) 
+        ? data.banner_desktop_urls.filter((url): url is string => typeof url === 'string')
+        : [];
+      
+      const mobileUrls = Array.isArray(data.banner_mobile_urls)
+        ? data.banner_mobile_urls.filter((url): url is string => typeof url === 'string')
+        : [];
+
+      setStoreData({
+        ...data,
+        banner_desktop_urls: desktopUrls,
+        banner_mobile_urls: mobileUrls,
+      });
       setLoading(false);
     };
 
@@ -89,8 +109,8 @@ const OnlineStore = () => {
       />
       
       <StoreBanner
-        desktopBannerUrl={storeData.banner_desktop_url}
-        mobileBannerUrl={storeData.banner_mobile_url}
+        desktopBannerUrls={storeData.banner_desktop_urls || []}
+        mobileBannerUrls={storeData.banner_mobile_urls || []}
       />
 
       <main className="container mx-auto px-4 py-8 space-y-12">

@@ -14,6 +14,11 @@ interface StoreFooterProps {
     phone?: string;
     whatsapp_number?: string;
     address?: string;
+    address_number?: string;
+    address_complement?: string;
+    address_neighborhood?: string;
+    address_city?: string;
+    address_state?: string;
     footer_bg_color: string;
     footer_text_color: string;
     cpf_cnpj?: string;
@@ -22,6 +27,25 @@ interface StoreFooterProps {
 
 const StoreFooter = ({ storeData }: StoreFooterProps) => {
   const currentYear = new Date().getFullYear();
+
+  // Formatar endereço completo
+  const formatFullAddress = () => {
+    const parts = [];
+    if (storeData.address) parts.push(storeData.address);
+    if (storeData.address_number) parts.push(storeData.address_number);
+    if (storeData.address_complement) parts.push(storeData.address_complement);
+    
+    const street = parts.join(", ");
+    const city = [
+      storeData.address_neighborhood,
+      storeData.address_city,
+      storeData.address_state
+    ].filter(Boolean).join(" - ");
+    
+    return [street, city].filter(Boolean).join(" | ");
+  };
+
+  const fullAddress = formatFullAddress();
 
   return (
     <>
@@ -135,9 +159,9 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     💬 {storeData.whatsapp_number}
                   </p>
                 )}
-                {storeData.address && (
+                {fullAddress && (
                   <p className="hover:opacity-70 transition-opacity">
-                    📍 {storeData.address}
+                    📍 {fullAddress}
                   </p>
                 )}
               </div>
