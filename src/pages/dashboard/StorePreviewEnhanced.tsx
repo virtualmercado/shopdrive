@@ -168,12 +168,19 @@ const StorePreviewEnhanced = () => {
         uploadedUrls.push(publicUrl);
       }
 
+      const newUrls = [...currentUrls, ...uploadedUrls];
       setStoreData({
         ...storeData,
-        [arrayField]: [...currentUrls, ...uploadedUrls],
+        [arrayField]: newUrls,
       });
+
+      // Salvar automaticamente no banco
+      await supabase
+        .from("profiles")
+        .update({ [arrayField]: newUrls })
+        .eq("id", user.id);
       
-      toast({ title: `${uploadedUrls.length} imagem(ns) enviada(s) com sucesso!` });
+      toast({ title: `${uploadedUrls.length} imagem(ns) enviada(s) e salva(s) com sucesso!` });
     } catch (error: any) {
       toast({
         title: "Erro ao enviar imagens",
@@ -185,24 +192,32 @@ const StorePreviewEnhanced = () => {
     }
   };
 
-  const handleRemoveImage = (arrayField: "banner_desktop_urls" | "banner_mobile_urls", index: number) => {
+  const handleRemoveImage = async (arrayField: "banner_desktop_urls" | "banner_mobile_urls", index: number) => {
     const currentUrls = storeData[arrayField];
     const newUrls = currentUrls.filter((_, i) => i !== index);
     setStoreData({ ...storeData, [arrayField]: newUrls });
-    toast({ title: "Imagem removida" });
+
+    // Salvar automaticamente no banco
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("profiles")
+        .update({ [arrayField]: newUrls })
+        .eq("id", user.id);
+
+      toast({ title: "Imagem removida e alterações salvas" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover imagem",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = async () => {
-    // Validação de campos obrigatórios
-    if (!storeData.address || !storeData.address_number || !storeData.address_neighborhood || !storeData.address_city || !storeData.address_state) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos de endereço obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -336,11 +351,14 @@ const StorePreviewEnhanced = () => {
 
             {/* Campos de Endereço */}
             <div className="border-t pt-4 mt-4">
-              <h3 className="font-semibold mb-4">Endereço Completo</h3>
+              <h3 className="font-semibold mb-2">Endereço Completo</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                O endereço será exibido no rodapé da sua loja online
+              </p>
               <div className="space-y-4">
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2 space-y-2">
-                    <Label htmlFor="address">Endereço (Rua/Avenida) *</Label>
+                    <Label htmlFor="address">Endereço (Rua/Avenida)</Label>
                     <Input
                       id="address"
                       value={storeData.address}
@@ -348,11 +366,10 @@ const StorePreviewEnhanced = () => {
                         setStoreData({ ...storeData, address: e.target.value })
                       }
                       placeholder="Rua das Flores"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_number">Número *</Label>
+                    <Label htmlFor="address_number">Número</Label>
                     <Input
                       id="address_number"
                       value={storeData.address_number}
@@ -360,7 +377,6 @@ const StorePreviewEnhanced = () => {
                         setStoreData({ ...storeData, address_number: e.target.value })
                       }
                       placeholder="123"
-                      required
                     />
                   </div>
                 </div>
@@ -379,7 +395,7 @@ const StorePreviewEnhanced = () => {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="address_neighborhood">Bairro *</Label>
+                    <Label htmlFor="address_neighborhood">Bairro</Label>
                     <Input
                       id="address_neighborhood"
                       value={storeData.address_neighborhood}
@@ -387,11 +403,10 @@ const StorePreviewEnhanced = () => {
                         setStoreData({ ...storeData, address_neighborhood: e.target.value })
                       }
                       placeholder="Centro"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_city">Cidade *</Label>
+                    <Label htmlFor="address_city">Cidade</Label>
                     <Input
                       id="address_city"
                       value={storeData.address_city}
@@ -399,13 +414,12 @@ const StorePreviewEnhanced = () => {
                         setStoreData({ ...storeData, address_city: e.target.value })
                       }
                       placeholder="São Paulo"
-                      required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address_state">Estado *</Label>
+                  <Label htmlFor="address_state">Estado</Label>
                   <Input
                     id="address_state"
                     value={storeData.address_state}
@@ -414,7 +428,6 @@ const StorePreviewEnhanced = () => {
                     }
                     placeholder="SP"
                     maxLength={2}
-                    required
                   />
                 </div>
               </div>
