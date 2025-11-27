@@ -44,7 +44,11 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
           {/* Logo */}
           <div className="flex-shrink-0">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName} className="h-10 md:h-12 object-contain" />
+              <img 
+                src={logoUrl} 
+                alt={storeName} 
+                className="h-8 md:h-12 w-auto object-contain max-w-[160px] md:max-w-[250px]" 
+              />
             ) : (
               <span className="text-xl md:text-2xl font-bold" style={{ color: primaryColor }}>
                 {storeName}
