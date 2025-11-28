@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Youtube, Phone } from "lucide-react";
+import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface StoreFooterProps {
@@ -71,7 +71,8 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <img
                   src={storeData.store_logo_url}
                   alt={storeData.store_name}
-                  className="h-12 object-contain brightness-0 invert"
+                  className="max-w-[180px] h-auto object-contain"
+                  style={{ maxWidth: '180px', height: 'auto', objectFit: 'contain' }}
                 />
               ) : (
                 <h3 className="text-xl font-bold">{storeData.store_name}</h3>
@@ -152,9 +153,10 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
               <h4 className="font-semibold text-lg">Contato</h4>
               <div className="space-y-2 text-sm">
                 {storeData.email && (
-                  <p className="hover:opacity-70 transition-opacity">
-                    📧 {storeData.email}
-                  </p>
+                  <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                    <Mail className="h-4 w-4" />
+                    <span>{storeData.email}</span>
+                  </div>
                 )}
                 {storeData.phone && (
                   <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -163,14 +165,16 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   </div>
                 )}
                 {storeData.whatsapp_number && (
-                  <p className="hover:opacity-70 transition-opacity">
-                    💬 {storeData.whatsapp_number}
-                  </p>
+                  <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{storeData.whatsapp_number}</span>
+                  </div>
                 )}
                 {fullAddress && (
-                  <p className="hover:opacity-70 transition-opacity">
-                    📍 {fullAddress}
-                  </p>
+                  <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                    <Home className="h-4 w-4" />
+                    <span>{fullAddress}</span>
+                  </div>
                 )}
               </div>
             </div>
