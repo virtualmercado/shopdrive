@@ -29,30 +29,28 @@ interface StoreFooterProps {
 const StoreFooter = ({ storeData }: StoreFooterProps) => {
   const currentYear = new Date().getFullYear();
 
-  // Formatar endereço completo
+  // Formatar endereço completo em duas linhas
   const formatFullAddress = () => {
-    const parts = [];
-    if (storeData.address) parts.push(storeData.address);
-    if (storeData.address_number) parts.push(storeData.address_number);
-    if (storeData.address_complement) parts.push(storeData.address_complement);
+    const line1Parts = [];
+    if (storeData.address) line1Parts.push(storeData.address);
+    if (storeData.address_number) line1Parts.push(storeData.address_number);
+    if (storeData.address_complement) line1Parts.push(storeData.address_complement);
+    if (storeData.address_neighborhood) line1Parts.push(storeData.address_neighborhood);
     
-    const street = parts.join(", ");
-    const cityParts = [
-      storeData.address_neighborhood,
+    const line1 = line1Parts.join(", ");
+    
+    const line2Parts = [
       storeData.address_city,
-      storeData.address_state
+      storeData.address_state,
+      storeData.address_zip_code ? `CEP ${storeData.address_zip_code}` : null
     ].filter(Boolean);
     
-    if (storeData.address_zip_code) {
-      cityParts.push(`CEP ${storeData.address_zip_code}`);
-    }
+    const line2 = line2Parts.join(" - ");
     
-    const city = cityParts.join(" - ");
-    
-    return [street, city].filter(Boolean).join(" | ");
+    return { line1, line2, hasAddress: line1 || line2 };
   };
 
-  const fullAddress = formatFullAddress();
+  const addressData = formatFullAddress();
 
   return (
     <>
@@ -71,8 +69,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <img
                   src={storeData.store_logo_url}
                   alt={storeData.store_name}
-                  className="max-w-[180px] h-auto object-contain"
-                  style={{ maxWidth: '180px', height: 'auto', objectFit: 'contain' }}
+                  className="max-w-[120px] md:max-w-[160px] h-auto object-contain"
                 />
               ) : (
                 <h3 className="text-xl font-bold">{storeData.store_name}</h3>
@@ -170,10 +167,13 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     <span>{storeData.whatsapp_number}</span>
                   </div>
                 )}
-                {fullAddress && (
-                  <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                    <Home className="h-4 w-4" />
-                    <span>{fullAddress}</span>
+                {addressData.hasAddress && (
+                  <div className="flex items-start gap-2 hover:opacity-70 transition-opacity">
+                    <Home className="h-4 w-4 mt-1" />
+                    <div className="flex flex-col">
+                      {addressData.line1 && <span>{addressData.line1}</span>}
+                      {addressData.line2 && <span>{addressData.line2}</span>}
+                    </div>
                   </div>
                 )}
               </div>
