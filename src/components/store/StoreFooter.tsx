@@ -69,7 +69,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <img
                   src={storeData.store_logo_url}
                   alt={storeData.store_name}
-                  className="max-w-[120px] md:max-w-[160px] h-auto object-contain"
+                  className="max-w-[50px] md:max-w-[70px] h-auto object-contain"
                 />
               ) : (
                 <h3 className="text-xl font-bold">{storeData.store_name}</h3>
