@@ -18,9 +18,10 @@ interface WhatsAppButtonProps {
   phoneNumber: string;
   storeOwnerId: string;
   storeName: string;
+  primaryColor?: string;
 }
 
-const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName }: WhatsAppButtonProps) => {
+const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName, primaryColor = "#6a1b9a" }: WhatsAppButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -75,7 +76,7 @@ const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName }: WhatsAppButton
       <Button
         size="lg"
         className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform z-40"
-        style={{ backgroundColor: "#25D366" }}
+        style={{ backgroundColor: primaryColor }}
         onClick={() => setDialogOpen(true)}
       >
         <MessageCircle className="h-6 w-6 text-white" />
@@ -121,8 +122,8 @@ const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName }: WhatsAppButton
             <Button
               onClick={handleSendMessage}
               disabled={sending}
-              className="w-full"
-              style={{ backgroundColor: "#25D366" }}
+              className="w-full text-white"
+              style={{ backgroundColor: primaryColor }}
             >
               {sending ? "Enviando..." : "Enviar via WhatsApp"}
             </Button>

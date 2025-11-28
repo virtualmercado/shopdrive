@@ -127,13 +127,13 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
             Produtos
           </Link>
           {categories.map((category) => (
-            <Link
+            <button
               key={category.id}
-              to="#"
-              className="text-sm font-medium hover:text-primary transition-colors whitespace-nowrap"
+              className="text-sm font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-md text-white"
+              style={{ backgroundColor: primaryColor }}
             >
               {category.name}
-            </Link>
+            </button>
           ))}
         </nav>
       </div>
@@ -157,14 +157,14 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
               Produtos
             </Link>
             {categories.map((category) => (
-              <Link
+              <button
                 key={category.id}
-                to="#"
-                className="block text-sm font-medium hover:text-primary transition-colors"
+                className="block text-sm font-medium transition-colors px-3 py-1.5 rounded-md text-white w-full text-left"
+                style={{ backgroundColor: primaryColor }}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {category.name}
-              </Link>
+              </button>
             ))}
             <div className="pt-4 border-t flex gap-4">
               <Button variant="outline" className="flex-1">

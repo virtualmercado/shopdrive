@@ -23,6 +23,7 @@ interface StoreFooterProps {
     footer_bg_color: string;
     footer_text_color: string;
     cpf_cnpj?: string;
+    primary_color?: string;
   };
 }
 
@@ -51,6 +52,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
   };
 
   const addressData = formatFullAddress();
+  const iconColor = storeData.primary_color || "#6a1b9a";
 
   return (
     <>
@@ -85,7 +87,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
                   >
-                    <Instagram className="h-5 w-5" />
+                    <Instagram className="h-5 w-5" style={{ color: iconColor }} />
                   </a>
                 )}
                 {storeData.facebook_url && (
@@ -95,7 +97,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
                   >
-                    <Facebook className="h-5 w-5" />
+                    <Facebook className="h-5 w-5" style={{ color: iconColor }} />
                   </a>
                 )}
                 {storeData.x_url && (
@@ -105,7 +107,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
                   >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill={iconColor}>
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   </a>
@@ -117,7 +119,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     rel="noopener noreferrer"
                     className="hover:opacity-70 transition-opacity"
                   >
-                    <Youtube className="h-5 w-5" />
+                    <Youtube className="h-5 w-5" style={{ color: iconColor }} />
                   </a>
                 )}
               </div>
@@ -151,25 +153,25 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
               <div className="space-y-2 text-sm">
                 {storeData.email && (
                   <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-4 w-4" style={{ color: iconColor }} />
                     <span>{storeData.email}</span>
                   </div>
                 )}
                 {storeData.phone && (
                   <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-4 w-4" style={{ color: iconColor }} />
                     <span>{storeData.phone}</span>
                   </div>
                 )}
                 {storeData.whatsapp_number && (
                   <div className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                    <MessageCircle className="h-4 w-4" />
+                    <MessageCircle className="h-4 w-4" style={{ color: iconColor }} />
                     <span>{storeData.whatsapp_number}</span>
                   </div>
                 )}
                 {addressData.hasAddress && (
                   <div className="flex items-start gap-2 hover:opacity-70 transition-opacity">
-                    <Home className="h-4 w-4 mt-1" />
+                    <Home className="h-4 w-4 mt-1" style={{ color: iconColor }} />
                     <div className="flex flex-col">
                       {addressData.line1 && <span>{addressData.line1}</span>}
                       {addressData.line2 && <span>{addressData.line2}</span>}

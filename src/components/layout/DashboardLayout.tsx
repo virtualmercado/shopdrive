@@ -28,6 +28,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState<string>("#6a1b9a");
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -38,13 +40,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_slug")
+        .select("store_slug, store_logo_url, primary_color")
         .eq("id", user.id)
         .single();
 
       if (profile?.store_slug) {
         const url = `${window.location.origin}/loja/${profile.store_slug}`;
         setStoreUrl(url);
+      }
+      
+      if (profile?.store_logo_url) {
+        setLogoUrl(profile.store_logo_url);
+      }
+      
+      if (profile?.primary_color) {
+        setPrimaryColor(profile.primary_color);
       }
     };
 
@@ -84,21 +94,30 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed left-0 top-0 h-full bg-sidebar text-sidebar-foreground z-50 transition-all duration-300",
+          "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300",
           sidebarOpen ? "w-64" : "w-20"
         )}
+        style={{ backgroundColor: primaryColor }}
       >
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <Store className="h-6 w-6" />
-              {sidebarOpen && <span className="font-bold">VirtualMercado</span>}
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  className="h-8 w-auto object-contain max-w-[50px] md:max-w-[70px]"
+                />
+              ) : (
+                <Store className="h-6 w-6" />
+              )}
+              {sidebarOpen && !logoUrl && <span className="font-bold">VirtualMercado</span>}
             </Link>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-sidebar-foreground hover:bg-sidebar-accent"
+              className="text-white hover:bg-white/10"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -113,10 +132,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-white",
                   isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
-                    : "hover:bg-sidebar-accent/50"
+                    ? "bg-white/20 font-medium" 
+                    : "hover:bg-white/10"
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -131,7 +150,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             variant="ghost"
             onClick={handleLogout}
             className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent",
+              "w-full justify-start gap-3 text-white hover:bg-white/10",
               !sidebarOpen && "justify-center"
             )}
           >

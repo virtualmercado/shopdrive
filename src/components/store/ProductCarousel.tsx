@@ -8,6 +8,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import ProductCard from "./ProductCard";
 
 interface Product {
   id: string;
@@ -16,6 +17,7 @@ interface Product {
   promotional_price: number | null;
   image_url: string | null;
   images: any;
+  stock: number;
 }
 
 interface ProductCarouselProps {
@@ -24,6 +26,7 @@ interface ProductCarouselProps {
   storeOwnerId: string;
   featured?: boolean;
   newest?: boolean;
+  primaryColor?: string;
 }
 
 const ProductCarousel = ({
@@ -32,6 +35,7 @@ const ProductCarousel = ({
   storeOwnerId,
   featured,
   newest,
+  primaryColor = "#6a1b9a",
 }: ProductCarouselProps) => {
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -87,40 +91,7 @@ const ProductCarousel = ({
           {products.map((product) => (
             <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
               <div className="p-2">
-                <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                  <div className="aspect-square overflow-hidden bg-muted">
-                    <img
-                      src={
-                        product.image_url ||
-                        (product.images && product.images[0]) ||
-                        "/placeholder.svg"
-                      }
-                      alt={product.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform"
-                    />
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <h3 className="font-semibold text-foreground line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {product.promotional_price ? (
-                        <>
-                          <span className="text-lg font-bold text-primary">
-                            R$ {product.promotional_price.toFixed(2)}
-                          </span>
-                          <span className="text-sm text-muted-foreground line-through">
-                            R$ {product.price.toFixed(2)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-lg font-bold text-primary">
-                          R$ {product.price.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ProductCard product={product} primaryColor={primaryColor} />
               </div>
             </CarouselItem>
           ))}
