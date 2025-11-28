@@ -131,6 +131,7 @@ const OnlineStore = () => {
           subtitle="Confira os produtos em destaque"
           storeOwnerId={storeData.id}
           featured={true}
+          primaryColor={storeData.primary_color}
         />
 
         <ProductCarousel
@@ -138,12 +139,14 @@ const OnlineStore = () => {
           subtitle="Confira os últimos lançamentos"
           storeOwnerId={storeData.id}
           newest
+          primaryColor={storeData.primary_color}
         />
 
         <ProductCarousel
           title="Todos os Produtos"
           subtitle="Navegue por todo o catálogo"
           storeOwnerId={storeData.id}
+          primaryColor={storeData.primary_color}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,6 +174,7 @@ const OnlineStore = () => {
           phoneNumber={storeData.whatsapp_number}
           storeOwnerId={storeData.id}
           storeName={storeData.store_name}
+          primaryColor={storeData.primary_color}
         />
       )}
     </div>

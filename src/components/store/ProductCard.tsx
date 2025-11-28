@@ -13,9 +13,10 @@ interface ProductCardProps {
     images: any;
     stock: number;
   };
+  primaryColor?: string;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
@@ -69,8 +70,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <Button
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
-          className="w-full"
+          className="w-full text-white"
           size="sm"
+          style={{ backgroundColor: primaryColor }}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           {product.stock <= 0 ? "Sem estoque" : "Adicionar"}

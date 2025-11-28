@@ -129,11 +129,32 @@ const Customize = () => {
     }
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Alterações salvas!",
-      description: "Sua loja foi atualizada com sucesso",
-    });
+  const handleSave = async () => {
+    if (!userId) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ 
+          primary_color: colors.primary,
+          secondary_color: colors.secondary 
+        })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Alterações salvas!",
+        description: "Sua loja foi atualizada com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar cores:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
