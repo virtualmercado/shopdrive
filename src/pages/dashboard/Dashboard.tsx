@@ -1,29 +1,21 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Package, ShoppingCart, DollarSign, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Dashboard = () => {
-  const [primaryColor, setPrimaryColor] = useState("#6a1b9a");
-  useEffect(() => {
-    const fetchPrimaryColor = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("primary_color")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.primary_color) {
-        setPrimaryColor(profile.primary_color);
-      }
-    };
-
-    fetchPrimaryColor();
-  }, []);
+  const { primaryColor } = useTheme();
+  
+  const getLighterShade = (color: string) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const lighterR = Math.min(255, r + 40);
+    const lighterG = Math.min(255, g + 40);
+    const lighterB = Math.min(255, b + 40);
+    return `#${lighterR.toString(16).padStart(2, '0')}${lighterG.toString(16).padStart(2, '0')}${lighterB.toString(16).padStart(2, '0')}`;
+  };
 
   const stats = [
     {
@@ -66,7 +58,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <div 
                   className="h-12 w-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${primaryColor}20` }}
+                  style={{ backgroundColor: getLighterShade(primaryColor) }}
                 >
                   <stat.icon className="h-6 w-6" style={{ color: primaryColor }} />
                 </div>
