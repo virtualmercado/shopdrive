@@ -33,7 +33,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color")
         .eq("id", user.id)
         .single();
 
@@ -41,6 +41,7 @@ const Customize = () => {
         setLogoUrl(profile.store_logo_url);
         if (profile.primary_color) setColors(prev => ({ ...prev, primary: profile.primary_color }));
         if (profile.secondary_color) setColors(prev => ({ ...prev, secondary: profile.secondary_color }));
+        if (profile.footer_text_color) setColors(prev => ({ ...prev, background: profile.footer_text_color }));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -137,7 +138,8 @@ const Customize = () => {
         .from("profiles")
         .update({ 
           primary_color: colors.primary,
-          secondary_color: colors.secondary 
+          secondary_color: colors.secondary,
+          footer_text_color: colors.background
         })
         .eq("id", userId);
 
@@ -194,7 +196,7 @@ const Customize = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="secondary">Cor de Destaque</Label>
+              <Label htmlFor="secondary">Cor de fundo do cabeçalho</Label>
               <div className="flex gap-2">
                 <Input
                   id="secondary"
@@ -213,7 +215,7 @@ const Customize = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="background">Cor de Fundo</Label>
+              <Label htmlFor="background">Cor dos textos do cabeçalho</Label>
               <div className="flex gap-2">
                 <Input
                   id="background"

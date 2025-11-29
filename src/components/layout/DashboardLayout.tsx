@@ -183,7 +183,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     href={storeUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline font-medium"
+                    className="text-sm hover:opacity-70 font-medium transition-opacity"
+                    style={{ color: primaryColor }}
                   >
                     {storeUrl}
                   </a>
