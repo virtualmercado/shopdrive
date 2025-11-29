@@ -9,6 +9,8 @@ interface StoreHeaderProps {
   storeName: string;
   logoUrl?: string;
   primaryColor: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
   storeOwnerId: string;
   storeSlug: string;
   cartItemCount: number;
@@ -19,7 +21,16 @@ interface Category {
   name: string;
 }
 
-const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug, cartItemCount }: StoreHeaderProps) => {
+const StoreHeader = ({ 
+  storeName, 
+  logoUrl, 
+  primaryColor, 
+  secondaryColor = "#FFFFFF",
+  backgroundColor = "#000000",
+  storeOwnerId, 
+  storeSlug, 
+  cartItemCount 
+}: StoreHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,7 +49,7 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
   }, [storeOwnerId]);
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
+    <header className="sticky top-0 z-50 border-b shadow-sm" style={{ backgroundColor: secondaryColor }}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
@@ -50,7 +61,7 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
                 className="h-8 md:h-12 w-auto object-contain max-w-[160px] md:max-w-[250px]" 
               />
             ) : (
-              <span className="text-xl md:text-2xl font-bold" style={{ color: primaryColor }}>
+              <span className="text-xl md:text-2xl font-bold" style={{ color: backgroundColor }}>
                 {storeName}
               </span>
             )}
@@ -59,7 +70,7 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
           {/* Search - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
               <Input
                 type="search"
                 placeholder="Buscar produtos..."
@@ -73,11 +84,11 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
           {/* Icons - Desktop */}
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" size="icon" className="hover:bg-muted">
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5" style={{ color: backgroundColor }} />
             </Button>
             <Link to={`/loja/${storeSlug}/checkout`}>
               <Button variant="ghost" size="icon" className="hover:bg-muted relative">
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItemCount}
@@ -94,14 +105,14 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? <X className="h-6 w-6" style={{ color: backgroundColor }} /> : <Menu className="h-6 w-6" style={{ color: backgroundColor }} />}
           </Button>
         </div>
 
         {/* Search - Mobile */}
         <div className="md:hidden pb-3">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
             <Input
               type="search"
               placeholder="Buscar produtos..."
@@ -116,13 +127,15 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
         <nav className="hidden md:flex items-center gap-6 py-3 border-t overflow-x-auto">
           <Link
             to="#"
-            className="text-sm font-medium hover:text-primary transition-colors whitespace-nowrap"
+            className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
+            style={{ color: backgroundColor }}
           >
             Home
           </Link>
           <Link
             to="#"
-            className="text-sm font-medium hover:text-primary transition-colors whitespace-nowrap"
+            className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
+            style={{ color: backgroundColor }}
           >
             Produtos
           </Link>
@@ -140,18 +153,20 @@ const StoreHeader = ({ storeName, logoUrl, primaryColor, storeOwnerId, storeSlug
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-white">
+        <div className="md:hidden border-t" style={{ backgroundColor: secondaryColor }}>
           <nav className="container mx-auto px-4 py-4 space-y-4">
             <Link
               to="#"
-              className="block text-sm font-medium hover:text-primary transition-colors"
+              className="block text-sm font-medium transition-colors hover:opacity-70"
+              style={{ color: backgroundColor }}
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               to="#"
-              className="block text-sm font-medium hover:text-primary transition-colors"
+              className="block text-sm font-medium transition-colors hover:opacity-70"
+              style={{ color: backgroundColor }}
               onClick={() => setMobileMenuOpen(false)}
             >
               Produtos

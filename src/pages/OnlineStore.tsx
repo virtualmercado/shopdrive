@@ -16,6 +16,7 @@ interface StoreData {
   store_logo_url: string;
   primary_color: string;
   secondary_color: string;
+  footer_text_color: string;
   banner_desktop_url: string;
   banner_mobile_url: string;
   banner_desktop_urls?: string[];
@@ -23,7 +24,6 @@ interface StoreData {
   banner_rect_1_url: string;
   banner_rect_2_url: string;
   footer_bg_color: string;
-  footer_text_color: string;
   whatsapp_number: string;
   address?: string;
   address_number?: string;
@@ -103,6 +103,8 @@ const OnlineStore = () => {
         storeName={storeData.store_name}
         logoUrl={storeData.store_logo_url}
         primaryColor={storeData.primary_color}
+        secondaryColor={storeData.secondary_color}
+        backgroundColor={storeData.footer_text_color}
         storeOwnerId={storeData.id}
         storeSlug={storeSlug || ""}
         cartItemCount={getItemCount()}
