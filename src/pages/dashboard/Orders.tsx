@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Orders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -24,6 +25,18 @@ const Orders = () => {
   const { data: orders, isLoading: ordersLoading } = useOrders();
   const { data: stats, isLoading: statsLoading } = useOrderStats();
   const updateStatus = useUpdateOrderStatus();
+  const { primaryColor } = useTheme();
+
+  const getLighterShade = (color: string) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const lighterR = Math.min(255, r + 40);
+    const lighterG = Math.min(255, g + 40);
+    const lighterB = Math.min(255, b + 40);
+    return `#${lighterR.toString(16).padStart(2, '0')}${lighterG.toString(16).padStart(2, '0')}${lighterB.toString(16).padStart(2, '0')}`;
+  };
 
   const handleViewDetails = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -41,8 +54,11 @@ const Orders = () => {
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
+              <div 
+                className="h-12 w-12 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: getLighterShade(primaryColor) }}
+              >
+                <Package className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total de Pedidos</p>
@@ -56,8 +72,11 @@ const Orders = () => {
           </Card>
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
+              <div 
+                className="h-12 w-12 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: getLighterShade(primaryColor) }}
+              >
+                <Package className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pedidos Pagos</p>
@@ -71,8 +90,11 @@ const Orders = () => {
           </Card>
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
+              <div 
+                className="h-12 w-12 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: getLighterShade(primaryColor) }}
+              >
+                <Package className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Em Processamento</p>
@@ -114,7 +136,7 @@ const Orders = () => {
                       </p>
                     </div>
                     <div className="text-right space-y-3">
-                      <p className="text-xl font-bold text-primary">
+                      <p className="text-xl font-bold" style={{ color: '#000000' }}>
                         R$ {order.total_amount.toFixed(2)}
                       </p>
                       <div className="flex gap-2 flex-wrap justify-end">

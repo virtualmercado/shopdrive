@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -29,10 +30,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [primaryColor, setPrimaryColor] = useState<string>("#6a1b9a");
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { primaryColor, loading: themeLoading } = useTheme();
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
@@ -40,7 +41,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_slug, store_logo_url, primary_color")
+        .select("store_slug, store_logo_url")
         .eq("id", user.id)
         .single();
 
@@ -51,10 +52,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       
       if (profile?.store_logo_url) {
         setLogoUrl(profile.store_logo_url);
-      }
-      
-      if (profile?.primary_color) {
-        setPrimaryColor(profile.primary_color);
       }
     };
 
@@ -97,7 +94,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300",
           sidebarOpen ? "w-64" : "w-20"
         )}
-        style={{ backgroundColor: primaryColor }}
+        style={{ backgroundColor: themeLoading ? '#6a1b9a' : primaryColor }}
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">

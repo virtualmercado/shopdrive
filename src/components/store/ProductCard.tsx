@@ -54,7 +54,7 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
         <div className="flex items-center gap-2">
           {product.promotional_price ? (
             <>
-              <span className="text-lg font-bold text-primary">
+              <span className="text-lg font-bold" style={{ color: '#000000' }}>
                 R$ {product.promotional_price.toFixed(2)}
               </span>
               <span className="text-sm text-muted-foreground line-through">
@@ -62,7 +62,7 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
               </span>
             </>
           ) : (
-            <span className="text-lg font-bold text-primary">
+            <span className="text-lg font-bold" style={{ color: '#000000' }}>
               R$ {product.price.toFixed(2)}
             </span>
           )}
