@@ -19,6 +19,8 @@ const Customize = () => {
   });
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontWeight, setFontWeight] = useState(400);
 
   useEffect(() => {
     fetchUserData();
@@ -33,7 +35,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color, footer_text_color")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight")
         .eq("id", user.id)
         .single();
 
@@ -42,6 +44,8 @@ const Customize = () => {
         if (profile.primary_color) setColors(prev => ({ ...prev, primary: profile.primary_color }));
         if (profile.secondary_color) setColors(prev => ({ ...prev, secondary: profile.secondary_color }));
         if (profile.footer_text_color) setColors(prev => ({ ...prev, background: profile.footer_text_color }));
+        if (profile.font_family) setFontFamily(profile.font_family);
+        if (profile.font_weight) setFontWeight(profile.font_weight);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -139,7 +143,9 @@ const Customize = () => {
         .update({ 
           primary_color: colors.primary,
           secondary_color: colors.secondary,
-          footer_text_color: colors.background
+          footer_text_color: colors.background,
+          font_family: fontFamily,
+          font_weight: fontWeight
         })
         .eq("id", userId);
 
@@ -150,7 +156,7 @@ const Customize = () => {
         description: "Sua loja foi atualizada com sucesso",
       });
     } catch (error) {
-      console.error("Erro ao salvar cores:", error);
+      console.error("Erro ao salvar:", error);
       toast({
         title: "Erro ao salvar",
         description: "Tente novamente.",
@@ -286,18 +292,65 @@ const Customize = () => {
         {/* Typography */}
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-6">Tipografia</h2>
-          <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Fonte Principal */}
             <div className="space-y-2">
               <Label htmlFor="font">Fonte Principal</Label>
               <select 
                 id="font"
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
                 className="w-full border rounded-md px-3 py-2"
               >
-                <option>Inter</option>
-                <option>Roboto</option>
-                <option>Open Sans</option>
-                <option>Poppins</option>
+                <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter</option>
+                <option value="Roboto" style={{ fontFamily: 'Roboto' }}>Roboto</option>
+                <option value="Open Sans" style={{ fontFamily: 'Open Sans' }}>Open Sans</option>
+                <option value="Poppins" style={{ fontFamily: 'Poppins' }}>Poppins</option>
+                <option value="Montserrat" style={{ fontFamily: 'Montserrat' }}>Montserrat</option>
               </select>
+            </div>
+
+            {/* Peso da Fonte */}
+            <div className="space-y-2">
+              <Label>Peso da Fonte</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFontWeight(300)}
+                  className={`border rounded-md p-3 text-center transition-all ${
+                    fontWeight === 300 
+                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{ fontWeight: 300 }}
+                >
+                  Fina
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFontWeight(500)}
+                  className={`border rounded-md p-3 text-center transition-all ${
+                    fontWeight === 500 
+                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{ fontWeight: 500 }}
+                >
+                  Média
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFontWeight(700)}
+                  className={`border rounded-md p-3 text-center transition-all ${
+                    fontWeight === 700 
+                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{ fontWeight: 700 }}
+                >
+                  Grossa
+                </button>
+              </div>
             </div>
           </div>
         </Card>
