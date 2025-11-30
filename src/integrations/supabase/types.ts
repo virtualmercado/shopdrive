@@ -610,6 +610,8 @@ export type Database = {
           display_name: string | null
           email: string | null
           facebook_url: string | null
+          font_family: string | null
+          font_weight: number | null
           footer_bg_color: string | null
           footer_text_color: string | null
           full_name: string
@@ -651,6 +653,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
           full_name: string
@@ -692,6 +696,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
           full_name?: string
