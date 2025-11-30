@@ -6,6 +6,8 @@ interface ThemeColors {
   primaryColor: string;
   secondaryColor: string;
   footerTextColor: string;
+  fontFamily: string;
+  fontWeight: number;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -16,6 +18,8 @@ const ThemeContext = createContext<ThemeContextType>({
   primaryColor: '#6a1b9a',
   secondaryColor: '#FB8C00',
   footerTextColor: '#FFFFFF',
+  fontFamily: 'Inter',
+  fontWeight: 400,
   loading: true,
 });
 
@@ -27,6 +31,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     primaryColor: '#6a1b9a',
     secondaryColor: '#FB8C00',
     footerTextColor: '#FFFFFF',
+    fontFamily: 'Inter',
+    fontWeight: 400,
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,16 +45,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight')
         .eq('id', user.id)
         .single();
 
       if (profile) {
-        setColors({
+        const newColors = {
           primaryColor: profile.primary_color || '#6a1b9a',
           secondaryColor: profile.secondary_color || '#FB8C00',
           footerTextColor: profile.footer_text_color || '#FFFFFF',
-        });
+          fontFamily: profile.font_family || 'Inter',
+          fontWeight: profile.font_weight || 400,
+        };
+        setColors(newColors);
+        
+        // Apply CSS variables immediately
+        document.documentElement.style.setProperty('--user-font-family', newColors.fontFamily);
+        document.documentElement.style.setProperty('--user-font-weight', String(newColors.fontWeight));
       }
       setLoading(false);
     };
@@ -68,11 +81,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         },
         (payload) => {
           const updated = payload.new as any;
-          setColors({
+          const newColors = {
             primaryColor: updated.primary_color || '#6a1b9a',
             secondaryColor: updated.secondary_color || '#FB8C00',
             footerTextColor: updated.footer_text_color || '#FFFFFF',
-          });
+            fontFamily: updated.font_family || 'Inter',
+            fontWeight: updated.font_weight || 400,
+          };
+          setColors(newColors);
+          
+          // Apply CSS variables in real-time
+          document.documentElement.style.setProperty('--user-font-family', newColors.fontFamily);
+          document.documentElement.style.setProperty('--user-font-weight', String(newColors.fontWeight));
         }
       )
       .subscribe();
