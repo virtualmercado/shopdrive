@@ -326,14 +326,27 @@ const Customize = () => {
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 300 
                       ? 'border-transparent font-semibold' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{ 
                     fontWeight: 300,
                     ...(fontWeight === 300 && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(fontWeight !== 300 && {
+                      borderColor: 'hsl(var(--input))'
                     })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (fontWeight !== 300) {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (fontWeight !== 300) {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
                   }}
                 >
                   Fina
@@ -344,14 +357,27 @@ const Customize = () => {
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 500 
                       ? 'border-transparent font-semibold' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{ 
                     fontWeight: 500,
                     ...(fontWeight === 500 && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(fontWeight !== 500 && {
+                      borderColor: 'hsl(var(--input))'
                     })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (fontWeight !== 500) {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (fontWeight !== 500) {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
                   }}
                 >
                   Média
@@ -362,14 +388,27 @@ const Customize = () => {
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 700 
                       ? 'border-transparent font-semibold' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{ 
                     fontWeight: 700,
                     ...(fontWeight === 700 && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(fontWeight !== 700 && {
+                      borderColor: 'hsl(var(--input))'
                     })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (fontWeight !== 700) {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (fontWeight !== 700) {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
                   }}
                 >
                   Grossa
@@ -393,18 +432,34 @@ const Customize = () => {
                   className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
                     productImageFormat === 'square' 
                       ? 'border-transparent' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{
                     ...(productImageFormat === 'square' && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(productImageFormat !== 'square' && {
+                      borderColor: 'hsl(var(--input))'
                     })
                   }}
+                  onMouseEnter={(e) => {
+                    if (productImageFormat !== 'square') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productImageFormat !== 'square') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
                 >
-                  <div className="flex flex-col gap-2">
-                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
-                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
+                  <div className="flex flex-col gap-2 items-center">
+                    <div className="w-16 h-16 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
+                    <div className="space-y-1 w-16">
+                      <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
+                      <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
+                    </div>
                   </div>
                   <span className="font-medium">Quadrada</span>
                 </button>
@@ -414,18 +469,34 @@ const Customize = () => {
                   className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
                     productImageFormat === 'rectangular' 
                       ? 'border-transparent' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{
                     ...(productImageFormat === 'rectangular' && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(productImageFormat !== 'rectangular' && {
+                      borderColor: 'hsl(var(--input))'
                     })
                   }}
+                  onMouseEnter={(e) => {
+                    if (productImageFormat !== 'rectangular') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productImageFormat !== 'rectangular') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
                 >
-                  <div className="flex flex-col gap-2">
-                    <div className="w-16 h-10 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
-                    <div className="w-16 h-10 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
+                  <div className="flex flex-col gap-2 items-center">
+                    <div className="w-12 h-16 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
+                    <div className="space-y-1 w-12">
+                      <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
+                      <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
+                    </div>
                   </div>
                   <span className="font-medium">Retangular</span>
                 </button>
@@ -442,13 +513,26 @@ const Customize = () => {
                   className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
                     productBorderStyle === 'straight' 
                       ? 'border-transparent' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{
                     ...(productBorderStyle === 'straight' && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(productBorderStyle !== 'straight' && {
+                      borderColor: 'hsl(var(--input))'
                     })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
                   }}
                 >
                   <div className="w-12 h-12 border-2" style={{ borderColor: productBorderStyle === 'straight' ? colors.primary : '#ccc', borderRadius: '0' }} />
@@ -460,13 +544,26 @@ const Customize = () => {
                   className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
                     productBorderStyle === 'rounded' 
                       ? 'border-transparent' 
-                      : 'border-input hover:border-primary/50'
+                      : 'border-input'
                   }`}
                   style={{
                     ...(productBorderStyle === 'rounded' && {
                       backgroundColor: `${colors.primary}40`,
                       color: colors.primary
+                    }),
+                    ...(productBorderStyle !== 'rounded' && {
+                      borderColor: 'hsl(var(--input))'
                     })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
                   }}
                 >
                   <div className="w-12 h-12 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
