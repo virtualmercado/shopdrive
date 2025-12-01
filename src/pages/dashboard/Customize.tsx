@@ -21,6 +21,8 @@ const Customize = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontWeight, setFontWeight] = useState(400);
+  const [productImageFormat, setProductImageFormat] = useState("square");
+  const [productBorderStyle, setProductBorderStyle] = useState("rounded");
 
   useEffect(() => {
     fetchUserData();
@@ -35,7 +37,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style")
         .eq("id", user.id)
         .single();
 
@@ -46,6 +48,8 @@ const Customize = () => {
         if (profile.footer_text_color) setColors(prev => ({ ...prev, background: profile.footer_text_color }));
         if (profile.font_family) setFontFamily(profile.font_family);
         if (profile.font_weight) setFontWeight(profile.font_weight);
+        if (profile.product_image_format) setProductImageFormat(profile.product_image_format);
+        if (profile.product_border_style) setProductBorderStyle(profile.product_border_style);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -145,7 +149,9 @@ const Customize = () => {
           secondary_color: colors.secondary,
           footer_text_color: colors.background,
           font_family: fontFamily,
-          font_weight: fontWeight
+          font_weight: fontWeight,
+          product_image_format: productImageFormat,
+          product_border_style: productBorderStyle
         })
         .eq("id", userId);
 
@@ -367,6 +373,104 @@ const Customize = () => {
                   }}
                 >
                   Grossa
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Product Designer */}
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-6">Designer dos Produtos</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Image Format */}
+            <div className="space-y-2">
+              <Label>Formato das Imagens</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProductImageFormat('square')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productImageFormat === 'square' 
+                      ? 'border-transparent' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{
+                    ...(productImageFormat === 'square' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
+                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
+                  </div>
+                  <span className="font-medium">Quadrada</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductImageFormat('rectangular')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productImageFormat === 'rectangular' 
+                      ? 'border-transparent' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{
+                    ...(productImageFormat === 'rectangular' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="w-16 h-10 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
+                    <div className="w-16 h-10 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
+                  </div>
+                  <span className="font-medium">Retangular</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Border Style */}
+            <div className="space-y-2">
+              <Label>Estilo das Bordas</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProductBorderStyle('straight')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productBorderStyle === 'straight' 
+                      ? 'border-transparent' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{
+                    ...(productBorderStyle === 'straight' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
+                >
+                  <div className="w-12 h-12 border-2" style={{ borderColor: productBorderStyle === 'straight' ? colors.primary : '#ccc', borderRadius: '0' }} />
+                  <span className="font-medium">Retas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductBorderStyle('rounded')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productBorderStyle === 'rounded' 
+                      ? 'border-transparent' 
+                      : 'border-input hover:border-primary/50'
+                  }`}
+                  style={{
+                    ...(productBorderStyle === 'rounded' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
+                >
+                  <div className="w-12 h-12 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
+                  <span className="font-medium">Arredondadas</span>
                 </button>
               </div>
             </div>

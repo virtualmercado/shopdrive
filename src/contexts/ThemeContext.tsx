@@ -8,6 +8,8 @@ interface ThemeColors {
   footerTextColor: string;
   fontFamily: string;
   fontWeight: number;
+  productImageFormat: string;
+  productBorderStyle: string;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -20,6 +22,8 @@ const ThemeContext = createContext<ThemeContextType>({
   footerTextColor: '#FFFFFF',
   fontFamily: 'Inter',
   fontWeight: 400,
+  productImageFormat: 'square',
+  productBorderStyle: 'rounded',
   loading: true,
 });
 
@@ -33,6 +37,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     footerTextColor: '#FFFFFF',
     fontFamily: 'Inter',
     fontWeight: 400,
+    productImageFormat: 'square',
+    productBorderStyle: 'rounded',
   });
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +51,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style')
         .eq('id', user.id)
         .single();
 
@@ -56,6 +62,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           footerTextColor: profile.footer_text_color || '#FFFFFF',
           fontFamily: profile.font_family || 'Inter',
           fontWeight: profile.font_weight || 400,
+          productImageFormat: profile.product_image_format || 'square',
+          productBorderStyle: profile.product_border_style || 'rounded',
         };
         setColors(newColors);
         
@@ -87,6 +95,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             footerTextColor: updated.footer_text_color || '#FFFFFF',
             fontFamily: updated.font_family || 'Inter',
             fontWeight: updated.font_weight || 400,
+            productImageFormat: updated.product_image_format || 'square',
+            productBorderStyle: updated.product_border_style || 'rounded',
           };
           setColors(newColors);
           
