@@ -142,8 +142,8 @@ const StoreHeader = ({
           {categories.map((category) => (
             <button
               key={category.id}
-              className="text-sm font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-md text-white"
-              style={{ backgroundColor: primaryColor }}
+              className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
+              style={{ color: backgroundColor }}
             >
               {category.name}
             </button>
@@ -174,8 +174,8 @@ const StoreHeader = ({
             {categories.map((category) => (
               <button
                 key={category.id}
-                className="block text-sm font-medium transition-colors px-3 py-1.5 rounded-md text-white w-full text-left"
-                style={{ backgroundColor: primaryColor }}
+                className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
+                style={{ color: backgroundColor }}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {category.name}

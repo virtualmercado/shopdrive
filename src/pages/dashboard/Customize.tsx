@@ -319,10 +319,16 @@ const Customize = () => {
                   onClick={() => setFontWeight(300)}
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 300 
-                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      ? 'border-transparent font-semibold' 
                       : 'border-input hover:border-primary/50'
                   }`}
-                  style={{ fontWeight: 300 }}
+                  style={{ 
+                    fontWeight: 300,
+                    ...(fontWeight === 300 && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
                 >
                   Fina
                 </button>
@@ -331,10 +337,16 @@ const Customize = () => {
                   onClick={() => setFontWeight(500)}
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 500 
-                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      ? 'border-transparent font-semibold' 
                       : 'border-input hover:border-primary/50'
                   }`}
-                  style={{ fontWeight: 500 }}
+                  style={{ 
+                    fontWeight: 500,
+                    ...(fontWeight === 500 && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
                 >
                   Média
                 </button>
@@ -343,10 +355,16 @@ const Customize = () => {
                   onClick={() => setFontWeight(700)}
                   className={`border rounded-md p-3 text-center transition-all ${
                     fontWeight === 700 
-                      ? 'border-primary bg-primary/10 text-primary font-semibold' 
+                      ? 'border-transparent font-semibold' 
                       : 'border-input hover:border-primary/50'
                   }`}
-                  style={{ fontWeight: 700 }}
+                  style={{ 
+                    fontWeight: 700,
+                    ...(fontWeight === 700 && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    })
+                  }}
                 >
                   Grossa
                 </button>
