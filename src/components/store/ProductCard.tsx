@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface ProductCardProps {
   product: {
@@ -18,6 +19,10 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
   const { addToCart } = useCart();
+  const { productImageFormat, productBorderStyle } = useTheme();
+  
+  const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-video' : 'aspect-square';
+  const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
 
   const handleAddToCart = () => {
     if (product.stock <= 0) {
@@ -39,8 +44,8 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
   const finalPrice = product.promotional_price || product.price;
 
   return (
-    <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-      <div className="aspect-square overflow-hidden bg-muted">
+    <div className={`bg-card overflow-hidden shadow-md hover:shadow-lg transition-shadow ${borderRadius}`}>
+      <div className={`${aspectRatio} overflow-hidden bg-muted`}>
         <img
           src={product.image_url || (product.images && product.images[0]) || "/placeholder.svg"}
           alt={product.name}
