@@ -10,6 +10,7 @@ interface ThemeColors {
   fontWeight: number;
   productImageFormat: string;
   productBorderStyle: string;
+  productTextAlignment: string;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -24,6 +25,7 @@ const ThemeContext = createContext<ThemeContextType>({
   fontWeight: 400,
   productImageFormat: 'square',
   productBorderStyle: 'rounded',
+  productTextAlignment: 'left',
   loading: true,
 });
 
@@ -39,6 +41,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     fontWeight: 400,
     productImageFormat: 'square',
     productBorderStyle: 'rounded',
+    productTextAlignment: 'left',
   });
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +54,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment')
         .eq('id', user.id)
         .single();
 
@@ -64,6 +67,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           fontWeight: profile.font_weight || 400,
           productImageFormat: profile.product_image_format || 'square',
           productBorderStyle: profile.product_border_style || 'rounded',
+          productTextAlignment: profile.product_text_alignment || 'left',
         };
         setColors(newColors);
         
@@ -97,6 +101,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             fontWeight: updated.font_weight || 400,
             productImageFormat: updated.product_image_format || 'square',
             productBorderStyle: updated.product_border_style || 'rounded',
+            productTextAlignment: updated.product_text_alignment || 'left',
           };
           setColors(newColors);
           
