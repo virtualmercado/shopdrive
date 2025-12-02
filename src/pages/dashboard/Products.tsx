@@ -47,7 +47,7 @@ const Products = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const { toast } = useToast();
-  const { buttonBorderStyle } = useTheme();
+  const { buttonBorderStyle, buttonBgColor, buttonTextColor } = useTheme();
   
   const buttonRadius = buttonBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
 
@@ -153,11 +153,12 @@ const Products = () => {
               />
             </div>
             <Button 
-              className="bg-secondary hover:bg-secondary/90 gap-2"
+              className="gap-2"
               onClick={() => {
                 setSelectedProduct(null);
                 setFormOpen(true);
               }}
+              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
             >
               <Plus className="h-4 w-4" />
               Novo Produto
@@ -271,8 +272,8 @@ const Products = () => {
             </p>
             {!searchTerm && (
               <Button 
-                className="bg-secondary hover:bg-secondary/90"
                 onClick={() => setFormOpen(true)}
+                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
                 Adicionar Produto
               </Button>

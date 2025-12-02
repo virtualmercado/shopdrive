@@ -13,6 +13,8 @@ interface ThemeColors {
   productTextAlignment: string;
   productButtonDisplay: string;
   buttonBorderStyle: string;
+  buttonBgColor: string;
+  buttonTextColor: string;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -30,6 +32,8 @@ const ThemeContext = createContext<ThemeContextType>({
   productTextAlignment: 'left',
   productButtonDisplay: 'below',
   buttonBorderStyle: 'rounded',
+  buttonBgColor: '#6a1b9a',
+  buttonTextColor: '#FFFFFF',
   loading: true,
 });
 
@@ -48,6 +52,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     productTextAlignment: 'left',
     productButtonDisplay: 'below',
     buttonBorderStyle: 'rounded',
+    buttonBgColor: '#6a1b9a',
+    buttonTextColor: '#FFFFFF',
   });
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +66,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color')
         .eq('id', user.id)
         .single();
 
@@ -76,6 +82,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           productTextAlignment: profile.product_text_alignment || 'left',
           productButtonDisplay: profile.product_button_display || 'below',
           buttonBorderStyle: profile.button_border_style || 'rounded',
+          buttonBgColor: profile.button_bg_color || '#6a1b9a',
+          buttonTextColor: profile.button_text_color || '#FFFFFF',
         };
         setColors(newColors);
         
@@ -112,6 +120,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             productTextAlignment: updated.product_text_alignment || 'left',
             productButtonDisplay: updated.product_button_display || 'below',
             buttonBorderStyle: updated.button_border_style || 'rounded',
+            buttonBgColor: updated.button_bg_color || '#6a1b9a',
+            buttonTextColor: updated.button_text_color || '#FFFFFF',
           };
           setColors(newColors);
           

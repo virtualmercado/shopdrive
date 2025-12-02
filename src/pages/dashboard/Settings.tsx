@@ -9,7 +9,7 @@ import { Crown } from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
-  const { primaryColor } = useTheme();
+  const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
 
   const getLighterShade = (color: string) => {
     const hex = color.replace('#', '');
@@ -95,7 +95,10 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">Até 10 produtos</p>
               </div>
             </div>
-            <Button className="bg-secondary hover:bg-secondary/90">
+            <Button 
+              className="transition-all hover:opacity-90"
+              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+            >
               Fazer Upgrade
             </Button>
           </div>
@@ -130,7 +133,8 @@ const Settings = () => {
         <div className="flex justify-end">
           <Button 
             onClick={handleSave}
-            className="bg-primary hover:bg-primary/90 px-8"
+            className="px-8 transition-all hover:opacity-90"
+            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
           >
             Salvar Alterações
           </Button>

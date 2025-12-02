@@ -605,7 +605,9 @@ export type Database = {
           banner_mobile_urls: Json | null
           banner_rect_1_url: string | null
           banner_rect_2_url: string | null
+          button_bg_color: string | null
           button_border_style: string | null
+          button_text_color: string | null
           cpf_cnpj: string | null
           created_at: string
           display_name: string | null
@@ -653,7 +655,9 @@ export type Database = {
           banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
+          button_bg_color?: string | null
           button_border_style?: string | null
+          button_text_color?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null
@@ -701,7 +705,9 @@ export type Database = {
           banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
+          button_bg_color?: string | null
           button_border_style?: string | null
+          button_text_color?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           display_name?: string | null

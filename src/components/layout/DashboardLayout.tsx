@@ -33,7 +33,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { primaryColor, loading: themeLoading } = useTheme();
+  const { primaryColor, buttonBgColor, buttonTextColor, loading: themeLoading } = useTheme();
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
@@ -203,7 +203,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {storeUrl && (
                 <div className="flex items-center gap-4">
                   <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
-                    <Button variant="outline" className="gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="gap-2 transition-all hover:opacity-90"
+                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor }}
+                    >
                       <Store className="h-4 w-4" />
                       Ver Loja
                     </Button>
