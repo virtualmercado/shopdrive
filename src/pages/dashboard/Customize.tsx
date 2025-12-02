@@ -437,8 +437,8 @@ const Customize = () => {
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-6">Designer dos Produtos</h2>
           
-          {/* First Row - 3 columns: Formato das Imagens, Botão de Comprar, Estilo dos Botões */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {/* Row 1: Formato das Imagens, Estilo das Bordas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
             {/* Image Format */}
             <div className="space-y-2">
               <Label>Formato das Imagens</Label>
@@ -520,6 +520,90 @@ const Customize = () => {
               </div>
             </div>
 
+            {/* Border Style */}
+            <div className="space-y-2">
+              <Label>Estilo das Bordas</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProductBorderStyle('straight')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productBorderStyle === 'straight' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(productBorderStyle === 'straight' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(productBorderStyle !== 'straight' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex flex-col gap-2 items-center">
+                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'straight' ? colors.primary : '#ccc', borderRadius: '0' }} />
+                    <div className="space-y-1 w-10">
+                      <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
+                      <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
+                    </div>
+                  </div>
+                  <span className="font-medium text-sm">Retas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductBorderStyle('rounded')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productBorderStyle === 'rounded' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(productBorderStyle === 'rounded' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(productBorderStyle !== 'rounded' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex flex-col gap-2 items-center">
+                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
+                    <div className="space-y-1 w-10">
+                      <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
+                      <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
+                    </div>
+                  </div>
+                  <span className="font-medium text-sm">Arredondadas</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Botão de Comprar, Alinhamento do Texto */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
             {/* Button Display */}
             <div className="space-y-2">
               <Label>Botão de Comprar</Label>
@@ -583,147 +667,6 @@ const Customize = () => {
                   }}
                 >
                   <span className="font-medium text-sm text-center">Sem botão</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Button Border Style */}
-            <div className="space-y-2">
-              <Label>Estilo dos Botões</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setButtonBorderStyle('rounded')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    buttonBorderStyle === 'rounded' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(buttonBorderStyle === 'rounded' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
-                    }),
-                    ...(buttonBorderStyle !== 'rounded' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (buttonBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (buttonBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-14 h-7 border-2 rounded-lg" style={{ borderColor: buttonBorderStyle === 'rounded' ? colors.primary : '#ccc' }} />
-                  <span className="font-medium text-sm">Arredondada</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setButtonBorderStyle('straight')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    buttonBorderStyle === 'straight' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(buttonBorderStyle === 'straight' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
-                    }),
-                    ...(buttonBorderStyle !== 'straight' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (buttonBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (buttonBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-14 h-7 border-2" style={{ borderColor: buttonBorderStyle === 'straight' ? colors.primary : '#ccc' }} />
-                  <span className="font-medium text-sm">Reta</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Second Row - 3 columns: Estilo das Bordas, Alinhamento do Texto, Cor dos Botões */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Border Style */}
-            <div className="space-y-2">
-              <Label>Estilo das Bordas</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProductBorderStyle('straight')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productBorderStyle === 'straight' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productBorderStyle === 'straight' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
-                    }),
-                    ...(productBorderStyle !== 'straight' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'straight' ? colors.primary : '#ccc', borderRadius: '0' }} />
-                  <span className="font-medium text-sm">Retas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProductBorderStyle('rounded')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productBorderStyle === 'rounded' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productBorderStyle === 'rounded' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
-                    }),
-                    ...(productBorderStyle !== 'rounded' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
-                  <span className="font-medium text-sm">Arredondadas</span>
                 </button>
               </div>
             </div>
@@ -801,6 +744,78 @@ const Customize = () => {
                     <div className="h-1.5 bg-muted rounded" style={{ width: '75%' }} />
                   </div>
                   <span className="font-medium text-sm">Centro</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Estilo dos Botões, Cor dos Botões */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Button Border Style */}
+            <div className="space-y-2">
+              <Label>Estilo dos Botões</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setButtonBorderStyle('rounded')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
+                    buttonBorderStyle === 'rounded' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(buttonBorderStyle === 'rounded' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(buttonBorderStyle !== 'rounded' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (buttonBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (buttonBorderStyle !== 'rounded') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="w-14 h-7 border-2 rounded-lg" style={{ borderColor: buttonBorderStyle === 'rounded' ? colors.primary : '#ccc' }} />
+                  <span className="font-medium text-sm">Arredondada</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setButtonBorderStyle('straight')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
+                    buttonBorderStyle === 'straight' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(buttonBorderStyle === 'straight' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(buttonBorderStyle !== 'straight' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (buttonBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (buttonBorderStyle !== 'straight') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="w-14 h-7 border-2" style={{ borderColor: buttonBorderStyle === 'straight' ? colors.primary : '#ccc' }} />
+                  <span className="font-medium text-sm">Reta</span>
                 </button>
               </div>
             </div>
