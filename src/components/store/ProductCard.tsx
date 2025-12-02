@@ -19,11 +19,12 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { productImageFormat, productBorderStyle, productTextAlignment, productButtonDisplay } = useTheme();
+  const { productImageFormat, productBorderStyle, productTextAlignment, productButtonDisplay, buttonBorderStyle } = useTheme();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
   const textAlign = productTextAlignment === 'center' ? 'text-center' : 'text-left';
+  const buttonRadius = buttonBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
 
   const handleAddToCart = () => {
     if (product.stock <= 0) {
@@ -77,7 +78,7 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
           <Button
             onClick={handleAddToCart}
             disabled={product.stock <= 0}
-            className="w-full text-white"
+            className={`w-full text-white ${buttonRadius}`}
             size="sm"
             style={{ backgroundColor: primaryColor }}
           >

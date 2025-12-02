@@ -12,6 +12,7 @@ interface ThemeColors {
   productBorderStyle: string;
   productTextAlignment: string;
   productButtonDisplay: string;
+  buttonBorderStyle: string;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -28,6 +29,7 @@ const ThemeContext = createContext<ThemeContextType>({
   productBorderStyle: 'rounded',
   productTextAlignment: 'left',
   productButtonDisplay: 'below',
+  buttonBorderStyle: 'rounded',
   loading: true,
 });
 
@@ -45,6 +47,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     productBorderStyle: 'rounded',
     productTextAlignment: 'left',
     productButtonDisplay: 'below',
+    buttonBorderStyle: 'rounded',
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +60,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style')
         .eq('id', user.id)
         .single();
 
@@ -72,6 +75,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           productBorderStyle: profile.product_border_style || 'rounded',
           productTextAlignment: profile.product_text_alignment || 'left',
           productButtonDisplay: profile.product_button_display || 'below',
+          buttonBorderStyle: profile.button_border_style || 'rounded',
         };
         setColors(newColors);
         
@@ -107,6 +111,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             productBorderStyle: updated.product_border_style || 'rounded',
             productTextAlignment: updated.product_text_alignment || 'left',
             productButtonDisplay: updated.product_button_display || 'below',
+            buttonBorderStyle: updated.button_border_style || 'rounded',
           };
           setColors(newColors);
           

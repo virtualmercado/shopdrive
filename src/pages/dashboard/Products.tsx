@@ -17,6 +17,7 @@ import { ProductForm } from "@/components/ProductForm";
 import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Product {
   id: string;
@@ -46,6 +47,9 @@ const Products = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  const { buttonBorderStyle } = useTheme();
+  
+  const buttonRadius = buttonBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
 
   useEffect(() => {
     fetchProducts();
@@ -235,7 +239,7 @@ const Products = () => {
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
-                      className="flex-1 gap-2"
+                      className={`flex-1 gap-2 ${buttonRadius}`}
                       onClick={() => handleEdit(product)}
                     >
                       <Edit className="h-4 w-4" />
@@ -243,7 +247,7 @@ const Products = () => {
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      className={`gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground ${buttonRadius}`}
                       onClick={() => openDeleteDialog(product.id)}
                     >
                       <Trash2 className="h-4 w-4" />
