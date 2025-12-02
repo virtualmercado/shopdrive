@@ -623,6 +623,7 @@ export type Database = {
           primary_color: string | null
           product_border_style: string | null
           product_image_format: string | null
+          product_text_alignment: string | null
           return_policy_text: string | null
           secondary_color: string | null
           shipping_fixed_fee: number | null
@@ -668,6 +669,7 @@ export type Database = {
           primary_color?: string | null
           product_border_style?: string | null
           product_image_format?: string | null
+          product_text_alignment?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
@@ -713,6 +715,7 @@ export type Database = {
           primary_color?: string | null
           product_border_style?: string | null
           product_image_format?: string | null
+          product_text_alignment?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
           shipping_fixed_fee?: number | null

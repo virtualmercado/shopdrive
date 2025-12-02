@@ -23,6 +23,7 @@ const Customize = () => {
   const [fontWeight, setFontWeight] = useState(400);
   const [productImageFormat, setProductImageFormat] = useState("square");
   const [productBorderStyle, setProductBorderStyle] = useState("rounded");
+  const [productTextAlignment, setProductTextAlignment] = useState("left");
 
   useEffect(() => {
     fetchUserData();
@@ -37,7 +38,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment")
         .eq("id", user.id)
         .single();
 
@@ -50,6 +51,7 @@ const Customize = () => {
         if (profile.font_weight) setFontWeight(profile.font_weight);
         if (profile.product_image_format) setProductImageFormat(profile.product_image_format);
         if (profile.product_border_style) setProductBorderStyle(profile.product_border_style);
+        if (profile.product_text_alignment) setProductTextAlignment(profile.product_text_alignment);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -151,7 +153,8 @@ const Customize = () => {
           font_family: fontFamily,
           font_weight: fontWeight,
           product_image_format: productImageFormat,
-          product_border_style: productBorderStyle
+          product_border_style: productBorderStyle,
+          product_text_alignment: productTextAlignment
         })
         .eq("id", userId);
 
@@ -568,6 +571,85 @@ const Customize = () => {
                 >
                   <div className="w-12 h-12 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
                   <span className="font-medium">Arredondadas</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Text Alignment */}
+            <div className="space-y-2">
+              <Label>Alinhamento do Texto</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProductTextAlignment('left')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productTextAlignment === 'left' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(productTextAlignment === 'left' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(productTextAlignment !== 'left' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productTextAlignment !== 'left') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productTextAlignment !== 'left') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex flex-col gap-2 items-start w-full px-2">
+                    <div className="w-12 h-16 border-2 flex flex-col gap-1 p-1 items-start" style={{ borderColor: productTextAlignment === 'left' ? colors.primary : '#ccc' }}>
+                      <div className="h-2 bg-muted rounded" style={{ width: '80%' }} />
+                      <div className="h-2 bg-muted rounded" style={{ width: '60%' }} />
+                    </div>
+                  </div>
+                  <span className="font-medium">Esquerda</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductTextAlignment('center')}
+                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    productTextAlignment === 'center' 
+                      ? 'border-transparent' 
+                      : 'border-input'
+                  }`}
+                  style={{
+                    ...(productTextAlignment === 'center' && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(productTextAlignment !== 'center' && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (productTextAlignment !== 'center') {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (productTextAlignment !== 'center') {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex flex-col gap-2 items-center w-full px-2">
+                    <div className="w-12 h-16 border-2 flex flex-col gap-1 p-1 items-center" style={{ borderColor: productTextAlignment === 'center' ? colors.primary : '#ccc' }}>
+                      <div className="h-2 bg-muted rounded" style={{ width: '80%' }} />
+                      <div className="h-2 bg-muted rounded" style={{ width: '60%' }} />
+                    </div>
+                  </div>
+                  <span className="font-medium">Centro</span>
                 </button>
               </div>
             </div>

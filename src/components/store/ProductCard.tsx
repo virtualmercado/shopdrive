@@ -19,10 +19,11 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { productImageFormat, productBorderStyle } = useTheme();
+  const { productImageFormat, productBorderStyle, productTextAlignment } = useTheme();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-video' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
+  const textAlign = productTextAlignment === 'center' ? 'text-center' : 'text-left';
 
   const handleAddToCart = () => {
     if (product.stock <= 0) {
@@ -52,11 +53,11 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
           className="w-full h-full object-cover hover:scale-105 transition-transform"
         />
       </div>
-      <div className="p-4 space-y-3">
+      <div className={`p-4 space-y-3 ${textAlign}`}>
         <h3 className="font-semibold text-foreground line-clamp-2 min-h-[3rem]">
           {product.name}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
           {product.promotional_price ? (
             <>
               <span className="text-lg font-bold" style={{ color: '#000000' }}>
