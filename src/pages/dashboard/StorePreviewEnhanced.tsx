@@ -8,12 +8,14 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, Loader2, Upload, Image as ImageIcon } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { buttonBgColor, buttonTextColor } = useTheme();
   
   const [storeData, setStoreData] = useState({
     store_name: "",
@@ -884,15 +886,20 @@ const StorePreviewEnhanced = () => {
         </Card>
 
         <div className="flex gap-4">
-          <Button onClick={handleSave} disabled={saving || uploading} className="flex-1">
+          <Button 
+            onClick={handleSave} 
+            disabled={saving || uploading} 
+            className="flex-1 transition-all hover:opacity-90"
+            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+          >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Todas as Configurações
           </Button>
           {storeData.store_slug && (
             <Button
-              variant="outline"
               onClick={() => window.open(storeUrl, "_blank")}
-              className="gap-2"
+              className="gap-2 transition-all hover:opacity-90"
+              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
             >
               <ExternalLink className="h-4 w-4" />
               Ver Loja

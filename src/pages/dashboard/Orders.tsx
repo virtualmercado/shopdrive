@@ -25,7 +25,7 @@ const Orders = () => {
   const { data: orders, isLoading: ordersLoading } = useOrders();
   const { data: stats, isLoading: statsLoading } = useOrderStats();
   const updateStatus = useUpdateOrderStatus();
-  const { primaryColor } = useTheme();
+  const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
 
   const getLighterShade = (color: string) => {
     const hex = color.replace('#', '');
@@ -157,9 +157,9 @@ const Orders = () => {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="outline"
                           size="sm"
-                          className="gap-2"
+                          className="gap-2 transition-all hover:opacity-90"
+                          style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
                           onClick={() => handleViewDetails(order.id)}
                         >
                           <Eye className="h-4 w-4" />

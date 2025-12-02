@@ -26,6 +26,8 @@ const Customize = () => {
   const [productTextAlignment, setProductTextAlignment] = useState("left");
   const [productButtonDisplay, setProductButtonDisplay] = useState("below");
   const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
+  const [buttonBgColor, setButtonBgColor] = useState("#6a1b9a");
+  const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
 
   useEffect(() => {
     fetchUserData();
@@ -40,7 +42,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color")
         .eq("id", user.id)
         .single();
 
@@ -56,6 +58,8 @@ const Customize = () => {
         if (profile.product_text_alignment) setProductTextAlignment(profile.product_text_alignment);
         if (profile.product_button_display) setProductButtonDisplay(profile.product_button_display);
         if (profile.button_border_style) setButtonBorderStyle(profile.button_border_style);
+        if (profile.button_bg_color) setButtonBgColor(profile.button_bg_color);
+        if (profile.button_text_color) setButtonTextColor(profile.button_text_color);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -160,7 +164,9 @@ const Customize = () => {
           product_border_style: productBorderStyle,
           product_text_alignment: productTextAlignment,
           product_button_display: productButtonDisplay,
-          button_border_style: buttonBorderStyle
+          button_border_style: buttonBorderStyle,
+          button_bg_color: buttonBgColor,
+          button_text_color: buttonTextColor
         })
         .eq("id", userId);
 
@@ -793,6 +799,47 @@ const Customize = () => {
                 </button>
               </div>
             </div>
+
+            {/* Button Colors */}
+            <div className="space-y-2">
+              <Label>Cor dos Botões</Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Cor de Fundo</span>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={buttonBgColor}
+                      onChange={(e) => setButtonBgColor(e.target.value)}
+                      className="h-12 w-20"
+                    />
+                    <Input
+                      type="text"
+                      value={buttonBgColor}
+                      onChange={(e) => setButtonBgColor(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Cor do Texto</span>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={buttonTextColor}
+                      onChange={(e) => setButtonTextColor(e.target.value)}
+                      className="h-12 w-20"
+                    />
+                    <Input
+                      type="text"
+                      value={buttonTextColor}
+                      onChange={(e) => setButtonTextColor(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -800,7 +847,8 @@ const Customize = () => {
         <div className="flex justify-end">
           <Button 
             onClick={handleSave}
-            className="bg-secondary hover:bg-secondary/90 px-8"
+            className="px-8 transition-all hover:opacity-90"
+            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
           >
             Salvar Alterações
           </Button>
