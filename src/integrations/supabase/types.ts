@@ -622,6 +622,7 @@ export type Database = {
           pickup_address: string | null
           primary_color: string | null
           product_border_style: string | null
+          product_button_display: string | null
           product_image_format: string | null
           product_text_alignment: string | null
           return_policy_text: string | null
@@ -668,6 +669,7 @@ export type Database = {
           pickup_address?: string | null
           primary_color?: string | null
           product_border_style?: string | null
+          product_button_display?: string | null
           product_image_format?: string | null
           product_text_alignment?: string | null
           return_policy_text?: string | null
@@ -714,6 +716,7 @@ export type Database = {
           pickup_address?: string | null
           primary_color?: string | null
           product_border_style?: string | null
+          product_button_display?: string | null
           product_image_format?: string | null
           product_text_alignment?: string | null
           return_policy_text?: string | null

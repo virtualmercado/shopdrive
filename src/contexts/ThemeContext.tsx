@@ -11,6 +11,7 @@ interface ThemeColors {
   productImageFormat: string;
   productBorderStyle: string;
   productTextAlignment: string;
+  productButtonDisplay: string;
 }
 
 interface ThemeContextType extends ThemeColors {
@@ -26,6 +27,7 @@ const ThemeContext = createContext<ThemeContextType>({
   productImageFormat: 'square',
   productBorderStyle: 'rounded',
   productTextAlignment: 'left',
+  productButtonDisplay: 'below',
   loading: true,
 });
 
@@ -42,6 +44,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     productImageFormat: 'square',
     productBorderStyle: 'rounded',
     productTextAlignment: 'left',
+    productButtonDisplay: 'below',
   });
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +57,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment')
+        .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display')
         .eq('id', user.id)
         .single();
 
@@ -68,6 +71,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           productImageFormat: profile.product_image_format || 'square',
           productBorderStyle: profile.product_border_style || 'rounded',
           productTextAlignment: profile.product_text_alignment || 'left',
+          productButtonDisplay: profile.product_button_display || 'below',
         };
         setColors(newColors);
         
@@ -102,6 +106,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             productImageFormat: updated.product_image_format || 'square',
             productBorderStyle: updated.product_border_style || 'rounded',
             productTextAlignment: updated.product_text_alignment || 'left',
+            productButtonDisplay: updated.product_button_display || 'below',
           };
           setColors(newColors);
           
