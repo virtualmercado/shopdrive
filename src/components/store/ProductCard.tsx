@@ -19,7 +19,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { productImageFormat, productBorderStyle, productTextAlignment } = useTheme();
+  const { productImageFormat, productBorderStyle, productTextAlignment, productButtonDisplay } = useTheme();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-video' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
@@ -73,16 +73,18 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
             </span>
           )}
         </div>
-        <Button
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0}
-          className="w-full text-white"
-          size="sm"
-          style={{ backgroundColor: primaryColor }}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {product.stock <= 0 ? "Sem estoque" : "Adicionar"}
-        </Button>
+        {productButtonDisplay === 'below' && (
+          <Button
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            className="w-full text-white"
+            size="sm"
+            style={{ backgroundColor: primaryColor }}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {product.stock <= 0 ? "Sem estoque" : "Adicionar"}
+          </Button>
+        )}
       </div>
     </div>
   );
