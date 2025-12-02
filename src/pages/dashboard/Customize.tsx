@@ -678,9 +678,9 @@ const Customize = () => {
                   }}
                 >
                   <div className="w-12 h-16 border-2" style={{ borderColor: productTextAlignment === 'left' ? colors.primary : '#ccc' }} />
-                  <div className="flex flex-col gap-2 items-start w-full px-2">
-                    <div className="h-2 bg-muted rounded" style={{ width: '80%' }} />
-                    <div className="h-2 bg-muted rounded" style={{ width: '60%' }} />
+                  <div className="flex flex-col gap-2 items-start" style={{ width: '48px' }}>
+                    <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
+                    <div className="h-2 bg-muted rounded" style={{ width: '75%' }} />
                   </div>
                   <span className="font-medium">Esquerda</span>
                 </button>
@@ -713,9 +713,9 @@ const Customize = () => {
                   }}
                 >
                   <div className="w-12 h-16 border-2" style={{ borderColor: productTextAlignment === 'center' ? colors.primary : '#ccc' }} />
-                  <div className="flex flex-col gap-2 items-center w-full px-2">
-                    <div className="h-2 bg-muted rounded" style={{ width: '80%' }} />
-                    <div className="h-2 bg-muted rounded" style={{ width: '60%' }} />
+                  <div className="flex flex-col gap-2 items-center" style={{ width: '48px' }}>
+                    <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
+                    <div className="h-2 bg-muted rounded" style={{ width: '75%' }} />
                   </div>
                   <span className="font-medium">Centro</span>
                 </button>
