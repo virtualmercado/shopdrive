@@ -664,7 +664,7 @@ const Customize = () => {
                   <button
                     type="button"
                     onClick={() => setProductButtonDisplay('below')}
-                    className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                       productButtonDisplay === 'below' 
                         ? 'border-transparent' 
                         : 'border-input'
@@ -689,12 +689,12 @@ const Customize = () => {
                       }
                     }}
                   >
-                    <span className="font-medium">Abaixo do produto</span>
+                    <span className="font-medium text-center">Abaixo do produto</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setProductButtonDisplay('none')}
-                    className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
+                    className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
                       productButtonDisplay === 'none' 
                         ? 'border-transparent' 
                         : 'border-input'
@@ -719,7 +719,7 @@ const Customize = () => {
                       }
                     }}
                   >
-                    <span className="font-medium">Sem botão</span>
+                    <span className="font-medium text-center">Sem botão</span>
                   </button>
                 </div>
               </div>
