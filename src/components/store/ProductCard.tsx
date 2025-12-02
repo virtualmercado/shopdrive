@@ -21,7 +21,7 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
   const { addToCart } = useCart();
   const { productImageFormat, productBorderStyle, productTextAlignment, productButtonDisplay } = useTheme();
   
-  const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-video' : 'aspect-square';
+  const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
   const textAlign = productTextAlignment === 'center' ? 'text-center' : 'text-left';
 
