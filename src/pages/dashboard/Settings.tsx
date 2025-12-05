@@ -31,7 +31,7 @@ const Settings = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl space-y-6">
+      <div className="space-y-6">
         {/* Store Info */}
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-6">Informações da Loja</h2>

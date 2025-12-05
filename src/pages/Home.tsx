@@ -211,7 +211,7 @@ const Home = () => {
               <Link to="/login">Ver Demonstração</Link>
             </Button>
           </div>
-          <p className="text-base md:text-lg mb-8" style={{ color: '#5A5A5A' }}>Plano vitalício, sem taxas ou cartão de crédito</p>
+          <p className="text-base md:text-lg mb-8" style={{ color: '#5A5A5A' }}>Grátis para sempre, sem taxas ou cartão de crédito</p>
           <div className="flex justify-center">
             <img 
               src={heroImage} 
