@@ -169,18 +169,28 @@ const Products = () => {
           {categories.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
               <Button
-                variant={selectedCategory === "" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
+                className={buttonRadius}
                 onClick={() => setSelectedCategory("")}
+                style={selectedCategory === "" 
+                  ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
+                  : {}
+                }
               >
                 Todas
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
+                  className={buttonRadius}
                   onClick={() => setSelectedCategory(category.id)}
+                  style={selectedCategory === category.id 
+                    ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
+                    : {}
+                  }
                 >
                   {category.name}
                 </Button>
@@ -195,7 +205,7 @@ const Products = () => {
             <p className="text-muted-foreground">Carregando produtos...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
                 <div className="aspect-square bg-muted">
@@ -220,16 +230,16 @@ const Products = () => {
                   )}
                   <div className="mb-2">
                     {product.promotional_price ? (
-                      <div className="flex items-center gap-2">
-                        <p className="text-lg font-bold text-muted-foreground line-through">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-bold text-muted-foreground line-through">
                           R$ {product.price.toFixed(2)}
                         </p>
-                        <p className="text-2xl font-bold text-primary">
+                        <p className="text-xl font-bold text-black">
                           R$ {product.promotional_price.toFixed(2)}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-2xl font-bold text-primary">
+                      <p className="text-xl font-bold text-black">
                         R$ {product.price.toFixed(2)}
                       </p>
                     )}
@@ -242,6 +252,7 @@ const Products = () => {
                       variant="outline" 
                       className={`flex-1 gap-2 ${buttonRadius}`}
                       onClick={() => handleEdit(product)}
+                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor }}
                     >
                       <Edit className="h-4 w-4" />
                       Editar
