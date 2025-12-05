@@ -189,7 +189,7 @@ const Customize = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="max-w-4xl space-y-6">
+        <div className="space-y-6">
           <p>Carregando...</p>
         </div>
       </DashboardLayout>
@@ -198,7 +198,7 @@ const Customize = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl space-y-6">
+      <div className="space-y-6">
         {/* Colors */}
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-6">Cores</h2>
