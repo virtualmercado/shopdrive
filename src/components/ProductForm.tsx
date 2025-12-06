@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, X, Camera, Image as ImageIcon } from "lucide-react";
 import { z } from "zod";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -68,6 +69,19 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
+  
+  const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-none';
+  
+  // Generate a slightly darker/lighter color for hover effect
+  const getHoverColor = (color: string) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const factor = 0.85;
+    return `rgb(${Math.floor(r * factor)}, ${Math.floor(g * factor)}, ${Math.floor(b * factor)})`;
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -360,8 +374,20 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className={`flex-1 ${buttonRadius} transition-all duration-200`}
                   onClick={handleCameraCapture}
+                  style={{ 
+                    borderColor: buttonBgColor,
+                    color: buttonBgColor
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = buttonBgColor;
+                    e.currentTarget.style.color = buttonTextColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = buttonBgColor;
+                  }}
                 >
                   <Camera className="h-4 w-4 mr-2" />
                   Câmera
@@ -369,8 +395,20 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className={`flex-1 ${buttonRadius} transition-all duration-200`}
                   onClick={handleFileSelect}
+                  style={{ 
+                    borderColor: buttonBgColor,
+                    color: buttonBgColor
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = buttonBgColor;
+                    e.currentTarget.style.color = buttonTextColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = buttonBgColor;
+                  }}
                 >
                   <ImageIcon className="h-4 w-4 mr-2" />
                   Arquivos
@@ -473,10 +511,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                 {!showNewCategory ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setShowNewCategory(true)}
-                    className="w-full"
+                    className={`w-full ${buttonRadius} transition-all duration-200`}
+                    style={{ 
+                      borderColor: buttonBgColor,
+                      color: buttonBgColor
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = buttonBgColor;
+                      e.currentTarget.style.color = buttonTextColor;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = buttonBgColor;
+                    }}
                   >
                     + Nova Categoria
                   </Button>
@@ -488,16 +538,45 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), createCategory())}
                     />
-                    <Button type="button" size="sm" onClick={createCategory}>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={createCategory}
+                      className={`${buttonRadius} transition-all duration-200`}
+                      style={{ 
+                        backgroundColor: buttonBgColor, 
+                        color: buttonTextColor,
+                        borderColor: buttonBgColor
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = buttonBgColor;
+                      }}
+                    >
                       Criar
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
+                      className={`${buttonRadius} transition-all duration-200`}
                       onClick={() => {
                         setShowNewCategory(false);
                         setNewCategoryName("");
+                      }}
+                      style={{ 
+                        borderColor: buttonBgColor,
+                        color: buttonBgColor
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = buttonBgColor;
+                        e.currentTarget.style.color = buttonTextColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = buttonBgColor;
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -555,12 +634,43 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className={`flex-1 ${buttonRadius} transition-all duration-200`}
               disabled={loading}
+              style={{ 
+                borderColor: buttonBgColor,
+                color: buttonBgColor
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = buttonBgColor;
+                  e.currentTarget.style.color = buttonTextColor;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = buttonBgColor;
+              }}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button 
+              type="submit" 
+              className={`flex-1 ${buttonRadius} transition-all duration-200`} 
+              disabled={loading}
+              style={{ 
+                backgroundColor: buttonBgColor, 
+                color: buttonTextColor,
+                borderColor: buttonBgColor
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = buttonBgColor;
+              }}
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {product ? "Atualizar" : "Criar"}
             </Button>
