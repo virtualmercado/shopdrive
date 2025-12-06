@@ -292,13 +292,15 @@ const Customize = () => {
                     className="transition-all"
                     onMouseEnter={(e) => {
                       if (buttonBgColor) {
-                        e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                        e.currentTarget.style.backgroundColor = buttonBgColor;
                         e.currentTarget.style.borderColor = buttonBgColor;
+                        e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
                       }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '';
                       e.currentTarget.style.borderColor = '';
+                      e.currentTarget.style.color = '';
                     }}
                   >
                     <span className="cursor-pointer">
