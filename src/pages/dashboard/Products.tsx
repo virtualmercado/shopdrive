@@ -179,14 +179,16 @@ const Products = () => {
                 }
                 onMouseEnter={(e) => {
                   if (selectedCategory !== "" && buttonBgColor) {
-                    e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                    e.currentTarget.style.backgroundColor = buttonBgColor;
                     e.currentTarget.style.borderColor = buttonBgColor;
+                    e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (selectedCategory !== "") {
                     e.currentTarget.style.backgroundColor = '';
                     e.currentTarget.style.borderColor = '';
+                    e.currentTarget.style.color = '';
                   }
                 }}
               >
@@ -205,14 +207,16 @@ const Products = () => {
                   }
                   onMouseEnter={(e) => {
                     if (selectedCategory !== category.id && buttonBgColor) {
-                      e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                      e.currentTarget.style.backgroundColor = buttonBgColor;
                       e.currentTarget.style.borderColor = buttonBgColor;
+                      e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (selectedCategory !== category.id) {
                       e.currentTarget.style.backgroundColor = '';
                       e.currentTarget.style.borderColor = '';
+                      e.currentTarget.style.color = '';
                     }
                   }}
                 >
