@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trash2, Camera, Image as ImageIcon } from "lucide-react";
+import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus } from "lucide-react";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -25,6 +25,11 @@ const productSchema = z.object({
   category_id: z.string().optional(),
 });
 
+interface ProductVariation {
+  name: string;
+  values: string[];
+}
+
 interface Product {
   id: string;
   name: string;
@@ -37,6 +42,11 @@ interface Product {
   category_id: string | null;
   is_featured?: boolean;
   is_new?: boolean;
+  variations?: ProductVariation[];
+  weight?: number | null;
+  length?: number | null;
+  height?: number | null;
+  width?: number | null;
 }
 
 interface Category {
@@ -66,6 +76,21 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Variations state
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [newVariationName, setNewVariationName] = useState("");
+  const [newVariationValues, setNewVariationValues] = useState("");
+  const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
+  const [editVariationName, setEditVariationName] = useState("");
+  const [editVariationValues, setEditVariationValues] = useState("");
+  
+  // Weight and dimensions state
+  const [weight, setWeight] = useState("");
+  const [length, setLength] = useState("");
+  const [height, setHeight] = useState("");
+  const [width, setWidth] = useState("");
+  
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +124,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       setImageFiles([]);
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
+      setVariations(product.variations || []);
+      setWeight(product.weight?.toString() || "");
+      setLength(product.length?.toString() || "");
+      setHeight(product.height?.toString() || "");
+      setWidth(product.width?.toString() || "");
     } else if (!open) {
       resetForm();
     }
@@ -213,6 +243,92 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     });
   };
 
+  // Variation handlers
+  const addVariation = () => {
+    if (!newVariationName.trim() || !newVariationValues.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome e os valores da variação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const values = newVariationValues.split(',').map(v => v.trim()).filter(v => v);
+    if (values.length === 0) {
+      toast({
+        title: "Valores inválidos",
+        description: "Adicione pelo menos um valor para a variação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVariations([...variations, { name: newVariationName.trim(), values }]);
+    setNewVariationName("");
+    setNewVariationValues("");
+    
+    toast({
+      title: "Sucesso",
+      description: "Variação adicionada",
+    });
+  };
+
+  const startEditVariation = (index: number) => {
+    const variation = variations[index];
+    setEditingVariationIndex(index);
+    setEditVariationName(variation.name);
+    setEditVariationValues(variation.values.join(', '));
+  };
+
+  const saveEditVariation = () => {
+    if (editingVariationIndex === null) return;
+    
+    if (!editVariationName.trim() || !editVariationValues.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome e os valores da variação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const values = editVariationValues.split(',').map(v => v.trim()).filter(v => v);
+    const updatedVariations = [...variations];
+    updatedVariations[editingVariationIndex] = { name: editVariationName.trim(), values };
+    
+    setVariations(updatedVariations);
+    setEditingVariationIndex(null);
+    setEditVariationName("");
+    setEditVariationValues("");
+    
+    toast({
+      title: "Sucesso",
+      description: "Variação atualizada",
+    });
+  };
+
+  const cancelEditVariation = () => {
+    setEditingVariationIndex(null);
+    setEditVariationName("");
+    setEditVariationValues("");
+  };
+
+  const removeVariation = (index: number) => {
+    setVariations(variations.filter((_, i) => i !== index));
+    toast({
+      title: "Sucesso",
+      description: "Variação removida",
+    });
+  };
+
+  const handleSimulateShipping = () => {
+    toast({
+      title: "Em breve",
+      description: "O cálculo de frete será implementado em breve",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -276,6 +392,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         is_featured: isFeatured,
         is_new: isNew,
         user_id: user.id,
+        variations: JSON.parse(JSON.stringify(variations)),
+        weight: weight ? parseFloat(weight) : null,
+        length: length ? parseFloat(length) : null,
+        height: height ? parseFloat(height) : null,
+        width: width ? parseFloat(width) : null,
       };
 
       if (product) {
@@ -333,6 +454,16 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     setShowNewCategory(false);
     setIsFeatured(false);
     setIsNew(false);
+    setVariations([]);
+    setNewVariationName("");
+    setNewVariationValues("");
+    setEditingVariationIndex(null);
+    setEditVariationName("");
+    setEditVariationValues("");
+    setWeight("");
+    setLength("");
+    setHeight("");
+    setWidth("");
   };
 
   return (
@@ -608,6 +739,252 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                 required
               />
             </div>
+          </div>
+
+          {/* Product Variations Section */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-base font-semibold">Variações do Produto</Label>
+            <p className="text-xs text-muted-foreground">
+              Adicione variações como Cor, Tamanho, Aroma, Tipo, etc.
+            </p>
+            
+            {/* Existing variations list */}
+            {variations.length > 0 && (
+              <div className="space-y-2">
+                {variations.map((variation, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    {editingVariationIndex === index ? (
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={editVariationName}
+                          onChange={(e) => setEditVariationName(e.target.value)}
+                          placeholder="Nome da variação"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editVariationValues}
+                          onChange={(e) => setEditVariationValues(e.target.value)}
+                          placeholder="Valores separados por vírgula"
+                          className="text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={saveEditVariation}
+                            className={`${buttonRadius} transition-all duration-200`}
+                            style={{ 
+                              backgroundColor: buttonBgColor, 
+                              color: buttonTextColor 
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = buttonBgColor;
+                            }}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={cancelEditVariation}
+                            className={`${buttonRadius} transition-all duration-200`}
+                            style={{ 
+                              borderColor: buttonBgColor,
+                              color: buttonBgColor
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = buttonBgColor;
+                              e.currentTarget.style.color = buttonTextColor;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = buttonBgColor;
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{variation.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {variation.values.join(', ')}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 transition-all duration-200"
+                            onClick={() => startEditVariation(index)}
+                            style={{ color: buttonBgColor }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = buttonBgColor;
+                              e.currentTarget.style.color = buttonTextColor;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = buttonBgColor;
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 transition-all duration-200"
+                            onClick={() => removeVariation(index)}
+                            style={{ color: buttonBgColor }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = buttonBgColor;
+                              e.currentTarget.style.color = buttonTextColor;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = buttonBgColor;
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add new variation */}
+            <div className="space-y-2 p-3 border border-dashed rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input
+                  value={newVariationName}
+                  onChange={(e) => setNewVariationName(e.target.value)}
+                  placeholder="Ex: Cor, Tamanho, Aroma"
+                  className="text-sm"
+                />
+                <Input
+                  value={newVariationValues}
+                  onChange={(e) => setNewVariationValues(e.target.value)}
+                  placeholder="Ex: Vermelho, Azul, Verde"
+                  className="text-sm"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addVariation}
+                className={`w-full ${buttonRadius} transition-all duration-200`}
+                style={{ 
+                  borderColor: buttonBgColor,
+                  color: buttonBgColor
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = buttonBgColor;
+                  e.currentTarget.style.color = buttonTextColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = buttonBgColor;
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Variação
+              </Button>
+            </div>
+          </div>
+
+          {/* Weight and Dimensions Section */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-base font-semibold">Peso e Dimensões do Produto</Label>
+            <p className="text-xs text-muted-foreground">
+              Informe o peso e as dimensões para cálculo de frete
+            </p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="weight" className="text-xs">Peso (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="0.00"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="length" className="text-xs">Comprimento (cm)</Label>
+                <Input
+                  id="length"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="height" className="text-xs">Altura (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="width" className="text-xs">Largura (cm)</Label>
+                <Input
+                  id="width"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={width}
+                  onChange={(e) => setWidth(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSimulateShipping}
+              className={`w-full ${buttonRadius} transition-all duration-200`}
+              style={{ 
+                borderColor: buttonBgColor,
+                color: buttonBgColor
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = buttonBgColor;
+                e.currentTarget.style.color = buttonTextColor;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = buttonBgColor;
+              }}
+            >
+              Calcular Frete Simulado
+            </Button>
           </div>
 
           {/* Product Features */}
