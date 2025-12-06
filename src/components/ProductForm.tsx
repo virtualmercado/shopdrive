@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, X, Camera, Image as ImageIcon } from "lucide-react";
+import { Loader2, Trash2, Camera, Image as ImageIcon } from "lucide-react";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -349,7 +349,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+                  <div key={index} className="relative aspect-square bg-muted rounded-lg overflow-hidden group">
                     <img
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -357,12 +357,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                     />
                     <Button
                       type="button"
-                      variant="destructive"
+                      variant="ghost"
                       size="icon"
-                      className="absolute top-1 right-1 h-6 w-6"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200"
                       onClick={() => removeImage(index)}
+                      style={{
+                        backgroundColor: buttonBgColor,
+                        color: buttonTextColor,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = buttonBgColor;
+                      }}
                     >
-                      <X className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
@@ -579,7 +589,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                         e.currentTarget.style.color = buttonBgColor;
                       }}
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
