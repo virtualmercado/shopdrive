@@ -171,12 +171,24 @@ const Products = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className={buttonRadius}
+                className={`${buttonRadius} transition-all`}
                 onClick={() => setSelectedCategory("")}
                 style={selectedCategory === "" 
                   ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
                   : {}
                 }
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== "" && buttonBgColor) {
+                    e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                    e.currentTarget.style.borderColor = buttonBgColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== "") {
+                    e.currentTarget.style.backgroundColor = '';
+                    e.currentTarget.style.borderColor = '';
+                  }
+                }}
               >
                 Todas
               </Button>
@@ -185,12 +197,24 @@ const Products = () => {
                   key={category.id}
                   variant="outline"
                   size="sm"
-                  className={buttonRadius}
+                  className={`${buttonRadius} transition-all`}
                   onClick={() => setSelectedCategory(category.id)}
                   style={selectedCategory === category.id 
                     ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
                     : {}
                   }
+                  onMouseEnter={(e) => {
+                    if (selectedCategory !== category.id && buttonBgColor) {
+                      e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                      e.currentTarget.style.borderColor = buttonBgColor;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedCategory !== category.id) {
+                      e.currentTarget.style.backgroundColor = '';
+                      e.currentTarget.style.borderColor = '';
+                    }
+                  }}
                 >
                   {category.name}
                 </Button>

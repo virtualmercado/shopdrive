@@ -285,7 +285,22 @@ const Customize = () => {
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="flex-shrink-0">
                 <label htmlFor="logo-upload">
-                  <Button variant="outline" disabled={uploading} asChild>
+                  <Button 
+                    variant="outline" 
+                    disabled={uploading} 
+                    asChild
+                    className="transition-all"
+                    onMouseEnter={(e) => {
+                      if (buttonBgColor) {
+                        e.currentTarget.style.backgroundColor = `${buttonBgColor}20`;
+                        e.currentTarget.style.borderColor = buttonBgColor;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                      e.currentTarget.style.borderColor = '';
+                    }}
+                  >
                     <span className="cursor-pointer">
                       <Upload className="h-4 w-4 mr-2" />
                       {uploading ? "Enviando..." : "Escolher Imagem"}
