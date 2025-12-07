@@ -46,6 +46,8 @@ const OnlineStoreContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -82,6 +84,14 @@ const OnlineStoreContent = () => {
 
     fetchStoreData();
   }, [storeSlug]);
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+  };
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+  };
 
   if (loading) {
     return (
@@ -125,6 +135,12 @@ const OnlineStoreContent = () => {
         storeOwnerId={storeData.id}
         storeSlug={storeSlug || ""}
         cartItemCount={getItemCount()}
+        buttonBgColor={buttonBgColor}
+        buttonTextColor={buttonTextColor}
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+        selectedCategory={selectedCategory}
+        onCategoryChange={handleCategoryChange}
       />
       
       <StoreBanner
@@ -158,6 +174,8 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
+          searchTerm={searchTerm}
+          selectedCategory={selectedCategory}
         />
 
         <ProductCarousel
@@ -173,6 +191,8 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
+          searchTerm={searchTerm}
+          selectedCategory={selectedCategory}
         />
 
         <ProductCarousel
@@ -187,6 +207,8 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
+          searchTerm={searchTerm}
+          selectedCategory={selectedCategory}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
