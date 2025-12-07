@@ -146,12 +146,12 @@ const StoreHeader = ({
           {/* Icons - Desktop */}
           <div className="hidden md:flex items-center gap-4">
             <Link to={`/loja/${storeSlug}/conta`}>
-              <Button variant="ghost" size="icon" className="hover:bg-muted">
+              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors">
                 <User className="h-5 w-5" style={{ color: backgroundColor }} />
               </Button>
             </Link>
             <Link to={`/loja/${storeSlug}/checkout`}>
-              <Button variant="ghost" size="icon" className="hover:bg-muted relative">
+              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
                 <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
@@ -249,13 +249,13 @@ const StoreHeader = ({
             ))}
             <div className="pt-4 border-t flex gap-4">
               <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors">
                   <User className="h-4 w-4 mr-2" />
                   Minha Conta
                 </Button>
               </Link>
               <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
-                <Button variant="outline" className="w-full relative">
+                <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors relative">
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Carrinho ({cartItemCount})
                 </Button>
