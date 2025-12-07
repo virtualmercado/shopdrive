@@ -145,9 +145,11 @@ const StoreHeader = ({
 
           {/* Icons - Desktop */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="hover:bg-muted">
-              <User className="h-5 w-5" style={{ color: backgroundColor }} />
-            </Button>
+            <Link to={`/loja/${storeSlug}/conta`}>
+              <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <User className="h-5 w-5" style={{ color: backgroundColor }} />
+              </Button>
+            </Link>
             <Link to={`/loja/${storeSlug}/checkout`}>
               <Button variant="ghost" size="icon" className="hover:bg-muted relative">
                 <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
@@ -246,10 +248,12 @@ const StoreHeader = ({
               </Link>
             ))}
             <div className="pt-4 border-t flex gap-4">
-              <Button variant="outline" className="flex-1">
-                <User className="h-4 w-4 mr-2" />
-                Entrar
-              </Button>
+              <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
+                <Button variant="outline" className="w-full">
+                  <User className="h-4 w-4 mr-2" />
+                  Minha Conta
+                </Button>
+              </Link>
               <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
                 <Button variant="outline" className="w-full relative">
                   <ShoppingCart className="h-4 w-4 mr-2" />
