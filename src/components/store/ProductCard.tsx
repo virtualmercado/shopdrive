@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
-import { toast } from "sonner";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useMiniCart } from "@/contexts/MiniCartContext";
 
 interface ProductCardProps {
   product: {
@@ -15,11 +14,28 @@ interface ProductCardProps {
     stock: number;
   };
   primaryColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  buttonBorderStyle?: string;
+  productImageFormat?: string;
+  productBorderStyle?: string;
+  productTextAlignment?: string;
+  productButtonDisplay?: string;
 }
 
-const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) => {
+const ProductCard = ({ 
+  product, 
+  primaryColor = "#6a1b9a",
+  buttonBgColor = "#6a1b9a",
+  buttonTextColor = "#FFFFFF",
+  buttonBorderStyle = "rounded",
+  productImageFormat = "square",
+  productBorderStyle = "rounded",
+  productTextAlignment = "left",
+  productButtonDisplay = "below"
+}: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { productImageFormat, productBorderStyle, productTextAlignment, productButtonDisplay, buttonBorderStyle, buttonBgColor, buttonTextColor } = useTheme();
+  const { openMiniCart } = useMiniCart();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
@@ -28,7 +44,6 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
 
   const handleAddToCart = () => {
     if (product.stock <= 0) {
-      toast.error("Produto sem estoque");
       return;
     }
 
@@ -40,7 +55,7 @@ const ProductCard = ({ product, primaryColor = "#6a1b9a" }: ProductCardProps) =>
       image_url: product.image_url || (product.images && product.images[0]) || "/placeholder.svg",
     });
 
-    toast.success("Produto adicionado ao carrinho!");
+    openMiniCart();
   };
 
   const finalPrice = product.promotional_price || product.price;

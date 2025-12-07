@@ -27,6 +27,13 @@ interface ProductCarouselProps {
   featured?: boolean;
   newest?: boolean;
   primaryColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  buttonBorderStyle?: string;
+  productImageFormat?: string;
+  productBorderStyle?: string;
+  productTextAlignment?: string;
+  productButtonDisplay?: string;
 }
 
 const ProductCarousel = ({
@@ -36,6 +43,13 @@ const ProductCarousel = ({
   featured,
   newest,
   primaryColor = "#6a1b9a",
+  buttonBgColor = "#6a1b9a",
+  buttonTextColor = "#FFFFFF",
+  buttonBorderStyle = "rounded",
+  productImageFormat = "square",
+  productBorderStyle = "rounded",
+  productTextAlignment = "left",
+  productButtonDisplay = "below",
 }: ProductCarouselProps) => {
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -53,7 +67,6 @@ const ProductCarousel = ({
       } else if (newest) {
         query = query.eq("is_new", true).order("created_at", { ascending: false });
       } else {
-        // Se não tiver filtros, mostra todos ordenados por mais recente
         query = query.order("created_at", { ascending: false });
       }
 
@@ -91,7 +104,17 @@ const ProductCarousel = ({
           {products.map((product) => (
             <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
               <div className="p-2">
-                <ProductCard product={product} primaryColor={primaryColor} />
+                <ProductCard 
+                  product={product} 
+                  primaryColor={primaryColor}
+                  buttonBgColor={buttonBgColor}
+                  buttonTextColor={buttonTextColor}
+                  buttonBorderStyle={buttonBorderStyle}
+                  productImageFormat={productImageFormat}
+                  productBorderStyle={productBorderStyle}
+                  productTextAlignment={productTextAlignment}
+                  productButtonDisplay={productButtonDisplay}
+                />
               </div>
             </CarouselItem>
           ))}
