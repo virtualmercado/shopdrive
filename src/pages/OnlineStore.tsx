@@ -48,6 +48,7 @@ const OnlineStoreContent = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeSearchTerm, setActiveSearchTerm] = useState("");
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -61,7 +62,9 @@ const OnlineStoreContent = () => {
         .single();
 
       if (error) {
-        console.error("Error fetching store:", error);
+        if (import.meta.env.DEV) {
+          console.error("Error fetching store:", error);
+        }
         setLoading(false);
         return;
       }
@@ -87,6 +90,8 @@ const OnlineStoreContent = () => {
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
+    // Trigger search immediately when term changes
+    setActiveSearchTerm(term);
   };
 
   const handleCategoryChange = (categoryId: string | null) => {
@@ -175,7 +180,7 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
-          searchTerm={searchTerm}
+          searchTerm={activeSearchTerm}
           selectedCategory={selectedCategory}
         />
 
@@ -193,7 +198,7 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
-          searchTerm={searchTerm}
+          searchTerm={activeSearchTerm}
           selectedCategory={selectedCategory}
         />
 
@@ -210,7 +215,7 @@ const OnlineStoreContent = () => {
           productBorderStyle={productBorderStyle}
           productTextAlignment={productTextAlignment}
           productButtonDisplay={productButtonDisplay}
-          searchTerm={searchTerm}
+          searchTerm={activeSearchTerm}
           selectedCategory={selectedCategory}
         />
 
