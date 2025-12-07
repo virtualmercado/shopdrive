@@ -20,6 +20,8 @@ interface Product {
   stock: number;
   category_id: string | null;
   description: string | null;
+  variations: any;
+  category_name?: string;
 }
 
 interface ProductCarouselProps {
@@ -41,59 +43,108 @@ interface ProductCarouselProps {
   selectedCategory?: string | null;
 }
 
-// Normalize text: remove accents, convert to lowercase
+// Normalize text: remove accents, convert to lowercase, handle plurals
 const normalizeText = (text: string): string => {
   return text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^\w\s]/g, ""); // Remove punctuation
+    .replace(/[^\w\s]/g, "") // Remove punctuation
+    .replace(/s\b/g, ""); // Remove trailing 's' for plural tolerance
 };
 
-// Calculate similarity score (simple fuzzy matching)
-const calculateSimilarity = (text: string, search: string): number => {
-  const normalizedText = normalizeText(text);
+// Levenshtein distance for typo tolerance
+const levenshteinDistance = (a: string, b: string): number => {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+};
+
+// Extract variations text for search
+const getVariationsText = (variations: any): string => {
+  if (!variations || !Array.isArray(variations)) return "";
+  return variations
+    .map((v: any) => {
+      const name = v.name || v.group || "";
+      const values = (v.values || v.options || []).join(" ");
+      return `${name} ${values}`;
+    })
+    .join(" ");
+};
+
+// Calculate similarity score (fuzzy matching with typo tolerance)
+const calculateSimilarity = (product: Product, search: string): number => {
   const normalizedSearch = normalizeText(search);
-  
-  // Exact match
-  if (normalizedText.includes(normalizedSearch)) {
-    return 1;
-  }
-  
-  // Check if all words in search are present in text
+  if (!normalizedSearch) return 0;
+
   const searchWords = normalizedSearch.split(/\s+/).filter(w => w.length > 0);
-  const textWords = normalizedText.split(/\s+/).filter(w => w.length > 0);
   
+  // Build searchable text from product fields
+  const searchableTexts = [
+    product.name,
+    product.description || "",
+    product.category_name || "",
+    getVariationsText(product.variations),
+  ].filter(Boolean);
+  
+  const combinedText = normalizeText(searchableTexts.join(" "));
+  const textWords = combinedText.split(/\s+/).filter(w => w.length > 0);
+  
+  let totalScore = 0;
   let matchedWords = 0;
+  
   for (const searchWord of searchWords) {
+    let bestWordScore = 0;
+    
     for (const textWord of textWords) {
+      // Exact match in text
       if (textWord.includes(searchWord) || searchWord.includes(textWord)) {
-        matchedWords++;
-        break;
+        bestWordScore = Math.max(bestWordScore, 1);
+        continue;
       }
+      
+      // Typo tolerance using Levenshtein distance
+      if (searchWord.length >= 3 && textWord.length >= 3) {
+        const distance = levenshteinDistance(searchWord, textWord);
+        const maxLen = Math.max(searchWord.length, textWord.length);
+        const similarity = 1 - (distance / maxLen);
+        
+        // Accept if similarity is above threshold (allows ~2 typos in longer words)
+        if (similarity >= 0.6) {
+          bestWordScore = Math.max(bestWordScore, similarity * 0.8);
+        }
+      }
+      
+      // Prefix matching (for partial typing)
+      if (textWord.startsWith(searchWord.substring(0, Math.min(3, searchWord.length)))) {
+        bestWordScore = Math.max(bestWordScore, 0.7);
+      }
+    }
+    
+    if (bestWordScore > 0) {
+      matchedWords++;
+      totalScore += bestWordScore;
     }
   }
   
-  if (searchWords.length > 0 && matchedWords === searchWords.length) {
-    return 0.9;
-  }
+  // All words must match for a valid result
+  if (matchedWords < searchWords.length) return 0;
   
-  // Partial word matching with tolerance for typos
-  for (const searchWord of searchWords) {
-    if (searchWord.length < 3) continue;
-    for (const textWord of textWords) {
-      // Check if first 3 chars match (handles typos at end)
-      if (textWord.startsWith(searchWord.substring(0, 3))) {
-        return 0.7;
-      }
-      // Check if last 3 chars match (handles typos at start)
-      if (searchWord.length >= 3 && textWord.endsWith(searchWord.substring(searchWord.length - 3))) {
-        return 0.6;
-      }
-    }
-  }
-  
-  return 0;
+  return totalScore / searchWords.length;
 };
 
 const ProductCarousel = ({
@@ -120,7 +171,7 @@ const ProductCarousel = ({
     const fetchProducts = async () => {
       let query = supabase
         .from("products")
-        .select("*")
+        .select("*, product_categories(name)")
         .eq("user_id", storeOwnerId)
         .gt("stock", 0);
 
@@ -133,7 +184,13 @@ const ProductCarousel = ({
       }
 
       const { data } = await query;
-      if (data) setProducts(data);
+      if (data) {
+        const productsWithCategory = data.map((p: any) => ({
+          ...p,
+          category_name: p.product_categories?.name || null,
+        }));
+        setProducts(productsWithCategory);
+      }
     };
 
     fetchProducts();
@@ -148,19 +205,13 @@ const ProductCarousel = ({
       result = result.filter(p => p.category_id === selectedCategory);
     }
     
-    // Filter and sort by search term
+    // Filter and sort by search term (fuzzy search)
     if (searchTerm.trim()) {
       const searchResults = result
-        .map(product => {
-          const nameSimilarity = calculateSimilarity(product.name, searchTerm);
-          const descSimilarity = product.description 
-            ? calculateSimilarity(product.description, searchTerm) * 0.5 
-            : 0;
-          return {
-            product,
-            score: Math.max(nameSimilarity, descSimilarity),
-          };
-        })
+        .map(product => ({
+          product,
+          score: calculateSimilarity(product, searchTerm),
+        }))
         .filter(item => item.score > 0)
         .sort((a, b) => b.score - a.score)
         .map(item => item.product);

@@ -112,20 +112,20 @@ const StoreHeader = ({
       </style>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
-          <div className="flex-shrink-0">
+          {/* Logo - Clickable to store home */}
+          <Link to={`/loja/${storeSlug}`} className="flex-shrink-0">
             {logoUrl ? (
               <img 
                 src={logoUrl} 
                 alt={storeName} 
-                className="h-8 md:h-12 w-auto object-contain max-w-[160px] md:max-w-[250px]" 
+                className="h-8 md:h-12 w-auto object-contain max-w-[160px] md:max-w-[250px] cursor-pointer hover:opacity-90 transition-opacity" 
               />
             ) : (
-              <span className="text-xl md:text-2xl font-bold" style={{ color: backgroundColor }}>
+              <span className="text-xl md:text-2xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
                 {storeName}
               </span>
             )}
-          </div>
+          </Link>
 
           {/* Search - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
