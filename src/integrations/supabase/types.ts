@@ -120,27 +120,33 @@ export type Database = {
       }
       customer_profiles: {
         Row: {
+          cpf: string | null
           created_at: string
           email: string
           full_name: string
           id: string
           phone: string | null
+          receive_promotions: boolean | null
           updated_at: string
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           email: string
           full_name: string
           id: string
           phone?: string | null
+          receive_promotions?: boolean | null
           updated_at?: string
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           email?: string
           full_name?: string
           id?: string
           phone?: string | null
+          receive_promotions?: boolean | null
           updated_at?: string
         }
         Relationships: []
