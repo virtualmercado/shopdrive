@@ -169,17 +169,27 @@ const ProductCarousel = ({
 
   useEffect(() => {
     const fetchProducts = async () => {
+      // When searching, fetch ALL products (not filtered by featured/newest)
+      // to ensure complete search results
+      const isSearching = searchTerm && searchTerm.trim().length > 0;
+      
       let query = supabase
         .from("products")
         .select("*, product_categories(name)")
         .eq("user_id", storeOwnerId)
         .gt("stock", 0);
 
-      if (featured) {
-        query = query.eq("is_featured", true);
-      } else if (newest) {
-        query = query.eq("is_new", true).order("created_at", { ascending: false });
+      if (!isSearching) {
+        // Only apply featured/newest filters when NOT searching
+        if (featured) {
+          query = query.eq("is_featured", true);
+        } else if (newest) {
+          query = query.eq("is_new", true).order("created_at", { ascending: false });
+        } else {
+          query = query.order("created_at", { ascending: false });
+        }
       } else {
+        // When searching, just order by created_at
         query = query.order("created_at", { ascending: false });
       }
 
@@ -194,7 +204,7 @@ const ProductCarousel = ({
     };
 
     fetchProducts();
-  }, [storeOwnerId, featured, newest]);
+  }, [storeOwnerId, featured, newest, searchTerm]);
 
   // Filter products based on search term and category
   const filteredProducts = useMemo(() => {
