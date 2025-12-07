@@ -21,7 +21,7 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import CustomerAuth from "./pages/CustomerAuth";
 import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { MerchantRoute } from "./components/MerchantRoute";
 
 const queryClient = new QueryClient();
 
@@ -36,13 +36,13 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/lojista" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/lojista/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-            <Route path="/lojista/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-            <Route path="/lojista/customize" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
-            <Route path="/lojista/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/lojista/store" element={<ProtectedRoute><StorePreviewEnhanced /></ProtectedRoute>} />
-            <Route path="/lojista/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
+            <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
+            <Route path="/lojista/orders" element={<MerchantRoute><Orders /></MerchantRoute>} />
+            <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
+            <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />
+            <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
+            <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
             
             {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
