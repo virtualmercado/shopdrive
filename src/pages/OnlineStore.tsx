@@ -6,6 +6,8 @@ import StoreFooter from "@/components/store/StoreFooter";
 import StoreBanner from "@/components/store/StoreBanner";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
+import MiniCart from "@/components/store/MiniCart";
+import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/hooks/useCart";
 
@@ -31,9 +33,16 @@ interface StoreData {
   address_neighborhood?: string;
   address_city?: string;
   address_state?: string;
+  button_bg_color?: string;
+  button_text_color?: string;
+  button_border_style?: string;
+  product_image_format?: string;
+  product_border_style?: string;
+  product_text_alignment?: string;
+  product_button_display?: string;
 }
 
-const OnlineStore = () => {
+const OnlineStoreContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,6 +106,14 @@ const OnlineStore = () => {
     );
   }
 
+  const buttonBgColor = storeData.button_bg_color || "#6a1b9a";
+  const buttonTextColor = storeData.button_text_color || "#FFFFFF";
+  const buttonBorderStyle = storeData.button_border_style || "rounded";
+  const productImageFormat = storeData.product_image_format || "square";
+  const productBorderStyle = storeData.product_border_style || "rounded";
+  const productTextAlignment = storeData.product_text_alignment || "left";
+  const productButtonDisplay = storeData.product_button_display || "below";
+
   return (
     <div className="min-h-screen bg-background">
       <StoreHeader 
@@ -134,6 +151,13 @@ const OnlineStore = () => {
           storeOwnerId={storeData.id}
           featured={true}
           primaryColor={storeData.primary_color}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productImageFormat={productImageFormat}
+          productBorderStyle={productBorderStyle}
+          productTextAlignment={productTextAlignment}
+          productButtonDisplay={productButtonDisplay}
         />
 
         <ProductCarousel
@@ -142,6 +166,13 @@ const OnlineStore = () => {
           storeOwnerId={storeData.id}
           newest
           primaryColor={storeData.primary_color}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productImageFormat={productImageFormat}
+          productBorderStyle={productBorderStyle}
+          productTextAlignment={productTextAlignment}
+          productButtonDisplay={productButtonDisplay}
         />
 
         <ProductCarousel
@@ -149,6 +180,13 @@ const OnlineStore = () => {
           subtitle="Navegue por todo o catálogo"
           storeOwnerId={storeData.id}
           primaryColor={storeData.primary_color}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productImageFormat={productImageFormat}
+          productBorderStyle={productBorderStyle}
+          productTextAlignment={productTextAlignment}
+          productButtonDisplay={productButtonDisplay}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -179,7 +217,23 @@ const OnlineStore = () => {
           primaryColor={storeData.primary_color}
         />
       )}
+
+      <MiniCart 
+        storeSlug={storeSlug || ""}
+        buttonBgColor={buttonBgColor}
+        buttonTextColor={buttonTextColor}
+        buttonBorderStyle={buttonBorderStyle}
+        primaryColor={storeData.primary_color}
+      />
     </div>
+  );
+};
+
+const OnlineStore = () => {
+  return (
+    <MiniCartProvider>
+      <OnlineStoreContent />
+    </MiniCartProvider>
   );
 };
 
