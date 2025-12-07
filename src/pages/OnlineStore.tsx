@@ -165,6 +165,7 @@ const OnlineStoreContent = () => {
           title="Destaques"
           subtitle="Confira os produtos em destaque"
           storeOwnerId={storeData.id}
+          storeSlug={storeSlug}
           featured={true}
           primaryColor={storeData.primary_color}
           buttonBgColor={buttonBgColor}
@@ -182,6 +183,7 @@ const OnlineStoreContent = () => {
           title="Novidades"
           subtitle="Confira os últimos lançamentos"
           storeOwnerId={storeData.id}
+          storeSlug={storeSlug}
           newest
           primaryColor={storeData.primary_color}
           buttonBgColor={buttonBgColor}
@@ -199,6 +201,7 @@ const OnlineStoreContent = () => {
           title="Todos os Produtos"
           subtitle="Navegue por todo o catálogo"
           storeOwnerId={storeData.id}
+          storeSlug={storeSlug}
           primaryColor={storeData.primary_color}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
