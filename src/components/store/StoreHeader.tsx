@@ -14,6 +14,12 @@ interface StoreHeaderProps {
   storeOwnerId: string;
   storeSlug: string;
   cartItemCount: number;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  searchTerm?: string;
+  onSearchChange?: (term: string) => void;
+  selectedCategory?: string | null;
+  onCategoryChange?: (categoryId: string | null) => void;
 }
 
 interface Category {
@@ -29,11 +35,20 @@ const StoreHeader = ({
   backgroundColor = "#000000",
   storeOwnerId, 
   storeSlug, 
-  cartItemCount 
+  cartItemCount,
+  buttonBgColor,
+  buttonTextColor,
+  searchTerm = "",
+  onSearchChange,
+  selectedCategory,
+  onCategoryChange,
 }: StoreHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+
+  // Use button color or fall back to primary color for accents
+  const accentColor = buttonBgColor || primaryColor || "#6a1b9a";
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -48,8 +63,53 @@ const StoreHeader = ({
     fetchCategories();
   }, [storeOwnerId]);
 
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchTerm(value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
+    e.preventDefault();
+    if (onSearchChange) {
+      onSearchChange(localSearchTerm);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit(e);
+    }
+  };
+
+  const handleCategoryClick = (categoryId: string | null) => {
+    if (onCategoryChange) {
+      onCategoryChange(categoryId);
+    }
+    setMobileMenuOpen(false);
+  };
+
+  // Custom style for search input with merchant's accent color
+  const searchInputStyle = {
+    '--search-focus-color': accentColor,
+  } as React.CSSProperties;
+
   return (
     <header className="sticky top-0 z-50 border-b shadow-sm" style={{ backgroundColor: secondaryColor }}>
+      <style>
+        {`
+          .store-search-input:focus {
+            border-color: var(--search-focus-color) !important;
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--search-focus-color) 20%, transparent) !important;
+            outline: none !important;
+          }
+          .store-search-input:hover {
+            border-color: var(--search-focus-color) !important;
+          }
+        `}
+      </style>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
@@ -69,16 +129,18 @@ const StoreHeader = ({
 
           {/* Search - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
               <Input
                 type="search"
                 placeholder="Buscar produtos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
+                value={localSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-10 w-full store-search-input"
+                style={searchInputStyle}
               />
-            </div>
+            </form>
           </div>
 
           {/* Icons - Desktop */}
@@ -90,7 +152,8 @@ const StoreHeader = ({
               <Button variant="ghost" size="icon" className="hover:bg-muted relative">
                 <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                    style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
                     {cartItemCount}
                   </span>
                 )}
@@ -111,39 +174,41 @@ const StoreHeader = ({
 
         {/* Search - Mobile */}
         <div className="md:hidden pb-3">
-          <div className="relative w-full">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
             <Input
               type="search"
               placeholder="Buscar produtos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
+              value={localSearchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pl-10 w-full store-search-input"
+              style={searchInputStyle}
             />
-          </div>
+          </form>
         </div>
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-6 py-3 border-t overflow-x-auto">
-          <Link
-            to="#"
+          <button
+            onClick={() => handleCategoryClick(null)}
             className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
-            style={{ color: backgroundColor }}
+            style={{ 
+              color: selectedCategory === null ? accentColor : backgroundColor,
+              fontWeight: selectedCategory === null ? 600 : 500,
+            }}
           >
-            Home
-          </Link>
-          <Link
-            to="#"
-            className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
-            style={{ color: backgroundColor }}
-          >
-            Produtos
-          </Link>
+            Todos
+          </button>
           {categories.map((category) => (
             <button
               key={category.id}
+              onClick={() => handleCategoryClick(category.id)}
               className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
-              style={{ color: backgroundColor }}
+              style={{ 
+                color: selectedCategory === category.id ? accentColor : backgroundColor,
+                fontWeight: selectedCategory === category.id ? 600 : 500,
+              }}
             >
               {category.name}
             </button>
@@ -155,28 +220,25 @@ const StoreHeader = ({
       {mobileMenuOpen && (
         <div className="md:hidden border-t" style={{ backgroundColor: secondaryColor }}>
           <nav className="container mx-auto px-4 py-4 space-y-4">
-            <Link
-              to="#"
-              className="block text-sm font-medium transition-colors hover:opacity-70"
-              style={{ color: backgroundColor }}
-              onClick={() => setMobileMenuOpen(false)}
+            <button
+              onClick={() => handleCategoryClick(null)}
+              className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
+              style={{ 
+                color: selectedCategory === null ? accentColor : backgroundColor,
+                fontWeight: selectedCategory === null ? 600 : 500,
+              }}
             >
-              Home
-            </Link>
-            <Link
-              to="#"
-              className="block text-sm font-medium transition-colors hover:opacity-70"
-              style={{ color: backgroundColor }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Produtos
-            </Link>
+              Todos os Produtos
+            </button>
             {categories.map((category) => (
               <button
                 key={category.id}
+                onClick={() => handleCategoryClick(category.id)}
                 className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
-                style={{ color: backgroundColor }}
-                onClick={() => setMobileMenuOpen(false)}
+                style={{ 
+                  color: selectedCategory === category.id ? accentColor : backgroundColor,
+                  fontWeight: selectedCategory === category.id ? 600 : 500,
+                }}
               >
                 {category.name}
               </button>
