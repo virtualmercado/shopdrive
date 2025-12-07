@@ -14,6 +14,7 @@ import Settings from "./pages/dashboard/Settings";
 import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
 import OnlineStore from "./pages/OnlineStore";
+import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -43,6 +44,8 @@ function App() {
             
             {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
+            <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
+            <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
             <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
             <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />

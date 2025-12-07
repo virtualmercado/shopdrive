@@ -206,7 +206,7 @@ const ProductCarousel = ({
     }
     
     // Filter and sort by search term (fuzzy search)
-    if (searchTerm.trim()) {
+    if (searchTerm && searchTerm.trim()) {
       const searchResults = result
         .map(product => ({
           product,
@@ -219,24 +219,10 @@ const ProductCarousel = ({
       result = searchResults;
     }
     
-    return result.slice(0, 9);
+    return result.slice(0, 12);
   }, [products, searchTerm, selectedCategory]);
 
   if (filteredProducts.length === 0) {
-    // Only show "no results" message for the main carousel if searching/filtering
-    if ((searchTerm || selectedCategory) && !featured && !newest) {
-      return (
-        <section className="space-y-4">
-          <div className="text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground">{title}</h2>
-            <p className="text-muted-foreground mt-2">{subtitle}</p>
-          </div>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Nenhum produto encontrado.</p>
-          </div>
-        </section>
-      );
-    }
     return null;
   }
 

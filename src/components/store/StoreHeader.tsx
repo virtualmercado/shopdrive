@@ -190,8 +190,8 @@ const StoreHeader = ({
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-6 py-3 border-t overflow-x-auto">
-          <button
-            onClick={() => handleCategoryClick(null)}
+          <Link
+            to={`/loja/${storeSlug}/produtos`}
             className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
             style={{ 
               color: selectedCategory === null ? accentColor : backgroundColor,
@@ -199,11 +199,11 @@ const StoreHeader = ({
             }}
           >
             Todos
-          </button>
+          </Link>
           {categories.map((category) => (
-            <button
+            <Link
               key={category.id}
-              onClick={() => handleCategoryClick(category.id)}
+              to={`/loja/${storeSlug}/categoria/${category.id}`}
               className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
               style={{ 
                 color: selectedCategory === category.id ? accentColor : backgroundColor,
@@ -211,7 +211,7 @@ const StoreHeader = ({
               }}
             >
               {category.name}
-            </button>
+            </Link>
           ))}
         </nav>
       </div>
@@ -220,8 +220,9 @@ const StoreHeader = ({
       {mobileMenuOpen && (
         <div className="md:hidden border-t" style={{ backgroundColor: secondaryColor }}>
           <nav className="container mx-auto px-4 py-4 space-y-4">
-            <button
-              onClick={() => handleCategoryClick(null)}
+            <Link
+              to={`/loja/${storeSlug}/produtos`}
+              onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
               style={{ 
                 color: selectedCategory === null ? accentColor : backgroundColor,
@@ -229,11 +230,12 @@ const StoreHeader = ({
               }}
             >
               Todos os Produtos
-            </button>
+            </Link>
             {categories.map((category) => (
-              <button
+              <Link
                 key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
+                to={`/loja/${storeSlug}/categoria/${category.id}`}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
                 style={{ 
                   color: selectedCategory === category.id ? accentColor : backgroundColor,
@@ -241,7 +243,7 @@ const StoreHeader = ({
                 }}
               >
                 {category.name}
-              </button>
+              </Link>
             ))}
             <div className="pt-4 border-t flex gap-4">
               <Button variant="outline" className="flex-1">
