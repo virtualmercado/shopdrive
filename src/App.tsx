@@ -18,6 +18,8 @@ import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
+import CustomerAuth from "./pages/CustomerAuth";
+import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -49,6 +51,10 @@ function App() {
             <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
             <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
+            
+            {/* Customer Account Routes */}
+            <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
+            <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
