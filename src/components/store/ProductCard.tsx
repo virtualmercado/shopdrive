@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useMiniCart } from "@/contexts/MiniCartContext";
+import { Link } from "react-router-dom";
 
 interface ProductCardProps {
   product: {
@@ -13,6 +14,7 @@ interface ProductCardProps {
     images: any;
     stock: number;
   };
+  storeSlug?: string;
   primaryColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
@@ -25,6 +27,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ 
   product, 
+  storeSlug,
   primaryColor = "#6a1b9a",
   buttonBgColor = "#6a1b9a",
   buttonTextColor = "#FFFFFF",
@@ -60,19 +63,23 @@ const ProductCard = ({
 
   const finalPrice = product.promotional_price || product.price;
 
+  const productLink = storeSlug ? `/loja/${storeSlug}/produto/${product.id}` : '#';
+
   return (
     <div className={`bg-card overflow-hidden shadow-md hover:shadow-lg transition-shadow ${borderRadius}`}>
-      <div className={`${aspectRatio} overflow-hidden bg-muted`}>
+      <Link to={productLink} className={`block ${aspectRatio} overflow-hidden bg-muted`}>
         <img
           src={product.image_url || (product.images && product.images[0]) || "/placeholder.svg"}
           alt={product.name}
           className="w-full h-full object-cover hover:scale-105 transition-transform"
         />
-      </div>
+      </Link>
       <div className={`p-4 space-y-3 ${textAlign}`}>
-        <h3 className="font-semibold text-foreground line-clamp-2 min-h-[3rem]">
-          {product.name}
-        </h3>
+        <Link to={productLink}>
+          <h3 className="font-semibold text-foreground line-clamp-2 min-h-[3rem] hover:underline">
+            {product.name}
+          </h3>
+        </Link>
         <div className={`flex items-center gap-2 ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
           {product.promotional_price ? (
             <>

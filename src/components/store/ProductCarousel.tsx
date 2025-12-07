@@ -26,6 +26,7 @@ interface ProductCarouselProps {
   title: string;
   subtitle: string;
   storeOwnerId: string;
+  storeSlug?: string;
   featured?: boolean;
   newest?: boolean;
   primaryColor?: string;
@@ -99,6 +100,7 @@ const ProductCarousel = ({
   title,
   subtitle,
   storeOwnerId,
+  storeSlug,
   featured,
   newest,
   primaryColor = "#6a1b9a",
@@ -212,6 +214,7 @@ const ProductCarousel = ({
               <div className="p-2">
                 <ProductCard 
                   product={product} 
+                  storeSlug={storeSlug}
                   primaryColor={primaryColor}
                   buttonBgColor={buttonBgColor}
                   buttonTextColor={buttonTextColor}
