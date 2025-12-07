@@ -43,12 +43,29 @@ export const useCustomerAuth = () => {
     });
 
     if (error) {
+      let errorMessage = error.message;
+      if (error.message.includes('already registered')) {
+        errorMessage = 'Este e-mail já está cadastrado. Tente fazer login.';
+      }
       toast({
         title: "Erro ao criar conta",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
-      return { error };
+      return { data: null, error };
+    }
+
+    // Create customer profile manually if trigger didn't work
+    if (data?.user) {
+      const { error: profileError } = await supabase.from('customer_profiles').upsert({
+        id: data.user.id,
+        full_name: fullName,
+        email: email,
+      }, { onConflict: 'id' });
+      
+      if (profileError) {
+        console.error('Error creating customer profile:', profileError);
+      }
     }
 
     toast({
