@@ -41,39 +41,17 @@ interface ProductCarouselProps {
   productButtonDisplay?: string;
   searchTerm?: string;
   selectedCategory?: string | null;
+  showAllOnSearch?: boolean;
 }
 
-// Normalize text: remove accents, convert to lowercase, handle plurals
+// Simple text normalization: remove accents, lowercase
 const normalizeText = (text: string): string => {
   if (!text) return "";
   return text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^\w\s]/g, " ") // Replace punctuation with spaces
-    .replace(/\s+/g, " ") // Normalize multiple spaces
     .trim();
-};
-
-// Levenshtein distance for typo tolerance
-const levenshteinDistance = (a: string, b: string): number => {
-  const matrix: number[][] = [];
-  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-  for (let i = 1; i <= b.length; i++) {
-    for (let j = 1; j <= a.length; j++) {
-      if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-  return matrix[b.length][a.length];
 };
 
 // Extract variations text for search
@@ -82,81 +60,38 @@ const getVariationsText = (variations: any): string => {
   return variations
     .map((v: any) => {
       const name = v.name || v.group || "";
-      const values = (v.values || v.options || []).join(" ");
+      const values = Array.isArray(v.values) ? v.values.join(" ") : 
+                     Array.isArray(v.options) ? v.options.join(" ") : "";
       return `${name} ${values}`;
     })
     .join(" ");
 };
 
-// Calculate similarity score (fuzzy matching with typo tolerance)
-const calculateSimilarity = (product: Product, search: string): number => {
-  const normalizedSearch = normalizeText(search);
-  if (!normalizedSearch) return 0;
+// Simple substring matching - more reliable than fuzzy matching
+const matchesSearch = (product: Product, searchTerm: string): boolean => {
+  const normalizedSearch = normalizeText(searchTerm);
+  if (!normalizedSearch) return true;
 
-  const searchWords = normalizedSearch.split(/\s+/).filter(w => w.length > 0);
-  if (searchWords.length === 0) return 0;
-  
-  // Build searchable text from product fields
-  const searchableTexts = [
+  // Build searchable text from all product fields
+  const searchableFields = [
     product.name || "",
     product.description || "",
     product.category_name || "",
     getVariationsText(product.variations),
-  ].filter(Boolean);
+  ];
+
+  const combinedText = normalizeText(searchableFields.join(" "));
   
-  const combinedText = normalizeText(searchableTexts.join(" "));
-  const textWords = combinedText.split(/\s+/).filter(w => w.length > 0);
+  // Split search term into words and check if ALL words are found
+  const searchWords = normalizedSearch.split(/\s+/).filter(w => w.length > 0);
   
-  let totalScore = 0;
-  let matchedWords = 0;
-  
-  for (const searchWord of searchWords) {
-    let bestWordScore = 0;
-    
-    // Check if search word is contained in combined text directly
-    if (combinedText.includes(searchWord)) {
-      bestWordScore = 1;
-    } else {
-      // Check word by word
-      for (const textWord of textWords) {
-        // Exact match or contains
-        if (textWord.includes(searchWord) || searchWord.includes(textWord)) {
-          bestWordScore = Math.max(bestWordScore, 1);
-          break;
-        }
-        
-        // Prefix matching (for partial typing)
-        if (searchWord.length >= 2 && textWord.startsWith(searchWord.substring(0, Math.min(3, searchWord.length)))) {
-          bestWordScore = Math.max(bestWordScore, 0.8);
-        }
-        
-        // Typo tolerance using Levenshtein distance
-        if (searchWord.length >= 3 && textWord.length >= 3) {
-          const distance = levenshteinDistance(searchWord, textWord);
-          const maxLen = Math.max(searchWord.length, textWord.length);
-          const similarity = 1 - (distance / maxLen);
-          
-          // Accept if similarity is above threshold (allows ~2 typos in longer words)
-          if (similarity >= 0.5) {
-            bestWordScore = Math.max(bestWordScore, similarity * 0.7);
-          }
-        }
-      }
-    }
-    
-    if (bestWordScore > 0) {
-      matchedWords++;
-      totalScore += bestWordScore;
-    }
+  // For single word search, check if it's contained anywhere
+  if (searchWords.length === 1) {
+    return combinedText.includes(searchWords[0]);
   }
   
-  // Return score even if not all words matched (partial matching)
-  // Give bonus for matching more words
-  const matchRatio = matchedWords / searchWords.length;
-  if (matchRatio === 0) return 0;
-  
-  // Allow partial matches but rank them lower
-  return (totalScore / searchWords.length) * (0.5 + matchRatio * 0.5);
+  // For multi-word search, all words must be found
+  return searchWords.every(word => combinedText.includes(word));
 };
 
 const ProductCarousel = ({
@@ -176,14 +111,14 @@ const ProductCarousel = ({
   productButtonDisplay = "below",
   searchTerm = "",
   selectedCategory = null,
+  showAllOnSearch = false,
 }: ProductCarouselProps) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      // When searching, fetch ALL products (not filtered by featured/newest)
-      // to ensure complete search results
-      const isSearching = searchTerm && searchTerm.trim().length > 0;
+      setLoading(true);
       
       let query = supabase
         .from("products")
@@ -191,8 +126,11 @@ const ProductCarousel = ({
         .eq("user_id", storeOwnerId)
         .gt("stock", 0);
 
-      if (!isSearching) {
-        // Only apply featured/newest filters when NOT searching
+      // When showAllOnSearch is true, fetch ALL products without filters
+      if (showAllOnSearch) {
+        query = query.order("created_at", { ascending: false });
+      } else {
+        // Apply featured/newest filters
         if (featured) {
           query = query.eq("is_featured", true);
         } else if (newest) {
@@ -200,12 +138,18 @@ const ProductCarousel = ({
         } else {
           query = query.order("created_at", { ascending: false });
         }
-      } else {
-        // When searching, fetch all products ordered by created_at
-        query = query.order("created_at", { ascending: false });
       }
 
-      const { data } = await query;
+      const { data, error } = await query;
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error("Error fetching products:", error);
+        }
+        setLoading(false);
+        return;
+      }
+
       if (data) {
         const productsWithCategory = data.map((p: any) => ({
           ...p,
@@ -213,10 +157,11 @@ const ProductCarousel = ({
         }));
         setProducts(productsWithCategory);
       }
+      setLoading(false);
     };
 
     fetchProducts();
-  }, [storeOwnerId, featured, newest, searchTerm]);
+  }, [storeOwnerId, featured, newest, showAllOnSearch]);
 
   // Filter products based on search term and category
   const filteredProducts = useMemo(() => {
@@ -227,22 +172,34 @@ const ProductCarousel = ({
       result = result.filter(p => p.category_id === selectedCategory);
     }
     
-    // Filter and sort by search term (fuzzy search)
+    // Filter by search term using simple substring matching
     if (searchTerm && searchTerm.trim()) {
-      const searchResults = result
-        .map(product => ({
-          product,
-          score: calculateSimilarity(product, searchTerm),
-        }))
-        .filter(item => item.score > 0.2) // Lower threshold for more results
-        .sort((a, b) => b.score - a.score)
-        .map(item => item.product);
-      
-      result = searchResults;
+      result = result.filter(product => matchesSearch(product, searchTerm));
     }
     
-    return result.slice(0, 12);
-  }, [products, searchTerm, selectedCategory]);
+    // Limit results
+    return result.slice(0, showAllOnSearch ? 50 : 12);
+  }, [products, searchTerm, selectedCategory, showAllOnSearch]);
+
+  // Show "no results" message when searching
+  if (showAllOnSearch && !loading && filteredProducts.length === 0) {
+    return (
+      <section className="space-y-4">
+        <div className="text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">{title}</h2>
+          <p className="text-muted-foreground mt-2">{subtitle}</p>
+        </div>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">
+            Nenhum produto encontrado para "{searchTerm}"
+          </p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Tente buscar por outro termo
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   if (filteredProducts.length === 0) {
     return null;
@@ -258,7 +215,7 @@ const ProductCarousel = ({
       <Carousel
         opts={{
           align: "start",
-          loop: true,
+          loop: filteredProducts.length > 3,
         }}
         plugins={[
           Autoplay({

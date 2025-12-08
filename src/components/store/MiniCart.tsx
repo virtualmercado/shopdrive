@@ -1,6 +1,6 @@
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/hooks/useCart";
+import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
 import { useNavigate } from "react-router-dom";
 

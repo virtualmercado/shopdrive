@@ -8,8 +8,8 @@ import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCart } from "@/hooks/useCart";
 
 interface StoreData {
   id: string;
@@ -90,10 +90,9 @@ const OnlineStoreContent = () => {
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
-    setActiveSearchTerm(term);
   };
 
-  // Also trigger search as user types (debounced effect)
+  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setActiveSearchTerm(searchTerm);
@@ -136,6 +135,8 @@ const OnlineStoreContent = () => {
   const productTextAlignment = storeData.product_text_alignment || "left";
   const productButtonDisplay = storeData.product_button_display || "below";
 
+  const isSearching = activeSearchTerm.trim().length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       <StoreHeader 
@@ -173,58 +174,79 @@ const OnlineStoreContent = () => {
       />
 
       <main className="container mx-auto px-4 py-8 space-y-12">
-        <ProductCarousel
-          title="Destaques"
-          subtitle="Confira os produtos em destaque"
-          storeOwnerId={storeData.id}
-          storeSlug={storeSlug}
-          featured={true}
-          primaryColor={storeData.primary_color}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
-          buttonBorderStyle={buttonBorderStyle}
-          productImageFormat={productImageFormat}
-          productBorderStyle={productBorderStyle}
-          productTextAlignment={productTextAlignment}
-          productButtonDisplay={productButtonDisplay}
-          searchTerm={activeSearchTerm}
-          selectedCategory={selectedCategory}
-        />
+        {isSearching ? (
+          // Show search results section when searching
+          <ProductCarousel
+            title={`Resultados para "${activeSearchTerm}"`}
+            subtitle="Produtos encontrados na busca"
+            storeOwnerId={storeData.id}
+            storeSlug={storeSlug}
+            primaryColor={storeData.primary_color}
+            buttonBgColor={buttonBgColor}
+            buttonTextColor={buttonTextColor}
+            buttonBorderStyle={buttonBorderStyle}
+            productImageFormat={productImageFormat}
+            productBorderStyle={productBorderStyle}
+            productTextAlignment={productTextAlignment}
+            productButtonDisplay={productButtonDisplay}
+            searchTerm={activeSearchTerm}
+            selectedCategory={selectedCategory}
+            showAllOnSearch={true}
+          />
+        ) : (
+          // Show normal carousels when not searching
+          <>
+            <ProductCarousel
+              title="Destaques"
+              subtitle="Confira os produtos em destaque"
+              storeOwnerId={storeData.id}
+              storeSlug={storeSlug}
+              featured={true}
+              primaryColor={storeData.primary_color}
+              buttonBgColor={buttonBgColor}
+              buttonTextColor={buttonTextColor}
+              buttonBorderStyle={buttonBorderStyle}
+              productImageFormat={productImageFormat}
+              productBorderStyle={productBorderStyle}
+              productTextAlignment={productTextAlignment}
+              productButtonDisplay={productButtonDisplay}
+              selectedCategory={selectedCategory}
+            />
 
-        <ProductCarousel
-          title="Novidades"
-          subtitle="Confira os últimos lançamentos"
-          storeOwnerId={storeData.id}
-          storeSlug={storeSlug}
-          newest
-          primaryColor={storeData.primary_color}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
-          buttonBorderStyle={buttonBorderStyle}
-          productImageFormat={productImageFormat}
-          productBorderStyle={productBorderStyle}
-          productTextAlignment={productTextAlignment}
-          productButtonDisplay={productButtonDisplay}
-          searchTerm={activeSearchTerm}
-          selectedCategory={selectedCategory}
-        />
+            <ProductCarousel
+              title="Novidades"
+              subtitle="Confira os últimos lançamentos"
+              storeOwnerId={storeData.id}
+              storeSlug={storeSlug}
+              newest
+              primaryColor={storeData.primary_color}
+              buttonBgColor={buttonBgColor}
+              buttonTextColor={buttonTextColor}
+              buttonBorderStyle={buttonBorderStyle}
+              productImageFormat={productImageFormat}
+              productBorderStyle={productBorderStyle}
+              productTextAlignment={productTextAlignment}
+              productButtonDisplay={productButtonDisplay}
+              selectedCategory={selectedCategory}
+            />
 
-        <ProductCarousel
-          title="Todos os Produtos"
-          subtitle="Navegue por todo o catálogo"
-          storeOwnerId={storeData.id}
-          storeSlug={storeSlug}
-          primaryColor={storeData.primary_color}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
-          buttonBorderStyle={buttonBorderStyle}
-          productImageFormat={productImageFormat}
-          productBorderStyle={productBorderStyle}
-          productTextAlignment={productTextAlignment}
-          productButtonDisplay={productButtonDisplay}
-          searchTerm={activeSearchTerm}
-          selectedCategory={selectedCategory}
-        />
+            <ProductCarousel
+              title="Todos os Produtos"
+              subtitle="Navegue por todo o catálogo"
+              storeOwnerId={storeData.id}
+              storeSlug={storeSlug}
+              primaryColor={storeData.primary_color}
+              buttonBgColor={buttonBgColor}
+              buttonTextColor={buttonTextColor}
+              buttonBorderStyle={buttonBorderStyle}
+              productImageFormat={productImageFormat}
+              productBorderStyle={productBorderStyle}
+              productTextAlignment={productTextAlignment}
+              productButtonDisplay={productButtonDisplay}
+              selectedCategory={selectedCategory}
+            />
+          </>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {storeData.banner_rect_1_url && (
@@ -268,9 +290,11 @@ const OnlineStoreContent = () => {
 
 const OnlineStore = () => {
   return (
-    <MiniCartProvider>
-      <OnlineStoreContent />
-    </MiniCartProvider>
+    <CartProvider>
+      <MiniCartProvider>
+        <OnlineStoreContent />
+      </MiniCartProvider>
+    </CartProvider>
   );
 };
 
