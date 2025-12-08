@@ -104,15 +104,28 @@ const ProductCard = ({
     <div className={`bg-card overflow-hidden shadow-md hover:shadow-lg transition-shadow ${borderRadius}`}>
       <Link 
         to={productLink} 
-        className={`block ${aspectRatio} overflow-hidden bg-muted relative`}
+        className={`block ${aspectRatio} overflow-hidden bg-muted relative group`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Primary Image */}
         <img
-          src={isHovered ? secondaryImage : primaryImage}
+          src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-cover transition-all duration-300 ease-in-out hover:scale-105"
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out group-hover:scale-110 ${
+            isHovered && secondaryImage !== primaryImage ? 'opacity-0' : 'opacity-100'
+          }`}
         />
+        {/* Secondary Image (shown on hover) */}
+        {secondaryImage !== primaryImage && (
+          <img
+            src={secondaryImage}
+            alt={`${product.name} - alternate view`}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out group-hover:scale-110 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
       </Link>
       <div className={`p-4 space-y-3 ${textAlign}`}>
         <Link to={productLink}>
