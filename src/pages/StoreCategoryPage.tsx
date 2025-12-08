@@ -6,8 +6,8 @@ import StoreFooter from "@/components/store/StoreFooter";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCart } from "@/hooks/useCart";
 import ProductCard from "@/components/store/ProductCard";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -421,9 +421,11 @@ const StoreCategoryPageContent = () => {
 
 const StoreCategoryPage = () => {
   return (
-    <MiniCartProvider>
-      <StoreCategoryPageContent />
-    </MiniCartProvider>
+    <CartProvider>
+      <MiniCartProvider>
+        <StoreCategoryPageContent />
+      </MiniCartProvider>
+    </CartProvider>
   );
 };
 

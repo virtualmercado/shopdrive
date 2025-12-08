@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2 } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { useMiniCart, MiniCartProvider } from "@/contexts/MiniCartContext";
 import MiniCart from "@/components/store/MiniCart";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -592,9 +592,11 @@ const ProductDetailContent = () => {
 
 const ProductDetail = () => {
   return (
-    <MiniCartProvider>
-      <ProductDetailContent />
-    </MiniCartProvider>
+    <CartProvider>
+      <MiniCartProvider>
+        <ProductDetailContent />
+      </MiniCartProvider>
+    </CartProvider>
   );
 };
 
