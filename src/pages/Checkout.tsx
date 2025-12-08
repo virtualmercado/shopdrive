@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCart } from "@/hooks/useCart";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,7 @@ const checkoutSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
-const Checkout = () => {
+const CheckoutContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
   const { cart, getTotal, clearCart, updateQuantity, removeFromCart } = useCart();
@@ -638,6 +638,14 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
         </div>
       </div>
     </div>
+  );
+};
+
+const Checkout = () => {
+  return (
+    <CartProvider>
+      <CheckoutContent />
+    </CartProvider>
   );
 };
 
