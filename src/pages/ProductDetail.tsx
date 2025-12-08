@@ -550,19 +550,22 @@ const ProductDetailContent = () => {
               {product.stock <= 0 ? "Produto Indisponível" : "Adicionar ao Carrinho"}
             </Button>
 
-            {/* Description */}
-            {product.description && (
-              <div className="pt-4 border-t">
-                <h2 className="text-lg font-semibold text-foreground mb-3">
-                  Descrição
-                </h2>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {product.description}
-                </p>
-              </div>
-            )}
           </div>
         </div>
+
+        {/* Description - Centered and optimized for readability */}
+        {product.description && (
+          <div className="mt-10 pt-8 border-t">
+            <div className="max-w-2xl mx-auto px-4 md:px-8">
+              <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
+                Descrição do Produto
+              </h2>
+              <p className="text-muted-foreground leading-7 whitespace-pre-line text-justify">
+                {product.description}
+              </p>
+            </div>
+          </div>
+        )}
       </main>
 
       <StoreFooter storeData={storeData} />
