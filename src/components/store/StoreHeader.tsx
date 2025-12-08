@@ -69,6 +69,10 @@ const StoreHeader = ({
 
   const handleSearchChange = (value: string) => {
     setLocalSearchTerm(value);
+    // Trigger search immediately as user types
+    if (onSearchChange) {
+      onSearchChange(value);
+    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {

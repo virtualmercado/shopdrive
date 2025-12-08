@@ -45,12 +45,14 @@ interface ProductCarouselProps {
 
 // Normalize text: remove accents, convert to lowercase, handle plurals
 const normalizeText = (text: string): string => {
+  if (!text) return "";
   return text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/[^\w\s]/g, "") // Remove punctuation
-    .replace(/s\b/g, ""); // Remove trailing 's' for plural tolerance
+    .replace(/[^\w\s]/g, " ") // Replace punctuation with spaces
+    .replace(/\s+/g, " ") // Normalize multiple spaces
+    .trim();
 };
 
 // Levenshtein distance for typo tolerance
@@ -92,10 +94,11 @@ const calculateSimilarity = (product: Product, search: string): number => {
   if (!normalizedSearch) return 0;
 
   const searchWords = normalizedSearch.split(/\s+/).filter(w => w.length > 0);
+  if (searchWords.length === 0) return 0;
   
   // Build searchable text from product fields
   const searchableTexts = [
-    product.name,
+    product.name || "",
     product.description || "",
     product.category_name || "",
     getVariationsText(product.variations),
@@ -110,28 +113,34 @@ const calculateSimilarity = (product: Product, search: string): number => {
   for (const searchWord of searchWords) {
     let bestWordScore = 0;
     
-    for (const textWord of textWords) {
-      // Exact match in text
-      if (textWord.includes(searchWord) || searchWord.includes(textWord)) {
-        bestWordScore = Math.max(bestWordScore, 1);
-        continue;
-      }
-      
-      // Typo tolerance using Levenshtein distance
-      if (searchWord.length >= 3 && textWord.length >= 3) {
-        const distance = levenshteinDistance(searchWord, textWord);
-        const maxLen = Math.max(searchWord.length, textWord.length);
-        const similarity = 1 - (distance / maxLen);
-        
-        // Accept if similarity is above threshold (allows ~2 typos in longer words)
-        if (similarity >= 0.6) {
-          bestWordScore = Math.max(bestWordScore, similarity * 0.8);
+    // Check if search word is contained in combined text directly
+    if (combinedText.includes(searchWord)) {
+      bestWordScore = 1;
+    } else {
+      // Check word by word
+      for (const textWord of textWords) {
+        // Exact match or contains
+        if (textWord.includes(searchWord) || searchWord.includes(textWord)) {
+          bestWordScore = Math.max(bestWordScore, 1);
+          break;
         }
-      }
-      
-      // Prefix matching (for partial typing)
-      if (textWord.startsWith(searchWord.substring(0, Math.min(3, searchWord.length)))) {
-        bestWordScore = Math.max(bestWordScore, 0.7);
+        
+        // Prefix matching (for partial typing)
+        if (searchWord.length >= 2 && textWord.startsWith(searchWord.substring(0, Math.min(3, searchWord.length)))) {
+          bestWordScore = Math.max(bestWordScore, 0.8);
+        }
+        
+        // Typo tolerance using Levenshtein distance
+        if (searchWord.length >= 3 && textWord.length >= 3) {
+          const distance = levenshteinDistance(searchWord, textWord);
+          const maxLen = Math.max(searchWord.length, textWord.length);
+          const similarity = 1 - (distance / maxLen);
+          
+          // Accept if similarity is above threshold (allows ~2 typos in longer words)
+          if (similarity >= 0.5) {
+            bestWordScore = Math.max(bestWordScore, similarity * 0.7);
+          }
+        }
       }
     }
     
@@ -141,10 +150,13 @@ const calculateSimilarity = (product: Product, search: string): number => {
     }
   }
   
-  // All words must match for a valid result
-  if (matchedWords < searchWords.length) return 0;
+  // Return score even if not all words matched (partial matching)
+  // Give bonus for matching more words
+  const matchRatio = matchedWords / searchWords.length;
+  if (matchRatio === 0) return 0;
   
-  return totalScore / searchWords.length;
+  // Allow partial matches but rank them lower
+  return (totalScore / searchWords.length) * (0.5 + matchRatio * 0.5);
 };
 
 const ProductCarousel = ({
@@ -189,7 +201,7 @@ const ProductCarousel = ({
           query = query.order("created_at", { ascending: false });
         }
       } else {
-        // When searching, just order by created_at
+        // When searching, fetch all products ordered by created_at
         query = query.order("created_at", { ascending: false });
       }
 
@@ -222,7 +234,7 @@ const ProductCarousel = ({
           product,
           score: calculateSimilarity(product, searchTerm),
         }))
-        .filter(item => item.score > 0)
+        .filter(item => item.score > 0.2) // Lower threshold for more results
         .sort((a, b) => b.score - a.score)
         .map(item => item.product);
       

@@ -90,9 +90,16 @@ const OnlineStoreContent = () => {
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
-    // Trigger search immediately when term changes
     setActiveSearchTerm(term);
   };
+
+  // Also trigger search as user types (debounced effect)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setActiveSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
