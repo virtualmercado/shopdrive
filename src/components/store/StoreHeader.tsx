@@ -145,10 +145,12 @@ const StoreHeader = ({
 
           {/* Icons - Desktop */}
           <div className="hidden md:flex items-center gap-4">
-            <Link to={`/loja/${storeSlug}/conta`}>
-              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors">
-                <User className="h-5 w-5" style={{ color: backgroundColor }} />
-              </Button>
+            <Link 
+              to={`/loja/${storeSlug}/conta`}
+              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              <User className="h-5 w-5" style={{ color: backgroundColor }} />
+              <span className="text-sm font-medium" style={{ color: backgroundColor }}>Entrar</span>
             </Link>
             <Link to={`/loja/${storeSlug}/checkout`}>
               <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
