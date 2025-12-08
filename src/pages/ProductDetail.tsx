@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, Ruler } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useMiniCart, MiniCartProvider } from "@/contexts/MiniCartContext";
 import MiniCart from "@/components/store/MiniCart";
@@ -10,6 +10,8 @@ import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -72,6 +74,8 @@ const ProductDetailContent = () => {
   const navigate = useNavigate();
   const { addToCart, getItemCount } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
+  const { user } = useCustomerAuth();
+  const { toast } = useToast();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
@@ -80,6 +84,8 @@ const ProductDetailContent = () => {
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -143,6 +149,94 @@ const ProductDetailContent = () => {
     fetchData();
   }, [storeSlug, productId]);
 
+  // Check if product is favorited
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!user || !productId) return;
+      
+      const { data } = await supabase
+        .from("customer_favorites")
+        .select("id")
+        .eq("customer_id", user.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+      
+      setIsFavorite(!!data);
+    };
+
+    checkFavorite();
+  }, [user, productId]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "Faça login",
+        description: "Você precisa estar logado para salvar favoritos.",
+        variant: "destructive",
+      });
+      navigate(`/loja/${storeSlug}/conta`);
+      return;
+    }
+
+    if (!product || !storeData) return;
+
+    setFavoriteLoading(true);
+    
+    if (isFavorite) {
+      // Remove from favorites
+      const { error } = await supabase
+        .from("customer_favorites")
+        .delete()
+        .eq("customer_id", user.id)
+        .eq("product_id", product.id);
+
+      if (!error) {
+        setIsFavorite(false);
+        toast({
+          title: "Removido dos favoritos",
+          description: "Produto removido da sua lista de favoritos.",
+        });
+      }
+    } else {
+      // Add to favorites
+      const { error } = await supabase
+        .from("customer_favorites")
+        .insert({
+          customer_id: user.id,
+          product_id: product.id,
+          store_owner_id: storeData.id,
+        });
+
+      if (!error) {
+        setIsFavorite(true);
+        toast({
+          title: "Adicionado aos favoritos",
+          description: "Produto salvo na sua lista de favoritos.",
+        });
+      }
+    }
+    
+    setFavoriteLoading(false);
+  };
+
+  const handleShareProduct = async () => {
+    const url = window.location.href;
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copiado!",
+        description: "O link do produto foi copiado para a área de transferência.",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o link.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAddToCart = () => {
     if (!product || product.stock <= 0) return;
 
@@ -195,10 +289,10 @@ const ProductDetailContent = () => {
   const finalPrice = product?.promotional_price || product?.price || 0;
   const totalPrice = finalPrice * quantity;
 
-  const allImages = product ? [
-    product.image_url,
-    ...(product.images || [])
-  ].filter(Boolean) as string[] : [];
+  // Get unique images (fix duplicate issue)
+  const allImages = product ? 
+    [...new Set([product.image_url, ...(product.images || [])].filter(Boolean))] as string[] 
+    : [];
 
   if (loading) {
     return (
@@ -267,7 +361,7 @@ const ProductDetailContent = () => {
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {allImages.map((img, index) => (
                   <button
-                    key={index}
+                    key={`thumb-${index}-${img}`}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`flex-shrink-0 w-16 h-16 overflow-hidden ${imageRadius} border-2 transition-all ${
                       selectedImageIndex === index 
@@ -287,6 +381,64 @@ const ProductDetailContent = () => {
                 ))}
               </div>
             )}
+
+            {/* Technical Info - Moved below thumbnails */}
+            {(product.weight || product.length || product.height || product.width) && (
+              <div className="pt-4 border-t">
+                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Ruler className="h-4 w-4" />
+                  Informações Técnicas
+                </h2>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {product.weight && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Peso:</span>
+                      <span className="text-foreground">{product.weight} kg</span>
+                    </div>
+                  )}
+                  {product.length && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Comprimento:</span>
+                      <span className="text-foreground">{product.length} cm</span>
+                    </div>
+                  )}
+                  {product.width && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Largura:</span>
+                      <span className="text-foreground">{product.width} cm</span>
+                    </div>
+                  )}
+                  {product.height && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Altura:</span>
+                      <span className="text-foreground">{product.height} cm</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Customer Actions: Favorite & Share */}
+            <div className="flex items-center gap-4 pt-2">
+              <button
+                onClick={handleToggleFavorite}
+                disabled={favoriteLoading}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Heart 
+                  className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
+                />
+                <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
+              </button>
+              
+              <button
+                onClick={handleShareProduct}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Share2 className="h-5 w-5" />
+                <span>Compartilhar produto</span>
+              </button>
+            </div>
           </div>
 
           {/* Product Info Section */}
@@ -407,42 +559,6 @@ const ProductDetailContent = () => {
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                   {product.description}
                 </p>
-              </div>
-            )}
-
-            {/* Technical Info */}
-            {(product.weight || product.length || product.height || product.width) && (
-              <div className="pt-4 border-t">
-                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Ruler className="h-4 w-4" />
-                  Informações Técnicas
-                </h2>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {product.weight && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Peso:</span>
-                      <span className="text-foreground">{product.weight} kg</span>
-                    </div>
-                  )}
-                  {product.length && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Comprimento:</span>
-                      <span className="text-foreground">{product.length} cm</span>
-                    </div>
-                  )}
-                  {product.width && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Largura:</span>
-                      <span className="text-foreground">{product.width} cm</span>
-                    </div>
-                  )}
-                  {product.height && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Altura:</span>
-                      <span className="text-foreground">{product.height} cm</span>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
