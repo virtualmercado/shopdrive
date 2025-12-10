@@ -9,7 +9,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, X, Tag } from "lucide-react";
+import { useCoupon } from "@/hooks/useCoupon";
 
 type DeliveryMethod = "retirada" | "entrega";
 type PaymentMethod = "cartao_credito" | "cartao_debito" | "pix" | "whatsapp";
@@ -45,6 +46,17 @@ const CheckoutContent = () => {
   const [loading, setLoading] = useState(false);
   const [storeData, setStoreData] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [customerEmail, setCustomerEmail] = useState("");
+  
+  const {
+    couponCode,
+    setCouponCode,
+    appliedCoupon,
+    loading: couponLoading,
+    applyCoupon,
+    removeCoupon,
+    recordCouponUsage,
+  } = useCoupon(storeData?.id || null);
 
   const [formData, setFormData] = useState<CheckoutFormData>({
     customer_name: "",
@@ -153,7 +165,8 @@ const CheckoutContent = () => {
       }
 
       const subtotal = getTotal();
-      const total = subtotal + deliveryFee;
+      const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
+      const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
 
       const addressString = formData.delivery_method === "entrega" 
         ? `${formData.address}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ""}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`
@@ -242,7 +255,7 @@ ${deliveryText}
 ${itemsList}
 
 💰 *Valores*
-Subtotal: R$ ${subtotal.toFixed(2)}
+Subtotal: R$ ${subtotal.toFixed(2)}${couponDiscount > 0 ? `\nDesconto (cupom): -R$ ${couponDiscount.toFixed(2)}` : ""}
 Frete: R$ ${deliveryFee.toFixed(2)}
 *Total: R$ ${total.toFixed(2)}*
 
@@ -257,6 +270,11 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
         const cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
         const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
         window.open(whatsappUrl, "_blank");
+      }
+
+      // Record coupon usage if applied
+      if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+        await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
       }
 
       // Clear cart
@@ -290,10 +308,24 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
   }
 
   const subtotal = getTotal();
-  const total = subtotal + deliveryFee;
+  const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
+  const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
   const isFormValid = formData.customer_name && formData.customer_phone && 
     (formData.delivery_method === "retirada" || 
      (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state));
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Digite o código do cupom");
+      return;
+    }
+    const result = await applyCoupon(couponCode, subtotal, customerEmail);
+    if (result.isValid) {
+      toast.success("Cupom aplicado com sucesso!");
+    } else {
+      toast.error(result.errorMessage || "Cupom inválido");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -607,11 +639,56 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
                 ))}
               </div>
 
+              {/* Cupom de Desconto */}
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium mb-2 block">Cupom de Desconto</Label>
+                {appliedCoupon?.isValid ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">{couponCode}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-green-700 hover:text-green-900 hover:bg-green-100"
+                      onClick={removeCoupon}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Código do cupom"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="flex-1 font-mono uppercase"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                    >
+                      {couponLoading ? "..." : "Aplicar"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
                   <span>R$ {subtotal.toFixed(2)}</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Desconto (cupom)</span>
+                    <span>-R$ {couponDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span>Frete</span>
                   <span className={deliveryFee === 0 ? "text-green-600 font-medium" : ""}>
