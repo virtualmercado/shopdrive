@@ -13,6 +13,7 @@ import Customize from "./pages/dashboard/Customize";
 import Settings from "./pages/dashboard/Settings";
 import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
+import Coupons from "./pages/dashboard/Coupons";
 import OnlineStore from "./pages/OnlineStore";
 import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ProductDetail from "./pages/ProductDetail";
@@ -38,6 +39,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
             <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
+            <Route path="/lojista/coupons" element={<MerchantRoute><Coupons /></MerchantRoute>} />
             <Route path="/lojista/orders" element={<MerchantRoute><Orders /></MerchantRoute>} />
             <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
             <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />

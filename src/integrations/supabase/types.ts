@@ -62,6 +62,84 @@ export type Database = {
           },
         ]
       }
+      coupon_usage: {
+        Row: {
+          coupon_id: string
+          customer_email: string
+          id: string
+          order_id: string | null
+          used_at: string
+        }
+        Insert: {
+          coupon_id: string
+          customer_email: string
+          id?: string
+          order_id?: string | null
+          used_at?: string
+        }
+        Update: {
+          coupon_id?: string
+          customer_email?: string
+          id?: string
+          order_id?: string | null
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          min_order_value: number | null
+          single_use: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          single_use?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          single_use?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customer_addresses: {
         Row: {
           cep: string
