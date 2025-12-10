@@ -138,6 +138,7 @@ const StoreCategoryPageContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId || null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showPromotionsOnly, setShowPromotionsOnly] = useState(false);
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -200,6 +201,11 @@ const StoreCategoryPageContent = () => {
       result = result.filter(p => p.category_id === selectedCategory);
     }
 
+    // Filter by promotional price if enabled
+    if (showPromotionsOnly) {
+      result = result.filter(p => p.promotional_price != null && p.promotional_price > 0);
+    }
+
     if (searchTerm.trim()) {
       result = result
         .map(p => ({ product: p, score: calculateSimilarity(p, searchTerm) }))
@@ -209,7 +215,7 @@ const StoreCategoryPageContent = () => {
     }
 
     return result;
-  }, [products, searchTerm, selectedCategory]);
+  }, [products, searchTerm, selectedCategory, showPromotionsOnly]);
 
   const handleCategoryClick = (catId: string | null) => {
     setSelectedCategory(catId);
@@ -303,6 +309,22 @@ const StoreCategoryPageContent = () => {
                   </button>
                 ))}
               </nav>
+
+              {/* Promotional filter */}
+              <div className="mt-6 pt-4 border-t border-border">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={showPromotionsOnly}
+                    onChange={(e) => setShowPromotionsOnly(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                    style={{ accentColor: accentColor }}
+                  />
+                  <span className="text-sm text-foreground leading-tight group-hover:text-muted-foreground transition-colors">
+                    Produtos em promoção dessa categoria
+                  </span>
+                </label>
+              </div>
             </div>
           </aside>
 
@@ -357,6 +379,24 @@ const StoreCategoryPageContent = () => {
                     </button>
                   ))}
                 </nav>
+
+                {/* Promotional filter - Mobile */}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showPromotionsOnly}
+                      onChange={(e) => {
+                        setShowPromotionsOnly(e.target.checked);
+                      }}
+                      className="mt-0.5 h-5 w-5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                      style={{ accentColor: accentColor }}
+                    />
+                    <span className="text-sm text-foreground leading-tight group-hover:text-muted-foreground transition-colors">
+                      Produtos em promoção dessa categoria
+                    </span>
+                  </label>
+                </div>
               </aside>
             </div>
           )}
