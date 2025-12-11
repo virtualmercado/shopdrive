@@ -190,24 +190,63 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* CSS custom properties for form elements */}
+      {/* CSS custom properties for form elements - merchant color binding */}
       <style>{`
+        /* Input fields - focus and hover states */
         .merchant-input:focus {
           border-color: ${buttonBgColor} !important;
           box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+          outline: none !important;
         }
         .merchant-input:hover:not(:focus) {
           border-color: ${buttonBgColor}80 !important;
+        }
+        
+        /* Radio buttons - all states with merchant primary color */
+        .merchant-radio {
+          border-color: ${buttonBgColor}60 !important;
+          transition: all 0.2s ease !important;
+        }
+        .merchant-radio:hover {
+          border-color: ${buttonBgColor} !important;
+          background-color: ${buttonBgColor}15 !important;
         }
         .merchant-radio[data-state="checked"] {
           border-color: ${buttonBgColor} !important;
           background-color: ${buttonBgColor} !important;
         }
-        .merchant-radio[data-state="checked"]::after {
+        .merchant-radio[data-state="checked"] > span {
           background-color: white !important;
+        }
+        .merchant-radio:focus {
+          box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+          outline: none !important;
+        }
+        .merchant-radio:focus-visible {
+          box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+          outline: none !important;
+        }
+        
+        /* Switch - all states with merchant primary color */
+        .merchant-switch {
+          border-color: ${buttonBgColor}40 !important;
+          transition: all 0.2s ease !important;
+        }
+        .merchant-switch[data-state="unchecked"] {
+          background-color: ${buttonBgColor}20 !important;
+        }
+        .merchant-switch[data-state="unchecked"]:hover {
+          background-color: ${buttonBgColor}30 !important;
         }
         .merchant-switch[data-state="checked"] {
           background-color: ${buttonBgColor} !important;
+        }
+        .merchant-switch[data-state="checked"]:hover {
+          background-color: ${buttonBgColor}dd !important;
+        }
+        .merchant-switch:focus-visible {
+          box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+          outline: none !important;
         }
       `}</style>
 
