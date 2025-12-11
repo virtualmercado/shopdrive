@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -39,6 +39,7 @@ const Coupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const { user } = useAuth();
   const { buttonBgColor, buttonTextColor } = useTheme();
 
@@ -97,7 +98,20 @@ const Coupons = () => {
 
   const handleCouponSaved = () => {
     setDialogOpen(false);
+    setEditingCoupon(null);
     fetchCoupons();
+  };
+
+  const handleEditCoupon = (coupon: Coupon) => {
+    setEditingCoupon(coupon);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingCoupon(null);
+    }
   };
 
   const formatDiscount = (coupon: Coupon) => {
@@ -112,15 +126,20 @@ const Coupons = () => {
     return `R$ ${value.toFixed(2)}`;
   };
 
+  // Generate lighter version of button color for inactive state
+  const getInactiveColor = (color: string) => {
+    return `${color}40`; // 40 is hex for 25% opacity
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Cupons de Desconto</h2>
+            <h2 className="text-2xl font-bold text-foreground">Cupons</h2>
             <p className="text-muted-foreground">Gerencie os cupons da sua loja</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
               <Button
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
@@ -132,9 +151,14 @@ const Coupons = () => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Novo Cupom de Desconto</DialogTitle>
+                <DialogTitle>
+                  {editingCoupon ? "Editar Cupom" : "Novo Cupom de Desconto"}
+                </DialogTitle>
               </DialogHeader>
-              <CouponForm onSuccess={handleCouponSaved} />
+              <CouponForm 
+                onSuccess={handleCouponSaved} 
+                editingCoupon={editingCoupon}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -174,21 +198,37 @@ const Coupons = () => {
                         <Switch
                           checked={coupon.is_active}
                           onCheckedChange={() => handleToggleStatus(coupon.id, coupon.is_active)}
+                          style={{
+                            backgroundColor: coupon.is_active ? buttonBgColor : getInactiveColor(buttonBgColor),
+                          }}
                         />
-                        <span className={coupon.is_active ? "text-green-600" : "text-muted-foreground"}>
+                        <span 
+                          className="text-sm font-medium"
+                          style={{ color: coupon.is_active ? buttonBgColor : undefined }}
+                        >
                           {coupon.is_active ? "Ativo" : "Inativo"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteCoupon(coupon.id)}
-                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditCoupon(coupon)}
+                          className="hover:bg-muted"
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteCoupon(coupon.id)}
+                          className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

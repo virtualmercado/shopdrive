@@ -75,7 +75,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/lojista" },
     { icon: Package, label: "Produtos", path: "/lojista/products" },
-    { icon: Ticket, label: "Cupons de Desconto", path: "/lojista/coupons" },
+    { icon: Ticket, label: "Cupons", path: "/lojista/coupons" },
     { icon: ShoppingCart, label: "Pedidos", path: "/lojista/orders" },
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },

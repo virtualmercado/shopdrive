@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +9,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
-interface CouponFormProps {
-  onSuccess: () => void;
+interface Coupon {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  min_order_value: number | null;
+  single_use: boolean;
+  is_active: boolean;
 }
 
-const CouponForm = ({ onSuccess }: CouponFormProps) => {
+interface CouponFormProps {
+  onSuccess: () => void;
+  editingCoupon?: Coupon | null;
+}
+
+const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
   const { user } = useAuth();
   const { buttonBgColor, buttonTextColor } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -24,7 +35,32 @@ const CouponForm = ({ onSuccess }: CouponFormProps) => {
     discount_value: "",
     min_order_value: "",
     single_use: false,
+    is_active: true,
   });
+
+  // Load editing coupon data when provided
+  useEffect(() => {
+    if (editingCoupon) {
+      setFormData({
+        code: editingCoupon.code,
+        discount_type: editingCoupon.discount_type as "percentage" | "fixed",
+        discount_value: editingCoupon.discount_value.toString(),
+        min_order_value: editingCoupon.min_order_value?.toString() || "",
+        single_use: editingCoupon.single_use,
+        is_active: editingCoupon.is_active,
+      });
+    } else {
+      // Reset form when not editing
+      setFormData({
+        code: "",
+        discount_type: "percentage",
+        discount_value: "",
+        min_order_value: "",
+        single_use: false,
+        is_active: true,
+      });
+    }
+  }, [editingCoupon]);
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow letters and numbers, convert to uppercase
@@ -88,29 +124,54 @@ const CouponForm = ({ onSuccess }: CouponFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("coupons").insert({
-        user_id: user.id,
+      const couponData = {
         code: formData.code.trim().toUpperCase(),
         discount_type: formData.discount_type,
         discount_value: discountValue,
         min_order_value: formData.min_order_value ? parseFloat(formData.min_order_value) : null,
         single_use: formData.single_use,
-        is_active: true,
-      });
+        is_active: formData.is_active,
+      };
 
-      if (error) {
-        if (error.code === "23505") {
-          toast.error("Código de cupom já existe");
+      if (editingCoupon) {
+        // Update existing coupon
+        const { error } = await supabase
+          .from("coupons")
+          .update(couponData)
+          .eq("id", editingCoupon.id);
+
+        if (error) {
+          if (error.code === "23505") {
+            toast.error("Código de cupom já existe");
+          } else {
+            toast.error("Erro ao atualizar cupom");
+            console.error(error);
+          }
         } else {
-          toast.error("Erro ao criar cupom");
-          console.error(error);
+          toast.success("Cupom atualizado com sucesso!");
+          onSuccess();
         }
       } else {
-        toast.success("Cupom criado com sucesso!");
-        onSuccess();
+        // Create new coupon
+        const { error } = await supabase.from("coupons").insert({
+          ...couponData,
+          user_id: user.id,
+        });
+
+        if (error) {
+          if (error.code === "23505") {
+            toast.error("Código de cupom já existe");
+          } else {
+            toast.error("Erro ao criar cupom");
+            console.error(error);
+          }
+        } else {
+          toast.success("Cupom criado com sucesso!");
+          onSuccess();
+        }
       }
     } catch (err) {
-      toast.error("Erro ao criar cupom");
+      toast.error(editingCoupon ? "Erro ao atualizar cupom" : "Erro ao criar cupom");
     } finally {
       setLoading(false);
     }
@@ -128,9 +189,12 @@ const CouponForm = ({ onSuccess }: CouponFormProps) => {
           placeholder="EX: PROMO10"
           maxLength={20}
           className="font-mono uppercase"
+          disabled={!!editingCoupon} // Disable code editing for existing coupons
         />
         <p className="text-xs text-muted-foreground">
-          Apenas letras e números, sem espaços
+          {editingCoupon 
+            ? "O código não pode ser alterado" 
+            : "Apenas letras e números, sem espaços"}
         </p>
       </div>
 
@@ -228,6 +292,27 @@ const CouponForm = ({ onSuccess }: CouponFormProps) => {
         />
       </div>
 
+      {/* Status (only show when editing) */}
+      {editingCoupon && (
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="is_active" className="cursor-pointer">
+              Cupom ativo
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Desative para impedir o uso deste cupom
+            </p>
+          </div>
+          <Switch
+            id="is_active"
+            checked={formData.is_active}
+            onCheckedChange={(checked) =>
+              setFormData({ ...formData, is_active: checked })
+            }
+          />
+        </div>
+      )}
+
       {/* Botão Salvar */}
       <Button
         type="submit"
@@ -235,7 +320,9 @@ const CouponForm = ({ onSuccess }: CouponFormProps) => {
         disabled={loading}
         style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
       >
-        {loading ? "Salvando..." : "Salvar Cupom"}
+        {loading 
+          ? (editingCoupon ? "Atualizando..." : "Salvando...") 
+          : (editingCoupon ? "Atualizar Cupom" : "Salvar Cupom")}
       </Button>
     </form>
   );
