@@ -62,6 +62,39 @@ export type Database = {
           },
         ]
       }
+      correios_settings: {
+        Row: {
+          contract_code: string | null
+          contract_password: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          origin_zipcode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_code?: string | null
+          contract_password?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_zipcode: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_code?: string | null
+          contract_password?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_zipcode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coupon_usage: {
         Row: {
           coupon_id: string
@@ -403,6 +436,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      melhor_envio_settings: {
+        Row: {
+          api_key: string
+          created_at: string
+          environment: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+          user_id_melhor_envio: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+          user_id_melhor_envio?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+          user_id_melhor_envio?: string | null
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -842,6 +908,7 @@ export type Database = {
           button_text_color: string | null
           cpf_cnpj: string | null
           created_at: string
+          delivery_option: string | null
           display_name: string | null
           email: string | null
           facebook_url: string | null
@@ -849,6 +916,7 @@ export type Database = {
           font_weight: number | null
           footer_bg_color: string | null
           footer_text_color: string | null
+          free_shipping_minimum: number | null
           full_name: string
           id: string
           instagram_url: string | null
@@ -869,6 +937,7 @@ export type Database = {
           store_name: string | null
           store_slug: string | null
           updated_at: string
+          use_account_address_for_pickup: boolean | null
           whatsapp_number: string | null
           x_url: string | null
           youtube_url: string | null
@@ -892,6 +961,7 @@ export type Database = {
           button_text_color?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          delivery_option?: string | null
           display_name?: string | null
           email?: string | null
           facebook_url?: string | null
@@ -899,6 +969,7 @@ export type Database = {
           font_weight?: number | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
+          free_shipping_minimum?: number | null
           full_name: string
           id: string
           instagram_url?: string | null
@@ -919,6 +990,7 @@ export type Database = {
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          use_account_address_for_pickup?: boolean | null
           whatsapp_number?: string | null
           x_url?: string | null
           youtube_url?: string | null
@@ -942,6 +1014,7 @@ export type Database = {
           button_text_color?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          delivery_option?: string | null
           display_name?: string | null
           email?: string | null
           facebook_url?: string | null
@@ -949,6 +1022,7 @@ export type Database = {
           font_weight?: number | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
+          free_shipping_minimum?: number | null
           full_name?: string
           id?: string
           instagram_url?: string | null
@@ -969,9 +1043,46 @@ export type Database = {
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          use_account_address_for_pickup?: boolean | null
           whatsapp_number?: string | null
           x_url?: string | null
           youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      shipping_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          rule_name: string
+          scope_type: string
+          scope_value: string
+          shipping_fee: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rule_name: string
+          scope_type: string
+          scope_value: string
+          shipping_fee?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rule_name?: string
+          scope_type?: string
+          scope_value?: string
+          shipping_fee?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
