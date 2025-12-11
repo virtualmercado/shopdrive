@@ -293,6 +293,10 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
               value="percentage" 
               id="percentage" 
               className="merchant-radio"
+              style={{
+                borderColor: formData.discount_type === "percentage" ? buttonBgColor : `${buttonBgColor}60`,
+                backgroundColor: formData.discount_type === "percentage" ? buttonBgColor : `${buttonBgColor}15`,
+              }}
             />
             <Label htmlFor="percentage" className="cursor-pointer">
               Percentual (%)
@@ -303,6 +307,10 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
               value="fixed" 
               id="fixed" 
               className="merchant-radio"
+              style={{
+                borderColor: formData.discount_type === "fixed" ? buttonBgColor : `${buttonBgColor}60`,
+                backgroundColor: formData.discount_type === "fixed" ? buttonBgColor : `${buttonBgColor}15`,
+              }}
             />
             <Label htmlFor="fixed" className="cursor-pointer">
               Valor Fixo (R$)
