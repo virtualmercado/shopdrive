@@ -133,6 +133,28 @@ const Coupons = () => {
 
   return (
     <DashboardLayout>
+      {/* CSS for dialog close button - merchant color binding */}
+      <style>{`
+        .merchant-dialog-close:focus {
+          ring-color: ${buttonBgColor} !important;
+          outline: none !important;
+        }
+        .merchant-dialog-close:focus-visible {
+          box-shadow: 0 0 0 2px ${buttonBgColor}40 !important;
+          outline: none !important;
+        }
+        .merchant-dialog-close:hover {
+          color: ${buttonBgColor} !important;
+        }
+        [data-radix-dialog-content] > button[type="button"]:focus {
+          box-shadow: 0 0 0 2px ${buttonBgColor}40 !important;
+          outline: none !important;
+          ring-color: ${buttonBgColor} !important;
+        }
+        [data-radix-dialog-content] > button[type="button"]:hover {
+          color: ${buttonBgColor} !important;
+        }
+      `}</style>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

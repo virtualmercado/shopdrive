@@ -205,11 +205,16 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
         /* Radio buttons - all states with merchant primary color */
         .merchant-radio {
           border-color: ${buttonBgColor}60 !important;
+          background-color: ${buttonBgColor}10 !important;
           transition: all 0.2s ease !important;
         }
-        .merchant-radio:hover {
-          border-color: ${buttonBgColor} !important;
+        .merchant-radio[data-state="unchecked"] {
+          border-color: ${buttonBgColor}50 !important;
           background-color: ${buttonBgColor}15 !important;
+        }
+        .merchant-radio[data-state="unchecked"]:hover {
+          border-color: ${buttonBgColor} !important;
+          background-color: ${buttonBgColor}25 !important;
         }
         .merchant-radio[data-state="checked"] {
           border-color: ${buttonBgColor} !important;
