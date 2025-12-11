@@ -12,7 +12,8 @@ import {
   Copy,
   Check,
   MessageCircle,
-  Ticket
+  Ticket,
+  Truck
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Package, label: "Produtos", path: "/lojista/products" },
     { icon: Ticket, label: "Cupons", path: "/lojista/coupons" },
     { icon: ShoppingCart, label: "Pedidos", path: "/lojista/orders" },
+    { icon: Truck, label: "Editar Frete", path: "/lojista/shipping" },
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
     { icon: MessageCircle, label: "Mensagens", path: "/lojista/messages" },

@@ -47,6 +47,8 @@ const CheckoutContent = () => {
   const [storeData, setStoreData] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [customerEmail, setCustomerEmail] = useState("");
+  const [shippingRules, setShippingRules] = useState<any[]>([]);
+  const [deliveryOption, setDeliveryOption] = useState<string>("delivery_only");
   
   const {
     couponCode,
@@ -85,6 +87,25 @@ const CheckoutContent = () => {
 
       if (data) {
         setStoreData(data);
+        setDeliveryOption(data.delivery_option || "delivery_only");
+        
+        // Set initial delivery method based on store settings
+        if (data.delivery_option === "pickup_only") {
+          setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
+        } else {
+          setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+        }
+
+        // Fetch custom shipping rules
+        const { data: rules } = await supabase
+          .from("shipping_rules")
+          .select("*")
+          .eq("user_id", data.id)
+          .eq("is_active", true);
+
+        if (rules) {
+          setShippingRules(rules);
+        }
       }
     };
 
@@ -93,7 +114,7 @@ const CheckoutContent = () => {
 
   useEffect(() => {
     calculateDeliveryFee();
-  }, [formData.delivery_method, cart, storeData]);
+  }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules]);
 
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
@@ -105,13 +126,47 @@ const CheckoutContent = () => {
 
     const subtotal = getTotal();
 
-    // Frete grátis acima do valor mínimo
-    if (subtotal >= (storeData.shipping_free_minimum || 100)) {
+    // Check free shipping minimum from profile
+    if (storeData.free_shipping_minimum && subtotal >= storeData.free_shipping_minimum) {
       setDeliveryFee(0);
       return;
     }
 
-    // Frete fixo
+    // Check custom shipping rules
+    if (shippingRules.length > 0) {
+      // Check by neighborhood
+      const neighborhoodRule = shippingRules.find(
+        rule => rule.scope_type === "neighborhood" && 
+        rule.scope_value.toLowerCase() === formData.neighborhood.toLowerCase()
+      );
+      if (neighborhoodRule) {
+        setDeliveryFee(neighborhoodRule.shipping_fee);
+        return;
+      }
+
+      // Check by city
+      const cityRule = shippingRules.find(
+        rule => rule.scope_type === "city" && 
+        rule.scope_value.toLowerCase() === formData.city.toLowerCase()
+      );
+      if (cityRule) {
+        setDeliveryFee(cityRule.shipping_fee);
+        return;
+      }
+
+      // Check by zipcode
+      const cepClean = formData.cep.replace(/\D/g, "");
+      const zipcodeRule = shippingRules.find(
+        rule => rule.scope_type === "zipcode" && 
+        rule.scope_value.replace(/\D/g, "") === cepClean
+      );
+      if (zipcodeRule) {
+        setDeliveryFee(zipcodeRule.shipping_fee);
+        return;
+      }
+    }
+
+    // Fallback to fixed shipping fee
     setDeliveryFee(storeData.shipping_fixed_fee || 10);
   };
 
@@ -386,29 +441,35 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
                   }
                   className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
-                  <div>
-                    <RadioGroupItem value="retirada" id="retirada" className="peer sr-only" />
-                    <Label
-                      htmlFor="retirada"
-                      className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer"
-                    >
-                      <span className="text-lg font-semibold">🏪 Retirada</span>
-                      <span className="text-sm text-muted-foreground">Grátis</span>
-                    </Label>
-                  </div>
+                  {/* Show pickup option if delivery_and_pickup or pickup_only */}
+                  {(deliveryOption === "delivery_and_pickup" || deliveryOption === "pickup_only") && (
+                    <div>
+                      <RadioGroupItem value="retirada" id="retirada" className="peer sr-only" />
+                      <Label
+                        htmlFor="retirada"
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer"
+                      >
+                        <span className="text-lg font-semibold">🏪 Retirada</span>
+                        <span className="text-sm text-muted-foreground">Grátis</span>
+                      </Label>
+                    </div>
+                  )}
 
-                  <div>
-                    <RadioGroupItem value="entrega" id="entrega" className="peer sr-only" />
-                    <Label
-                      htmlFor="entrega"
-                      className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer"
-                    >
-                      <span className="text-lg font-semibold">🚚 Entrega</span>
-                      <span className="text-sm text-muted-foreground">
-                        {deliveryFee === 0 ? "Frete Grátis" : `R$ ${deliveryFee.toFixed(2)}`}
-                      </span>
-                    </Label>
-                  </div>
+                  {/* Show delivery option if delivery_only or delivery_and_pickup */}
+                  {(deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup") && (
+                    <div>
+                      <RadioGroupItem value="entrega" id="entrega" className="peer sr-only" />
+                      <Label
+                        htmlFor="entrega"
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer"
+                      >
+                        <span className="text-lg font-semibold">🚚 Entrega</span>
+                        <span className="text-sm text-muted-foreground">
+                          {deliveryFee === 0 ? "Frete Grátis" : `R$ ${deliveryFee.toFixed(2)}`}
+                        </span>
+                      </Label>
+                    </div>
+                  )}
                 </RadioGroup>
 
                 {formData.delivery_method === "retirada" && storeData?.pickup_address && (
