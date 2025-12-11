@@ -177,8 +177,40 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
     }
   };
 
+  // Custom input style with merchant color binding
+  const inputStyle = {
+    "--ring-color": buttonBgColor,
+  } as React.CSSProperties;
+
+  // Custom radio style for active state
+  const getRadioStyle = (isSelected: boolean) => ({
+    borderColor: isSelected ? buttonBgColor : undefined,
+    backgroundColor: isSelected ? buttonBgColor : undefined,
+  });
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* CSS custom properties for form elements */}
+      <style>{`
+        .merchant-input:focus {
+          border-color: ${buttonBgColor} !important;
+          box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+        }
+        .merchant-input:hover:not(:focus) {
+          border-color: ${buttonBgColor}80 !important;
+        }
+        .merchant-radio[data-state="checked"] {
+          border-color: ${buttonBgColor} !important;
+          background-color: ${buttonBgColor} !important;
+        }
+        .merchant-radio[data-state="checked"]::after {
+          background-color: white !important;
+        }
+        .merchant-switch[data-state="checked"] {
+          background-color: ${buttonBgColor} !important;
+        }
+      `}</style>
+
       {/* Código do Cupom */}
       <div className="space-y-2">
         <Label htmlFor="code">Código do Cupom *</Label>
@@ -188,8 +220,8 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
           onChange={handleCodeChange}
           placeholder="EX: PROMO10"
           maxLength={20}
-          className="font-mono uppercase"
-          disabled={!!editingCoupon} // Disable code editing for existing coupons
+          className="font-mono uppercase merchant-input"
+          disabled={!!editingCoupon}
         />
         <p className="text-xs text-muted-foreground">
           {editingCoupon 
@@ -213,13 +245,21 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
           className="flex gap-6"
         >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="percentage" id="percentage" />
+            <RadioGroupItem 
+              value="percentage" 
+              id="percentage" 
+              className="merchant-radio"
+            />
             <Label htmlFor="percentage" className="cursor-pointer">
               Percentual (%)
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="fixed" id="fixed" />
+            <RadioGroupItem 
+              value="fixed" 
+              id="fixed" 
+              className="merchant-radio"
+            />
             <Label htmlFor="fixed" className="cursor-pointer">
               Valor Fixo (R$)
             </Label>
@@ -241,7 +281,7 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
             value={formData.discount_value}
             onChange={handleDiscountValueChange}
             placeholder={formData.discount_type === "percentage" ? "10" : "15.00"}
-            className="pl-10"
+            className="pl-10 merchant-input"
           />
         </div>
         {formData.discount_type === "percentage" && (
@@ -265,7 +305,7 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
             value={formData.min_order_value}
             onChange={handleMinOrderChange}
             placeholder="50.00"
-            className="pl-10"
+            className="pl-10 merchant-input"
           />
         </div>
         <p className="text-xs text-muted-foreground">
@@ -289,6 +329,7 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
           onCheckedChange={(checked) =>
             setFormData({ ...formData, single_use: checked })
           }
+          className="merchant-switch"
         />
       </div>
 
@@ -309,6 +350,7 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
             onCheckedChange={(checked) =>
               setFormData({ ...formData, is_active: checked })
             }
+            className="merchant-switch"
           />
         </div>
       )}
