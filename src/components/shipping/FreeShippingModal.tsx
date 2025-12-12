@@ -117,6 +117,11 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
           [data-radix-dialog-content] > button[type="button"]:hover {
             color: ${primaryColor} !important;
           }
+          /* Input focus styles with merchant color */
+          .merchant-input:focus {
+            border-color: ${primaryColor} !important;
+            box-shadow: 0 0 0 2px ${primaryColor}33 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -136,8 +141,8 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
               value={minimumValue}
               onChange={(e) => setMinimumValue(e.target.value)}
               placeholder="Ex: 100.00"
-              style={{ borderColor: `${primaryColor}40` }}
-              className="focus-visible:ring-offset-0"
+              style={{ borderColor: primaryColor }}
+              className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <p className="text-xs text-muted-foreground">
               Pedidos acima deste valor terão frete grátis automaticamente
