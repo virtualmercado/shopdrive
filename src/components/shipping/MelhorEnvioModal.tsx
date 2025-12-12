@@ -140,9 +140,15 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
           [data-radix-dialog-content] > button[type="button"]:hover {
             color: ${primaryColor} !important;
           }
-          .env-radio[data-state="checked"] {
+          /* Input focus styles with merchant color */
+          .merchant-input:focus {
             border-color: ${primaryColor} !important;
-            background-color: ${primaryColor} !important;
+            box-shadow: 0 0 0 2px ${primaryColor}33 !important;
+          }
+          /* Radio button styling - white background with primary border/indicator */
+          .merchant-radio[data-state="checked"] span svg {
+            fill: ${primaryColor} !important;
+            color: ${primaryColor} !important;
           }
         `}</style>
         
@@ -160,8 +166,8 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Sua API Key do Melhor Envio"
-              style={{ borderColor: `${primaryColor}40` }}
-              className="focus-visible:ring-offset-0"
+              style={{ borderColor: primaryColor }}
+              className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <p className="text-xs text-muted-foreground">
               Obtenha sua API Key em melhorenvio.com.br
@@ -175,8 +181,8 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
               value={userIdMelhorEnvio}
               onChange={(e) => setUserIdMelhorEnvio(e.target.value)}
               placeholder="Seu User ID"
-              style={{ borderColor: `${primaryColor}40` }}
-              className="focus-visible:ring-offset-0"
+              style={{ borderColor: primaryColor }}
+              className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
 
@@ -191,9 +197,11 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
                 <RadioGroupItem 
                   value="sandbox" 
                   id="sandbox"
-                  className="env-radio"
+                  className="merchant-radio border-2"
                   style={{
-                    borderColor: environment === "sandbox" ? primaryColor : undefined,
+                    borderColor: primaryColor,
+                    backgroundColor: '#FFFFFF',
+                    color: primaryColor,
                   }}
                 />
                 <Label htmlFor="sandbox" className="cursor-pointer">Sandbox</Label>
@@ -202,9 +210,11 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
                 <RadioGroupItem 
                   value="production" 
                   id="production"
-                  className="env-radio"
+                  className="merchant-radio border-2"
                   style={{
-                    borderColor: environment === "production" ? primaryColor : undefined,
+                    borderColor: primaryColor,
+                    backgroundColor: '#FFFFFF',
+                    color: primaryColor,
                   }}
                 />
                 <Label htmlFor="production" className="cursor-pointer">Produção</Label>

@@ -139,6 +139,11 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
           [data-radix-dialog-content] > button[type="button"]:hover {
             color: ${primaryColor} !important;
           }
+          /* Input focus styles with merchant color */
+          .merchant-input:focus {
+            border-color: ${primaryColor} !important;
+            box-shadow: 0 0 0 2px ${primaryColor}33 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -155,8 +160,8 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
               value={originZipcode}
               onChange={(e) => setOriginZipcode(e.target.value)}
               placeholder="00000-000"
-              style={{ borderColor: `${primaryColor}40` }}
-              className="focus-visible:ring-offset-0"
+              style={{ borderColor: primaryColor }}
+              className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <p className="text-xs text-muted-foreground">
               CEP de onde os produtos serão enviados
@@ -177,8 +182,8 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                   value={contractCode}
                   onChange={(e) => setContractCode(e.target.value)}
                   placeholder="Código do contrato"
-                  style={{ borderColor: `${primaryColor}40` }}
-                  className="focus-visible:ring-offset-0"
+                  style={{ borderColor: primaryColor }}
+                  className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -190,8 +195,8 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                   value={contractPassword}
                   onChange={(e) => setContractPassword(e.target.value)}
                   placeholder="Senha do contrato"
-                  style={{ borderColor: `${primaryColor}40` }}
-                  className="focus-visible:ring-offset-0"
+                  style={{ borderColor: primaryColor }}
+                  className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
             </div>

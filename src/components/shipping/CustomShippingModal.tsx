@@ -152,6 +152,19 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
           [data-radix-dialog-content] > button[type="button"]:hover {
             color: ${primaryColor} !important;
           }
+          /* Input focus styles with merchant color */
+          .merchant-input:focus {
+            border-color: ${primaryColor} !important;
+            box-shadow: 0 0 0 2px ${primaryColor}33 !important;
+          }
+          /* Select trigger hover with merchant color */
+          .merchant-select:hover {
+            border-color: ${primaryColor} !important;
+          }
+          .merchant-select[data-state="open"] {
+            border-color: ${primaryColor} !important;
+            box-shadow: 0 0 0 2px ${primaryColor}33 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -173,8 +186,8 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                   value={ruleName}
                   onChange={(e) => setRuleName(e.target.value)}
                   placeholder="Ex: Centro da cidade"
-                  style={{ borderColor: `${primaryColor}40` }}
-                  className="focus-visible:ring-offset-0"
+                  style={{ borderColor: primaryColor }}
+                  className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -182,15 +195,39 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                 <Label htmlFor="scope_type">Tipo de Escopo</Label>
                 <Select value={scopeType} onValueChange={(v) => setScopeType(v as any)}>
                   <SelectTrigger 
-                    style={{ borderColor: `${primaryColor}40` }}
-                    className="focus:ring-offset-0"
+                    style={{ borderColor: primaryColor }}
+                    className="merchant-select focus:ring-0 focus:ring-offset-0"
                   >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="neighborhood">Bairro</SelectItem>
-                    <SelectItem value="city">Cidade</SelectItem>
-                    <SelectItem value="zipcode">CEP</SelectItem>
+                    <SelectItem 
+                      value="neighborhood"
+                      className="cursor-pointer"
+                      style={{ 
+                        backgroundColor: scopeType === "neighborhood" ? `${primaryColor}15` : undefined 
+                      }}
+                    >
+                      Bairro
+                    </SelectItem>
+                    <SelectItem 
+                      value="city"
+                      className="cursor-pointer"
+                      style={{ 
+                        backgroundColor: scopeType === "city" ? `${primaryColor}15` : undefined 
+                      }}
+                    >
+                      Cidade
+                    </SelectItem>
+                    <SelectItem 
+                      value="zipcode"
+                      className="cursor-pointer"
+                      style={{ 
+                        backgroundColor: scopeType === "zipcode" ? `${primaryColor}15` : undefined 
+                      }}
+                    >
+                      CEP
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -204,8 +241,8 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                   value={scopeValue}
                   onChange={(e) => setScopeValue(e.target.value)}
                   placeholder={scopeType === "zipcode" ? "00000-000" : "Nome do local"}
-                  style={{ borderColor: `${primaryColor}40` }}
-                  className="focus-visible:ring-offset-0"
+                  style={{ borderColor: primaryColor }}
+                  className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -219,8 +256,8 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                   value={shippingFee}
                   onChange={(e) => setShippingFee(e.target.value)}
                   placeholder="0.00"
-                  style={{ borderColor: `${primaryColor}40` }}
-                  className="focus-visible:ring-offset-0"
+                  style={{ borderColor: primaryColor }}
+                  className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
             </div>
