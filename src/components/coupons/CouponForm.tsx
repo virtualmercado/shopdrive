@@ -202,26 +202,27 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
           border-color: ${buttonBgColor}80 !important;
         }
         
-        /* Radio buttons - all states with merchant primary color */
+        /* Radio buttons - white background with primary border */
         .merchant-radio {
-          border-color: ${buttonBgColor}60 !important;
-          background-color: ${buttonBgColor}10 !important;
+          border-color: ${buttonBgColor} !important;
+          background-color: #FFFFFF !important;
           transition: all 0.2s ease !important;
         }
         .merchant-radio[data-state="unchecked"] {
-          border-color: ${buttonBgColor}50 !important;
-          background-color: ${buttonBgColor}15 !important;
+          border-color: ${buttonBgColor} !important;
+          background-color: #FFFFFF !important;
         }
         .merchant-radio[data-state="unchecked"]:hover {
           border-color: ${buttonBgColor} !important;
-          background-color: ${buttonBgColor}25 !important;
+          background-color: #FFFFFF !important;
         }
         .merchant-radio[data-state="checked"] {
           border-color: ${buttonBgColor} !important;
-          background-color: ${buttonBgColor} !important;
+          background-color: #FFFFFF !important;
         }
-        .merchant-radio[data-state="checked"] > span {
-          background-color: white !important;
+        .merchant-radio[data-state="checked"] span svg {
+          fill: ${buttonBgColor} !important;
+          color: ${buttonBgColor} !important;
         }
         .merchant-radio:focus {
           box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
@@ -292,10 +293,11 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
             <RadioGroupItem 
               value="percentage" 
               id="percentage" 
-              className="merchant-radio"
+              className="merchant-radio border-2"
               style={{
-                borderColor: formData.discount_type === "percentage" ? buttonBgColor : `${buttonBgColor}60`,
-                backgroundColor: formData.discount_type === "percentage" ? buttonBgColor : `${buttonBgColor}15`,
+                borderColor: buttonBgColor,
+                backgroundColor: '#FFFFFF',
+                color: buttonBgColor,
               }}
             />
             <Label htmlFor="percentage" className="cursor-pointer">
@@ -306,10 +308,11 @@ const CouponForm = ({ onSuccess, editingCoupon }: CouponFormProps) => {
             <RadioGroupItem 
               value="fixed" 
               id="fixed" 
-              className="merchant-radio"
+              className="merchant-radio border-2"
               style={{
-                borderColor: formData.discount_type === "fixed" ? buttonBgColor : `${buttonBgColor}60`,
-                backgroundColor: formData.discount_type === "fixed" ? buttonBgColor : `${buttonBgColor}15`,
+                borderColor: buttonBgColor,
+                backgroundColor: '#FFFFFF',
+                color: buttonBgColor,
               }}
             />
             <Label htmlFor="fixed" className="cursor-pointer">
