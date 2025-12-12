@@ -151,6 +151,7 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
           }
           [data-radix-dialog-content] > button[type="button"]:hover {
             color: ${primaryColor} !important;
+            border-color: ${primaryColor} !important;
           }
           /* Input focus styles with merchant color */
           .merchant-input:focus {
