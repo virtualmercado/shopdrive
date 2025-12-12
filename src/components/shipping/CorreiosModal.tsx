@@ -144,6 +144,10 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
             border-color: ${primaryColor} !important;
             box-shadow: 0 0 0 2px ${primaryColor}33 !important;
           }
+          /* Cancel button hover with merchant color */
+          .merchant-cancel-btn:hover {
+            background-color: ${primaryColor}15 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -207,7 +211,8 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="flex-1"
+            className="flex-1 merchant-cancel-btn"
+            style={{ borderColor: primaryColor, color: primaryColor }}
           >
             Cancelar
           </Button>
