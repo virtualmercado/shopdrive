@@ -181,20 +181,16 @@ const Shipping = () => {
         .delivery-radio:hover {
           border-color: ${primaryColor}60 !important;
         }
-        .delivery-radio-indicator {
-          border-color: ${primaryColor} !important;
+        /* Force radio button styling */
+        [data-radix-collection-item].border-2 {
           background-color: #FFFFFF !important;
         }
-        .delivery-radio-indicator[data-state="checked"] {
-          border-color: ${primaryColor} !important;
+        [data-radix-collection-item].border-2[data-state="checked"] {
           background-color: #FFFFFF !important;
         }
-        .delivery-radio-indicator[data-state="checked"]::after {
-          background-color: ${primaryColor} !important;
-        }
-        .delivery-radio-indicator[data-state="unchecked"] {
-          border-color: ${primaryColor} !important;
-          background-color: #FFFFFF !important;
+        [data-radix-collection-item].border-2 span svg {
+          fill: ${primaryColor} !important;
+          color: ${primaryColor} !important;
         }
       `}</style>
       
@@ -261,40 +257,67 @@ const Shipping = () => {
             className="space-y-3"
           >
             <div className="flex items-center space-x-3">
-              <RadioGroupItem 
-                value="delivery_only" 
-                id="delivery_only"
-                className="delivery-radio-indicator"
+              <div 
+                className="relative"
                 style={{
-                  borderColor: deliveryOption === "delivery_only" ? primaryColor : undefined,
-                }}
-              />
+                  '--radio-primary': primaryColor,
+                } as React.CSSProperties}
+              >
+                <RadioGroupItem 
+                  value="delivery_only" 
+                  id="delivery_only"
+                  className="border-2 bg-white data-[state=checked]:bg-white data-[state=unchecked]:bg-white"
+                  style={{
+                    borderColor: primaryColor,
+                    backgroundColor: '#FFFFFF',
+                    color: primaryColor,
+                  }}
+                />
+              </div>
               <Label htmlFor="delivery_only" className="cursor-pointer font-medium">
                 Somente entrega
               </Label>
             </div>
             <div className="flex items-center space-x-3">
-              <RadioGroupItem 
-                value="delivery_and_pickup" 
-                id="delivery_and_pickup"
-                className="delivery-radio-indicator"
+              <div 
+                className="relative"
                 style={{
-                  borderColor: deliveryOption === "delivery_and_pickup" ? primaryColor : undefined,
-                }}
-              />
+                  '--radio-primary': primaryColor,
+                } as React.CSSProperties}
+              >
+                <RadioGroupItem 
+                  value="delivery_and_pickup" 
+                  id="delivery_and_pickup"
+                  className="border-2 bg-white data-[state=checked]:bg-white data-[state=unchecked]:bg-white"
+                  style={{
+                    borderColor: primaryColor,
+                    backgroundColor: '#FFFFFF',
+                    color: primaryColor,
+                  }}
+                />
+              </div>
               <Label htmlFor="delivery_and_pickup" className="cursor-pointer font-medium">
                 Entrega e retirada no local
               </Label>
             </div>
             <div className="flex items-center space-x-3">
-              <RadioGroupItem 
-                value="pickup_only" 
-                id="pickup_only"
-                className="delivery-radio-indicator"
+              <div 
+                className="relative"
                 style={{
-                  borderColor: deliveryOption === "pickup_only" ? primaryColor : undefined,
-                }}
-              />
+                  '--radio-primary': primaryColor,
+                } as React.CSSProperties}
+              >
+                <RadioGroupItem 
+                  value="pickup_only" 
+                  id="pickup_only"
+                  className="border-2 bg-white data-[state=checked]:bg-white data-[state=unchecked]:bg-white"
+                  style={{
+                    borderColor: primaryColor,
+                    backgroundColor: '#FFFFFF',
+                    color: primaryColor,
+                  }}
+                />
+              </div>
               <Label htmlFor="pickup_only" className="cursor-pointer font-medium">
                 Somente retirada no local
               </Label>
