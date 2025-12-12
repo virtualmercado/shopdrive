@@ -251,8 +251,23 @@ const Customers = () => {
               </div>
               <Button 
                 variant="outline"
-                className="gap-2"
-                style={{ borderColor: primaryColor, color: primaryColor }}
+                className="gap-2 transition-colors"
+                style={{ 
+                  borderColor: primaryColor, 
+                  color: primaryColor,
+                  '--hover-bg': primaryColor,
+                  '--hover-border': primaryColor
+                } as React.CSSProperties}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = primaryColor;
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = '#FFFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = primaryColor;
+                }}
               >
                 <Filter className="h-4 w-4" />
                 Filtros
@@ -350,17 +365,37 @@ const Customers = () => {
             <div className="flex flex-wrap gap-3">
               <Button 
                 variant="outline"
-                className="gap-2"
+                className="gap-2 transition-colors"
                 style={{ borderColor: primaryColor, color: primaryColor }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = primaryColor;
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = '#FFFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = primaryColor;
+                }}
               >
                 <Upload className="h-4 w-4" />
                 Importar grupos
               </Button>
               <Button 
                 variant="outline"
-                className="gap-2"
+                className="gap-2 transition-colors"
                 onClick={downloadExampleSpreadsheet}
                 style={{ borderColor: primaryColor, color: primaryColor }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = primaryColor;
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = '#FFFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = primaryColor;
+                  e.currentTarget.style.color = primaryColor;
+                }}
               >
                 <Download className="h-4 w-4" />
                 Baixar planilha de exemplo
@@ -435,15 +470,33 @@ const Customers = () => {
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="Ex: Clientes VIP"
-              className="mt-2"
+              className="mt-2 transition-colors"
               style={{ borderColor: primaryColor }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
           </div>
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setShowCreateGroupModal(false)}
+              className="transition-colors"
               style={{ borderColor: primaryColor, color: primaryColor }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = primaryColor;
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = primaryColor;
+              }}
             >
               Cancelar
             </Button>
