@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ const StorePreviewEnhanced = () => {
     address_zip_code: "",
     banner_desktop_urls: [] as string[],
     banner_mobile_urls: [] as string[],
+    is_maintenance_mode: false,
   });
 
   useEffect(() => {
@@ -97,6 +99,7 @@ const StorePreviewEnhanced = () => {
           address_zip_code: data.address_zip_code || "",
           banner_desktop_urls: (data.banner_desktop_urls as string[]) || [],
           banner_mobile_urls: (data.banner_mobile_urls as string[]) || [],
+          is_maintenance_mode: data.is_maintenance_mode || false,
         });
       }
     } catch (error) {
@@ -917,6 +920,42 @@ const StorePreviewEnhanced = () => {
                 placeholder="Descreva sua política de trocas e devoluções..."
                 rows={6}
               />
+            </div>
+
+            {/* Maintenance Mode */}
+            <div className="space-y-3 pt-4 border-t">
+              <Label htmlFor="maintenance_mode" className="text-base font-medium">
+                Colocar site em manutenção
+              </Label>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Quando ativado, sua loja exibirá uma página de manutenção para os visitantes.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Apenas você poderá acessar a loja normalmente enquanto estiver logado.
+                  </p>
+                </div>
+                <Switch
+                  id="maintenance_mode"
+                  checked={storeData.is_maintenance_mode}
+                  onCheckedChange={(checked) =>
+                    setStoreData({
+                      ...storeData,
+                      is_maintenance_mode: checked,
+                    })
+                  }
+                  className="data-[state=unchecked]:bg-input"
+                  style={{
+                    backgroundColor: storeData.is_maintenance_mode ? buttonBgColor : undefined,
+                  }}
+                />
+              </div>
+              {storeData.is_maintenance_mode && (
+                <p className="text-sm text-amber-600 font-medium">
+                  ⚠️ O modo de manutenção está ativado. Sua loja está invisível para visitantes.
+                </p>
+              )}
             </div>
           </div>
         </Card>

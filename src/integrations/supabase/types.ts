@@ -920,6 +920,7 @@ export type Database = {
           full_name: string
           id: string
           instagram_url: string | null
+          is_maintenance_mode: boolean | null
           last_activity: string | null
           phone: string | null
           pickup_address: string | null
@@ -973,6 +974,7 @@ export type Database = {
           full_name: string
           id: string
           instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
           last_activity?: string | null
           phone?: string | null
           pickup_address?: string | null
@@ -1026,6 +1028,7 @@ export type Database = {
           full_name?: string
           id?: string
           instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
           last_activity?: string | null
           phone?: string | null
           pickup_address?: string | null
