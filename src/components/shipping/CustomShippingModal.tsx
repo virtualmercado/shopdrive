@@ -165,6 +165,13 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
             border-color: ${primaryColor} !important;
             box-shadow: 0 0 0 2px ${primaryColor}33 !important;
           }
+          /* Select item hover with merchant color */
+          .merchant-select-item:hover {
+            background-color: ${primaryColor}20 !important;
+          }
+          .merchant-select-item:focus {
+            background-color: ${primaryColor}20 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -203,7 +210,7 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                   <SelectContent>
                     <SelectItem 
                       value="neighborhood"
-                      className="cursor-pointer"
+                      className="cursor-pointer merchant-select-item"
                       style={{ 
                         backgroundColor: scopeType === "neighborhood" ? `${primaryColor}15` : undefined 
                       }}
@@ -212,7 +219,7 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                     </SelectItem>
                     <SelectItem 
                       value="city"
-                      className="cursor-pointer"
+                      className="cursor-pointer merchant-select-item"
                       style={{ 
                         backgroundColor: scopeType === "city" ? `${primaryColor}15` : undefined 
                       }}
@@ -221,7 +228,7 @@ const CustomShippingModal = ({ open, onOpenChange, onSuccess }: CustomShippingMo
                     </SelectItem>
                     <SelectItem 
                       value="zipcode"
-                      className="cursor-pointer"
+                      className="cursor-pointer merchant-select-item"
                       style={{ 
                         backgroundColor: scopeType === "zipcode" ? `${primaryColor}15` : undefined 
                       }}

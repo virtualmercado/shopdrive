@@ -150,6 +150,10 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
             fill: ${primaryColor} !important;
             color: ${primaryColor} !important;
           }
+          /* Cancel button hover with merchant color */
+          .merchant-cancel-btn:hover {
+            background-color: ${primaryColor}15 !important;
+          }
         `}</style>
         
         <DialogHeader>
@@ -230,7 +234,8 @@ const MelhorEnvioModal = ({ open, onOpenChange, onSuccess }: MelhorEnvioModalPro
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="flex-1"
+            className="flex-1 merchant-cancel-btn"
+            style={{ borderColor: primaryColor, color: primaryColor }}
           >
             Cancelar
           </Button>
