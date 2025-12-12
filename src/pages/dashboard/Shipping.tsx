@@ -183,9 +183,18 @@ const Shipping = () => {
         }
         .delivery-radio-indicator {
           border-color: ${primaryColor} !important;
+          background-color: #FFFFFF !important;
+        }
+        .delivery-radio-indicator[data-state="checked"] {
+          border-color: ${primaryColor} !important;
+          background-color: #FFFFFF !important;
         }
         .delivery-radio-indicator[data-state="checked"]::after {
           background-color: ${primaryColor} !important;
+        }
+        .delivery-radio-indicator[data-state="unchecked"] {
+          border-color: ${primaryColor} !important;
+          background-color: #FFFFFF !important;
         }
       `}</style>
       
