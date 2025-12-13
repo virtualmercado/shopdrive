@@ -677,6 +677,84 @@ export type Database = {
           },
         ]
       }
+      payment_settings: {
+        Row: {
+          created_at: string
+          id: string
+          mercadopago_accepts_credit: boolean | null
+          mercadopago_accepts_pix: boolean | null
+          mercadopago_access_token: string | null
+          mercadopago_enabled: boolean
+          mercadopago_installments_free: number | null
+          mercadopago_pix_discount: number | null
+          mercadopago_public_key: string | null
+          pagbank_accepts_credit: boolean | null
+          pagbank_accepts_pix: boolean | null
+          pagbank_email: string | null
+          pagbank_enabled: boolean
+          pagbank_token: string | null
+          updated_at: string
+          user_id: string
+          whatsapp_accepts_cash: boolean | null
+          whatsapp_accepts_credit: boolean | null
+          whatsapp_accepts_debit: boolean | null
+          whatsapp_accepts_pix: boolean | null
+          whatsapp_accepts_transfer: boolean | null
+          whatsapp_enabled: boolean
+          whatsapp_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mercadopago_accepts_credit?: boolean | null
+          mercadopago_accepts_pix?: boolean | null
+          mercadopago_access_token?: string | null
+          mercadopago_enabled?: boolean
+          mercadopago_installments_free?: number | null
+          mercadopago_pix_discount?: number | null
+          mercadopago_public_key?: string | null
+          pagbank_accepts_credit?: boolean | null
+          pagbank_accepts_pix?: boolean | null
+          pagbank_email?: string | null
+          pagbank_enabled?: boolean
+          pagbank_token?: string | null
+          updated_at?: string
+          user_id: string
+          whatsapp_accepts_cash?: boolean | null
+          whatsapp_accepts_credit?: boolean | null
+          whatsapp_accepts_debit?: boolean | null
+          whatsapp_accepts_pix?: boolean | null
+          whatsapp_accepts_transfer?: boolean | null
+          whatsapp_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mercadopago_accepts_credit?: boolean | null
+          mercadopago_accepts_pix?: boolean | null
+          mercadopago_access_token?: string | null
+          mercadopago_enabled?: boolean
+          mercadopago_installments_free?: number | null
+          mercadopago_pix_discount?: number | null
+          mercadopago_public_key?: string | null
+          pagbank_accepts_credit?: boolean | null
+          pagbank_accepts_pix?: boolean | null
+          pagbank_email?: string | null
+          pagbank_enabled?: boolean
+          pagbank_token?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp_accepts_cash?: boolean | null
+          whatsapp_accepts_credit?: boolean | null
+          whatsapp_accepts_debit?: boolean | null
+          whatsapp_accepts_pix?: boolean | null
+          whatsapp_accepts_transfer?: boolean | null
+          whatsapp_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number

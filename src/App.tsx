@@ -15,6 +15,7 @@ import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
 import Coupons from "./pages/dashboard/Coupons";
 import Shipping from "./pages/dashboard/Shipping";
+import PaymentMethods from "./pages/dashboard/PaymentMethods";
 import Customers from "./pages/dashboard/Customers";
 import CustomerDetail from "./pages/dashboard/CustomerDetail";
 import OnlineStore from "./pages/OnlineStore";
@@ -47,6 +48,7 @@ function App() {
             <Route path="/lojista/customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
             <Route path="/lojista/customers/:customerId" element={<MerchantRoute><CustomerDetail /></MerchantRoute>} />
             <Route path="/lojista/shipping" element={<MerchantRoute><Shipping /></MerchantRoute>} />
+            <Route path="/lojista/payment-methods" element={<MerchantRoute><PaymentMethods /></MerchantRoute>} />
             <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
             <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />
             <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
