@@ -60,12 +60,13 @@ serve(async (req) => {
       }
 
       // Create PIX payment with Mercado Pago
+      const idempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
       const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${paymentSettings.mercadopago_access_token}`,
           "Content-Type": "application/json",
-          "X-Idempotency-Key": orderId,
+          "X-Idempotency-Key": idempotencyKey,
         },
         body: JSON.stringify({
           transaction_amount: amount,
@@ -104,12 +105,13 @@ serve(async (req) => {
 
       // Create PIX payment with PagBank
       // Using PagBank API v4
+      const pbIdempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
       const pbResponse = await fetch("https://api.pagseguro.com/orders", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${paymentSettings.pagbank_token}`,
           "Content-Type": "application/json",
-          "x-idempotency-key": orderId,
+          "x-idempotency-key": pbIdempotencyKey,
         },
         body: JSON.stringify({
           reference_id: orderId,
