@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,6 +36,9 @@ export const PixPayment = ({
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [paymentStatus, setPaymentStatus] = useState<string>("pending");
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const hasConfirmedRef = useRef(false);
 
   const generatePix = useCallback(async () => {
     setLoading(true);
@@ -67,18 +70,85 @@ export const PixPayment = ({
       const expiresAt = new Date(data.expiresAt).getTime();
       const now = Date.now();
       setTimeLeft(Math.max(0, Math.floor((expiresAt - now) / 1000)));
-    } catch (err: any) {
-      console.error("PIX generation error:", err);
-      setError(err.message || "Erro ao gerar QR Code PIX");
-      toast.error(err.message || "Erro ao gerar QR Code PIX");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao gerar QR Code PIX";
+      console.error("PIX generation error:", errorMessage);
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [orderId, amount, storeOwnerId, gateway]);
 
+  // Check payment status via polling
+  const checkPaymentStatus = useCallback(async () => {
+    if (!pixData?.pixPaymentId || hasConfirmedRef.current) return;
+
+    setChecking(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("check-pix-status", {
+        body: { pixPaymentId: pixData.pixPaymentId },
+      });
+
+      if (fnError) {
+        console.error("Error checking status:", fnError);
+        return;
+      }
+
+      if (data?.status === "approved" && !hasConfirmedRef.current) {
+        hasConfirmedRef.current = true;
+        setPaymentStatus("approved");
+        toast.success("Pagamento confirmado!");
+        
+        // Clear polling
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        
+        // Call callback
+        onPaymentConfirmed();
+      } else if (data?.status === "expired" || data?.status === "cancelled") {
+        setPaymentStatus(data.status);
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+        onExpired?.();
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
+    } finally {
+      setChecking(false);
+    }
+  }, [pixData?.pixPaymentId, onPaymentConfirmed, onExpired]);
+
   useEffect(() => {
     generatePix();
   }, [generatePix]);
+
+  // Start polling when PIX data is available
+  useEffect(() => {
+    if (!pixData?.pixPaymentId || paymentStatus !== "pending") return;
+
+    // Initial check after 5 seconds
+    const initialTimeout = setTimeout(() => {
+      checkPaymentStatus();
+    }, 5000);
+
+    // Then poll every 4 seconds
+    pollingRef.current = setInterval(() => {
+      checkPaymentStatus();
+    }, 4000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [pixData?.pixPaymentId, paymentStatus, checkPaymentStatus]);
 
   // Timer countdown
   useEffect(() => {
@@ -97,39 +167,6 @@ export const PixPayment = ({
 
     return () => clearInterval(timer);
   }, [timeLeft, paymentStatus, onExpired]);
-
-  // Real-time payment status subscription
-  useEffect(() => {
-    if (!pixData?.pixPaymentId) return;
-
-    const channel = supabase
-      .channel(`pix-payment-${pixData.pixPaymentId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "pix_payments",
-          filter: `id=eq.${pixData.pixPaymentId}`,
-        },
-        (payload) => {
-          const newStatus = payload.new?.status;
-          if (newStatus === "approved") {
-            setPaymentStatus("approved");
-            toast.success("Pagamento confirmado!");
-            onPaymentConfirmed();
-          } else if (newStatus === "expired" || newStatus === "cancelled") {
-            setPaymentStatus(newStatus);
-            onExpired?.();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [pixData?.pixPaymentId, onPaymentConfirmed, onExpired]);
 
   const copyToClipboard = async () => {
     if (!pixData?.qrCode) return;
