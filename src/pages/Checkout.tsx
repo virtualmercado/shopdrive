@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Minus, Plus, Trash2, X, Tag } from "lucide-react";
 import { useCoupon } from "@/hooks/useCoupon";
+import { PixPayment } from "@/components/checkout/PixPayment";
 
 type DeliveryMethod = "retirada" | "entrega";
 type PaymentMethod = "cartao_credito" | "cartao_debito" | "pix" | "whatsapp";
@@ -49,6 +50,10 @@ const CheckoutContent = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingRules, setShippingRules] = useState<any[]>([]);
   const [deliveryOption, setDeliveryOption] = useState<string>("delivery_only");
+  const [paymentSettings, setPaymentSettings] = useState<any>(null);
+  const [showPixPayment, setShowPixPayment] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | null>(null);
   
   const {
     couponCode,
@@ -105,6 +110,23 @@ const CheckoutContent = () => {
 
         if (rules) {
           setShippingRules(rules);
+        }
+
+        // Fetch payment settings
+        const { data: paySettings } = await supabase
+          .from("payment_settings")
+          .select("*")
+          .eq("user_id", data.id)
+          .single();
+
+        if (paySettings) {
+          setPaymentSettings(paySettings);
+          // Determine which gateway to use for PIX
+          if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_pix) {
+            setPixGateway("mercadopago");
+          } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_pix) {
+            setPixGateway("pagbank");
+          }
         }
       }
     };
@@ -269,7 +291,19 @@ const CheckoutContent = () => {
         throw new Error("Erro ao adicionar itens ao pedido");
       }
 
-      // Send WhatsApp message for all orders
+      // Check if PIX payment with QR Code is enabled
+      const isPix = formData.payment_method === "pix";
+      const hasPixGateway = pixGateway !== null;
+
+      if (isPix && hasPixGateway) {
+        // Show PIX payment modal
+        setCreatedOrderId(order.id);
+        setShowPixPayment(true);
+        setLoading(false);
+        return; // Don't proceed with normal flow, wait for PIX payment
+      }
+
+      // Send WhatsApp message for all orders (except PIX gateway)
       if (storeData.whatsapp_number) {
         const now = new Date();
         const dateStr = now.toLocaleDateString("pt-BR");
@@ -348,6 +382,18 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
     }
   };
 
+  const handlePixPaymentConfirmed = () => {
+    // Clear cart and redirect after PIX payment confirmation
+    clearCart();
+    toast.success("Pagamento confirmado!");
+    navigate(`/loja/${storeSlug}/pedido-confirmado/${createdOrderId}`);
+  };
+
+  const handlePixExpired = () => {
+    // Allow user to regenerate QR Code
+    toast.warning("O QR Code expirou. Clique para gerar um novo.");
+  };
+
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -381,6 +427,41 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
       toast.error(result.errorMessage || "Cupom inválido");
     }
   };
+
+  // PIX Payment Modal
+  if (showPixPayment && createdOrderId && pixGateway && storeData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8 max-w-lg">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="p-6">
+              <PixPayment
+                orderId={createdOrderId}
+                amount={total}
+                storeOwnerId={storeData.id}
+                gateway={pixGateway}
+                primaryColor={storeData.primary_color || "#6a1b9a"}
+                onPaymentConfirmed={handlePixPaymentConfirmed}
+                onExpired={handlePixExpired}
+              />
+            </div>
+            <div className="border-t p-4">
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShowPixPayment(false);
+                  navigate(`/loja/${storeSlug}`);
+                }}
+              >
+                Cancelar e voltar para a loja
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
