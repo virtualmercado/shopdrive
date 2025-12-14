@@ -138,6 +138,33 @@ const CheckoutContent = () => {
     calculateDeliveryFee();
   }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules]);
 
+  const checkFreeShippingEligibility = () => {
+    if (!storeData?.free_shipping_minimum) return false;
+    
+    const subtotal = getTotal();
+    if (subtotal < storeData.free_shipping_minimum) return false;
+
+    const scope = storeData.free_shipping_scope || "ALL";
+    
+    if (scope === "ALL") {
+      return true;
+    }
+    
+    if (scope === "CITY") {
+      const customerCity = formData.city.trim().toLowerCase();
+      const merchantCity = (storeData.merchant_city || "").trim().toLowerCase();
+      return customerCity === merchantCity && merchantCity !== "";
+    }
+    
+    if (scope === "STATE") {
+      const customerState = formData.state.trim().toUpperCase();
+      const merchantState = (storeData.merchant_state || "").trim().toUpperCase();
+      return customerState === merchantState && merchantState !== "";
+    }
+    
+    return false;
+  };
+
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
       setDeliveryFee(0);
@@ -146,10 +173,8 @@ const CheckoutContent = () => {
 
     if (!storeData) return;
 
-    const subtotal = getTotal();
-
-    // Check free shipping minimum from profile
-    if (storeData.free_shipping_minimum && subtotal >= storeData.free_shipping_minimum) {
+    // Check free shipping eligibility with scope rules
+    if (checkFreeShippingEligibility()) {
       setDeliveryFee(0);
       return;
     }

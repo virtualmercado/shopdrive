@@ -1126,11 +1126,15 @@ export type Database = {
           footer_bg_color: string | null
           footer_text_color: string | null
           free_shipping_minimum: number | null
+          free_shipping_scope: string | null
           full_name: string
           id: string
           instagram_url: string | null
           is_maintenance_mode: boolean | null
           last_activity: string | null
+          merchant_city: string | null
+          merchant_reference_cep: string | null
+          merchant_state: string | null
           phone: string | null
           pickup_address: string | null
           primary_color: string | null
@@ -1180,11 +1184,15 @@ export type Database = {
           footer_bg_color?: string | null
           footer_text_color?: string | null
           free_shipping_minimum?: number | null
+          free_shipping_scope?: string | null
           full_name: string
           id: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           last_activity?: string | null
+          merchant_city?: string | null
+          merchant_reference_cep?: string | null
+          merchant_state?: string | null
           phone?: string | null
           pickup_address?: string | null
           primary_color?: string | null
@@ -1234,11 +1242,15 @@ export type Database = {
           footer_bg_color?: string | null
           footer_text_color?: string | null
           free_shipping_minimum?: number | null
+          free_shipping_scope?: string | null
           full_name?: string
           id?: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           last_activity?: string | null
+          merchant_city?: string | null
+          merchant_reference_cep?: string | null
+          merchant_state?: string | null
           phone?: string | null
           pickup_address?: string | null
           primary_color?: string | null
