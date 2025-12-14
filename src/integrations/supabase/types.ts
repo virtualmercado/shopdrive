@@ -623,6 +623,11 @@ export type Database = {
           notes: string | null
           order_number: string | null
           payment_method: string | null
+          pix_expires_at: string | null
+          pix_payment_id: string | null
+          pix_payment_status: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
           status: string
           store_owner_id: string
           subtotal: number | null
@@ -642,6 +647,11 @@ export type Database = {
           notes?: string | null
           order_number?: string | null
           payment_method?: string | null
+          pix_expires_at?: string | null
+          pix_payment_id?: string | null
+          pix_payment_status?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
           status?: string
           store_owner_id: string
           subtotal?: number | null
@@ -661,6 +671,11 @@ export type Database = {
           notes?: string | null
           order_number?: string | null
           payment_method?: string | null
+          pix_expires_at?: string | null
+          pix_payment_id?: string | null
+          pix_payment_status?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
           status?: string
           store_owner_id?: string
           subtotal?: number | null
@@ -804,6 +819,62 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pix_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string | null
+          external_payment_id: string | null
+          gateway: string
+          id: string
+          order_id: string
+          paid_at: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          status: string
+          store_owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expires_at?: string | null
+          external_payment_id?: string | null
+          gateway: string
+          id?: string
+          order_id: string
+          paid_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          status?: string
+          store_owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string | null
+          external_payment_id?: string | null
+          gateway?: string
+          id?: string
+          order_id?: string
+          paid_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          status?: string
+          store_owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
