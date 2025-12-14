@@ -175,6 +175,7 @@ export type Database = {
       }
       customer_addresses: {
         Row: {
+          address_type: string | null
           cep: string
           city: string
           complement: string | null
@@ -186,10 +187,12 @@ export type Database = {
           number: string
           recipient_name: string
           state: string
+          store_owner_id: string | null
           street: string
           updated_at: string
         }
         Insert: {
+          address_type?: string | null
           cep: string
           city: string
           complement?: string | null
@@ -201,10 +204,12 @@ export type Database = {
           number: string
           recipient_name: string
           state: string
+          store_owner_id?: string | null
           street: string
           updated_at?: string
         }
         Update: {
+          address_type?: string | null
           cep?: string
           city?: string
           complement?: string | null
@@ -216,6 +221,7 @@ export type Database = {
           number?: string
           recipient_name?: string
           state?: string
+          store_owner_id?: string | null
           street?: string
           updated_at?: string
         }
@@ -330,33 +336,48 @@ export type Database = {
       }
       customer_profiles: {
         Row: {
+          birth_date: string | null
           cpf: string | null
           created_at: string
           email: string
           full_name: string
+          gender: string | null
+          home_phone: string | null
           id: string
+          person_type: string | null
           phone: string | null
           receive_promotions: boolean | null
+          registered_store_id: string | null
           updated_at: string
         }
         Insert: {
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string
           email: string
           full_name: string
+          gender?: string | null
+          home_phone?: string | null
           id: string
+          person_type?: string | null
           phone?: string | null
           receive_promotions?: boolean | null
+          registered_store_id?: string | null
           updated_at?: string
         }
         Update: {
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
           full_name?: string
+          gender?: string | null
+          home_phone?: string | null
           id?: string
+          person_type?: string | null
           phone?: string | null
           receive_promotions?: boolean | null
+          registered_store_id?: string | null
           updated_at?: string
         }
         Relationships: []

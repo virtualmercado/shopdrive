@@ -1,52 +1,27 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { LogOut, ChevronRight, ArrowLeft } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  User, ShoppingBag, Heart, Key, LogOut, ArrowLeft, Menu, X 
+} from "lucide-react";
+import CustomerAccountSection from "@/components/customer/CustomerAccountSection";
+import CustomerOrdersSection from "@/components/customer/CustomerOrdersSection";
+import CustomerWishlistSection from "@/components/customer/CustomerWishlistSection";
+import CustomerPasswordSection from "@/components/customer/CustomerPasswordSection";
 
-interface CustomerProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  cpf: string | null;
-}
-
-interface Order {
-  id: string;
-  order_number: string;
-  created_at: string;
-  status: string;
-  total_amount: number;
-}
-
-interface OrderItem {
-  id: string;
-  product_name: string;
-  quantity: number;
-  product_price: number;
-  subtotal: number;
-}
+type TabType = 'account' | 'orders' | 'wishlist' | 'password';
 
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useCustomerAuth();
-  const { toast } = useToast();
 
   const [storeProfile, setStoreProfile] = useState<any>(null);
-  const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('account');
   const [loading, setLoading] = useState(true);
-
-  // Order detail modal
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [loadingOrderItems, setLoadingOrderItems] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -55,108 +30,25 @@ const CustomerAccount = () => {
   }, [user, authLoading, navigate, storeSlug]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!storeSlug || !user) return;
+    const fetchStoreProfile = async () => {
+      if (!storeSlug) return;
 
-      // Fetch store profile
       const { data: store } = await supabase
         .from('profiles')
         .select('*')
         .eq('store_slug', storeSlug)
-        .single();
+        .maybeSingle();
 
       if (store) setStoreProfile(store);
-
-      // Fetch customer profile
-      const { data: profile } = await supabase
-        .from('customer_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        setCustomerProfile(profile as CustomerProfile);
-      }
-
-      // Fetch orders for this customer in this store
-      if (store) {
-        const { data: orderData } = await supabase
-          .from('orders')
-          .select('id, order_number, created_at, status, total_amount')
-          .eq('customer_id', user.id)
-          .eq('store_owner_id', store.id)
-          .order('created_at', { ascending: false });
-
-        if (orderData) setOrders(orderData);
-      }
-
       setLoading(false);
     };
 
-    fetchData();
-  }, [storeSlug, user]);
-
-  const handleViewOrder = async (order: Order) => {
-    setSelectedOrder(order);
-    setLoadingOrderItems(true);
-
-    const { data } = await supabase
-      .from('order_items')
-      .select('id, product_name, quantity, product_price, subtotal')
-      .eq('order_id', order.id);
-
-    if (data) setOrderItems(data);
-    setLoadingOrderItems(false);
-  };
+    fetchStoreProfile();
+  }, [storeSlug]);
 
   const handleLogout = async () => {
     await signOut();
     navigate(`/loja/${storeSlug}`);
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: "Pedido recebido",
-      confirmed: "Confirmado",
-      processing: "Em preparo",
-      shipped: "Enviado",
-      delivered: "Entregue",
-      cancelled: "Cancelado",
-    };
-    return labels[status] || status;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800",
-      confirmed: "bg-blue-100 text-blue-800",
-      processing: "bg-purple-100 text-purple-800",
-      shipped: "bg-indigo-100 text-indigo-800",
-      delivered: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
-
-  const formatPhone = (phone: string) => {
-    if (!phone) return '';
-    const numbers = phone.replace(/\D/g, '');
-    if (numbers.length === 11) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
-    }
-    if (numbers.length === 10) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
-    }
-    return phone;
-  };
-
-  const formatCpf = (cpf: string) => {
-    if (!cpf) return '';
-    const numbers = cpf.replace(/\D/g, '');
-    if (numbers.length === 11) {
-      return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
-    }
-    return cpf;
   };
 
   if (authLoading || loading) {
@@ -171,9 +63,21 @@ const CustomerAccount = () => {
   const buttonTextColor = storeProfile?.button_text_color || '#FFFFFF';
   const buttonBorderStyle = storeProfile?.button_border_style === 'straight' ? '0' : '0.5rem';
 
+  const menuItems = [
+    { id: 'account' as TabType, label: 'Minha Conta', icon: User },
+    { id: 'orders' as TabType, label: 'Meus Pedidos', icon: ShoppingBag },
+    { id: 'wishlist' as TabType, label: 'Lista de Desejos', icon: Heart },
+    { id: 'password' as TabType, label: 'Alterar Senha', icon: Key },
+  ];
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: storeProfile?.font_family || 'Inter' }}>
-      {/* Simple Header */}
+      {/* Header */}
       <header 
         className="border-b py-4 px-4"
         style={{ 
@@ -193,106 +97,157 @@ const CustomerAccount = () => {
               <span className="font-semibold text-lg">{storeProfile?.store_name || 'Loja'}</span>
             )}
           </Link>
-          <Link 
-            to={`/loja/${storeSlug}`} 
-            className="text-sm flex items-center gap-1 hover:underline"
-            style={{ color: storeProfile?.footer_text_color || '#000000' }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para a loja
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link 
+              to={`/loja/${storeSlug}`} 
+              className="text-sm flex items-center gap-1 hover:underline hidden md:flex"
+              style={{ color: storeProfile?.footer_text_color || '#000000' }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar para a loja
+            </Link>
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6">Minha Conta</h1>
+      <div className="flex-1 flex flex-col md:flex-row">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden md:block w-64 bg-white border-r p-4">
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    isActive ? 'font-medium' : 'text-muted-foreground hover:bg-gray-100'
+                  }`}
+                  style={isActive ? { 
+                    backgroundColor: `${buttonBgColor}15`,
+                    color: buttonBgColor 
+                  } : {}}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              Sair
+            </button>
+          </nav>
+        </aside>
 
-        {/* Customer Data Section */}
-        <section className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Dados do Cliente</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm text-muted-foreground">Nome</Label>
-              <p className="font-medium">{customerProfile?.full_name || '-'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-sm text-muted-foreground">E-mail</Label>
-              <p className="font-medium">{customerProfile?.email || '-'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-sm text-muted-foreground">Telefone</Label>
-              <p className="font-medium">{formatPhone(customerProfile?.phone || '') || '-'}</p>
-            </div>
-            
-            <div>
-              <Label className="text-sm text-muted-foreground">CPF</Label>
-              <p className="font-medium">{formatCpf(customerProfile?.cpf || '') || '-'}</p>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-b p-4">
+            <nav className="space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                      isActive ? 'font-medium' : 'text-muted-foreground hover:bg-gray-100'
+                    }`}
+                    style={isActive ? { 
+                      backgroundColor: `${buttonBgColor}15`,
+                      color: buttonBgColor 
+                    } : {}}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </button>
+                );
+              })}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                Sair
+              </button>
+              <Link 
+                to={`/loja/${storeSlug}`} 
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-muted-foreground hover:bg-gray-100"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Voltar para a loja
+              </Link>
+            </nav>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-8">
+          {/* Mobile Tab Header */}
+          <div className="md:hidden mb-4 overflow-x-auto">
+            <div className="flex gap-2 pb-2">
+              {menuItems.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      isActive ? '' : 'bg-gray-100 text-muted-foreground'
+                    }`}
+                    style={isActive ? { 
+                      backgroundColor: buttonBgColor,
+                      color: buttonTextColor 
+                    } : {}}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </section>
 
-        {/* Orders Section */}
-        <section className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Meus Pedidos</h2>
-          
-          {orders.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              Você ainda não fez nenhum pedido.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <div 
-                  key={order.id} 
-                  className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleViewOrder(order)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="font-semibold">{order.order_number || `#${order.id.slice(0, 8)}`}</p>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                          {getStatusLabel(order.status)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {new Date(order.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
-                      </p>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+          <div className="max-w-3xl">
+            {activeTab === 'account' && (
+              <CustomerAccountSection 
+                storeProfile={storeProfile}
+                userId={user?.id || ''}
+              />
+            )}
+            {activeTab === 'orders' && (
+              <CustomerOrdersSection 
+                storeProfile={storeProfile}
+                userId={user?.id || ''}
+              />
+            )}
+            {activeTab === 'wishlist' && (
+              <CustomerWishlistSection 
+                storeProfile={storeProfile}
+                storeSlug={storeSlug || ''}
+                userId={user?.id || ''}
+              />
+            )}
+            {activeTab === 'password' && (
+              <CustomerPasswordSection 
+                storeProfile={storeProfile}
+              />
+            )}
+          </div>
+        </main>
+      </div>
 
-        {/* Logout Button */}
-        <Button
-          variant="outline"
-          className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 mr-2" />
-          Sair da conta
-        </Button>
-      </main>
-
-      {/* Simple Footer */}
+      {/* Footer */}
       {storeProfile && (
         <footer 
           className="py-6 px-4 text-center text-sm"
@@ -305,64 +260,6 @@ const CustomerAccount = () => {
           <p className="text-xs mt-2 opacity-70">Desenvolvido com VirtualMercado</p>
         </footer>
       )}
-
-      {/* Order Details Modal */}
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              Detalhes do Pedido {selectedOrder?.order_number}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {loadingOrderItems ? (
-            <div className="py-8 text-center text-muted-foreground">Carregando...</div>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                {selectedOrder && new Date(selectedOrder.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-              
-              <div className="space-y-2">
-                {orderItems.map((item) => (
-                  <div key={item.id} className="flex justify-between py-2 border-b last:border-0">
-                    <div>
-                      <p className="font-medium">{item.product_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Qtd: {item.quantity} x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.product_price)}
-                      </p>
-                    </div>
-                    <p className="font-medium">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.subtotal)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              
-              {selectedOrder && (
-                <div className="flex justify-between pt-4 border-t font-bold text-lg">
-                  <span>Total</span>
-                  <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedOrder.total_amount)}</span>
-                </div>
-              )}
-              
-              {selectedOrder && (
-                <div className="pt-2">
-                  <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(selectedOrder.status)}`}>
-                    {getStatusLabel(selectedOrder.status)}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
