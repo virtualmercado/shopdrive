@@ -52,10 +52,45 @@ const Customers = () => {
 
   // Filter states
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('all');
-  const [selectedBirthdayFilter, setSelectedBirthdayFilter] = useState<string>('all');
+  const [selectedBirthdayMonth, setSelectedBirthdayMonth] = useState<string>('all');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<string>('all');
   const [customerGroupAssignments, setCustomerGroupAssignments] = useState<Map<string, string[]>>(new Map());
   const [filteredCustomersList, setFilteredCustomersList] = useState<Customer[]>([]);
+
+  const months = [
+    { value: '1', label: 'Janeiro' },
+    { value: '2', label: 'Fevereiro' },
+    { value: '3', label: 'Março' },
+    { value: '4', label: 'Abril' },
+    { value: '5', label: 'Maio' },
+    { value: '6', label: 'Junho' },
+    { value: '7', label: 'Julho' },
+    { value: '8', label: 'Agosto' },
+    { value: '9', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' }
+  ];
+
+  const getCustomerGroupNames = (customerId: string): string => {
+    const groupIds = customerGroupAssignments.get(customerId) || [];
+    if (groupIds.length === 0) return '-';
+    const groupNames = groupIds.map(gId => {
+      const group = groups.find(g => g.id === gId);
+      return group?.name || '';
+    }).filter(Boolean);
+    return groupNames.join(', ') || '-';
+  };
+
+  const formatBirthDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '-';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return '-';
+    }
+  };
   const [isFilterActive, setIsFilterActive] = useState(false);
 
   useEffect(() => {
@@ -263,7 +298,6 @@ const Customers = () => {
 
   const applyFilters = () => {
     let filtered = [...allCustomers];
-    const currentMonth = new Date().getMonth() + 1;
 
     // Filter by group
     if (selectedGroupFilter !== 'all') {
@@ -274,11 +308,12 @@ const Customers = () => {
     }
 
     // Filter by birthday month
-    if (selectedBirthdayFilter === 'this_month') {
+    if (selectedBirthdayMonth !== 'all') {
+      const selectedMonth = parseInt(selectedBirthdayMonth);
       filtered = filtered.filter(c => {
         if (!c.birth_date) return false;
         const birthMonth = new Date(c.birth_date).getMonth() + 1;
-        return birthMonth === currentMonth;
+        return birthMonth === selectedMonth;
       });
     }
 
@@ -288,13 +323,12 @@ const Customers = () => {
     }
 
     setFilteredCustomersList(filtered);
-    setIsFilterActive(selectedGroupFilter !== 'all' || selectedBirthdayFilter !== 'all' || selectedGenderFilter !== 'all');
-    setShowFiltersModal(false);
+    setIsFilterActive(selectedGroupFilter !== 'all' || selectedBirthdayMonth !== 'all' || selectedGenderFilter !== 'all');
   };
 
   const clearFilters = () => {
     setSelectedGroupFilter('all');
-    setSelectedBirthdayFilter('all');
+    setSelectedBirthdayMonth('all');
     setSelectedGenderFilter('all');
     setIsFilterActive(false);
     setFilteredCustomersList([]);
@@ -303,14 +337,18 @@ const Customers = () => {
 
   const handlePrint = () => {
     const listToPrint = isFilterActive ? filteredCustomersList : allCustomers;
+    const selectedMonthLabel = selectedBirthdayMonth !== 'all' 
+      ? months.find(m => m.value === selectedBirthdayMonth)?.label 
+      : null;
     
     const printContent = `
       <html>
         <head>
-          <title>Lista de Clientes</title>
+          <title>Lista de Clientes${selectedMonthLabel ? ` - Aniversariantes de ${selectedMonthLabel}` : ''}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; margin-bottom: 20px; }
+            h1 { color: #333; margin-bottom: 10px; }
+            .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
             table { width: 100%; border-collapse: collapse; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f4f4f4; }
@@ -319,6 +357,7 @@ const Customers = () => {
         </head>
         <body>
           <h1>Lista de Clientes${isFilterActive ? ' (Filtrada)' : ''}</h1>
+          ${selectedMonthLabel ? `<p class="subtitle">Aniversariantes de ${selectedMonthLabel}</p>` : ''}
           <p>Total: ${listToPrint.length} clientes</p>
           <table>
             <thead>
@@ -326,18 +365,30 @@ const Customers = () => {
                 <th>Nome</th>
                 <th>E-mail</th>
                 <th>Telefone</th>
-                <th>Gênero</th>
+                <th>Data de Nascimento</th>
+                <th>Grupo</th>
               </tr>
             </thead>
             <tbody>
-              ${listToPrint.map(c => `
-                <tr>
-                  <td>${c.full_name}</td>
-                  <td>${c.email}</td>
-                  <td>${c.phone || '-'}</td>
-                  <td>${c.gender === 'masculino' ? 'Masculino' : c.gender === 'feminino' ? 'Feminino' : c.gender === 'outro' ? 'Outro' : '-'}</td>
-                </tr>
-              `).join('')}
+              ${listToPrint.map(c => {
+                const groupIds = customerGroupAssignments.get(c.id) || [];
+                const groupNames = groupIds.map(gId => {
+                  const group = groups.find(g => g.id === gId);
+                  return group?.name || '';
+                }).filter(Boolean).join(', ') || '-';
+                const birthDate = c.birth_date 
+                  ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
+                  : '-';
+                return `
+                  <tr>
+                    <td>${c.full_name}</td>
+                    <td>${c.email}</td>
+                    <td>${c.phone || '-'}</td>
+                    <td>${birthDate}</td>
+                    <td>${groupNames}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </body>
@@ -354,16 +405,28 @@ const Customers = () => {
 
   const handleExport = () => {
     const listToExport = isFilterActive ? filteredCustomersList : allCustomers;
+    const selectedMonthLabel = selectedBirthdayMonth !== 'all' 
+      ? months.find(m => m.value === selectedBirthdayMonth)?.label 
+      : null;
     
-    const headers = ['Nome', 'E-mail', 'Telefone', 'CPF', 'Data de Nascimento', 'Gênero'];
-    const rows = listToExport.map(c => [
-      c.full_name,
-      c.email,
-      c.phone || '',
-      c.cpf || '',
-      c.birth_date || '',
-      c.gender === 'masculino' ? 'Masculino' : c.gender === 'feminino' ? 'Feminino' : c.gender === 'outro' ? 'Outro' : ''
-    ]);
+    const headers = ['Nome', 'E-mail', 'Telefone', 'Data de Nascimento', 'Grupo'];
+    const rows = listToExport.map(c => {
+      const groupIds = customerGroupAssignments.get(c.id) || [];
+      const groupNames = groupIds.map(gId => {
+        const group = groups.find(g => g.id === gId);
+        return group?.name || '';
+      }).filter(Boolean).join(', ') || '';
+      const birthDate = c.birth_date 
+        ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
+        : '';
+      return [
+        c.full_name,
+        c.email,
+        c.phone || '',
+        birthDate,
+        groupNames
+      ];
+    });
     
     const csvContent = [
       headers.join(','),
@@ -373,7 +436,10 @@ const Customers = () => {
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `clientes${isFilterActive ? '_filtrado' : ''}_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = selectedMonthLabel 
+      ? `aniversariantes_${selectedMonthLabel.toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`
+      : `clientes${isFilterActive ? '_filtrado' : ''}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = filename;
     link.click();
   };
 
@@ -715,7 +781,7 @@ const Customers = () => {
 
       {/* Filters Modal */}
       <Dialog open={showFiltersModal} onOpenChange={setShowFiltersModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Filtrar Clientes</DialogTitle>
           </DialogHeader>
@@ -723,7 +789,9 @@ const Customers = () => {
             {/* Group Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Grupo</label>
-              <Select value={selectedGroupFilter} onValueChange={setSelectedGroupFilter}>
+              <Select value={selectedGroupFilter} onValueChange={(value) => {
+                setSelectedGroupFilter(value);
+              }}>
                 <SelectTrigger 
                   className="w-full"
                   style={{ borderColor: primaryColor }}
@@ -740,28 +808,34 @@ const Customers = () => {
               <p className="text-xs text-muted-foreground">Filtrar clientes com base nos grupos criados.</p>
             </div>
 
-            {/* Birthday Filter */}
+            {/* Birthday Month Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Aniversariantes do mês</label>
-              <Select value={selectedBirthdayFilter} onValueChange={setSelectedBirthdayFilter}>
+              <Select value={selectedBirthdayMonth} onValueChange={(value) => {
+                setSelectedBirthdayMonth(value);
+              }}>
                 <SelectTrigger 
                   className="w-full"
                   style={{ borderColor: primaryColor }}
                 >
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione um mês" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="this_month">Aniversariantes deste mês</SelectItem>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  {months.map(month => (
+                    <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Filtrar clientes pelo mês de nascimento informado na Minha Conta.</p>
+              <p className="text-xs text-muted-foreground">Selecione um mês para filtrar clientes pela data de nascimento.</p>
             </div>
 
             {/* Gender Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Sexo informado</label>
-              <Select value={selectedGenderFilter} onValueChange={setSelectedGenderFilter}>
+              <Select value={selectedGenderFilter} onValueChange={(value) => {
+                setSelectedGenderFilter(value);
+              }}>
                 <SelectTrigger 
                   className="w-full"
                   style={{ borderColor: primaryColor }}
@@ -778,6 +852,54 @@ const Customers = () => {
               <p className="text-xs text-muted-foreground">Filtrar clientes pelo campo sexo informado no cadastro.</p>
             </div>
 
+            {/* Filtered Results Display */}
+            {isFilterActive && filteredCustomersList.length > 0 && (
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-foreground">
+                    Resultados: {filteredCustomersList.length} cliente(s)
+                    {selectedBirthdayMonth !== 'all' && (
+                      <span className="ml-1" style={{ color: primaryColor }}>
+                        - Aniversariantes de {months.find(m => m.value === selectedBirthdayMonth)?.label}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Nome</TableHead>
+                        <TableHead className="text-xs">E-mail</TableHead>
+                        <TableHead className="text-xs">Telefone</TableHead>
+                        <TableHead className="text-xs">Nascimento</TableHead>
+                        <TableHead className="text-xs">Grupo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCustomersList.map((customer) => (
+                        <TableRow key={customer.id}>
+                          <TableCell className="text-xs py-2">{customer.full_name}</TableCell>
+                          <TableCell className="text-xs py-2">{customer.email}</TableCell>
+                          <TableCell className="text-xs py-2">{customer.phone || '-'}</TableCell>
+                          <TableCell className="text-xs py-2">{formatBirthDate(customer.birth_date)}</TableCell>
+                          <TableCell className="text-xs py-2">{getCustomerGroupNames(customer.id)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {isFilterActive && filteredCustomersList.length === 0 && (
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum cliente encontrado com os filtros selecionados.
+                </p>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="pt-4 border-t space-y-3">
               <p className="text-sm font-medium text-foreground">Ações sobre a listagem</p>
@@ -786,11 +908,14 @@ const Customers = () => {
                   variant="outline"
                   className="flex-1 gap-2 transition-colors"
                   onClick={handlePrint}
+                  disabled={!isFilterActive || filteredCustomersList.length === 0}
                   style={{ borderColor: primaryColor, color: primaryColor }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = primaryColor;
-                    e.currentTarget.style.borderColor = primaryColor;
-                    e.currentTarget.style.color = '#FFFFFF';
+                    if (isFilterActive && filteredCustomersList.length > 0) {
+                      e.currentTarget.style.backgroundColor = primaryColor;
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.color = '#FFFFFF';
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
@@ -805,11 +930,14 @@ const Customers = () => {
                   variant="outline"
                   className="flex-1 gap-2 transition-colors"
                   onClick={handleExport}
+                  disabled={!isFilterActive || filteredCustomersList.length === 0}
                   style={{ borderColor: primaryColor, color: primaryColor }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = primaryColor;
-                    e.currentTarget.style.borderColor = primaryColor;
-                    e.currentTarget.style.color = '#FFFFFF';
+                    if (isFilterActive && filteredCustomersList.length > 0) {
+                      e.currentTarget.style.backgroundColor = primaryColor;
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.color = '#FFFFFF';
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
