@@ -181,14 +181,26 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Dados salvos!",
-        description: "Suas informações foram atualizadas.",
-      });
-      setEditing(false);
-      fetchData();
+      return;
     }
+
+    // Create link in store_customers to make customer visible in merchant dashboard
+    if (storeProfile?.id) {
+      await supabase
+        .from('store_customers')
+        .upsert({
+          store_owner_id: storeProfile.id,
+          customer_id: userId,
+          is_active: true
+        }, { onConflict: 'store_owner_id,customer_id' });
+    }
+
+    toast({
+      title: "Dados salvos!",
+      description: "Suas informações foram atualizadas.",
+    });
+    setEditing(false);
+    fetchData();
   };
 
   const handleCepLookup = async (cep: string) => {
@@ -239,6 +251,17 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
           variant: "destructive" 
         });
         return;
+      }
+
+      // Also create store_customers link when creating profile via address save
+      if (storeProfile?.id) {
+        await supabase
+          .from('store_customers')
+          .upsert({
+            store_owner_id: storeProfile.id,
+            customer_id: userId,
+            is_active: true
+          }, { onConflict: 'store_owner_id,customer_id' });
       }
     }
 
