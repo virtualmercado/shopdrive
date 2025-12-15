@@ -80,6 +80,9 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   const fetchData = async () => {
     if (!userId) return;
 
+    // Get current user session to get email
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data: profileData } = await supabase
       .from('customer_profiles')
       .select('*')
@@ -97,6 +100,18 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
         birth_date: (profileData as any).birth_date || '',
         gender: (profileData as any).gender || '',
         person_type: (profileData as any).person_type || 'PF'
+      });
+    } else if (user) {
+      // Profile doesn't exist yet, initialize form with user data
+      setFormData({
+        full_name: user.user_metadata?.full_name || '',
+        email: user.email || '',
+        phone: '',
+        home_phone: '',
+        cpf: '',
+        birth_date: '',
+        gender: '',
+        person_type: 'PF'
       });
     }
 
@@ -144,18 +159,21 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleSaveProfile = async () => {
+    // Use upsert to create profile if it doesn't exist
     const { error } = await supabase
       .from('customer_profiles')
-      .update({
+      .upsert({
+        id: userId,
         full_name: formData.full_name,
-        phone: formData.phone.replace(/\D/g, ''),
-        home_phone: formData.home_phone.replace(/\D/g, ''),
-        cpf: formData.cpf.replace(/\D/g, ''),
+        email: formData.email,
+        phone: formData.phone.replace(/\D/g, '') || null,
+        home_phone: formData.home_phone.replace(/\D/g, '') || null,
+        cpf: formData.cpf.replace(/\D/g, '') || null,
         birth_date: formData.birth_date || null,
         gender: formData.gender || null,
-        person_type: formData.person_type
-      })
-      .eq('id', userId);
+        person_type: formData.person_type,
+        registered_store_id: storeProfile?.id
+      }, { onConflict: 'id' });
 
     if (error) {
       toast({
@@ -196,6 +214,34 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleSaveAddress = async () => {
+    // First, ensure customer profile exists before saving address
+    const { data: existingProfile } = await supabase
+      .from('customer_profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      // Create customer profile first if it doesn't exist
+      const { error: profileError } = await supabase
+        .from('customer_profiles')
+        .insert({
+          id: userId,
+          full_name: formData.full_name || 'Cliente',
+          email: formData.email,
+          registered_store_id: storeProfile?.id
+        });
+
+      if (profileError) {
+        toast({ 
+          title: "Erro ao criar perfil", 
+          description: "Por favor, salve seus dados pessoais primeiro.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+    }
+
     const addressData = {
       customer_id: userId,
       recipient_name: addressForm.recipient_name,
