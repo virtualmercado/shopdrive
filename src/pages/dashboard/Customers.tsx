@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Filter, Pencil, Download, Upload, Plus, Users } from 'lucide-react';
+import { Search, Filter, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,6 +22,8 @@ interface Customer {
   cpf: string | null;
   created_at: string;
   is_active: boolean;
+  birth_date?: string | null;
+  gender?: string | null;
 }
 
 interface CustomerGroup {
@@ -33,21 +36,34 @@ const Customers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [groups, setGroups] = useState<CustomerGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#6a1b9a');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<CustomerGroup | null>(null);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Filter states
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('all');
+  const [selectedBirthdayFilter, setSelectedBirthdayFilter] = useState<string>('all');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState<string>('all');
+  const [customerGroupAssignments, setCustomerGroupAssignments] = useState<Map<string, string[]>>(new Map());
+  const [filteredCustomersList, setFilteredCustomersList] = useState<Customer[]>([]);
+  const [isFilterActive, setIsFilterActive] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchPrimaryColor();
       fetchCustomers();
       fetchGroups();
+      fetchCustomerGroupAssignments();
     }
   }, [user, currentPage]);
 
@@ -68,7 +84,6 @@ const Customers = () => {
     
     setLoading(true);
     try {
-      // First get store_customers for this merchant
       const { data: storeCustomers, error: storeError } = await supabase
         .from('store_customers')
         .select('customer_id, is_active')
@@ -78,6 +93,7 @@ const Customers = () => {
 
       if (!storeCustomers || storeCustomers.length === 0) {
         setCustomers([]);
+        setAllCustomers([]);
         setTotalCustomers(0);
         setLoading(false);
         return;
@@ -86,7 +102,21 @@ const Customers = () => {
       const customerIds = storeCustomers.map(sc => sc.customer_id);
       const activeMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.is_active]));
 
-      // Fetch customer profiles
+      // Fetch all customer profiles for filtering purposes
+      const { data: allCustomerProfiles, error: allError } = await supabase
+        .from('customer_profiles')
+        .select('*')
+        .in('id', customerIds);
+
+      if (allError) throw allError;
+
+      const allCustomersWithStatus = (allCustomerProfiles || []).map(cp => ({
+        ...cp,
+        is_active: activeMap.get(cp.id) ?? true
+      }));
+      setAllCustomers(allCustomersWithStatus);
+
+      // Fetch paginated customer profiles
       const { data: customerProfiles, error: profileError, count } = await supabase
         .from('customer_profiles')
         .select('*', { count: 'exact' })
@@ -131,6 +161,34 @@ const Customers = () => {
     setGroups(data || []);
   };
 
+  const fetchCustomerGroupAssignments = async () => {
+    if (!user) return;
+
+    const { data: groupsData } = await supabase
+      .from('customer_groups')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (!groupsData || groupsData.length === 0) return;
+
+    const groupIds = groupsData.map(g => g.id);
+
+    const { data: assignments } = await supabase
+      .from('customer_group_assignments')
+      .select('customer_id, group_id')
+      .in('group_id', groupIds);
+
+    if (assignments) {
+      const assignmentMap = new Map<string, string[]>();
+      assignments.forEach(a => {
+        const existing = assignmentMap.get(a.customer_id) || [];
+        existing.push(a.group_id);
+        assignmentMap.set(a.customer_id, existing);
+      });
+      setCustomerGroupAssignments(assignmentMap);
+    }
+  };
+
   const handleSearch = () => {
     if (!searchTerm.trim()) {
       fetchCustomers();
@@ -172,11 +230,18 @@ const Customers = () => {
     fetchGroups();
   };
 
-  const handleDeleteGroup = async (groupId: string) => {
+  const confirmDeleteGroup = (group: CustomerGroup) => {
+    setGroupToDelete(group);
+    setShowDeleteGroupModal(true);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+
     const { error } = await supabase
       .from('customer_groups')
       .delete()
-      .eq('id', groupId);
+      .eq('id', groupToDelete.id);
 
     if (error) {
       toast({
@@ -191,26 +256,137 @@ const Customers = () => {
       title: 'Sucesso',
       description: 'Grupo excluído com sucesso!'
     });
+    setShowDeleteGroupModal(false);
+    setGroupToDelete(null);
     fetchGroups();
   };
 
-  const downloadExampleSpreadsheet = () => {
-    const csvContent = "Nome do Grupo\nClientes VIP\nClientes Novos\nClientes Frequentes";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const applyFilters = () => {
+    let filtered = [...allCustomers];
+    const currentMonth = new Date().getMonth() + 1;
+
+    // Filter by group
+    if (selectedGroupFilter !== 'all') {
+      filtered = filtered.filter(c => {
+        const customerGroups = customerGroupAssignments.get(c.id) || [];
+        return customerGroups.includes(selectedGroupFilter);
+      });
+    }
+
+    // Filter by birthday month
+    if (selectedBirthdayFilter === 'this_month') {
+      filtered = filtered.filter(c => {
+        if (!c.birth_date) return false;
+        const birthMonth = new Date(c.birth_date).getMonth() + 1;
+        return birthMonth === currentMonth;
+      });
+    }
+
+    // Filter by gender
+    if (selectedGenderFilter !== 'all') {
+      filtered = filtered.filter(c => c.gender === selectedGenderFilter);
+    }
+
+    setFilteredCustomersList(filtered);
+    setIsFilterActive(selectedGroupFilter !== 'all' || selectedBirthdayFilter !== 'all' || selectedGenderFilter !== 'all');
+    setShowFiltersModal(false);
+  };
+
+  const clearFilters = () => {
+    setSelectedGroupFilter('all');
+    setSelectedBirthdayFilter('all');
+    setSelectedGenderFilter('all');
+    setIsFilterActive(false);
+    setFilteredCustomersList([]);
+    setShowFiltersModal(false);
+  };
+
+  const handlePrint = () => {
+    const listToPrint = isFilterActive ? filteredCustomersList : allCustomers;
+    
+    const printContent = `
+      <html>
+        <head>
+          <title>Lista de Clientes</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f4f4f4; }
+            tr:nth-child(even) { background-color: #fafafa; }
+          </style>
+        </head>
+        <body>
+          <h1>Lista de Clientes${isFilterActive ? ' (Filtrada)' : ''}</h1>
+          <p>Total: ${listToPrint.length} clientes</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Telefone</th>
+                <th>Gênero</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${listToPrint.map(c => `
+                <tr>
+                  <td>${c.full_name}</td>
+                  <td>${c.email}</td>
+                  <td>${c.phone || '-'}</td>
+                  <td>${c.gender === 'masculino' ? 'Masculino' : c.gender === 'feminino' ? 'Feminino' : c.gender === 'outro' ? 'Outro' : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleExport = () => {
+    const listToExport = isFilterActive ? filteredCustomersList : allCustomers;
+    
+    const headers = ['Nome', 'E-mail', 'Telefone', 'CPF', 'Data de Nascimento', 'Gênero'];
+    const rows = listToExport.map(c => [
+      c.full_name,
+      c.email,
+      c.phone || '',
+      c.cpf || '',
+      c.birth_date || '',
+      c.gender === 'masculino' ? 'Masculino' : c.gender === 'feminino' ? 'Feminino' : c.gender === 'outro' ? 'Outro' : ''
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'exemplo_grupos.csv';
+    link.download = `clientes${isFilterActive ? '_filtrado' : ''}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
-  const filteredCustomers = searchTerm 
-    ? customers.filter(c => 
-        c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : customers;
+  const displayedCustomers = isFilterActive 
+    ? filteredCustomersList 
+    : (searchTerm 
+      ? customers.filter(c => 
+          c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.email.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : customers);
 
-  const totalPages = Math.ceil(totalCustomers / itemsPerPage);
+  const totalPages = Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
 
   return (
     <DashboardLayout>
@@ -258,12 +434,11 @@ const Customers = () => {
               </div>
               <Button 
                 variant="outline"
-                className="gap-2 transition-colors"
+                className="gap-2 transition-colors relative"
+                onClick={() => setShowFiltersModal(true)}
                 style={{ 
                   borderColor: primaryColor, 
                   color: primaryColor,
-                  '--hover-bg': primaryColor,
-                  '--hover-border': primaryColor
                 } as React.CSSProperties}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = primaryColor;
@@ -278,12 +453,37 @@ const Customers = () => {
               >
                 <Filter className="h-4 w-4" />
                 Filtros
+                {isFilterActive && (
+                  <span 
+                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
+                    style={{ backgroundColor: primaryColor }}
+                  />
+                )}
               </Button>
             </div>
 
+            {/* Filter Active Indicator */}
+            {isFilterActive && (
+              <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}>
+                <span className="text-sm" style={{ color: primaryColor }}>
+                  Filtros ativos: {filteredCustomersList.length} cliente(s) encontrado(s)
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-6 px-2"
+                  style={{ color: primaryColor }}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+
             {/* Total Count */}
             <p className="text-sm text-muted-foreground">
-              Total de clientes: <span className="font-medium">{totalCustomers}</span>
+              Total de clientes: <span className="font-medium">{isFilterActive ? filteredCustomersList.length : totalCustomers}</span>
             </p>
 
             {/* Customers Table */}
@@ -304,14 +504,14 @@ const Customers = () => {
                         Carregando...
                       </TableCell>
                     </TableRow>
-                  ) : filteredCustomers.length === 0 ? (
+                  ) : displayedCustomers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                         Nenhum cliente encontrado.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredCustomers.map((customer) => (
+                    displayedCustomers.map((customer) => (
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{customer.full_name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
@@ -371,43 +571,6 @@ const Customers = () => {
             {/* Groups Action Buttons */}
             <div className="flex flex-wrap gap-3">
               <Button 
-                variant="outline"
-                className="gap-2 transition-colors"
-                style={{ borderColor: primaryColor, color: primaryColor }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = primaryColor;
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = '#FFFFFF';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = primaryColor;
-                }}
-              >
-                <Upload className="h-4 w-4" />
-                Importar grupos
-              </Button>
-              <Button 
-                variant="outline"
-                className="gap-2 transition-colors"
-                onClick={downloadExampleSpreadsheet}
-                style={{ borderColor: primaryColor, color: primaryColor }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = primaryColor;
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = '#FFFFFF';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = primaryColor;
-                }}
-              >
-                <Download className="h-4 w-4" />
-                Baixar planilha de exemplo
-              </Button>
-              <Button 
                 className="gap-2 text-white"
                 onClick={() => setShowCreateGroupModal(true)}
                 style={{ backgroundColor: primaryColor }}
@@ -422,7 +585,6 @@ const Customers = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12"></TableHead>
                     <TableHead>Nome do Grupo</TableHead>
                     <TableHead className="w-16"></TableHead>
                   </TableRow>
@@ -430,29 +592,22 @@ const Customers = () => {
                 <TableBody>
                   {groups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
                         Nenhum grupo criado.
                       </TableCell>
                     </TableRow>
                   ) : (
                     groups.map((group) => (
                       <TableRow key={group.id}>
-                        <TableCell>
-                          <input 
-                            type="checkbox" 
-                            className="rounded"
-                            style={{ accentColor: primaryColor }}
-                          />
-                        </TableCell>
                         <TableCell className="font-medium">{group.name}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteGroup(group.id)}
-                            className="hover:bg-red-50 text-red-500"
+                            onClick={() => confirmDeleteGroup(group)}
+                            className="hover:bg-red-50 text-red-500 hover:text-red-600"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -513,6 +668,186 @@ const Customers = () => {
               style={{ backgroundColor: primaryColor }}
             >
               Criar grupo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation Modal */}
+      <Dialog open={showDeleteGroupModal} onOpenChange={setShowDeleteGroupModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Grupo</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir o grupo <strong>"{groupToDelete?.name}"</strong>? Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteGroupModal(false)}
+              className="transition-colors"
+              style={{ borderColor: primaryColor, color: primaryColor }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = primaryColor;
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = primaryColor;
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDeleteGroup}
+              className="text-white bg-red-500 hover:bg-red-600"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filters Modal */}
+      <Dialog open={showFiltersModal} onOpenChange={setShowFiltersModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filtrar Clientes</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Group Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Grupo</label>
+              <Select value={selectedGroupFilter} onValueChange={setSelectedGroupFilter}>
+                <SelectTrigger 
+                  className="w-full"
+                  style={{ borderColor: primaryColor }}
+                >
+                  <SelectValue placeholder="Selecione um grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os grupos</SelectItem>
+                  {groups.map(group => (
+                    <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Filtrar clientes com base nos grupos criados.</p>
+            </div>
+
+            {/* Birthday Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Aniversariantes do mês</label>
+              <Select value={selectedBirthdayFilter} onValueChange={setSelectedBirthdayFilter}>
+                <SelectTrigger 
+                  className="w-full"
+                  style={{ borderColor: primaryColor }}
+                >
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="this_month">Aniversariantes deste mês</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Filtrar clientes pelo mês de nascimento informado na Minha Conta.</p>
+            </div>
+
+            {/* Gender Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Sexo informado</label>
+              <Select value={selectedGenderFilter} onValueChange={setSelectedGenderFilter}>
+                <SelectTrigger 
+                  className="w-full"
+                  style={{ borderColor: primaryColor }}
+                >
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="feminino">Feminino</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Filtrar clientes pelo campo sexo informado no cadastro.</p>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-4 border-t space-y-3">
+              <p className="text-sm font-medium text-foreground">Ações sobre a listagem</p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  className="flex-1 gap-2 transition-colors"
+                  onClick={handlePrint}
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                    e.currentTarget.style.borderColor = primaryColor;
+                    e.currentTarget.style.color = '#FFFFFF';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = primaryColor;
+                    e.currentTarget.style.color = primaryColor;
+                  }}
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="flex-1 gap-2 transition-colors"
+                  onClick={handleExport}
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                    e.currentTarget.style.borderColor = primaryColor;
+                    e.currentTarget.style.color = '#FFFFFF';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = primaryColor;
+                    e.currentTarget.style.color = primaryColor;
+                  }}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              className="transition-colors"
+              style={{ borderColor: primaryColor, color: primaryColor }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = primaryColor;
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = primaryColor;
+              }}
+            >
+              Limpar filtros
+            </Button>
+            <Button 
+              onClick={applyFilters}
+              className="text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Aplicar filtros
             </Button>
           </DialogFooter>
         </DialogContent>
