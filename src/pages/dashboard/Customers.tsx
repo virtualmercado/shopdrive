@@ -32,6 +32,13 @@ interface CustomerGroup {
   created_at: string;
 }
 
+interface CustomerAddress {
+  customer_id: string;
+  state: string;
+  city: string;
+  is_default: boolean | null;
+}
+
 const Customers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -54,7 +61,12 @@ const Customers = () => {
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('all');
   const [selectedBirthdayMonth, setSelectedBirthdayMonth] = useState<string>('all');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<string>('all');
+  const [selectedStateFilter, setSelectedStateFilter] = useState<string>('all');
+  const [selectedCityFilter, setSelectedCityFilter] = useState<string>('all');
   const [customerGroupAssignments, setCustomerGroupAssignments] = useState<Map<string, string[]>>(new Map());
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+  const [availableStates, setAvailableStates] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [filteredCustomersList, setFilteredCustomersList] = useState<Customer[]>([]);
 
   const months = [
@@ -99,6 +111,7 @@ const Customers = () => {
       fetchCustomers();
       fetchGroups();
       fetchCustomerGroupAssignments();
+      fetchCustomerAddresses();
     }
   }, [user, currentPage]);
 
@@ -224,6 +237,47 @@ const Customers = () => {
     }
   };
 
+  const fetchCustomerAddresses = async () => {
+    if (!user) return;
+
+    // First get customer IDs for this store
+    const { data: storeCustomers } = await supabase
+      .from('store_customers')
+      .select('customer_id')
+      .eq('store_owner_id', user.id);
+
+    if (!storeCustomers || storeCustomers.length === 0) {
+      setCustomerAddresses([]);
+      setAvailableStates([]);
+      setAvailableCities([]);
+      return;
+    }
+
+    const customerIds = storeCustomers.map(sc => sc.customer_id);
+
+    // Fetch addresses for these customers
+    const { data: addresses, error } = await supabase
+      .from('customer_addresses')
+      .select('customer_id, state, city, is_default')
+      .in('customer_id', customerIds);
+
+    if (error) {
+      if (import.meta.env.DEV) console.error('Error fetching addresses:', error);
+      return;
+    }
+
+    if (addresses) {
+      setCustomerAddresses(addresses);
+      
+      // Extract unique states and cities
+      const states = [...new Set(addresses.map(a => a.state).filter(Boolean))].sort();
+      const cities = [...new Set(addresses.map(a => a.city).filter(Boolean))].sort();
+      
+      setAvailableStates(states);
+      setAvailableCities(cities);
+    }
+  };
+
   const handleSearch = () => {
     if (!searchTerm.trim()) {
       fetchCustomers();
@@ -296,6 +350,15 @@ const Customers = () => {
     fetchGroups();
   };
 
+  // Helper to get customer address info
+  const getCustomerAddress = (customerId: string): { state: string; city: string } | null => {
+    const addresses = customerAddresses.filter(a => a.customer_id === customerId);
+    if (addresses.length === 0) return null;
+    // Prefer default address, otherwise use first
+    const defaultAddr = addresses.find(a => a.is_default);
+    return defaultAddr || addresses[0];
+  };
+
   const applyFilters = () => {
     let filtered = [...allCustomers];
 
@@ -322,18 +385,43 @@ const Customers = () => {
       filtered = filtered.filter(c => c.gender === selectedGenderFilter);
     }
 
+    // Filter by state
+    if (selectedStateFilter !== 'all') {
+      filtered = filtered.filter(c => {
+        const addresses = customerAddresses.filter(a => a.customer_id === c.id);
+        return addresses.some(a => a.state === selectedStateFilter);
+      });
+    }
+
+    // Filter by city
+    if (selectedCityFilter !== 'all') {
+      filtered = filtered.filter(c => {
+        const addresses = customerAddresses.filter(a => a.customer_id === c.id);
+        return addresses.some(a => a.city === selectedCityFilter);
+      });
+    }
+
     setFilteredCustomersList(filtered);
-    setIsFilterActive(selectedGroupFilter !== 'all' || selectedBirthdayMonth !== 'all' || selectedGenderFilter !== 'all');
+    setIsFilterActive(
+      selectedGroupFilter !== 'all' || 
+      selectedBirthdayMonth !== 'all' || 
+      selectedGenderFilter !== 'all' ||
+      selectedStateFilter !== 'all' ||
+      selectedCityFilter !== 'all'
+    );
   };
 
   const clearFilters = () => {
     setSelectedGroupFilter('all');
     setSelectedBirthdayMonth('all');
     setSelectedGenderFilter('all');
+    setSelectedStateFilter('all');
+    setSelectedCityFilter('all');
     setIsFilterActive(false);
     setFilteredCustomersList([]);
     setShowFiltersModal(false);
   };
+
 
   const handlePrint = () => {
     const listToPrint = isFilterActive ? filteredCustomersList : allCustomers;
@@ -341,23 +429,29 @@ const Customers = () => {
       ? months.find(m => m.value === selectedBirthdayMonth)?.label 
       : null;
     
+    // Build subtitle based on active filters
+    const filterLabels: string[] = [];
+    if (selectedMonthLabel) filterLabels.push(`Aniversariantes de ${selectedMonthLabel}`);
+    if (selectedStateFilter !== 'all') filterLabels.push(`Estado: ${selectedStateFilter}`);
+    if (selectedCityFilter !== 'all') filterLabels.push(`Cidade: ${selectedCityFilter}`);
+    
     const printContent = `
       <html>
         <head>
-          <title>Lista de Clientes${selectedMonthLabel ? ` - Aniversariantes de ${selectedMonthLabel}` : ''}</title>
+          <title>Lista de Clientes${filterLabels.length > 0 ? ` - ${filterLabels.join(' | ')}` : ''}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             h1 { color: #333; margin-bottom: 10px; }
             .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
             table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
             th { background-color: #f4f4f4; }
             tr:nth-child(even) { background-color: #fafafa; }
           </style>
         </head>
         <body>
           <h1>Lista de Clientes${isFilterActive ? ' (Filtrada)' : ''}</h1>
-          ${selectedMonthLabel ? `<p class="subtitle">Aniversariantes de ${selectedMonthLabel}</p>` : ''}
+          ${filterLabels.length > 0 ? `<p class="subtitle">${filterLabels.join(' | ')}</p>` : ''}
           <p>Total: ${listToPrint.length} clientes</p>
           <table>
             <thead>
@@ -366,6 +460,8 @@ const Customers = () => {
                 <th>E-mail</th>
                 <th>Telefone</th>
                 <th>Data de Nascimento</th>
+                <th>Estado</th>
+                <th>Cidade</th>
                 <th>Grupo</th>
               </tr>
             </thead>
@@ -379,12 +475,15 @@ const Customers = () => {
                 const birthDate = c.birth_date 
                   ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
                   : '-';
+                const addr = getCustomerAddress(c.id);
                 return `
                   <tr>
                     <td>${c.full_name}</td>
                     <td>${c.email}</td>
                     <td>${c.phone || '-'}</td>
                     <td>${birthDate}</td>
+                    <td>${addr?.state || '-'}</td>
+                    <td>${addr?.city || '-'}</td>
                     <td>${groupNames}</td>
                   </tr>
                 `;
@@ -409,7 +508,7 @@ const Customers = () => {
       ? months.find(m => m.value === selectedBirthdayMonth)?.label 
       : null;
     
-    const headers = ['Nome', 'E-mail', 'Telefone', 'Data de Nascimento', 'Grupo'];
+    const headers = ['Nome', 'E-mail', 'Telefone', 'Data de Nascimento', 'Estado', 'Cidade', 'Grupo'];
     const rows = listToExport.map(c => {
       const groupIds = customerGroupAssignments.get(c.id) || [];
       const groupNames = groupIds.map(gId => {
@@ -419,11 +518,14 @@ const Customers = () => {
       const birthDate = c.birth_date 
         ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
         : '';
+      const addr = getCustomerAddress(c.id);
       return [
         c.full_name,
         c.email,
         c.phone || '',
         birthDate,
+        addr?.state || '',
+        addr?.city || '',
         groupNames
       ];
     });
@@ -436,9 +538,15 @@ const Customers = () => {
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    const filename = selectedMonthLabel 
-      ? `aniversariantes_${selectedMonthLabel.toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`
-      : `clientes${isFilterActive ? '_filtrado' : ''}_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Build filename based on filters
+    let filename = 'clientes';
+    if (selectedMonthLabel) filename += `_aniversariantes_${selectedMonthLabel.toLowerCase()}`;
+    if (selectedStateFilter !== 'all') filename += `_${selectedStateFilter.toLowerCase()}`;
+    if (selectedCityFilter !== 'all') filename += `_${selectedCityFilter.toLowerCase().replace(/\s/g, '_')}`;
+    if (isFilterActive && !selectedMonthLabel && selectedStateFilter === 'all' && selectedCityFilter === 'all') filename += '_filtrado';
+    filename += `_${new Date().toISOString().split('T')[0]}.csv`;
+    
     link.download = filename;
     link.click();
   };
@@ -852,15 +960,69 @@ const Customers = () => {
               <p className="text-xs text-muted-foreground">Filtrar clientes pelo campo sexo informado no cadastro.</p>
             </div>
 
+            {/* State Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Clientes por Estado</label>
+              <Select value={selectedStateFilter} onValueChange={(value) => {
+                setSelectedStateFilter(value);
+              }}>
+                <SelectTrigger 
+                  className="w-full"
+                  style={{ borderColor: primaryColor }}
+                >
+                  <SelectValue placeholder="Selecione um estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os estados</SelectItem>
+                  {availableStates.map(state => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Filtrar clientes pelo estado informado no endereço cadastrado.</p>
+            </div>
+
+            {/* City Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Clientes por Cidade</label>
+              <Select value={selectedCityFilter} onValueChange={(value) => {
+                setSelectedCityFilter(value);
+              }}>
+                <SelectTrigger 
+                  className="w-full"
+                  style={{ borderColor: primaryColor }}
+                >
+                  <SelectValue placeholder="Selecione uma cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as cidades</SelectItem>
+                  {availableCities.map(city => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Filtrar clientes pela cidade informada no endereço cadastrado.</p>
+            </div>
+
             {/* Filtered Results Display */}
             {isFilterActive && filteredCustomersList.length > 0 && (
               <div className="pt-4 border-t space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-1">
                   <p className="text-sm font-medium text-foreground">
                     Resultados: {filteredCustomersList.length} cliente(s)
                     {selectedBirthdayMonth !== 'all' && (
                       <span className="ml-1" style={{ color: primaryColor }}>
                         - Aniversariantes de {months.find(m => m.value === selectedBirthdayMonth)?.label}
+                      </span>
+                    )}
+                    {selectedStateFilter !== 'all' && (
+                      <span className="ml-1" style={{ color: primaryColor }}>
+                        - Estado: {selectedStateFilter}
+                      </span>
+                    )}
+                    {selectedCityFilter !== 'all' && (
+                      <span className="ml-1" style={{ color: primaryColor }}>
+                        - Cidade: {selectedCityFilter}
                       </span>
                     )}
                   </p>
@@ -873,19 +1035,26 @@ const Customers = () => {
                         <TableHead className="text-xs">E-mail</TableHead>
                         <TableHead className="text-xs">Telefone</TableHead>
                         <TableHead className="text-xs">Nascimento</TableHead>
+                        <TableHead className="text-xs">Estado</TableHead>
+                        <TableHead className="text-xs">Cidade</TableHead>
                         <TableHead className="text-xs">Grupo</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCustomersList.map((customer) => (
-                        <TableRow key={customer.id}>
-                          <TableCell className="text-xs py-2">{customer.full_name}</TableCell>
-                          <TableCell className="text-xs py-2">{customer.email}</TableCell>
-                          <TableCell className="text-xs py-2">{customer.phone || '-'}</TableCell>
-                          <TableCell className="text-xs py-2">{formatBirthDate(customer.birth_date)}</TableCell>
-                          <TableCell className="text-xs py-2">{getCustomerGroupNames(customer.id)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredCustomersList.map((customer) => {
+                        const addr = getCustomerAddress(customer.id);
+                        return (
+                          <TableRow key={customer.id}>
+                            <TableCell className="text-xs py-2">{customer.full_name}</TableCell>
+                            <TableCell className="text-xs py-2">{customer.email}</TableCell>
+                            <TableCell className="text-xs py-2">{customer.phone || '-'}</TableCell>
+                            <TableCell className="text-xs py-2">{formatBirthDate(customer.birth_date)}</TableCell>
+                            <TableCell className="text-xs py-2">{addr?.state || '-'}</TableCell>
+                            <TableCell className="text-xs py-2">{addr?.city || '-'}</TableCell>
+                            <TableCell className="text-xs py-2">{getCustomerGroupNames(customer.id)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
