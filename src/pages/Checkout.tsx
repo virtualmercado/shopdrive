@@ -316,6 +316,23 @@ const CheckoutContent = () => {
         throw new Error("Erro ao adicionar itens ao pedido");
       }
 
+      // Update stock for each product
+      for (const item of cart) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock")
+          .eq("id", item.id)
+          .single();
+
+        if (product) {
+          const newStock = Math.max(0, product.stock - item.quantity);
+          await supabase
+            .from("products")
+            .update({ stock: newStock })
+            .eq("id", item.id);
+        }
+      }
+
       // Check if PIX payment with QR Code is enabled
       const isPix = formData.payment_method === "pix";
       const hasPixGateway = pixGateway !== null;
