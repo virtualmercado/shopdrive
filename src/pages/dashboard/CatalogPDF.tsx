@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { FileText, Download, Share2, RefreshCw, Printer, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +54,7 @@ const CatalogPDF = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -212,7 +213,8 @@ const CatalogPDF = () => {
       const contentHeight = pageHeight - headerHeight - footerHeight - (margin * 2);
       
       const cardWidth = (pageWidth - (margin * 2) - 16) / 3;
-      const cardHeight = contentHeight / 3 - 6; // Taller cards with less gap
+      const cardHeight = (contentHeight - 12) / 3; // Taller cards with uniform distribution
+      const cardGap = 6;
       const productsPerPage = 9;
 
       const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -275,25 +277,21 @@ const CatalogPDF = () => {
           const col = i % 3;
           
           const x = margin + col * (cardWidth + 8);
-          const y = headerHeight + margin + row * (cardHeight + 6);
+          const y = headerHeight + margin + row * (cardHeight + cardGap);
 
-          // Card background (white) with subtle border
+          // Card background (pure white) with subtle border
           pdf.setFillColor(255, 255, 255);
           pdf.setDrawColor(230, 230, 230);
           pdf.setLineWidth(0.3);
           pdf.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "FD");
 
-          // Product image area - increased height for taller cards
+          // Product image area - NO gray background, pure white
           const imageAreaWidth = cardWidth - 6;
-          const imageAreaHeight = cardHeight * 0.55;
+          const imageAreaHeight = cardHeight * 0.48;
           const imageAreaX = x + 3;
           const imageAreaY = y + 3;
-          
-          // Light image placeholder background
-          pdf.setFillColor(250, 250, 250);
-          pdf.rect(imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, "F");
 
-          // Load and add product image with proper aspect ratio
+          // Load and add product image with proper aspect ratio (no background fill)
           if (product.image_url) {
             const productImageData = await loadImageWithDimensions(product.image_url, false);
             if (productImageData) {
@@ -338,19 +336,19 @@ const CatalogPDF = () => {
             pdf.text(line, x + 4, nameY + (lineIndex * lineHeight));
           });
 
-          // Price - position after name lines
+          // Price - position after name lines with proper spacing
           const price = product.promotional_price || product.price;
           pdf.setFontSize(9);
           pdf.setTextColor(20, 20, 20);
           pdf.setFont("helvetica", "bold");
-          const priceY = nameY + (displayLines.length * lineHeight) + 4;
+          const priceY = nameY + (displayLines.length * lineHeight) + 5;
           pdf.text(formatPrice(price), x + 4, priceY);
           pdf.setFont("helvetica", "normal");
 
-          // "Ver produto" button - clickable link to product page
-          const btnY = y + cardHeight - 11;
+          // "Ver produto" button - positioned at bottom of card with spacing from price
+          const btnHeight = 7;
+          const btnY = y + cardHeight - btnHeight - 3;
           const btnWidth = cardWidth - 8;
-          const btnHeight = 8;
           
           // Parse primary color
           const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
@@ -363,7 +361,7 @@ const CatalogPDF = () => {
           
           pdf.setFontSize(7);
           pdf.setTextColor(255, 255, 255);
-          pdf.text("Ver produto", x + cardWidth / 2, btnY + 5, { align: "center" });
+          pdf.text("Ver produto", x + cardWidth / 2, btnY + 4.5, { align: "center" });
 
           // Add clickable link to product page (works in digital PDF)
           if (storeProfile?.store_slug) {
@@ -397,6 +395,27 @@ const CatalogPDF = () => {
 
       const blob = pdf.output("blob");
       setPdfBlob(blob);
+      
+      // Upload PDF to storage and get public URL
+      try {
+        const fileName = `catalogs/${user?.id}/${Date.now()}-catalogo.pdf`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(fileName, blob, { contentType: "application/pdf", upsert: true });
+        
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from("product-images")
+            .getPublicUrl(fileName);
+          
+          if (urlData?.publicUrl) {
+            setCatalogUrl(urlData.publicUrl);
+          }
+        }
+      } catch (e) {
+        console.error("Error uploading PDF:", e);
+      }
+      
       setPdfGenerated(true);
       toast.success("Catálogo gerado com sucesso!");
     } catch (error) {
@@ -420,52 +439,26 @@ const CatalogPDF = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleSharePDF = async () => {
-    if (!pdfBlob) return;
-    
-    const fileName = `catalogo-${storeProfile?.store_slug || 'produtos'}-${new Date().toISOString().split("T")[0]}.pdf`;
-    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
-    
-    // Try native share API first (mobile/tablet) - shares the actual PDF file
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: "Catálogo de Produtos",
-          text: `Confira nosso catálogo de produtos! Cada produto possui um link direto para a loja.`,
-        });
-        toast.success("Catálogo PDF compartilhado!");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      } catch (e) {
-        // User cancelled or share failed, fall through to download
-        if ((e as Error).name !== "AbortError") {
-          // Fall through to download
-        } else {
-          return; // User cancelled, don't download
-        }
-      }
+  const handleCopyUrl = async () => {
+    if (!catalogUrl) {
+      toast.error("URL do catálogo não disponível");
+      return;
     }
     
-    // Fallback: Download the PDF file for manual sharing
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    setCopied(true);
-    toast.success("PDF baixado! O catálogo contém links clicáveis para cada produto.");
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(catalogUrl);
+      setCopied(true);
+      toast.success("Link do catálogo copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      toast.error("Erro ao copiar link");
+    }
   };
 
   const handleNewCatalog = () => {
     setPdfGenerated(false);
     setPdfBlob(null);
+    setCatalogUrl(null);
     setFilterType("");
     setSelectedCategory("");
     setSelectedProduct("");
@@ -510,12 +503,13 @@ const CatalogPDF = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={handleSharePDF}
+                  onClick={handleCopyUrl}
+                  disabled={!catalogUrl}
                   className="gap-2"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                  Compartilhar PDF
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  Copiar Link
                 </Button>
                 <Button 
                   variant="outline" 
@@ -699,7 +693,7 @@ const CatalogPDF = () => {
                           key={product.id} 
                           className="bg-white border border-gray-200 rounded-lg p-2 text-center"
                         >
-                          <div className="aspect-[4/5] bg-gray-50 rounded mb-2 overflow-hidden flex items-center justify-center">
+                          <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center bg-white">
                             {product.image_url ? (
                               <img 
                                 src={product.image_url} 
@@ -707,17 +701,17 @@ const CatalogPDF = () => {
                                 className="max-w-full max-h-full object-contain"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-gray-50">
                                 Sem imagem
                               </div>
                             )}
                           </div>
                           <p className="text-xs font-medium line-clamp-2 min-h-[2rem]">{product.name}</p>
-                          <p className="text-xs font-bold">
+                          <p className="text-xs font-bold mb-1">
                             {formatPrice(product.promotional_price || product.price)}
                           </p>
                           <div 
-                            className="text-[8px] text-white rounded py-1 mt-1"
+                            className="text-[8px] text-white rounded py-1"
                             style={{ backgroundColor: primaryColor }}
                           >
                             Ver produto
