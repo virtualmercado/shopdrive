@@ -259,11 +259,11 @@ const CatalogPDF = () => {
     const contentHeight = contentEndY - contentStartY;
     const contentCenterX = pageWidth / 2;
 
-    // Image dimensions for single product (larger)
-    const imageMaxWidth = 100;
-    const imageMaxHeight = 100;
+    // Image dimensions for single product (reduced size to prioritize description)
+    const imageMaxWidth = 55;
+    const imageMaxHeight = 55;
     
-    let currentY = contentStartY;
+    let currentY = contentStartY + 5;
 
     // Load and add product image centered
     if (product.image_url) {
@@ -278,68 +278,72 @@ const CatalogPDF = () => {
           );
           const imgX = contentCenterX - (imgDimensions.width / 2);
           pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height);
-          currentY += imgDimensions.height + 10;
+          currentY += imgDimensions.height + 8;
         } catch (e) {
-          currentY += 10;
+          currentY += 8;
         }
       }
     } else {
-      currentY += 10;
+      currentY += 8;
     }
 
-    // Product title (full name, centered)
-    pdf.setFontSize(16);
+    // Product title (full name, centered, reduced size)
+    pdf.setFontSize(12);
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "bold");
     const titleLines = pdf.splitTextToSize(product.name, pageWidth - (margin * 4));
     titleLines.forEach((line: string) => {
       pdf.text(line, contentCenterX, currentY, { align: "center" });
-      currentY += 7;
+      currentY += 5;
     });
     pdf.setFont("helvetica", "normal");
-    currentY += 5;
+    currentY += 4;
 
-    // Product price (centered, prominent)
+    // Product price (centered, reduced size)
     const price = product.promotional_price || product.price;
-    pdf.setFontSize(18);
+    pdf.setFontSize(13);
     pdf.setTextColor(20, 20, 20);
     pdf.setFont("helvetica", "bold");
     pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
     pdf.setFont("helvetica", "normal");
-    currentY += 12;
+    currentY += 8;
 
-    // "Ver produto" button (centered, with merchant's primary color)
-    const btnWidth = 60;
-    const btnHeight = 12;
+    // "Ver produto" button (centered, reduced size, with merchant's primary color)
+    const btnWidth = 40;
+    const btnHeight = 8;
     const btnX = contentCenterX - (btnWidth / 2);
     const btnY = currentY;
     
     pdf.setFillColor(r, g, b);
-    pdf.roundedRect(btnX, btnY, btnWidth, btnHeight, 3, 3, "F");
+    pdf.roundedRect(btnX, btnY, btnWidth, btnHeight, 2, 2, "F");
     
-    pdf.setFontSize(11);
+    pdf.setFontSize(9);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("Ver produto", contentCenterX, btnY + 8, { align: "center" });
+    pdf.text("Ver produto", contentCenterX, btnY + 5.5, { align: "center" });
 
     // Add clickable link to the button area
     if (storeProfile?.store_slug) {
       const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
       pdf.link(btnX, btnY, btnWidth, btnHeight, { url: productUrl });
     }
-    currentY += btnHeight + 15;
+    currentY += btnHeight + 10;
 
-    // Product description (centered block, below the button)
+    // Product description (centered block, below the button - prioritized with more space)
     if (product.description) {
       pdf.setFontSize(10);
-      pdf.setTextColor(60, 60, 60);
-      const descMaxWidth = pageWidth - (margin * 4);
+      pdf.setTextColor(50, 50, 50);
+      const descMaxWidth = pageWidth - (margin * 3);
       const descLines = pdf.splitTextToSize(product.description, descMaxWidth);
-      const maxDescLines = 20; // Limit description lines to fit page
+      
+      // Calculate available space for description
+      const availableHeight = contentEndY - currentY - 5;
+      const lineHeight = 4.5;
+      const maxDescLines = Math.floor(availableHeight / lineHeight);
       const displayDescLines = descLines.slice(0, maxDescLines);
       
       displayDescLines.forEach((line: string) => {
         pdf.text(line, contentCenterX, currentY, { align: "center" });
-        currentY += 5;
+        currentY += lineHeight;
       });
     }
 
