@@ -287,13 +287,35 @@ const CatalogPDF = () => {
       currentY += 4;
     }
 
-    // Product title (full name, centered, compact size)
+    // Product title (full name, justified, compact size)
     pdf.setFontSize(10);
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "bold");
-    const titleLines = pdf.splitTextToSize(product.name, pageWidth - (margin * 4));
-    titleLines.forEach((line: string) => {
-      pdf.text(line, contentCenterX, currentY, { align: "center" });
+    const titleMaxWidth = pageWidth - (margin * 4);
+    const titleLines = pdf.splitTextToSize(product.name, titleMaxWidth);
+    const titleStartX = margin * 2;
+    titleLines.forEach((line: string, index: number) => {
+      const isLastLine = index === titleLines.length - 1;
+      const lineWidth = pdf.getTextWidth(line);
+      
+      // Justify text for multi-line titles (except last line)
+      if (!isLastLine && titleLines.length > 1 && lineWidth >= titleMaxWidth * 0.7) {
+        const words = line.split(' ');
+        if (words.length > 1) {
+          const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+          const extraSpace = (titleMaxWidth - totalWordsWidth) / (words.length - 1);
+          let xPos = titleStartX;
+          words.forEach((word, wordIndex) => {
+            pdf.text(word, xPos, currentY);
+            xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
+          });
+        } else {
+          pdf.text(line, contentCenterX, currentY, { align: "center" });
+        }
+      } else {
+        // Center align for single-line titles or last line
+        pdf.text(line, contentCenterX, currentY, { align: "center" });
+      }
       currentY += 4;
     });
     pdf.setFont("helvetica", "normal");
@@ -519,7 +541,7 @@ const CatalogPDF = () => {
           pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
         }
 
-        // Product name with word wrap
+        // Product name with word wrap (justified alignment)
         pdf.setFontSize(7);
         pdf.setTextColor(40, 40, 40);
         const nameY = y + imageAreaHeight + 8;
@@ -528,9 +550,29 @@ const CatalogPDF = () => {
         const maxLines = 3;
         const displayLines = nameLines.slice(0, maxLines);
         const lineHeight = 3;
+        const nameStartX = x + 4;
         
         displayLines.forEach((line: string, lineIndex: number) => {
-          pdf.text(line, x + 4, nameY + (lineIndex * lineHeight));
+          const isLastLine = lineIndex === displayLines.length - 1;
+          const lineWidth = pdf.getTextWidth(line);
+          
+          // Justify text for multi-line names (except last line)
+          if (!isLastLine && displayLines.length > 1 && lineWidth >= maxNameWidth * 0.7) {
+            const words = line.split(' ');
+            if (words.length > 1) {
+              const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+              const extraSpace = (maxNameWidth - totalWordsWidth) / (words.length - 1);
+              let xPos = nameStartX;
+              words.forEach((word, wordIndex) => {
+                pdf.text(word, xPos, nameY + (lineIndex * lineHeight));
+                xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
+              });
+            } else {
+              pdf.text(line, nameStartX, nameY + (lineIndex * lineHeight));
+            }
+          } else {
+            pdf.text(line, nameStartX, nameY + (lineIndex * lineHeight));
+          }
         });
 
         // Price
