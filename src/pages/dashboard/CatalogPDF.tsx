@@ -541,23 +541,22 @@ const CatalogPDF = () => {
           pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
         }
 
-        // Product name with word wrap (justified alignment)
+        // Product name with word wrap (justified alignment) - FULL title without truncation
         pdf.setFontSize(7);
         pdf.setTextColor(40, 40, 40);
         const nameY = y + imageAreaHeight + 8;
         const maxNameWidth = cardWidth - 8;
         const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
-        const maxLines = 3;
-        const displayLines = nameLines.slice(0, maxLines);
+        // Display ALL lines without truncation
         const lineHeight = 3;
         const nameStartX = x + 4;
         
-        displayLines.forEach((line: string, lineIndex: number) => {
-          const isLastLine = lineIndex === displayLines.length - 1;
+        nameLines.forEach((line: string, lineIndex: number) => {
+          const isLastLine = lineIndex === nameLines.length - 1;
           const lineWidth = pdf.getTextWidth(line);
           
           // Justify text for multi-line names (except last line)
-          if (!isLastLine && displayLines.length > 1 && lineWidth >= maxNameWidth * 0.7) {
+          if (!isLastLine && nameLines.length > 1 && lineWidth >= maxNameWidth * 0.7) {
             const words = line.split(' ');
             if (words.length > 1) {
               const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
@@ -574,13 +573,16 @@ const CatalogPDF = () => {
             pdf.text(line, nameStartX, nameY + (lineIndex * lineHeight));
           }
         });
+        
+        // Calculate dynamic price position based on title height
+        const titleHeight = nameLines.length * lineHeight;
 
         // Price
         const price = product.promotional_price || product.price;
         pdf.setFontSize(9);
         pdf.setTextColor(20, 20, 20);
         pdf.setFont("helvetica", "bold");
-        const priceY = nameY + (displayLines.length * lineHeight) + 5;
+        const priceY = nameY + titleHeight + 5;
         pdf.text(formatPrice(price), x + 4, priceY);
         pdf.setFont("helvetica", "normal");
 
@@ -1045,7 +1047,7 @@ const CatalogPDF = () => {
                                   </div>
                                 )}
                               </div>
-                              <p className="text-xs font-medium line-clamp-2 min-h-[2rem]">{product.name}</p>
+                              <p className="text-xs font-medium text-center">{product.name}</p>
                               <p className="text-xs font-bold mb-1">
                                 {formatPrice(product.promotional_price || product.price)}
                               </p>
