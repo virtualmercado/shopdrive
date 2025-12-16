@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check } from "lucide-react";
+import { FileText, Download, Share2, RefreshCw, Printer, Check } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,6 +140,48 @@ const CatalogPDF = () => {
     return parts.join(", ");
   };
 
+  // Helper function to load image and get dimensions
+  const loadImageWithDimensions = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const data = canvas.toDataURL("image/jpeg", 0.9);
+          resolve({ data, width: img.naturalWidth, height: img.naturalHeight });
+        } else {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  // Helper function to calculate image dimensions maintaining aspect ratio
+  const calculateImageDimensions = (
+    originalWidth: number,
+    originalHeight: number,
+    maxWidth: number,
+    maxHeight: number
+  ) => {
+    const aspectRatio = originalWidth / originalHeight;
+    let finalWidth = maxWidth;
+    let finalHeight = maxWidth / aspectRatio;
+
+    if (finalHeight > maxHeight) {
+      finalHeight = maxHeight;
+      finalWidth = maxHeight * aspectRatio;
+    }
+
+    return { width: finalWidth, height: finalHeight };
+  };
+
   const generatePDF = async () => {
     if (filteredProducts.length === 0) {
       toast.error("Selecione pelo menos um produto para gerar o catálogo");
@@ -169,20 +211,10 @@ const CatalogPDF = () => {
       const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
       const currentDate = new Date().toLocaleDateString("pt-BR");
 
-      // Load logo if available
-      let logoImage: string | null = null;
+      // Load logo if available with proper dimensions
+      let logoImageData: { data: string; width: number; height: number } | null = null;
       if (storeProfile?.store_logo_url) {
-        try {
-          const response = await fetch(storeProfile.store_logo_url);
-          const blob = await response.blob();
-          logoImage = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        } catch (e) {
-          console.log("Could not load logo");
-        }
+        logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url);
       }
 
       for (let page = 0; page < totalPages; page++) {
@@ -194,10 +226,20 @@ const CatalogPDF = () => {
         pdf.setFillColor(240, 240, 240);
         pdf.rect(0, 0, pageWidth, headerHeight, "F");
 
-        // Logo
-        if (logoImage) {
+        // Logo with proper aspect ratio
+        if (logoImageData) {
           try {
-            pdf.addImage(logoImage, "PNG", margin, 5, 30, 20);
+            const logoMaxWidth = 35;
+            const logoMaxHeight = 18;
+            const logoDimensions = calculateImageDimensions(
+              logoImageData.width,
+              logoImageData.height,
+              logoMaxWidth,
+              logoMaxHeight
+            );
+            const logoX = margin;
+            const logoY = (headerHeight - logoDimensions.height) / 2;
+            pdf.addImage(logoImageData.data, "JPEG", logoX, logoY, logoDimensions.width, logoDimensions.height);
           } catch (e) {
             pdf.setFontSize(12);
             pdf.setTextColor(80, 80, 80);
@@ -232,52 +274,74 @@ const CatalogPDF = () => {
           pdf.setLineWidth(0.5);
           pdf.roundedRect(x, y, cardWidth, cardHeight, 3, 3, "S");
 
-          // Product image placeholder
-          const imageHeight = cardHeight * 0.5;
+          // Product image area
+          const imageAreaWidth = cardWidth - 4;
+          const imageAreaHeight = cardHeight * 0.45;
+          const imageAreaX = x + 2;
+          const imageAreaY = y + 2;
+          
+          // Image placeholder background
           pdf.setFillColor(248, 248, 248);
-          pdf.rect(x + 2, y + 2, cardWidth - 4, imageHeight, "F");
+          pdf.rect(imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, "F");
 
-          // Load and add product image
+          // Load and add product image with proper aspect ratio
           if (product.image_url) {
-            try {
-              const imgResponse = await fetch(product.image_url);
-              const imgBlob = await imgResponse.blob();
-              const imgData = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(imgBlob);
-              });
-              
-              pdf.addImage(imgData, "JPEG", x + 2, y + 2, cardWidth - 4, imageHeight);
-            } catch (e) {
+            const productImageData = await loadImageWithDimensions(product.image_url);
+            if (productImageData) {
+              try {
+                const imgDimensions = calculateImageDimensions(
+                  productImageData.width,
+                  productImageData.height,
+                  imageAreaWidth - 2,
+                  imageAreaHeight - 2
+                );
+                // Center the image in the area
+                const imgX = imageAreaX + (imageAreaWidth - imgDimensions.width) / 2;
+                const imgY = imageAreaY + (imageAreaHeight - imgDimensions.height) / 2;
+                pdf.addImage(productImageData.data, "JPEG", imgX, imgY, imgDimensions.width, imgDimensions.height);
+              } catch (e) {
+                pdf.setFontSize(8);
+                pdf.setTextColor(150, 150, 150);
+                pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
+              }
+            } else {
               pdf.setFontSize(8);
               pdf.setTextColor(150, 150, 150);
-              pdf.text("Sem imagem", x + cardWidth / 2, y + imageHeight / 2, { align: "center" });
+              pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
             }
           } else {
             pdf.setFontSize(8);
             pdf.setTextColor(150, 150, 150);
-            pdf.text("Sem imagem", x + cardWidth / 2, y + imageHeight / 2, { align: "center" });
+            pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
           }
 
-          // Product name
-          pdf.setFontSize(9);
+          // Product name with word wrap
+          pdf.setFontSize(8);
           pdf.setTextColor(50, 50, 50);
-          const nameY = y + imageHeight + 8;
+          const nameY = y + imageAreaHeight + 6;
           const maxNameWidth = cardWidth - 6;
-          const productName = product.name.length > 25 ? product.name.substring(0, 25) + "..." : product.name;
-          pdf.text(productName, x + 3, nameY);
+          const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
+          const maxLines = 3; // Maximum 3 lines for name
+          const displayLines = nameLines.slice(0, maxLines);
+          const lineHeight = 3.5;
+          
+          displayLines.forEach((line: string, lineIndex: number) => {
+            pdf.text(line, x + 3, nameY + (lineIndex * lineHeight));
+          });
 
-          // Price
+          // Price - position after name lines
           const price = product.promotional_price || product.price;
-          pdf.setFontSize(11);
+          pdf.setFontSize(10);
           pdf.setTextColor(30, 30, 30);
-          pdf.text(formatPrice(price), x + 3, nameY + 10);
+          pdf.setFont("helvetica", "bold");
+          const priceY = nameY + (displayLines.length * lineHeight) + 3;
+          pdf.text(formatPrice(price), x + 3, priceY);
+          pdf.setFont("helvetica", "normal");
 
           // "Ver produto" button
-          const btnY = y + cardHeight - 12;
+          const btnY = y + cardHeight - 10;
           const btnWidth = cardWidth - 6;
-          const btnHeight = 8;
+          const btnHeight = 7;
           
           // Parse primary color
           const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
@@ -288,9 +352,9 @@ const CatalogPDF = () => {
           pdf.setFillColor(r, g, b);
           pdf.roundedRect(x + 3, btnY, btnWidth, btnHeight, 2, 2, "F");
           
-          pdf.setFontSize(8);
+          pdf.setFontSize(7);
           pdf.setTextColor(255, 255, 255);
-          pdf.text("Ver produto", x + cardWidth / 2, btnY + 5.5, { align: "center" });
+          pdf.text("Ver produto", x + cardWidth / 2, btnY + 4.5, { align: "center" });
 
           // Add link to product
           if (storeProfile?.store_slug) {
@@ -346,20 +410,43 @@ const CatalogPDF = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleCopyLink = async () => {
+  const handleSharePDF = async () => {
     if (!pdfBlob) return;
     
-    // Since we can't host the PDF, we'll copy the store link
-    const storeUrl = storeProfile?.store_slug 
-      ? `${window.location.origin}/loja/${storeProfile.store_slug}`
-      : "";
+    const fileName = `catalogo-${storeProfile?.store_slug || 'produtos'}-${new Date().toISOString().split("T")[0]}.pdf`;
+    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
     
-    if (storeUrl) {
-      await navigator.clipboard.writeText(storeUrl);
-      setCopied(true);
-      toast.success("Link da loja copiado!");
-      setTimeout(() => setCopied(false), 2000);
+    // Try native share API first (mobile/tablet)
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "Catálogo de Produtos",
+          text: `Confira nosso catálogo de produtos!`,
+        });
+        toast.success("Catálogo compartilhado!");
+        return;
+      } catch (e) {
+        // User cancelled or share failed, fall through to download
+        if ((e as Error).name !== "AbortError") {
+          console.log("Share failed, falling back to download");
+        }
+      }
     }
+    
+    // Fallback: Download the file for manual sharing
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setCopied(true);
+    toast.success("PDF baixado! Compartilhe o arquivo.");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleNewCatalog = () => {
@@ -409,12 +496,12 @@ const CatalogPDF = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={handleCopyLink}
+                  onClick={handleSharePDF}
                   className="gap-2"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  Copiar Link
+                  {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                  Compartilhar PDF
                 </Button>
                 <Button 
                   variant="outline" 
