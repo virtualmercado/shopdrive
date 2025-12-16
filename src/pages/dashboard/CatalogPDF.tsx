@@ -140,8 +140,8 @@ const CatalogPDF = () => {
     return parts.join(", ");
   };
 
-  // Helper function to load image and get dimensions
-  const loadImageWithDimensions = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+  // Helper function to load image and get dimensions (preserves transparency with PNG)
+  const loadImageWithDimensions = (url: string, preserveTransparency: boolean = false): Promise<{ data: string; width: number; height: number; format: string } | null> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -151,9 +151,16 @@ const CatalogPDF = () => {
         canvas.height = img.naturalHeight;
         const ctx = canvas.getContext("2d");
         if (ctx) {
+          // For transparent images (like logos), don't fill background
+          if (!preserveTransparency) {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
           ctx.drawImage(img, 0, 0);
-          const data = canvas.toDataURL("image/jpeg", 0.9);
-          resolve({ data, width: img.naturalWidth, height: img.naturalHeight });
+          // Use PNG for logos to preserve transparency, JPEG for products
+          const format = preserveTransparency ? "image/png" : "image/jpeg";
+          const data = canvas.toDataURL(format, 0.9);
+          resolve({ data, width: img.naturalWidth, height: img.naturalHeight, format: preserveTransparency ? "PNG" : "JPEG" });
         } else {
           resolve(null);
         }
@@ -199,22 +206,22 @@ const CatalogPDF = () => {
 
       const pageWidth = 210;
       const pageHeight = 297;
-      const margin = 15;
-      const headerHeight = 30;
-      const footerHeight = 20;
+      const margin = 12;
+      const headerHeight = 28;
+      const footerHeight = 18;
       const contentHeight = pageHeight - headerHeight - footerHeight - (margin * 2);
       
-      const cardWidth = (pageWidth - (margin * 2) - 20) / 3;
-      const cardHeight = contentHeight / 3 - 10;
+      const cardWidth = (pageWidth - (margin * 2) - 16) / 3;
+      const cardHeight = contentHeight / 3 - 6; // Taller cards with less gap
       const productsPerPage = 9;
 
       const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
       const currentDate = new Date().toLocaleDateString("pt-BR");
 
-      // Load logo if available with proper dimensions
-      let logoImageData: { data: string; width: number; height: number } | null = null;
+      // Load logo if available with proper dimensions (preserve transparency)
+      let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
       if (storeProfile?.store_logo_url) {
-        logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url);
+        logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
       }
 
       for (let page = 0; page < totalPages; page++) {
@@ -226,11 +233,11 @@ const CatalogPDF = () => {
         pdf.setFillColor(240, 240, 240);
         pdf.rect(0, 0, pageWidth, headerHeight, "F");
 
-        // Logo with proper aspect ratio
+        // Logo with proper aspect ratio (no background/border)
         if (logoImageData) {
           try {
-            const logoMaxWidth = 35;
-            const logoMaxHeight = 18;
+            const logoMaxWidth = 40;
+            const logoMaxHeight = 20;
             const logoDimensions = calculateImageDimensions(
               logoImageData.width,
               logoImageData.height,
@@ -239,11 +246,12 @@ const CatalogPDF = () => {
             );
             const logoX = margin;
             const logoY = (headerHeight - logoDimensions.height) / 2;
-            pdf.addImage(logoImageData.data, "JPEG", logoX, logoY, logoDimensions.width, logoDimensions.height);
+            // Use PNG format for logos to preserve transparency
+            pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
           } catch (e) {
             pdf.setFontSize(12);
             pdf.setTextColor(80, 80, 80);
-            pdf.text("Logo", margin, 18);
+            pdf.text("Logo", margin, 16);
           }
         }
 
@@ -266,82 +274,83 @@ const CatalogPDF = () => {
           const row = Math.floor(i / 3);
           const col = i % 3;
           
-          const x = margin + col * (cardWidth + 10);
-          const y = headerHeight + margin + row * (cardHeight + 10);
+          const x = margin + col * (cardWidth + 8);
+          const y = headerHeight + margin + row * (cardHeight + 6);
 
-          // Card border
-          pdf.setDrawColor(220, 220, 220);
-          pdf.setLineWidth(0.5);
-          pdf.roundedRect(x, y, cardWidth, cardHeight, 3, 3, "S");
+          // Card background (white) with subtle border
+          pdf.setFillColor(255, 255, 255);
+          pdf.setDrawColor(230, 230, 230);
+          pdf.setLineWidth(0.3);
+          pdf.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "FD");
 
-          // Product image area
-          const imageAreaWidth = cardWidth - 4;
-          const imageAreaHeight = cardHeight * 0.45;
-          const imageAreaX = x + 2;
-          const imageAreaY = y + 2;
+          // Product image area - increased height for taller cards
+          const imageAreaWidth = cardWidth - 6;
+          const imageAreaHeight = cardHeight * 0.55;
+          const imageAreaX = x + 3;
+          const imageAreaY = y + 3;
           
-          // Image placeholder background
-          pdf.setFillColor(248, 248, 248);
+          // Light image placeholder background
+          pdf.setFillColor(250, 250, 250);
           pdf.rect(imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, "F");
 
           // Load and add product image with proper aspect ratio
           if (product.image_url) {
-            const productImageData = await loadImageWithDimensions(product.image_url);
+            const productImageData = await loadImageWithDimensions(product.image_url, false);
             if (productImageData) {
               try {
                 const imgDimensions = calculateImageDimensions(
                   productImageData.width,
                   productImageData.height,
-                  imageAreaWidth - 2,
-                  imageAreaHeight - 2
+                  imageAreaWidth - 4,
+                  imageAreaHeight - 4
                 );
                 // Center the image in the area
                 const imgX = imageAreaX + (imageAreaWidth - imgDimensions.width) / 2;
                 const imgY = imageAreaY + (imageAreaHeight - imgDimensions.height) / 2;
-                pdf.addImage(productImageData.data, "JPEG", imgX, imgY, imgDimensions.width, imgDimensions.height);
+                pdf.addImage(productImageData.data, productImageData.format, imgX, imgY, imgDimensions.width, imgDimensions.height);
               } catch (e) {
-                pdf.setFontSize(8);
+                pdf.setFontSize(7);
                 pdf.setTextColor(150, 150, 150);
                 pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
               }
             } else {
-              pdf.setFontSize(8);
+              pdf.setFontSize(7);
               pdf.setTextColor(150, 150, 150);
               pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
             }
           } else {
-            pdf.setFontSize(8);
+            pdf.setFontSize(7);
             pdf.setTextColor(150, 150, 150);
             pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
           }
 
-          // Product name with word wrap
-          pdf.setFontSize(8);
-          pdf.setTextColor(50, 50, 50);
-          const nameY = y + imageAreaHeight + 6;
-          const maxNameWidth = cardWidth - 6;
+          // Product name with word wrap - full text display
+          pdf.setFontSize(7);
+          pdf.setTextColor(40, 40, 40);
+          const nameY = y + imageAreaHeight + 8;
+          const maxNameWidth = cardWidth - 8;
           const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
           const maxLines = 3; // Maximum 3 lines for name
           const displayLines = nameLines.slice(0, maxLines);
-          const lineHeight = 3.5;
+          const lineHeight = 3;
           
           displayLines.forEach((line: string, lineIndex: number) => {
-            pdf.text(line, x + 3, nameY + (lineIndex * lineHeight));
+            pdf.text(line, x + 4, nameY + (lineIndex * lineHeight));
           });
 
           // Price - position after name lines
           const price = product.promotional_price || product.price;
-          pdf.setFontSize(10);
-          pdf.setTextColor(30, 30, 30);
+          pdf.setFontSize(9);
+          pdf.setTextColor(20, 20, 20);
           pdf.setFont("helvetica", "bold");
-          const priceY = nameY + (displayLines.length * lineHeight) + 3;
-          pdf.text(formatPrice(price), x + 3, priceY);
+          const priceY = nameY + (displayLines.length * lineHeight) + 4;
+          pdf.text(formatPrice(price), x + 4, priceY);
           pdf.setFont("helvetica", "normal");
 
-          // "Ver produto" button
-          const btnY = y + cardHeight - 10;
-          const btnWidth = cardWidth - 6;
-          const btnHeight = 7;
+          // "Ver produto" button - clickable link to product page
+          const btnY = y + cardHeight - 11;
+          const btnWidth = cardWidth - 8;
+          const btnHeight = 8;
           
           // Parse primary color
           const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
@@ -350,16 +359,17 @@ const CatalogPDF = () => {
           const b = parseInt(hexColor.slice(5, 7), 16) || 154;
           
           pdf.setFillColor(r, g, b);
-          pdf.roundedRect(x + 3, btnY, btnWidth, btnHeight, 2, 2, "F");
+          pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
           
           pdf.setFontSize(7);
           pdf.setTextColor(255, 255, 255);
-          pdf.text("Ver produto", x + cardWidth / 2, btnY + 4.5, { align: "center" });
+          pdf.text("Ver produto", x + cardWidth / 2, btnY + 5, { align: "center" });
 
-          // Add link to product
+          // Add clickable link to product page (works in digital PDF)
           if (storeProfile?.store_slug) {
             const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
-            pdf.link(x + 3, btnY, btnWidth, btnHeight, { url: productUrl });
+            // Make entire card clickable for better UX
+            pdf.link(x, y, cardWidth, cardHeight, { url: productUrl });
           }
         }
 
@@ -416,25 +426,29 @@ const CatalogPDF = () => {
     const fileName = `catalogo-${storeProfile?.store_slug || 'produtos'}-${new Date().toISOString().split("T")[0]}.pdf`;
     const file = new File([pdfBlob], fileName, { type: "application/pdf" });
     
-    // Try native share API first (mobile/tablet)
+    // Try native share API first (mobile/tablet) - shares the actual PDF file
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
           title: "Catálogo de Produtos",
-          text: `Confira nosso catálogo de produtos!`,
+          text: `Confira nosso catálogo de produtos! Cada produto possui um link direto para a loja.`,
         });
-        toast.success("Catálogo compartilhado!");
+        toast.success("Catálogo PDF compartilhado!");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
         return;
       } catch (e) {
         // User cancelled or share failed, fall through to download
         if ((e as Error).name !== "AbortError") {
-          console.log("Share failed, falling back to download");
+          // Fall through to download
+        } else {
+          return; // User cancelled, don't download
         }
       }
     }
     
-    // Fallback: Download the file for manual sharing
+    // Fallback: Download the PDF file for manual sharing
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
     link.href = url;
@@ -445,7 +459,7 @@ const CatalogPDF = () => {
     URL.revokeObjectURL(url);
     
     setCopied(true);
-    toast.success("PDF baixado! Compartilhe o arquivo.");
+    toast.success("PDF baixado! O catálogo contém links clicáveis para cada produto.");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -683,14 +697,14 @@ const CatalogPDF = () => {
                       {filteredProducts.slice(0, 9).map((product) => (
                         <div 
                           key={product.id} 
-                          className="border rounded-lg p-2 text-center"
+                          className="bg-white border border-gray-200 rounded-lg p-2 text-center"
                         >
-                          <div className="aspect-square bg-gray-100 rounded mb-2 overflow-hidden">
+                          <div className="aspect-[4/5] bg-gray-50 rounded mb-2 overflow-hidden flex items-center justify-center">
                             {product.image_url ? (
                               <img 
                                 src={product.image_url} 
                                 alt={product.name}
-                                className="w-full h-full object-cover"
+                                className="max-w-full max-h-full object-contain"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
@@ -698,7 +712,7 @@ const CatalogPDF = () => {
                               </div>
                             )}
                           </div>
-                          <p className="text-xs font-medium truncate">{product.name}</p>
+                          <p className="text-xs font-medium line-clamp-2 min-h-[2rem]">{product.name}</p>
                           <p className="text-xs font-bold">
                             {formatPrice(product.promotional_price || product.price)}
                           </p>
