@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus } from "lucide-react";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ImageEditor } from "@/components/ImageEditor";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -90,6 +91,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
+  
+  // Image editor state
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -464,9 +469,56 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     setLength("");
     setHeight("");
     setWidth("");
+    setImageEditorOpen(false);
+    setEditingImageIndex(null);
+  };
+
+  // Handle saving edited image from ImageEditor
+  const handleSaveEditedImage = (editedImageUrl: string) => {
+    if (editingImageIndex === null) return;
+    
+    // Update the preview at the editing index
+    setImagePreviews(prev => {
+      const updated = [...prev];
+      updated[editingImageIndex] = editedImageUrl;
+      return updated;
+    });
+    
+    // If the original was a file (data URL), we need to convert the edited image to a file
+    // For remote URLs that were edited, we need to create a new file from the data URL
+    if (editedImageUrl.startsWith('data:')) {
+      // Convert data URL to File
+      fetch(editedImageUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], `edited-image-${editingImageIndex}.png`, { type: 'image/png' });
+          setImageFiles(prev => {
+            const updated = [...prev];
+            // If this was an existing file, replace it
+            // If it was a remote URL, add a new file
+            if (prev.length > editingImageIndex) {
+              updated[editingImageIndex] = file;
+            } else {
+              // This was a remote URL, we need to mark it for replacement
+              // The preview will be the data URL, and we need to track this separately
+              updated.push(file);
+            }
+            return updated;
+          });
+        });
+    }
+    
+    setImageEditorOpen(false);
+    setEditingImageIndex(null);
+    
+    toast({
+      title: "Sucesso",
+      description: "Imagem editada salva com sucesso!",
+    });
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -480,18 +532,34 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square bg-muted rounded-lg overflow-hidden group">
+                  <div 
+                    key={index} 
+                    className="relative aspect-square bg-muted rounded-lg overflow-hidden group cursor-pointer"
+                    onDoubleClick={() => {
+                      setEditingImageIndex(index);
+                      setImageEditorOpen(true);
+                    }}
+                  >
                     <img
                       src={preview}
                       alt={`Preview ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
+                    {/* Pencil icon overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-black/30 rounded-full p-3 opacity-50 group-hover:opacity-80 transition-opacity">
+                        <Pencil className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
                       style={{
                         backgroundColor: buttonBgColor,
                         color: buttonTextColor,
@@ -505,6 +573,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                    <p className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/50 px-1 py-0.5 rounded text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      Duplo clique para editar
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1065,5 +1136,16 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         </form>
       </DialogContent>
     </Dialog>
+    
+    {/* Image Editor Modal */}
+    {editingImageIndex !== null && (
+      <ImageEditor
+        open={imageEditorOpen}
+        onOpenChange={setImageEditorOpen}
+        imageUrl={imagePreviews[editingImageIndex] || ''}
+        onSave={handleSaveEditedImage}
+      />
+    )}
+    </>
   );
 };
