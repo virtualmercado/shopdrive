@@ -15,7 +15,8 @@ import {
   Ticket,
   Truck,
   Users,
-  CreditCard
+  CreditCard,
+  FileText
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Users, label: "Clientes", path: "/lojista/customers" },
     { icon: Truck, label: "Editar Frete", path: "/lojista/shipping" },
     { icon: CreditCard, label: "Formas de Pagamento", path: "/lojista/payment-methods" },
+    { icon: FileText, label: "Catálogo PDF", path: "/lojista/catalog-pdf" },
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
     { icon: MessageCircle, label: "Mensagens", path: "/lojista/messages" },
