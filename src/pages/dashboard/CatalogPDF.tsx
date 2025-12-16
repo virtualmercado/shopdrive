@@ -577,20 +577,26 @@ const CatalogPDF = () => {
         // Calculate dynamic price position based on title height
         const titleHeight = nameLines.length * lineHeight;
 
-        // Price
+        // "Ver produto" button - calculate position first
+        const btnHeight = 7;
+        const btnY = y + cardHeight - btnHeight - 3;
+        const btnWidth = cardWidth - 8;
+
+        // Price - positioned between title and button, with max limit
         const price = product.promotional_price || product.price;
         pdf.setFontSize(9);
         pdf.setTextColor(20, 20, 20);
         pdf.setFont("helvetica", "bold");
-        const priceY = nameY + titleHeight + 5;
+        
+        // Calculate ideal price position and ensure it's above the button
+        const idealPriceY = nameY + titleHeight + 5;
+        const maxPriceY = btnY - 4; // Minimum 4mm above button
+        const priceY = Math.min(idealPriceY, maxPriceY);
+        
         pdf.text(formatPrice(price), x + 4, priceY);
         pdf.setFont("helvetica", "normal");
 
-        // "Ver produto" button
-        const btnHeight = 7;
-        const btnY = y + cardHeight - btnHeight - 3;
-        const btnWidth = cardWidth - 8;
-        
+        // Draw button
         pdf.setFillColor(r, g, b);
         pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
         
