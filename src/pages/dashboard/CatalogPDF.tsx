@@ -259,11 +259,11 @@ const CatalogPDF = () => {
     const contentHeight = contentEndY - contentStartY;
     const contentCenterX = pageWidth / 2;
 
-    // Image dimensions for single product (reduced size to prioritize description)
-    const imageMaxWidth = 55;
-    const imageMaxHeight = 55;
+    // Image dimensions for single product (compact size to maximize description space)
+    const imageMaxWidth = 35;
+    const imageMaxHeight = 35;
     
-    let currentY = contentStartY + 5;
+    let currentY = contentStartY + 3;
 
     // Load and add product image centered
     if (product.image_url) {
@@ -278,71 +278,95 @@ const CatalogPDF = () => {
           );
           const imgX = contentCenterX - (imgDimensions.width / 2);
           pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height);
-          currentY += imgDimensions.height + 8;
+          currentY += imgDimensions.height + 4;
         } catch (e) {
-          currentY += 8;
+          currentY += 4;
         }
       }
     } else {
-      currentY += 8;
+      currentY += 4;
     }
 
-    // Product title (full name, centered, reduced size)
-    pdf.setFontSize(12);
+    // Product title (full name, centered, compact size)
+    pdf.setFontSize(10);
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "bold");
     const titleLines = pdf.splitTextToSize(product.name, pageWidth - (margin * 4));
     titleLines.forEach((line: string) => {
       pdf.text(line, contentCenterX, currentY, { align: "center" });
-      currentY += 5;
+      currentY += 4;
     });
     pdf.setFont("helvetica", "normal");
-    currentY += 4;
+    currentY += 2;
 
-    // Product price (centered, reduced size)
+    // Product price (centered, compact size)
     const price = product.promotional_price || product.price;
-    pdf.setFontSize(13);
+    pdf.setFontSize(11);
     pdf.setTextColor(20, 20, 20);
     pdf.setFont("helvetica", "bold");
     pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
     pdf.setFont("helvetica", "normal");
-    currentY += 8;
+    currentY += 5;
 
-    // "Ver produto" button (centered, reduced size, with merchant's primary color)
-    const btnWidth = 40;
-    const btnHeight = 8;
+    // "Ver produto" button (centered, compact size, with merchant's primary color)
+    const btnWidth = 32;
+    const btnHeight = 6;
     const btnX = contentCenterX - (btnWidth / 2);
     const btnY = currentY;
     
     pdf.setFillColor(r, g, b);
-    pdf.roundedRect(btnX, btnY, btnWidth, btnHeight, 2, 2, "F");
+    pdf.roundedRect(btnX, btnY, btnWidth, btnHeight, 1.5, 1.5, "F");
     
-    pdf.setFontSize(9);
+    pdf.setFontSize(7);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("Ver produto", contentCenterX, btnY + 5.5, { align: "center" });
+    pdf.text("Ver produto", contentCenterX, btnY + 4, { align: "center" });
 
     // Add clickable link to the button area
     if (storeProfile?.store_slug) {
       const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
       pdf.link(btnX, btnY, btnWidth, btnHeight, { url: productUrl });
     }
-    currentY += btnHeight + 10;
+    currentY += btnHeight + 6;
 
-    // Product description (centered block, below the button - prioritized with more space)
+    // Product description (justified text, full width, prioritized for complete display)
     if (product.description) {
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setTextColor(50, 50, 50);
-      const descMaxWidth = pageWidth - (margin * 3);
+      const descMargin = margin * 2;
+      const descMaxWidth = pageWidth - (descMargin * 2);
+      const descStartX = descMargin;
       const descLines = pdf.splitTextToSize(product.description, descMaxWidth);
       
       // Calculate available space for description
-      const availableHeight = contentEndY - currentY - 5;
-      const lineHeight = 4.5;
+      const availableHeight = contentEndY - currentY - 3;
+      const lineHeight = 4;
       const maxDescLines = Math.floor(availableHeight / lineHeight);
       const displayDescLines = descLines.slice(0, maxDescLines);
       
-      displayDescLines.forEach((line: string) => {
-        pdf.text(line, contentCenterX, currentY, { align: "center" });
+      // Render description with justified alignment
+      displayDescLines.forEach((line: string, index: number) => {
+        // Last line or short lines should be left-aligned, others justified
+        const isLastLine = index === displayDescLines.length - 1;
+        const lineWidth = pdf.getTextWidth(line);
+        
+        if (isLastLine || lineWidth < descMaxWidth * 0.7) {
+          // Left align for last line or short lines
+          pdf.text(line, descStartX, currentY);
+        } else {
+          // Justify text by distributing extra space between words
+          const words = line.split(' ');
+          if (words.length > 1) {
+            const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+            const extraSpace = (descMaxWidth - totalWordsWidth) / (words.length - 1);
+            let xPos = descStartX;
+            words.forEach((word, wordIndex) => {
+              pdf.text(word, xPos, currentY);
+              xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
+            });
+          } else {
+            pdf.text(line, descStartX, currentY);
+          }
+        }
         currentY += lineHeight;
       });
     }
