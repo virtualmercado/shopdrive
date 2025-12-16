@@ -56,6 +56,7 @@ const CatalogPDF = () => {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isCopyingLink, setIsCopyingLink] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -398,22 +399,25 @@ const CatalogPDF = () => {
       
       // Upload PDF to storage and get public URL
       try {
-        const fileName = `catalogs/${user?.id}/${Date.now()}-catalogo.pdf`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, blob, { contentType: "application/pdf", upsert: true });
-        
-        if (!uploadError && uploadData) {
-          const { data: urlData } = supabase.storage
+        if (user?.id) {
+          // Storage policies expect the first folder segment to be the user id
+          const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
             .from("product-images")
-            .getPublicUrl(fileName);
-          
-          if (urlData?.publicUrl) {
-            setCatalogUrl(urlData.publicUrl);
+            .upload(fileName, blob, { contentType: "application/pdf", upsert: true });
+
+          if (uploadError) throw uploadError;
+
+          const publicUrl = supabase.storage
+            .from("product-images")
+            .getPublicUrl(uploadData.path).data.publicUrl;
+
+          if (publicUrl) {
+            setCatalogUrl(publicUrl);
           }
         }
       } catch (e) {
-        console.error("Error uploading PDF:", e);
+        if (import.meta.env.DEV) console.error("Error uploading PDF:", e);
       }
       
       setPdfGenerated(true);
@@ -440,18 +444,56 @@ const CatalogPDF = () => {
   };
 
   const handleCopyUrl = async () => {
-    if (!catalogUrl) {
-      toast.error("URL do catálogo não disponível");
-      return;
-    }
-    
     try {
-      await navigator.clipboard.writeText(catalogUrl);
+      setIsCopyingLink(true);
+
+      let url = catalogUrl;
+
+      // If the URL wasn't generated (e.g. upload policy), upload on-demand and then copy
+      if (!url && pdfBlob && user?.id) {
+        const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(fileName, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        url =
+          supabase.storage.from("product-images").getPublicUrl(uploadData.path).data
+            .publicUrl ?? null;
+
+        if (url) setCatalogUrl(url);
+      }
+
+      if (!url) {
+        toast.error("URL do catálogo não disponível");
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-1000px";
+        textarea.style.left = "-1000px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+
       setCopied(true);
       toast.success("Link do catálogo copiado!");
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       toast.error("Erro ao copiar link");
+      if (import.meta.env.DEV) console.error("Copy catalog link error:", e);
+    } finally {
+      setIsCopyingLink(false);
     }
   };
 
@@ -504,11 +546,17 @@ const CatalogPDF = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleCopyUrl}
-                  disabled={!catalogUrl}
+                  disabled={isCopyingLink}
                   className="gap-2"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {isCopyingLink ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                   Copiar Link
                 </Button>
                 <Button 
