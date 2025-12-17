@@ -339,7 +339,7 @@ const ProductDetailContent = () => {
         {/* Back Button */}
         <Link 
           to={`/loja/${storeSlug}`}
-          className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-foreground/70 hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar para a loja
@@ -385,32 +385,32 @@ const ProductDetailContent = () => {
             {/* Technical Info - Moved below thumbnails */}
             {(product.weight || product.length || product.height || product.width) && (
               <div className="pt-4 border-t">
-                <h2 className="text-sm font-semibold text-foreground/60 mb-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-foreground/70 mb-3 flex items-center gap-2">
                   <Ruler className="h-4 w-4" />
                   Informações Técnicas
                 </h2>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {product.weight && (
                     <div className="flex justify-between">
-                      <span className="text-foreground/60">Peso:</span>
+                      <span className="text-foreground/70">Peso:</span>
                       <span className="text-foreground">{product.weight} kg</span>
                     </div>
                   )}
                   {product.length && (
                     <div className="flex justify-between">
-                      <span className="text-foreground/60">Comprimento:</span>
+                      <span className="text-foreground/70">Comprimento:</span>
                       <span className="text-foreground">{product.length} cm</span>
                     </div>
                   )}
                   {product.width && (
                     <div className="flex justify-between">
-                      <span className="text-foreground/60">Largura:</span>
+                      <span className="text-foreground/70">Largura:</span>
                       <span className="text-foreground">{product.width} cm</span>
                     </div>
                   )}
                   {product.height && (
                     <div className="flex justify-between">
-                      <span className="text-foreground/60">Altura:</span>
+                      <span className="text-foreground/70">Altura:</span>
                       <span className="text-foreground">{product.height} cm</span>
                     </div>
                   )}
@@ -423,7 +423,7 @@ const ProductDetailContent = () => {
               <button
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
-                className="flex items-center gap-2 text-sm text-foreground/60 hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm text-foreground/70 hover:text-foreground transition-colors"
               >
                 <Heart 
                   className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
@@ -433,7 +433,7 @@ const ProductDetailContent = () => {
               
               <button
                 onClick={handleShareProduct}
-                className="flex items-center gap-2 text-sm text-foreground/60 hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm text-foreground/70 hover:text-foreground transition-colors"
               >
                 <Share2 className="h-5 w-5" />
                 <span>Compartilhar produto</span>
@@ -449,11 +449,11 @@ const ProductDetailContent = () => {
                 {product.name}
               </h1>
               {category && (
-                <p className="text-sm text-foreground/60">
+                <p className="text-sm text-foreground/70">
                   {category.name}
                 </p>
               )}
-              <p className="text-xs text-foreground/60 mt-1">
+              <p className="text-xs text-foreground/70 mt-1">
                 Ref: {product.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
@@ -533,7 +533,7 @@ const ProductDetailContent = () => {
                 >
                   +
                 </button>
-                <span className="text-sm text-foreground/60">
+                <span className="text-sm text-foreground/70">
                   {product.stock} disponíveis
                 </span>
               </div>
@@ -560,7 +560,7 @@ const ProductDetailContent = () => {
               <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
                 Descrição do Produto
               </h2>
-              <p className="text-foreground/60 leading-7 whitespace-pre-line text-justify">
+              <p className="text-foreground/70 leading-7 whitespace-pre-line text-justify">
                 {product.description}
               </p>
             </div>
