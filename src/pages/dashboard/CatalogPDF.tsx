@@ -654,14 +654,14 @@ const CatalogPDF = () => {
     const contentStartY = headerHeight + 8;
     const contentEndY = pageHeight - footerHeight - 5;
     
-    // List layout settings - maximize products per page
+    // List layout settings - maximize products per page with expanded title area
     const rowHeight = 8; // Compact row height
-    const thumbnailSize = 6; // Small thumbnail
+    const thumbnailSize = 5; // Smaller thumbnail for more space
     const thumbnailX = margin;
-    const titleX = margin + thumbnailSize + 4;
-    const priceWidth = 28;
+    const titleX = margin + thumbnailSize + 3;
+    const priceWidth = 22; // Reduced price width
     const priceX = pageWidth - margin - priceWidth;
-    const titleMaxWidth = priceX - titleX - 8;
+    const titleMaxWidth = priceX - titleX - 3; // Expanded title area
     
     const currentDate = new Date().toLocaleDateString("pt-BR");
 
@@ -1272,6 +1272,80 @@ const CatalogPDF = () => {
                           </p>
                         )}
                       </div>
+                    ) : filterType === "list" ? (
+                      <>
+                        {/* List Format Preview */}
+                        <div 
+                          className="rounded-lg p-2 mb-2 flex items-center justify-between text-white text-[10px]"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          <span className="font-semibold pl-8">Produto</span>
+                          <span className="font-semibold pr-2">Valor</span>
+                        </div>
+                        <div className="space-y-0">
+                          {filteredProducts.slice(0, 12).map((product, index) => {
+                            const formatVariationsPreview = (variations: unknown): string => {
+                              if (!variations) return "";
+                              try {
+                                const varArray = Array.isArray(variations) ? variations : [];
+                                if (varArray.length === 0) return "";
+                                const parts: string[] = [];
+                                varArray.forEach((v: any) => {
+                                  if (v && typeof v === 'object') {
+                                    if (v.name && v.options && Array.isArray(v.options)) {
+                                      const optionValues = v.options.map((opt: any) => 
+                                        typeof opt === 'string' ? opt : opt?.value || ''
+                                      ).filter(Boolean).join('/');
+                                      if (optionValues) parts.push(`${v.name}: ${optionValues}`);
+                                    } else if (v.tipo || v.type) {
+                                      parts.push(v.tipo || v.type);
+                                    }
+                                  }
+                                });
+                                return parts.length > 0 ? ` (${parts.slice(0, 1).join('')})` : "";
+                              } catch {
+                                return "";
+                              }
+                            };
+                            const variations = formatVariationsPreview(product.variations);
+                            return (
+                              <div 
+                                key={product.id} 
+                                className={`flex items-center py-1.5 px-2 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
+                              >
+                                {/* Thumbnail */}
+                                <div className="w-5 h-5 flex-shrink-0 bg-gray-200 rounded overflow-hidden mr-2">
+                                  {product.image_url ? (
+                                    <img 
+                                      src={product.image_url} 
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gray-300" />
+                                  )}
+                                </div>
+                                {/* Title + Variations */}
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <p className="text-[10px] text-foreground truncate">
+                                    {product.name}{variations}
+                                  </p>
+                                </div>
+                                {/* Price */}
+                                <span className="text-[10px] font-semibold text-foreground flex-shrink-0">
+                                  {formatPrice(product.promotional_price || product.price)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {filteredProducts.length > 12 && (
+                          <p className="text-sm text-muted-foreground text-center mt-2">
+                            +{filteredProducts.length - 12} produtos adicionais
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <>
                         {/* Products Grid Preview */}
