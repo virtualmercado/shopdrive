@@ -1067,14 +1067,50 @@ const CatalogPDF = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* CSS custom properties for radio buttons - merchant color binding */}
+                <style>{`
+                  /* Radio buttons - white background with primary border */
+                  .catalog-merchant-radio {
+                    border-color: ${buttonBgColor} !important;
+                    background-color: #FFFFFF !important;
+                    transition: all 0.2s ease !important;
+                  }
+                  .catalog-merchant-radio[data-state="unchecked"] {
+                    border-color: ${buttonBgColor} !important;
+                    background-color: #FFFFFF !important;
+                  }
+                  .catalog-merchant-radio[data-state="unchecked"]:hover {
+                    border-color: ${buttonBgColor} !important;
+                    background-color: #FFFFFF !important;
+                  }
+                  .catalog-merchant-radio[data-state="checked"] {
+                    border-color: ${buttonBgColor} !important;
+                    background-color: #FFFFFF !important;
+                  }
+                  .catalog-merchant-radio[data-state="checked"] span svg {
+                    fill: ${buttonBgColor} !important;
+                    color: ${buttonBgColor} !important;
+                  }
+                  .catalog-merchant-radio:focus {
+                    box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+                    outline: none !important;
+                  }
+                  .catalog-merchant-radio:focus-visible {
+                    box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
+                    outline: none !important;
+                  }
+                `}</style>
+
                 <RadioGroup value={filterType} onValueChange={setFilterType}>
                   <div className="flex items-center space-x-3">
                     <RadioGroupItem 
                       value="all" 
                       id="all"
-                      style={{ 
-                        borderColor: filterType === "all" ? primaryColor : undefined,
-                        backgroundColor: filterType === "all" ? primaryColor : "white"
+                      className="catalog-merchant-radio border-2"
+                      style={{
+                        borderColor: buttonBgColor,
+                        backgroundColor: '#FFFFFF',
+                        color: buttonBgColor,
                       }}
                     />
                     <Label htmlFor="all" className="cursor-pointer">
@@ -1085,9 +1121,11 @@ const CatalogPDF = () => {
                     <RadioGroupItem 
                       value="list" 
                       id="list"
-                      style={{ 
-                        borderColor: filterType === "list" ? primaryColor : undefined,
-                        backgroundColor: filterType === "list" ? primaryColor : "white"
+                      className="catalog-merchant-radio border-2"
+                      style={{
+                        borderColor: buttonBgColor,
+                        backgroundColor: '#FFFFFF',
+                        color: buttonBgColor,
                       }}
                     />
                     <Label htmlFor="list" className="cursor-pointer">
@@ -1098,9 +1136,11 @@ const CatalogPDF = () => {
                     <RadioGroupItem 
                       value="category" 
                       id="category"
-                      style={{ 
-                        borderColor: filterType === "category" ? primaryColor : undefined,
-                        backgroundColor: filterType === "category" ? primaryColor : "white"
+                      className="catalog-merchant-radio border-2"
+                      style={{
+                        borderColor: buttonBgColor,
+                        backgroundColor: '#FFFFFF',
+                        color: buttonBgColor,
                       }}
                     />
                     <Label htmlFor="category" className="cursor-pointer">
@@ -1111,9 +1151,11 @@ const CatalogPDF = () => {
                     <RadioGroupItem 
                       value="single" 
                       id="single"
-                      style={{ 
-                        borderColor: filterType === "single" ? primaryColor : undefined,
-                        backgroundColor: filterType === "single" ? primaryColor : "white"
+                      className="catalog-merchant-radio border-2"
+                      style={{
+                        borderColor: buttonBgColor,
+                        backgroundColor: '#FFFFFF',
+                        color: buttonBgColor,
                       }}
                     />
                     <Label htmlFor="single" className="cursor-pointer">
