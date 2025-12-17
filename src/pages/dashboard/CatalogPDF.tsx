@@ -20,6 +20,7 @@ interface Product {
   promotional_price: number | null;
   image_url: string | null;
   category_id: string | null;
+  variations: unknown;
 }
 
 interface Category {
@@ -75,7 +76,7 @@ const CatalogPDF = () => {
     // Fetch products
     const { data: productsData } = await supabase
       .from("products")
-      .select("id, name, description, price, promotional_price, image_url, category_id")
+      .select("id, name, description, price, promotional_price, image_url, category_id, variations")
       .eq("user_id", user.id)
       .order("name");
 
@@ -114,6 +115,12 @@ const CatalogPDF = () => {
 
     if (filterType === "all") {
       setFilteredProducts(products);
+    } else if (filterType === "list") {
+      // For list catalog, sort alphabetically by name
+      const sortedProducts = [...products].sort((a, b) => 
+        a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+      );
+      setFilteredProducts(sortedProducts);
     } else if (filterType === "category" && selectedCategory) {
       setFilteredProducts(products.filter(p => p.category_id === selectedCategory));
     } else if (filterType === "single" && selectedProduct) {
@@ -631,6 +638,224 @@ const CatalogPDF = () => {
     return pdf;
   };
 
+  // Generate PDF in list format (compact, high density)
+  const generateListPDF = async () => {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 12;
+    const headerHeight = 28;
+    const footerHeight = 18;
+    const contentStartY = headerHeight + 8;
+    const contentEndY = pageHeight - footerHeight - 5;
+    
+    // List layout settings - maximize products per page
+    const rowHeight = 8; // Compact row height
+    const thumbnailSize = 6; // Small thumbnail
+    const thumbnailX = margin;
+    const titleX = margin + thumbnailSize + 4;
+    const priceWidth = 28;
+    const priceX = pageWidth - margin - priceWidth;
+    const titleMaxWidth = priceX - titleX - 8;
+    
+    const currentDate = new Date().toLocaleDateString("pt-BR");
+
+    // Parse primary color
+    const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
+    const r = parseInt(hexColor.slice(1, 3), 16) || 106;
+    const g = parseInt(hexColor.slice(3, 5), 16) || 27;
+    const b = parseInt(hexColor.slice(5, 7), 16) || 154;
+
+    // Load logo if available
+    let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
+    if (storeProfile?.store_logo_url) {
+      logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+    }
+
+    // Helper to abbreviate product name
+    const abbreviateName = (name: string, maxChars: number): string => {
+      if (name.length <= maxChars) return name;
+      return name.substring(0, maxChars - 3) + "...";
+    };
+
+    // Helper to format variations compactly
+    const formatVariations = (variations: unknown): string => {
+      if (!variations) return "";
+      
+      try {
+        const varArray = Array.isArray(variations) ? variations : [];
+        if (varArray.length === 0) return "";
+        
+        const parts: string[] = [];
+        varArray.forEach((v: any) => {
+          if (v && typeof v === 'object') {
+            if (v.name && v.options && Array.isArray(v.options)) {
+              const optionValues = v.options.map((opt: any) => 
+                typeof opt === 'string' ? opt : opt?.value || ''
+              ).filter(Boolean).join('/');
+              if (optionValues) parts.push(`${v.name}: ${optionValues}`);
+            } else if (v.tipo || v.type) {
+              parts.push(v.tipo || v.type);
+            } else if (v.peso || v.weight) {
+              parts.push(v.peso || v.weight);
+            } else if (v.tamanho || v.size) {
+              parts.push(v.tamanho || v.size);
+            }
+          }
+        });
+        return parts.length > 0 ? ` (${parts.slice(0, 2).join(', ')})` : "";
+      } catch {
+        return "";
+      }
+    };
+
+    // Calculate products per page
+    const availableHeight = contentEndY - contentStartY;
+    const productsPerPage = Math.floor(availableHeight / rowHeight);
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) {
+        pdf.addPage();
+      }
+
+      // Header background
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(0, 0, pageWidth, headerHeight, "F");
+
+      // Logo
+      if (logoImageData) {
+        try {
+          const logoMaxWidth = 40;
+          const logoMaxHeight = 20;
+          const logoDimensions = calculateImageDimensions(
+            logoImageData.width,
+            logoImageData.height,
+            logoMaxWidth,
+            logoMaxHeight
+          );
+          const logoX = margin;
+          const logoY = (headerHeight - logoDimensions.height) / 2;
+          pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+        } catch (e) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(80, 80, 80);
+          pdf.text("Logo", margin, 16);
+        }
+      }
+
+      // Header title
+      pdf.setFontSize(16);
+      pdf.setTextColor(50, 50, 50);
+      pdf.text("Catálogo de Produtos", pageWidth - margin, 12, { align: "right" });
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 22, { align: "right" });
+
+      // Column headers with primary color
+      const headerY = contentStartY;
+      pdf.setFillColor(r, g, b);
+      pdf.setDrawColor(r, g, b);
+      pdf.rect(margin, headerY - 4, pageWidth - margin * 2, 6, "F");
+      
+      pdf.setFontSize(7);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Produto", titleX, headerY - 0.5);
+      pdf.text("Valor", priceX + priceWidth / 2, headerY - 0.5, { align: "center" });
+      pdf.setFont("helvetica", "normal");
+
+      // Products for this page
+      const startIndex = page * productsPerPage;
+      const endIndex = Math.min(startIndex + productsPerPage, filteredProducts.length);
+      const pageProducts = filteredProducts.slice(startIndex, endIndex);
+
+      let currentY = contentStartY + 6;
+
+      for (let i = 0; i < pageProducts.length; i++) {
+        const product = pageProducts[i];
+        
+        // Alternating row background for readability
+        if (i % 2 === 0) {
+          pdf.setFillColor(248, 248, 248);
+          pdf.rect(margin, currentY - 5, pageWidth - margin * 2, rowHeight, "F");
+        }
+
+        // Thumbnail placeholder (small square)
+        pdf.setFillColor(230, 230, 230);
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.2);
+        pdf.rect(thumbnailX, currentY - 4.5, thumbnailSize, thumbnailSize, "FD");
+        
+        // Load thumbnail image (small size for efficiency)
+        if (product.image_url) {
+          try {
+            const thumbData = await loadImageWithDimensions(product.image_url, false);
+            if (thumbData) {
+              pdf.addImage(thumbData.data, thumbData.format, thumbnailX, currentY - 4.5, thumbnailSize, thumbnailSize);
+            }
+          } catch {
+            // Keep placeholder
+          }
+        }
+
+        // Product title (abbreviated) + variations
+        pdf.setFontSize(7);
+        pdf.setTextColor(30, 30, 30);
+        const variations = formatVariations(product.variations);
+        const maxTitleLength = variations ? 45 : 55;
+        const abbreviatedTitle = abbreviateName(product.name, maxTitleLength);
+        const displayText = abbreviatedTitle + variations;
+        
+        // Calculate max width and truncate if needed
+        pdf.setFont("helvetica", "normal");
+        let finalText = displayText;
+        while (pdf.getTextWidth(finalText) > titleMaxWidth && finalText.length > 10) {
+          finalText = finalText.substring(0, finalText.length - 4) + "...";
+        }
+        pdf.text(finalText, titleX, currentY);
+
+        // Price (aligned right)
+        const price = product.promotional_price || product.price;
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(20, 20, 20);
+        pdf.text(formatPrice(price), priceX + priceWidth, currentY, { align: "right" });
+        pdf.setFont("helvetica", "normal");
+
+        currentY += rowHeight;
+      }
+
+      // Page number
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Página ${page + 1} de ${totalPages}`, pageWidth / 2, contentEndY + 2, { align: "center" });
+
+      // Footer
+      const footerY = pageHeight - footerHeight;
+      pdf.setFillColor(r, g, b);
+      pdf.rect(0, footerY, pageWidth, footerHeight, "F");
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(255, 255, 255);
+      
+      const footerInfo = [
+        getFullAddress(),
+        storeProfile?.email,
+        storeProfile?.whatsapp_number ? `WhatsApp: ${storeProfile.whatsapp_number}` : ""
+      ].filter(Boolean).join(" | ");
+      
+      pdf.text(footerInfo, pageWidth / 2, footerY + 12, { align: "center" });
+    }
+
+    return pdf;
+  };
+
   const generatePDF = async () => {
     if (filteredProducts.length === 0) {
       toast.error("Selecione pelo menos um produto para gerar o catálogo");
@@ -645,6 +870,8 @@ const CatalogPDF = () => {
       // Use exclusive layout for single product
       if (filterType === "single" && filteredProducts.length === 1) {
         pdf = await generateSingleProductPDF(filteredProducts[0]);
+      } else if (filterType === "list") {
+        pdf = await generateListPDF();
       } else {
         pdf = await generateMultipleProductsPDF();
       }
@@ -768,6 +995,7 @@ const CatalogPDF = () => {
   };
 
   const canGenerate = filterType === "all" || 
+    filterType === "list" ||
     (filterType === "category" && selectedCategory) || 
     (filterType === "single" && selectedProduct);
 
@@ -851,6 +1079,19 @@ const CatalogPDF = () => {
                     />
                     <Label htmlFor="all" className="cursor-pointer">
                       Gerar catálogo de todos os produtos
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem 
+                      value="list" 
+                      id="list"
+                      style={{ 
+                        borderColor: filterType === "list" ? primaryColor : undefined,
+                        backgroundColor: filterType === "list" ? primaryColor : "white"
+                      }}
+                    />
+                    <Label htmlFor="list" className="cursor-pointer">
+                      Gerar catálogo em lista
                     </Label>
                   </div>
                   <div className="flex items-center space-x-3">
