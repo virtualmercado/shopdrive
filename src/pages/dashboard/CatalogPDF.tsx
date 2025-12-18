@@ -774,7 +774,7 @@ const CatalogPDF = () => {
       pdf.setFontSize(7);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Nº", numberX + numberWidth / 2, headerY - 0.5, { align: "center" });
+      pdf.text("Iten", numberX + numberWidth / 2, headerY - 0.5, { align: "center" });
       pdf.text("Produto", titleX, headerY - 0.5);
       pdf.text("Valor", priceX + priceWidth / 2, headerY - 0.5, { align: "center" });
       pdf.setFont("helvetica", "normal");
@@ -1282,6 +1282,11 @@ const CatalogPDF = () => {
                         <p className="text-xs text-muted-foreground">
                           Gerado em: {new Date().toLocaleDateString("pt-BR")}
                         </p>
+                        {filterType === "list" && (
+                          <p className="text-[10px] text-gray-500">
+                            Página 01
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1330,12 +1335,13 @@ const CatalogPDF = () => {
                       </div>
                     ) : filterType === "list" ? (
                       <>
-                        {/* List Format Preview */}
+                        {/* List Format Preview - matching PDF layout */}
                         <div 
-                          className="rounded-lg p-2 mb-2 flex items-center justify-between text-white text-[10px]"
+                          className="rounded-lg p-2 mb-2 flex items-center text-white text-[10px]"
                           style={{ backgroundColor: primaryColor }}
                         >
-                          <span className="font-semibold pl-8">Produto</span>
+                          <span className="font-semibold w-8 text-center">Iten</span>
+                          <span className="font-semibold flex-1 pl-7">Produto</span>
                           <span className="font-semibold pr-2">Valor</span>
                         </div>
                         <div className="space-y-0">
@@ -1364,11 +1370,19 @@ const CatalogPDF = () => {
                               }
                             };
                             const variations = formatVariationsPreview(product.variations);
+                            const itemNumber = index + 1;
                             return (
                               <div 
                                 key={product.id} 
-                                className={`flex items-center py-1.5 px-2 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
+                                className="flex items-center py-1.5 px-2"
+                                style={{ 
+                                  backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(252, 252, 252)' 
+                                }}
                               >
+                                {/* Item Number */}
+                                <span className="w-8 text-center text-[10px] flex-shrink-0" style={{ color: '#666060' }}>
+                                  {itemNumber}
+                                </span>
                                 {/* Thumbnail */}
                                 <div className="w-5 h-5 flex-shrink-0 bg-gray-200 rounded overflow-hidden mr-2">
                                   {product.image_url ? (
