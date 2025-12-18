@@ -15,6 +15,10 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Merchant styled variants
+        merchantPrimary: "merchant-btn-primary bg-[var(--merchant-button-bg)] text-[var(--merchant-button-text)] hover:bg-[var(--merchant-button-hover)]",
+        merchantSecondary: "merchant-btn-secondary border border-[var(--merchant-primary)] text-[var(--merchant-primary)] bg-transparent hover:bg-[var(--merchant-primary-light)]",
+        merchantOutline: "border border-[var(--merchant-primary)] bg-background text-[var(--merchant-primary)] hover:bg-[var(--merchant-primary-light)]",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -34,12 +38,22 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  merchantStyled?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, merchantStyled = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    // If merchantStyled is true and variant is default, switch to merchantPrimary
+    const effectiveVariant = merchantStyled && variant === "default" ? "merchantPrimary" : variant;
+    return (
+      <Comp 
+        className={cn(buttonVariants({ variant: effectiveVariant, size, className }))} 
+        ref={ref} 
+        data-merchant-styled={merchantStyled ? "btn-primary" : undefined}
+        {...props} 
+      />
+    );
   },
 );
 Button.displayName = "Button";
