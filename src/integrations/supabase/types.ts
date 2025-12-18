@@ -1334,6 +1334,7 @@ export type Database = {
       store_customers: {
         Row: {
           created_at: string
+          customer_code: string | null
           customer_id: string
           id: string
           is_active: boolean
@@ -1342,6 +1343,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_code?: string | null
           customer_id: string
           id?: string
           is_active?: boolean
@@ -1350,6 +1352,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_code?: string | null
           customer_id?: string
           id?: string
           is_active?: boolean
@@ -1707,6 +1710,7 @@ export type Database = {
     }
     Functions: {
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
+      generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
       has_role: {

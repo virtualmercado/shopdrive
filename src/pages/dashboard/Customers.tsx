@@ -24,6 +24,7 @@ interface Customer {
   is_active: boolean;
   birth_date?: string | null;
   gender?: string | null;
+  customer_code?: string | null;
 }
 
 interface CustomerGroup {
@@ -44,6 +45,7 @@ interface NewCustomerData {
   email: string;
   phone: string;
   cpf: string;
+  group_id: string;
   // Address fields
   recipient_name: string;
   cep: string;
@@ -80,6 +82,7 @@ const Customers = () => {
     email: '',
     phone: '',
     cpf: '',
+    group_id: '',
     recipient_name: '',
     cep: '',
     street: '',
@@ -90,6 +93,9 @@ const Customers = () => {
     state: ''
   });
   const [addingCustomer, setAddingCustomer] = useState(false);
+  
+  // Customer codes map
+  const [customerCodes, setCustomerCodes] = useState<Map<string, string>>(new Map());
 
   // Customer deletion states
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
@@ -172,7 +178,7 @@ const Customers = () => {
     try {
       const { data: storeCustomers, error: storeError } = await supabase
         .from('store_customers')
-        .select('customer_id, is_active')
+        .select('customer_id, is_active, customer_code')
         .eq('store_owner_id', user.id);
 
       if (storeError) throw storeError;
@@ -181,12 +187,15 @@ const Customers = () => {
         setCustomers([]);
         setAllCustomers([]);
         setTotalCustomers(0);
+        setCustomerCodes(new Map());
         setLoading(false);
         return;
       }
 
       const customerIds = storeCustomers.map(sc => sc.customer_id);
       const activeMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.is_active]));
+      const codesMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.customer_code || '']));
+      setCustomerCodes(codesMap);
 
       // Fetch all customer profiles for filtering purposes
       const { data: allCustomerProfiles, error: allError } = await supabase
@@ -484,6 +493,21 @@ const Customers = () => {
 
       if (addressError) throw addressError;
 
+      // Assign to group if selected
+      if (newCustomerData.group_id) {
+        const { error: groupError } = await supabase
+          .from('customer_group_assignments')
+          .insert({
+            customer_id: customerId,
+            group_id: newCustomerData.group_id
+          });
+
+        if (groupError) {
+          if (import.meta.env.DEV) console.error('Error assigning group:', groupError);
+          // Don't throw - customer was created successfully
+        }
+      }
+
       toast({
         title: 'Sucesso',
         description: 'Cliente cadastrado com sucesso!'
@@ -495,6 +519,7 @@ const Customers = () => {
         email: '',
         phone: '',
         cpf: '',
+        group_id: '',
         recipient_name: '',
         cep: '',
         street: '',
@@ -509,6 +534,7 @@ const Customers = () => {
       // Refresh customer list
       fetchCustomers();
       fetchCustomerAddresses();
+      fetchCustomerGroupAssignments();
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error adding customer:', error);
       toast({
@@ -686,6 +712,7 @@ const Customers = () => {
           <table>
             <thead>
               <tr>
+                <th>Código</th>
                 <th>Nome</th>
                 <th>E-mail</th>
                 <th>Telefone</th>
@@ -706,8 +733,10 @@ const Customers = () => {
                   ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
                   : '-';
                 const addr = getCustomerAddress(c.id);
+                const code = customerCodes.get(c.id) || '-';
                 return `
                   <tr>
+                    <td>${code}</td>
                     <td>${c.full_name}</td>
                     <td>${c.email}</td>
                     <td>${c.phone || '-'}</td>
@@ -738,7 +767,7 @@ const Customers = () => {
       ? months.find(m => m.value === selectedBirthdayMonth)?.label 
       : null;
     
-    const headers = ['Nome', 'E-mail', 'Telefone', 'Data de Nascimento', 'Estado', 'Cidade', 'Grupo'];
+    const headers = ['Código', 'Nome', 'E-mail', 'Telefone', 'Data de Nascimento', 'Estado', 'Cidade', 'Grupo'];
     const rows = listToExport.map(c => {
       const groupIds = customerGroupAssignments.get(c.id) || [];
       const groupNames = groupIds.map(gId => {
@@ -749,7 +778,9 @@ const Customers = () => {
         ? new Date(c.birth_date).toLocaleDateString('pt-BR') 
         : '';
       const addr = getCustomerAddress(c.id);
+      const code = customerCodes.get(c.id) || '';
       return [
+        code,
         c.full_name,
         c.email,
         c.phone || '',
@@ -925,7 +956,10 @@ const Customers = () => {
                   ) : (
                     displayedCustomers.map((customer) => (
                       <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.full_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <span className="text-muted-foreground mr-2">{customerCodes.get(customer.id) || '-'}</span>
+                          {customer.full_name}
+                        </TableCell>
                         <TableCell>{customer.email}</TableCell>
                         <TableCell>
                           {formatDistanceToNow(new Date(customer.created_at), {
@@ -1286,6 +1320,7 @@ const Customers = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="text-xs">Código</TableHead>
                         <TableHead className="text-xs">Nome</TableHead>
                         <TableHead className="text-xs">E-mail</TableHead>
                         <TableHead className="text-xs">Telefone</TableHead>
@@ -1300,6 +1335,7 @@ const Customers = () => {
                         const addr = getCustomerAddress(customer.id);
                         return (
                           <TableRow key={customer.id}>
+                            <TableCell className="text-xs py-2 text-muted-foreground">{customerCodes.get(customer.id) || '-'}</TableCell>
                             <TableCell className="text-xs py-2">{customer.full_name}</TableCell>
                             <TableCell className="text-xs py-2">{customer.email}</TableCell>
                             <TableCell className="text-xs py-2">{customer.phone || '-'}</TableCell>
@@ -1485,6 +1521,27 @@ const Customers = () => {
                     }}
                   />
                 </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground">Grupo do cliente</label>
+                  <Select 
+                    value={newCustomerData.group_id} 
+                    onValueChange={(value) => setNewCustomerData(prev => ({ ...prev, group_id: value === 'none' ? '' : value }))}
+                  >
+                    <SelectTrigger 
+                      className="w-full"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      <SelectValue placeholder="Selecione um grupo (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum grupo</SelectItem>
+                      {groups.map(group => (
+                        <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Vincule o cliente a um grupo previamente cadastrado.</p>
+                </div>
               </div>
             </div>
 
@@ -1650,6 +1707,7 @@ const Customers = () => {
                   email: '',
                   phone: '',
                   cpf: '',
+                  group_id: '',
                   recipient_name: '',
                   cep: '',
                   street: '',
