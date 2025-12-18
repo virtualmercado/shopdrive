@@ -925,7 +925,7 @@ const Customers = () => {
             )}
 
             {/* Total Count */}
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-text-subtle">
               Total de clientes: <span className="font-medium">{isFilterActive ? filteredCustomersList.length : totalCustomers}</span>
             </p>
 
@@ -957,7 +957,7 @@ const Customers = () => {
                     displayedCustomers.map((customer) => (
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">
-                          <span className="text-muted-foreground mr-2">{customerCodes.get(customer.id) || '-'}</span>
+                          <span className="text-text-subtle mr-2">{customerCodes.get(customer.id) || '-'}</span>
                           {customer.full_name}
                         </TableCell>
                         <TableCell>{customer.email}</TableCell>

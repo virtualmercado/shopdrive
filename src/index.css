@@ -45,6 +45,9 @@ All colors MUST be HSL.
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 62%;
     
+    /* Texto secundário padrão - #666060 */
+    --text-subtle: 0 3% 39%;
+    
     --accent: 32 100% 49%;
     --accent-foreground: 0 0% 100%;
     
