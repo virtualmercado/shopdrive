@@ -11,6 +11,8 @@ const toggleVariants = cva(
       variant: {
         default: "bg-transparent",
         outline: "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground",
+        merchant: "bg-transparent data-[state=on]:bg-[var(--merchant-primary)] data-[state=on]:text-[var(--merchant-button-text)]",
+        merchantOutline: "border border-[var(--merchant-primary)] bg-transparent hover:bg-[var(--merchant-primary-light)] data-[state=on]:bg-[var(--merchant-primary)] data-[state=on]:text-[var(--merchant-button-text)]",
       },
       size: {
         default: "h-10 px-3",
@@ -25,12 +27,27 @@ const toggleVariants = cva(
   },
 );
 
+export interface ToggleProps 
+  extends React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root>,
+    VariantProps<typeof toggleVariants> {
+  merchantStyled?: boolean;
+}
+
 const Toggle = React.forwardRef<
   React.ElementRef<typeof TogglePrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> & VariantProps<typeof toggleVariants>
->(({ className, variant, size, ...props }, ref) => (
-  <TogglePrimitive.Root ref={ref} className={cn(toggleVariants({ variant, size, className }))} {...props} />
-));
+  ToggleProps
+>(({ className, variant, size, merchantStyled = false, ...props }, ref) => {
+  // If merchantStyled is true and variant is default, switch to merchant variant
+  const effectiveVariant = merchantStyled && variant === "default" ? "merchant" : variant;
+  return (
+    <TogglePrimitive.Root 
+      ref={ref} 
+      className={cn(toggleVariants({ variant: effectiveVariant, size, className }))} 
+      data-merchant-styled={merchantStyled ? "toggle" : undefined}
+      {...props} 
+    />
+  );
+});
 
 Toggle.displayName = TogglePrimitive.Root.displayName;
 

@@ -5,6 +5,17 @@
 :root {
   --user-font-family: 'Inter';
   --user-font-weight: 400;
+  
+  /* Merchant Theme Variables - Default to VirtualMercado purple */
+  --merchant-primary: #6a1b9a;
+  --merchant-secondary: #FB8C00;
+  --merchant-button-bg: #6a1b9a;
+  --merchant-button-text: #FFFFFF;
+  --merchant-footer-text: #FFFFFF;
+  --merchant-primary-hover: #6a1b9add;
+  --merchant-primary-light: #6a1b9a15;
+  --merchant-primary-ring: #6a1b9a33;
+  --merchant-button-hover: #6a1b9add;
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
@@ -131,5 +142,250 @@ All colors MUST be HSL.
   p, span, div {
     font-family: var(--user-font-family), ui-sans-serif, system-ui, sans-serif;
     font-weight: var(--user-font-weight);
+  }
+}
+
+/* ============================================
+   VIRTUALMERCADO GLOBAL MERCHANT THEME SYSTEM
+   ============================================
+   This section defines the global styling for all interactive elements
+   that should inherit the merchant's primary color.
+   
+   The merchant colors are injected via CSS custom properties from ThemeContext:
+   --merchant-primary, --merchant-button-bg, --merchant-button-text, etc.
+   ============================================ */
+
+@layer components {
+  /* ==========================================
+     RADIO BUTTONS - Global Merchant Styling
+     Pattern: White background, merchant color border/indicator
+     ========================================== */
+  .merchant-radio,
+  [data-merchant-styled="radio"] {
+    border-color: var(--merchant-primary) !important;
+    background-color: #FFFFFF !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .merchant-radio[data-state="checked"],
+  [data-merchant-styled="radio"][data-state="checked"] {
+    border-color: var(--merchant-primary) !important;
+    background-color: #FFFFFF !important;
+  }
+  
+  .merchant-radio[data-state="checked"] span svg,
+  [data-merchant-styled="radio"][data-state="checked"] span svg {
+    fill: var(--merchant-primary) !important;
+    color: var(--merchant-primary) !important;
+  }
+  
+  .merchant-radio:focus,
+  .merchant-radio:focus-visible,
+  [data-merchant-styled="radio"]:focus,
+  [data-merchant-styled="radio"]:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  /* ==========================================
+     CHECKBOXES - Global Merchant Styling
+     Pattern: Merchant color when checked
+     ========================================== */
+  .merchant-checkbox[data-state="checked"],
+  [data-merchant-styled="checkbox"][data-state="checked"] {
+    background-color: var(--merchant-primary) !important;
+    border-color: var(--merchant-primary) !important;
+    color: #FFFFFF !important;
+  }
+  
+  .merchant-checkbox:focus,
+  .merchant-checkbox:focus-visible,
+  [data-merchant-styled="checkbox"]:focus,
+  [data-merchant-styled="checkbox"]:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  /* ==========================================
+     SWITCHES / TOGGLES - Global Merchant Styling
+     Pattern: Merchant color when active/checked
+     ========================================== */
+  .merchant-switch[data-state="checked"],
+  [data-merchant-styled="switch"][data-state="checked"] {
+    background-color: var(--merchant-primary) !important;
+    border-color: var(--merchant-primary) !important;
+  }
+  
+  .merchant-switch:focus,
+  .merchant-switch:focus-visible,
+  [data-merchant-styled="switch"]:focus,
+  [data-merchant-styled="switch"]:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  /* ==========================================
+     BUTTONS - Global Merchant Styling
+     Primary, Secondary, and Action buttons
+     ========================================== */
+  .merchant-btn-primary,
+  [data-merchant-styled="btn-primary"] {
+    background-color: var(--merchant-button-bg) !important;
+    color: var(--merchant-button-text) !important;
+    border-color: var(--merchant-button-bg) !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .merchant-btn-primary:hover,
+  [data-merchant-styled="btn-primary"]:hover {
+    background-color: var(--merchant-button-hover) !important;
+    border-color: var(--merchant-button-hover) !important;
+  }
+  
+  .merchant-btn-primary:focus,
+  .merchant-btn-primary:focus-visible,
+  [data-merchant-styled="btn-primary"]:focus,
+  [data-merchant-styled="btn-primary"]:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  .merchant-btn-secondary,
+  [data-merchant-styled="btn-secondary"] {
+    background-color: transparent !important;
+    color: var(--merchant-primary) !important;
+    border-color: var(--merchant-primary) !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .merchant-btn-secondary:hover,
+  [data-merchant-styled="btn-secondary"]:hover {
+    background-color: var(--merchant-primary-light) !important;
+  }
+  
+  .merchant-btn-secondary:focus,
+  .merchant-btn-secondary:focus-visible,
+  [data-merchant-styled="btn-secondary"]:focus,
+  [data-merchant-styled="btn-secondary"]:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  /* ==========================================
+     INPUTS & FORM CONTROLS - Global Merchant Styling
+     Focus states for inputs, selects, textareas
+     ========================================== */
+  .merchant-input:focus,
+  .merchant-input:focus-visible,
+  [data-merchant-styled="input"]:focus,
+  [data-merchant-styled="input"]:focus-visible {
+    border-color: var(--merchant-primary) !important;
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  .merchant-select-trigger:focus,
+  .merchant-select-trigger:focus-visible,
+  [data-merchant-styled="select"]:focus,
+  [data-merchant-styled="select"]:focus-visible {
+    border-color: var(--merchant-primary) !important;
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+  }
+
+  /* ==========================================
+     NAVIGATION & LINKS - Global Merchant Styling
+     Active links, tabs, menu items
+     ========================================== */
+  .merchant-link-active,
+  [data-merchant-styled="link-active"] {
+    color: var(--merchant-primary) !important;
+  }
+  
+  .merchant-link:hover,
+  [data-merchant-styled="link"]:hover {
+    color: var(--merchant-primary) !important;
+  }
+
+  .merchant-tab-active,
+  [data-merchant-styled="tab-active"] {
+    border-color: var(--merchant-primary) !important;
+    color: var(--merchant-primary) !important;
+  }
+
+  /* ==========================================
+     SLIDERS & PROGRESS - Global Merchant Styling
+     ========================================== */
+  .merchant-slider [data-radix-collection-item],
+  [data-merchant-styled="slider"] [data-radix-collection-item] {
+    background-color: var(--merchant-primary) !important;
+  }
+  
+  .merchant-slider [role="slider"],
+  [data-merchant-styled="slider"] [role="slider"] {
+    border-color: var(--merchant-primary) !important;
+  }
+
+  .merchant-progress-indicator,
+  [data-merchant-styled="progress"] > div {
+    background-color: var(--merchant-primary) !important;
+  }
+
+  /* ==========================================
+     PAGINATION - Global Merchant Styling
+     Active page indicators
+     ========================================== */
+  .merchant-pagination-active,
+  [data-merchant-styled="pagination-active"] {
+    background-color: var(--merchant-primary) !important;
+    color: var(--merchant-button-text) !important;
+    border-color: var(--merchant-primary) !important;
+  }
+
+  /* ==========================================
+     BADGES & CHIPS - Global Merchant Styling
+     Selected/active state
+     ========================================== */
+  .merchant-badge-active,
+  [data-merchant-styled="badge-active"] {
+    background-color: var(--merchant-primary) !important;
+    color: var(--merchant-button-text) !important;
+  }
+  
+  .merchant-chip-selected,
+  [data-merchant-styled="chip-selected"] {
+    background-color: var(--merchant-primary) !important;
+    color: var(--merchant-button-text) !important;
+    border-color: var(--merchant-primary) !important;
+  }
+
+  /* ==========================================
+     CARDS & HIGHLIGHTS - Global Merchant Styling
+     Selected card borders, visual indicators
+     ========================================== */
+  .merchant-card-selected,
+  [data-merchant-styled="card-selected"] {
+    border-color: var(--merchant-primary) !important;
+    box-shadow: 0 0 0 1px var(--merchant-primary) !important;
+  }
+
+  .merchant-highlight,
+  [data-merchant-styled="highlight"] {
+    background-color: var(--merchant-primary-light) !important;
+    border-color: var(--merchant-primary) !important;
+  }
+
+  /* ==========================================
+     ICONS - Global Merchant Styling
+     Clickable icons in active/hover state
+     ========================================== */
+  .merchant-icon-active,
+  [data-merchant-styled="icon-active"] {
+    color: var(--merchant-primary) !important;
+  }
+  
+  .merchant-icon-hover:hover,
+  [data-merchant-styled="icon-hover"]:hover {
+    color: var(--merchant-primary) !important;
   }
 }

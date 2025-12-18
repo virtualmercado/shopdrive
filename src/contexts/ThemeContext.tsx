@@ -57,6 +57,28 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   });
   const [loading, setLoading] = useState(true);
 
+  // Helper function to apply all merchant CSS variables
+  const applyMerchantCSSVariables = (merchantColors: ThemeColors) => {
+    const root = document.documentElement;
+    
+    // Core merchant colors
+    root.style.setProperty('--merchant-primary', merchantColors.primaryColor);
+    root.style.setProperty('--merchant-secondary', merchantColors.secondaryColor);
+    root.style.setProperty('--merchant-button-bg', merchantColors.buttonBgColor);
+    root.style.setProperty('--merchant-button-text', merchantColors.buttonTextColor);
+    root.style.setProperty('--merchant-footer-text', merchantColors.footerTextColor);
+    
+    // Derived colors for hover/focus states (with transparency)
+    root.style.setProperty('--merchant-primary-hover', `${merchantColors.primaryColor}dd`);
+    root.style.setProperty('--merchant-primary-light', `${merchantColors.primaryColor}15`);
+    root.style.setProperty('--merchant-primary-ring', `${merchantColors.primaryColor}33`);
+    root.style.setProperty('--merchant-button-hover', `${merchantColors.buttonBgColor}dd`);
+    
+    // Font settings
+    root.style.setProperty('--user-font-family', merchantColors.fontFamily);
+    root.style.setProperty('--user-font-weight', String(merchantColors.fontWeight));
+  };
+
   useEffect(() => {
     const fetchColors = async () => {
       if (!user) {
@@ -87,9 +109,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         };
         setColors(newColors);
         
-        // Apply CSS variables immediately
-        document.documentElement.style.setProperty('--user-font-family', newColors.fontFamily);
-        document.documentElement.style.setProperty('--user-font-weight', String(newColors.fontWeight));
+        // Apply all merchant CSS variables immediately
+        applyMerchantCSSVariables(newColors);
       }
       setLoading(false);
     };
@@ -125,9 +146,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           };
           setColors(newColors);
           
-          // Apply CSS variables in real-time
-          document.documentElement.style.setProperty('--user-font-family', newColors.fontFamily);
-          document.documentElement.style.setProperty('--user-font-weight', String(newColors.fontWeight));
+          // Apply all merchant CSS variables in real-time
+          applyMerchantCSSVariables(newColors);
         }
       )
       .subscribe();
