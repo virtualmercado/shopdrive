@@ -272,8 +272,8 @@ const Products = () => {
                       </p>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Estoque: {product.stock} unidades
+                  <p className="text-sm text-black mb-4">
+                    Estoque: <span className="font-bold">{product.stock}</span> unidades
                   </p>
                   <div className="flex gap-2">
                     <Button 
