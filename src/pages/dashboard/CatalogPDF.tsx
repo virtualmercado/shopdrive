@@ -656,9 +656,11 @@ const CatalogPDF = () => {
     
     // List layout settings - maximize products per page with expanded title area
     const rowHeight = 8; // Compact row height
+    const numberWidth = 8; // Width for product numbering
+    const numberX = margin;
     const thumbnailSize = 5; // Smaller thumbnail for more space
-    const thumbnailX = margin;
-    const titleX = margin + thumbnailSize + 3;
+    const thumbnailX = margin + numberWidth;
+    const titleX = thumbnailX + thumbnailSize + 3;
     const priceWidth = 22; // Reduced price width
     const priceX = pageWidth - margin - priceWidth;
     const titleMaxWidth = priceX - titleX - 3; // Expanded title area
@@ -752,11 +754,16 @@ const CatalogPDF = () => {
       // Header title
       pdf.setFontSize(16);
       pdf.setTextColor(50, 50, 50);
-      pdf.text("Catálogo de Produtos", pageWidth - margin, 12, { align: "right" });
+      pdf.text("Catálogo de Produtos", pageWidth - margin, 10, { align: "right" });
       
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 22, { align: "right" });
+      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
+      
+      // Page number in header
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`Página ${String(page + 1).padStart(2, '0')}`, pageWidth - margin, 24, { align: "right" });
 
       // Column headers with primary color
       const headerY = contentStartY;
@@ -767,6 +774,7 @@ const CatalogPDF = () => {
       pdf.setFontSize(7);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
+      pdf.text("Nº", numberX + numberWidth / 2, headerY - 0.5, { align: "center" });
       pdf.text("Produto", titleX, headerY - 0.5);
       pdf.text("Valor", priceX + priceWidth / 2, headerY - 0.5, { align: "center" });
       pdf.setFont("helvetica", "normal");
@@ -781,11 +789,22 @@ const CatalogPDF = () => {
       for (let i = 0; i < pageProducts.length; i++) {
         const product = pageProducts[i];
         
-        // Alternating row background for readability
+        // Calculate sequential product number (continuous across pages)
+        const productNumber = startIndex + i + 1;
+        
+        // Alternating row background for readability (zebra effect)
         if (i % 2 === 0) {
-          pdf.setFillColor(248, 248, 248);
-          pdf.rect(margin, currentY - 5, pageWidth - margin * 2, rowHeight, "F");
+          pdf.setFillColor(245, 245, 245); // Lighter gray for even rows
+        } else {
+          pdf.setFillColor(252, 252, 252); // Very subtle gray for odd rows
         }
+        pdf.rect(margin, currentY - 5, pageWidth - margin * 2, rowHeight, "F");
+
+        // Product number
+        pdf.setFontSize(7);
+        pdf.setTextColor(100, 96, 96); // #666060 in RGB
+        pdf.setFont("helvetica", "normal");
+        pdf.text(String(productNumber), numberX + numberWidth / 2, currentY, { align: "center" });
 
         // Thumbnail placeholder (small square)
         pdf.setFillColor(230, 230, 230);
@@ -830,11 +849,6 @@ const CatalogPDF = () => {
 
         currentY += rowHeight;
       }
-
-      // Page number
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Página ${page + 1} de ${totalPages}`, pageWidth / 2, contentEndY + 2, { align: "center" });
 
       // Footer
       const footerY = pageHeight - footerHeight;
