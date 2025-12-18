@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Filter, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X } from 'lucide-react';
+import { Search, Filter, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X, UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,6 +39,22 @@ interface CustomerAddress {
   is_default: boolean | null;
 }
 
+interface NewCustomerData {
+  full_name: string;
+  email: string;
+  phone: string;
+  cpf: string;
+  // Address fields
+  recipient_name: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
 const Customers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -56,6 +72,28 @@ const Customers = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // New customer registration states
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState<NewCustomerData>({
+    full_name: '',
+    email: '',
+    phone: '',
+    cpf: '',
+    recipient_name: '',
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
+  });
+  const [addingCustomer, setAddingCustomer] = useState(false);
+
+  // Customer deletion states
+  const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   // Filter states
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('all');
@@ -350,6 +388,198 @@ const Customers = () => {
     fetchGroups();
   };
 
+  // Add new customer manually
+  const handleAddCustomer = async () => {
+    if (!user) return;
+    
+    // Validate required fields
+    if (!newCustomerData.full_name.trim() || !newCustomerData.email.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Nome e e-mail são obrigatórios.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newCustomerData.email)) {
+      toast({
+        title: 'Erro',
+        description: 'E-mail inválido.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validate address required fields
+    if (!newCustomerData.cep.trim() || !newCustomerData.street.trim() || 
+        !newCustomerData.number.trim() || !newCustomerData.neighborhood.trim() ||
+        !newCustomerData.city.trim() || !newCustomerData.state.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Todos os campos de endereço são obrigatórios (exceto complemento).',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setAddingCustomer(true);
+    try {
+      // Generate a unique ID for the customer
+      const customerId = crypto.randomUUID();
+
+      // Create customer profile
+      const { error: profileError } = await supabase
+        .from('customer_profiles')
+        .insert({
+          id: customerId,
+          full_name: newCustomerData.full_name.trim(),
+          email: newCustomerData.email.trim().toLowerCase(),
+          phone: newCustomerData.phone.trim() || null,
+          cpf: newCustomerData.cpf.trim() || null
+        });
+
+      if (profileError) {
+        if (profileError.code === '23505') {
+          toast({
+            title: 'Erro',
+            description: 'Já existe um cliente com este e-mail.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        throw profileError;
+      }
+
+      // Create store_customers relationship
+      const { error: storeCustomerError } = await supabase
+        .from('store_customers')
+        .insert({
+          store_owner_id: user.id,
+          customer_id: customerId,
+          is_active: true
+        });
+
+      if (storeCustomerError) throw storeCustomerError;
+
+      // Create customer address
+      const { error: addressError } = await supabase
+        .from('customer_addresses')
+        .insert({
+          customer_id: customerId,
+          store_owner_id: user.id,
+          recipient_name: newCustomerData.recipient_name.trim() || newCustomerData.full_name.trim(),
+          cep: newCustomerData.cep.trim(),
+          street: newCustomerData.street.trim(),
+          number: newCustomerData.number.trim(),
+          complement: newCustomerData.complement.trim() || null,
+          neighborhood: newCustomerData.neighborhood.trim(),
+          city: newCustomerData.city.trim(),
+          state: newCustomerData.state.trim().toUpperCase(),
+          is_default: true,
+          address_type: 'delivery'
+        });
+
+      if (addressError) throw addressError;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Cliente cadastrado com sucesso!'
+      });
+
+      // Reset form and close modal
+      setNewCustomerData({
+        full_name: '',
+        email: '',
+        phone: '',
+        cpf: '',
+        recipient_name: '',
+        cep: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: ''
+      });
+      setShowAddCustomerModal(false);
+      
+      // Refresh customer list
+      fetchCustomers();
+      fetchCustomerAddresses();
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error adding customer:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível cadastrar o cliente.',
+        variant: 'destructive'
+      });
+    } finally {
+      setAddingCustomer(false);
+    }
+  };
+
+  // Delete customer
+  const confirmDeleteCustomer = (customer: Customer) => {
+    setCustomerToDelete(customer);
+    setShowDeleteCustomerModal(true);
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!user || !customerToDelete) return;
+
+    try {
+      // Delete from store_customers (removes the relationship)
+      const { error } = await supabase
+        .from('store_customers')
+        .delete()
+        .eq('store_owner_id', user.id)
+        .eq('customer_id', customerToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Cliente excluído com sucesso!'
+      });
+      setShowDeleteCustomerModal(false);
+      setCustomerToDelete(null);
+      fetchCustomers();
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error deleting customer:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o cliente.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // CEP lookup for address auto-fill
+  const handleCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (!data.erro) {
+        setNewCustomerData(prev => ({
+          ...prev,
+          street: data.logradouro || prev.street,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.localidade || prev.city,
+          state: data.uf || prev.state
+        }));
+      }
+    } catch (error) {
+      // Silent fail - user can fill manually
+    }
+  };
+
   // Helper to get customer address info
   const getCustomerAddress = (customerId: string): { state: string; city: string } | null => {
     const addresses = customerAddresses.filter(a => a.customer_id === customerId);
@@ -607,6 +837,14 @@ const Customers = () => {
                 </Button>
               </div>
               <Button 
+                className="gap-2 text-white"
+                onClick={() => setShowAddCustomerModal(true)}
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Plus className="h-4 w-4" />
+                Incluir cadastro
+              </Button>
+              <Button 
                 variant="outline"
                 className="gap-2 transition-colors relative"
                 onClick={() => setShowFiltersModal(true)}
@@ -668,7 +906,7 @@ const Customers = () => {
                     <TableHead>Nome</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Cadastrado há</TableHead>
-                    <TableHead className="w-16"></TableHead>
+                    <TableHead className="w-24 text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -696,15 +934,32 @@ const Customers = () => {
                           })}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/lojista/customers/${customer.id}`)}
-                            className="hover:bg-transparent"
-                            style={{ color: primaryColor }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/lojista/customers/${customer.id}`)}
+                              className="hover:bg-transparent"
+                              style={{ color: primaryColor }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => confirmDeleteCustomer(customer)}
+                              className="hover:bg-red-50 transition-colors"
+                              style={{ color: primaryColor }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = primaryColor;
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -1145,6 +1400,332 @@ const Customers = () => {
               style={{ backgroundColor: primaryColor }}
             >
               Aplicar filtros
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Customer Modal */}
+      <Dialog open={showAddCustomerModal} onOpenChange={setShowAddCustomerModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Incluir cadastro</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            {/* Customer Data Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Dados do Cliente</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Nome completo *</label>
+                  <Input
+                    value={newCustomerData.full_name}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="Nome do cliente"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">E-mail *</label>
+                  <Input
+                    type="email"
+                    value={newCustomerData.email}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="email@exemplo.com"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Telefone</label>
+                  <Input
+                    value={newCustomerData.phone}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="(00) 00000-0000"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">CPF</label>
+                  <Input
+                    value={newCustomerData.cpf}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, cpf: e.target.value }))}
+                    placeholder="000.000.000-00"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Address Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b pb-2">Endereço Principal</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Nome do destinatário</label>
+                  <Input
+                    value={newCustomerData.recipient_name}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, recipient_name: e.target.value }))}
+                    placeholder="Nome para entrega (opcional)"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">CEP *</label>
+                  <Input
+                    value={newCustomerData.cep}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewCustomerData(prev => ({ ...prev, cep: value }));
+                      if (value.replace(/\D/g, '').length === 8) {
+                        handleCepLookup(value);
+                      }
+                    }}
+                    placeholder="00000-000"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground">Rua/Logradouro *</label>
+                  <Input
+                    value={newCustomerData.street}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, street: e.target.value }))}
+                    placeholder="Rua, Avenida, etc."
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Número *</label>
+                  <Input
+                    value={newCustomerData.number}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, number: e.target.value }))}
+                    placeholder="123"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Complemento</label>
+                  <Input
+                    value={newCustomerData.complement}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, complement: e.target.value }))}
+                    placeholder="Apto, Bloco, etc. (opcional)"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bairro *</label>
+                  <Input
+                    value={newCustomerData.neighborhood}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                    placeholder="Bairro"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Cidade *</label>
+                  <Input
+                    value={newCustomerData.city}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="Cidade"
+                    className="transition-colors"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Estado *</label>
+                  <Input
+                    value={newCustomerData.state}
+                    onChange={(e) => setNewCustomerData(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
+                    placeholder="UF"
+                    maxLength={2}
+                    className="transition-colors uppercase"
+                    style={{ borderColor: primaryColor }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = primaryColor;
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">* Campos obrigatórios</p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowAddCustomerModal(false);
+                setNewCustomerData({
+                  full_name: '',
+                  email: '',
+                  phone: '',
+                  cpf: '',
+                  recipient_name: '',
+                  cep: '',
+                  street: '',
+                  number: '',
+                  complement: '',
+                  neighborhood: '',
+                  city: '',
+                  state: ''
+                });
+              }}
+              className="transition-colors"
+              style={{ borderColor: primaryColor, color: primaryColor }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = primaryColor;
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = primaryColor;
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleAddCustomer}
+              disabled={addingCustomer}
+              className="text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {addingCustomer ? 'Cadastrando...' : 'Cadastrar cliente'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Customer Confirmation Modal */}
+      <Dialog open={showDeleteCustomerModal} onOpenChange={setShowDeleteCustomerModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir o cliente <strong>"{customerToDelete?.full_name}"</strong>? 
+              Esta ação irá remover o cliente da sua lista.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteCustomerModal(false);
+                setCustomerToDelete(null);
+              }}
+              className="transition-colors"
+              style={{ borderColor: primaryColor, color: primaryColor }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = primaryColor;
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = primaryColor;
+                e.currentTarget.style.color = primaryColor;
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDeleteCustomer}
+              className="text-white bg-red-500 hover:bg-red-600"
+            >
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>
