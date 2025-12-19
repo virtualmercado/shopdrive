@@ -258,7 +258,12 @@ const CatalogPDF = () => {
     
     pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
-    pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 22, { align: "right" });
+    pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
+    
+    // Page number in header (single product = 1 page)
+    pdf.setFontSize(9);
+    pdf.setTextColor(80, 80, 80);
+    pdf.text("Página 01", pageWidth - margin, 24, { align: "right" });
 
     // Content area calculations
     const contentStartY = headerHeight + margin;
@@ -487,11 +492,16 @@ const CatalogPDF = () => {
       // Header title
       pdf.setFontSize(16);
       pdf.setTextColor(50, 50, 50);
-      pdf.text("Catálogo de Produtos", pageWidth - margin, 12, { align: "right" });
+      pdf.text("Catálogo de Produtos", pageWidth - margin, 10, { align: "right" });
       
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 22, { align: "right" });
+      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
+      
+      // Page number in header
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`Página ${String(page + 1).padStart(2, '0')}`, pageWidth - margin, 24, { align: "right" });
 
       // Products
       const startIndex = page * productsPerPage;
