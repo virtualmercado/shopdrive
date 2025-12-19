@@ -12,9 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import { 
-  MessageCircle, 
+  MessageCircle,
   CreditCard, 
   QrCode, 
   ExternalLink,
@@ -238,13 +237,10 @@ const PaymentMethodsContent = () => {
       toast.error("Informe o número do WhatsApp");
       return;
     }
-
-    // Normaliza o número de WhatsApp com DDI 55
-    const normalizedNumber = normalizeWhatsAppNumber(tempWhatsappNumber);
     
     await saveSettings({
       whatsapp_enabled: true,
-      whatsapp_number: normalizedNumber,
+      whatsapp_number: tempWhatsappNumber,
       whatsapp_accepts_cash: tempWhatsappAccepts.cash,
       whatsapp_accepts_credit: tempWhatsappAccepts.credit,
       whatsapp_accepts_debit: tempWhatsappAccepts.debit,

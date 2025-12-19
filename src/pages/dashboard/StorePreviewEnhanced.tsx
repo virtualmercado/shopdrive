@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
@@ -295,15 +294,9 @@ const StorePreviewEnhanced = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Normaliza o número de WhatsApp com DDI 55
-      const dataToSave = {
-        ...storeData,
-        whatsapp_number: normalizeWhatsAppNumber(storeData.whatsapp_number),
-      };
-
       const { error } = await supabase
         .from("profiles")
-        .update(dataToSave)
+        .update(storeData)
         .eq("id", user.id);
 
       if (error) throw error;
