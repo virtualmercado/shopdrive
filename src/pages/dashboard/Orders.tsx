@@ -10,7 +10,9 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { CreateOrderModal } from "@/components/orders/CreateOrderModal";
 import { printOrderA4 } from "@/components/orders/OrderPrintA4";
+import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -141,6 +143,14 @@ const Orders = () => {
   };
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
+    // Check if it's the print shipping label action
+    if (newStatus === "print_shipping_label") {
+      const order = orders?.find((o) => o.id === orderId);
+      if (order) {
+        handlePrintShippingLabel(order);
+      }
+      return;
+    }
     updateStatus.mutate({ orderId, status: newStatus });
   };
 
@@ -212,6 +222,69 @@ const Orders = () => {
     } catch (error) {
       console.error("Error printing order:", error);
       toast({ title: "Erro", description: "Erro ao gerar PDF do pedido.", variant: "destructive" });
+    }
+  };
+
+  const handlePrintShippingLabel = async (order: any) => {
+    try {
+      // Fetch store data
+      const store = await fetchStoreData();
+
+      // Initialize customer with full_name
+      let customer: {
+        full_name: string;
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        state?: string;
+        cep?: string;
+      } = { full_name: order.customer_name };
+      
+      if (order.customer_id) {
+        const { data: customerData } = await supabase
+          .from("customer_profiles")
+          .select("*")
+          .eq("id", order.customer_id)
+          .single();
+        
+        if (customerData) {
+          // Get customer's default address
+          const { data: addressData } = await supabase
+            .from("customer_addresses")
+            .select("*")
+            .eq("customer_id", order.customer_id)
+            .eq("is_default", true)
+            .single();
+          
+          customer = {
+            full_name: customerData.full_name,
+            street: addressData?.street,
+            number: addressData?.number,
+            complement: addressData?.complement,
+            neighborhood: addressData?.neighborhood,
+            city: addressData?.city,
+            state: addressData?.state,
+            cep: addressData?.cep,
+          };
+        }
+      }
+
+      printShippingLabel({
+        order: {
+          id: order.id,
+          order_number: order.order_number,
+          created_at: order.created_at,
+        },
+        store: store || {},
+        customer,
+      });
+
+      toast({ title: "Sucesso", description: "Etiqueta de envio gerada com sucesso!" });
+    } catch (error) {
+      console.error("Error printing shipping label:", error);
+      toast({ title: "Erro", description: "Erro ao gerar etiqueta de envio.", variant: "destructive" });
     }
   };
 
@@ -452,6 +525,10 @@ const Orders = () => {
                             <SelectItem value="shipped">Enviado</SelectItem>
                             <SelectItem value="delivered">Entregue</SelectItem>
                             <SelectItem value="cancelled">Cancelado</SelectItem>
+                            <Separator className="my-1" />
+                            <SelectItem value="print_shipping_label" className="text-xs leading-tight">
+                              Imprimir etiqueta{"\n"}de envio
+                            </SelectItem>
                           </SelectContent>
                         </Select>
 
