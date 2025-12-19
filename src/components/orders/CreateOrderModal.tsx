@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Plus, Trash2, Save, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -429,12 +428,12 @@ export const CreateOrderModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90dvh] overflow-hidden flex min-h-0 flex-col">
         <DialogHeader>
           <DialogTitle>{editOrder ? "Editar Pedido" : "Novo Pedido"}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-4 overscroll-contain">
           <div className="space-y-6 py-4">
             {/* Customer Selection */}
             <div className="space-y-3">
@@ -653,7 +652,7 @@ export const CreateOrderModal = ({
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
