@@ -22,11 +22,17 @@ interface WhatsAppButtonProps {
 }
 
 const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName, primaryColor = "#6a1b9a" }: WhatsAppButtonProps) => {
+  const defaultMessage = `Atendimento SAC (${storeName}): `;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(defaultMessage);
   const [sending, setSending] = useState(false);
+
+  const handleOpenDialog = () => {
+    setMessage(defaultMessage);
+    setDialogOpen(true);
+  };
 
   const handleSendMessage = async () => {
     if (!customerName || !customerPhone || !message) {
@@ -47,20 +53,18 @@ const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName, primaryColor = "
 
       if (error) throw error;
 
-      // Formatar número e criar link WhatsApp
+      // Formatar número e criar link WhatsApp Web
       const cleanPhone = phoneNumber.replace(/\D/g, "");
-      const whatsappMessage = `Olá! Meu nome é ${customerName}. ${message}`;
-      const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
-        whatsappMessage
-      )}`;
+      const fullMessage = `Olá! Meu nome é ${customerName}. Telefone: ${customerPhone}. ${message}`;
+      const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(fullMessage)}`;
 
-      // Abrir WhatsApp
-      window.open(whatsappUrl, "_blank");
+      // Abrir WhatsApp Web (wa.me funciona em desktop e mobile)
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
       // Limpar formulário e fechar dialog
       setCustomerName("");
       setCustomerPhone("");
-      setMessage("");
+      setMessage(defaultMessage);
       setDialogOpen(false);
       toast.success("Abrindo WhatsApp...");
     } catch (error) {
@@ -77,7 +81,7 @@ const WhatsAppButton = ({ phoneNumber, storeOwnerId, storeName, primaryColor = "
         size="lg"
         className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg hover:scale-110 transition-transform z-40 p-0"
         style={{ backgroundColor: "#25D366" }}
-        onClick={() => setDialogOpen(true)}
+        onClick={handleOpenDialog}
       >
         <svg 
           xmlns="http://www.w3.org/2000/svg" 
