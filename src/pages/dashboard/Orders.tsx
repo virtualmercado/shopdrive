@@ -526,8 +526,8 @@ const Orders = () => {
                             <SelectItem value="delivered">Entregue</SelectItem>
                             <SelectItem value="cancelled">Cancelado</SelectItem>
                             <Separator className="my-1" />
-                            <SelectItem value="print_shipping_label" className="text-xs leading-tight">
-                              Imprimir etiqueta{"\n"}de envio
+                            <SelectItem value="print_shipping_label" className="leading-tight whitespace-pre-line">
+                              {"Imprimir etiqueta\nde envio"}
                             </SelectItem>
                           </SelectContent>
                         </Select>
