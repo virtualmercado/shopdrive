@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -143,13 +144,16 @@ const Settings = () => {
       // Determine which document to save (prioritize CNPJ if both are filled)
       const cpfCnpj = formData.cnpj || formData.cpf || null;
       
+      // Normaliza o número de WhatsApp com DDI 55
+      const normalizedWhatsapp = normalizeWhatsAppNumber(formData.whatsappNumber);
+
       const { error } = await supabase
         .from("profiles")
         .update({
           full_name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
-          whatsapp_number: formData.whatsappNumber,
+          whatsapp_number: normalizedWhatsapp,
           cpf_cnpj: cpfCnpj,
           address: formData.address,
           address_zip_code: formData.cep,
