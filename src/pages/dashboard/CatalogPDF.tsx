@@ -1292,11 +1292,9 @@ const CatalogPDF = () => {
                         <p className="text-xs text-muted-foreground">
                           Gerado em: {new Date().toLocaleDateString("pt-BR")}
                         </p>
-                        {filterType === "list" && (
-                          <p className="text-[10px] text-gray-500">
-                            Página 01
-                          </p>
-                        )}
+                        <p className="text-[10px] text-gray-500">
+                          Página 01
+                        </p>
                       </div>
                     </div>
 
