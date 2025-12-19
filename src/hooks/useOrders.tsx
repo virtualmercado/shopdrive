@@ -12,11 +12,16 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  order_number: string | null;
+  customer_id: string | null;
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
   customer_address: string | null;
   total_amount: number;
+  subtotal: number | null;
+  delivery_fee: number | null;
+  delivery_method: string | null;
   status: string;
   payment_method: string | null;
   notes: string | null;
@@ -37,11 +42,16 @@ export const useOrders = () => {
         .from("orders")
         .select(`
           id,
+          order_number,
+          customer_id,
           customer_name,
           customer_email,
           customer_phone,
           customer_address,
           total_amount,
+          subtotal,
+          delivery_fee,
+          delivery_method,
           status,
           payment_method,
           notes,
