@@ -29,6 +29,19 @@ interface Customer {
   cpf: string | null;
 }
 
+interface CustomerAddress {
+  id: string;
+  customer_id: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  neighborhood: string;
+  city: string;
+  state: string;
+  cep: string;
+  is_default: boolean | null;
+}
+
 interface OrderItem {
   product_id: string;
   product_name: string;
@@ -80,6 +93,7 @@ export const CreateOrderModal = ({
   // Data lists
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
   
@@ -151,6 +165,14 @@ export const CreateOrderModal = ({
           .in("id", customerIds);
         
         setCustomers(customerProfiles || []);
+
+        // Fetch customer addresses
+        const { data: addressesData } = await supabase
+          .from("customer_addresses")
+          .select("*")
+          .in("customer_id", customerIds);
+        
+        setCustomerAddresses(addressesData || []);
       }
 
       // Fetch payment settings
@@ -276,6 +298,25 @@ export const CreateOrderModal = ({
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
+  // Get customer's default address or first available address
+  const getCustomerDefaultAddress = (customerId: string): string => {
+    const addresses = customerAddresses.filter(a => a.customer_id === customerId);
+    const defaultAddress = addresses.find(a => a.is_default) || addresses[0];
+    
+    if (!defaultAddress) return "";
+    
+    const parts = [
+      defaultAddress.street,
+      defaultAddress.number,
+      defaultAddress.complement,
+      defaultAddress.neighborhood,
+      `${defaultAddress.city}/${defaultAddress.state}`,
+      `CEP: ${defaultAddress.cep}`
+    ].filter(Boolean);
+    
+    return parts.join(", ");
+  };
+
   const handleSubmit = async () => {
     if (!selectedCustomerId) {
       toast({ title: "Erro", description: "Selecione um cliente.", variant: "destructive" });
@@ -295,6 +336,9 @@ export const CreateOrderModal = ({
       const customer = customers.find(c => c.id === selectedCustomerId);
       if (!customer) throw new Error("Cliente não encontrado");
 
+      // Use customer's default address automatically
+      const deliveryAddress = getCustomerDefaultAddress(selectedCustomerId);
+
       if (editOrder) {
         // Update existing order
         const { error: orderError } = await supabase
@@ -304,7 +348,7 @@ export const CreateOrderModal = ({
             customer_name: customer.full_name,
             customer_email: customer.email,
             customer_phone: customer.phone,
-            customer_address: customerAddress,
+            customer_address: deliveryAddress,
             payment_method: selectedPaymentMethod,
             delivery_method: selectedShipping || null,
             delivery_fee: shippingFee,
@@ -343,7 +387,7 @@ export const CreateOrderModal = ({
             customer_name: customer.full_name,
             customer_email: customer.email,
             customer_phone: customer.phone,
-            customer_address: customerAddress,
+            customer_address: deliveryAddress,
             payment_method: selectedPaymentMethod,
             delivery_method: selectedShipping || null,
             delivery_fee: shippingFee,
@@ -422,23 +466,20 @@ export const CreateOrderModal = ({
                 </div>
               )}
               {selectedCustomer && (
-                <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
                   <p className="font-medium">{selectedCustomer.full_name}</p>
                   <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                   {selectedCustomer.phone && (
                     <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
                   )}
+                  {getCustomerDefaultAddress(selectedCustomer.id) && (
+                    <div className="pt-2 border-t mt-2">
+                      <p className="text-xs font-medium text-muted-foreground">Endereço de entrega:</p>
+                      <p className="text-sm">{getCustomerDefaultAddress(selectedCustomer.id)}</p>
+                    </div>
+                  )}
                 </div>
               )}
-              <div>
-                <Label>Endereço de Entrega</Label>
-                <Textarea
-                  placeholder="Endereço completo para entrega..."
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
             </div>
 
             <Separator />
@@ -533,12 +574,25 @@ export const CreateOrderModal = ({
               <div className="space-y-2">
                 <Label>Forma de Pagamento</Label>
                 <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <SelectTrigger>
+                  <SelectTrigger 
+                    className="focus:ring-2"
+                    style={{ 
+                      borderColor: selectedPaymentMethod ? primaryColor : undefined,
+                      '--tw-ring-color': primaryColor 
+                    } as React.CSSProperties}
+                  >
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     {getPaymentMethods().map((method) => (
-                      <SelectItem key={method.value} value={method.value}>
+                      <SelectItem 
+                        key={method.value} 
+                        value={method.value}
+                        className="focus:bg-opacity-20"
+                        style={{ 
+                          '--select-item-color': primaryColor 
+                        } as React.CSSProperties}
+                      >
                         {method.label}
                       </SelectItem>
                     ))}
@@ -549,7 +603,13 @@ export const CreateOrderModal = ({
               <div className="space-y-2">
                 <Label>Frete</Label>
                 <Select value={selectedShipping} onValueChange={handleShippingChange}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="focus:ring-2"
+                    style={{ 
+                      borderColor: selectedShipping && selectedShipping !== "none" ? primaryColor : undefined,
+                      '--tw-ring-color': primaryColor 
+                    } as React.CSSProperties}
+                  >
                     <SelectValue placeholder="Selecione ou sem frete" />
                   </SelectTrigger>
                   <SelectContent>
