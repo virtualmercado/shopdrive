@@ -99,16 +99,22 @@ const WhatsAppButton = ({
     setSending(true);
 
     try {
+      console.log("[WhatsAppButton] Attempting to save message for store owner:", storeOwnerId);
+      
       // Salvar mensagem no banco
-      const { error } = await supabase.from("whatsapp_messages").insert({
+      const { data, error } = await supabase.from("whatsapp_messages").insert({
         store_owner_id: storeOwnerId,
         customer_name: customerName,
         customer_phone: customerPhone,
         message: message,
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[WhatsAppButton] Supabase error:", error);
+        throw error;
+      }
 
+      console.log("[WhatsAppButton] Message saved successfully:", data);
       console.log("[WhatsAppButton] navigating to:", whatsappUrl);
       whatsappWindow.location.href = whatsappUrl;
 
@@ -118,14 +124,15 @@ const WhatsAppButton = ({
       setMessage(defaultMessage);
       setDialogOpen(false);
       toast.success("Abrindo WhatsApp...");
-    } catch (error) {
+    } catch (error: unknown) {
       try {
         whatsappWindow.close();
       } catch {
         // ignore
       }
-      console.error("Error sending message:", error);
-      toast.error("Erro ao enviar mensagem");
+      console.error("[WhatsAppButton] Error sending message:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao enviar mensagem: ${errorMessage}`);
     } finally {
       setSending(false);
     }
