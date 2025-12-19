@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -66,9 +67,12 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <Store className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-primary">VirtualMercado</span>
+          <Link to="/" className="flex justify-center mb-6">
+            <img 
+              src={logoVirtualMercado} 
+              alt="VirtualMercado" 
+              className="h-12 w-auto"
+            />
           </Link>
           <h1 className="text-3xl font-bold mb-2">Bem-vindo de volta</h1>
           <p className="text-muted-foreground">Entre na sua conta para continuar</p>
