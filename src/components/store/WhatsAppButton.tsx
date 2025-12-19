@@ -56,26 +56,26 @@ const WhatsAppButton = ({
 
   const buildWhatsAppUrl = (text: string) => {
     const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
     const encodedText = encodeURIComponent(text);
 
-    // Desktop: use WhatsApp Web directly to avoid api.whatsapp.com redirects/blocks.
-    const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-    return isMobile
-      ? `https://wa.me/55${cleanPhone}?text=${encodedText}`
-      : `https://web.whatsapp.com/send?phone=55${cleanPhone}&text=${encodedText}`;
+    // Use wa.me universally to avoid redirects through api.whatsapp.com that are often blocked.
+    return `https://wa.me/${phoneWithCountry}?text=${encodedText}`;
   };
 
-  const openWhatsApp = (url: string) => {
-    console.log("[WhatsAppButton] opening url:", url);
-
-    // Use a real anchor click to reduce popup-blocking and ensure top-level navigation.
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const preOpenWhatsAppWindow = () => {
+    // Open immediately (still within the click handler) to preserve user gesture and avoid browser blocks.
+    const win = window.open("about:blank", "_blank", "noopener,noreferrer");
+    if (win) {
+      try {
+        // Some browsers allow this; it reduces reverse-tabnabbing risk.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (win as any).opener = null;
+      } catch {
+        // ignore
+      }
+    }
+    return win;
   };
 
   const handleSendMessage = async () => {
@@ -83,6 +83,16 @@ const WhatsAppButton = ({
 
     if (!customerName || !customerPhone || onlyPrefix) {
       toast.error("Preencha todos os campos");
+      return;
+    }
+
+    const fullMessage = `Olá! Meu nome é ${customerName}. Telefone: ${customerPhone}. ${message}`;
+    const whatsappUrl = buildWhatsAppUrl(fullMessage);
+
+    // Pre-open BEFORE any async call; otherwise Chrome may block/deny the navigation.
+    const whatsappWindow = preOpenWhatsAppWindow();
+    if (!whatsappWindow) {
+      toast.error("Permita pop-ups para abrir o WhatsApp");
       return;
     }
 
@@ -99,10 +109,8 @@ const WhatsAppButton = ({
 
       if (error) throw error;
 
-      const fullMessage = `Olá! Meu nome é ${customerName}. Telefone: ${customerPhone}. ${message}`;
-      const whatsappUrl = buildWhatsAppUrl(fullMessage);
-
-      openWhatsApp(whatsappUrl);
+      console.log("[WhatsAppButton] navigating to:", whatsappUrl);
+      whatsappWindow.location.href = whatsappUrl;
 
       // Limpar formulário e fechar dialog
       setCustomerName("");
@@ -111,6 +119,11 @@ const WhatsAppButton = ({
       setDialogOpen(false);
       toast.success("Abrindo WhatsApp...");
     } catch (error) {
+      try {
+        whatsappWindow.close();
+      } catch {
+        // ignore
+      }
       console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
     } finally {
