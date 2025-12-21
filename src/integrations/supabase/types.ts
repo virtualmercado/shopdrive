@@ -715,7 +715,12 @@ export type Database = {
       }
       payment_settings: {
         Row: {
+          boleto_enabled: boolean | null
+          boleto_provider: string | null
           created_at: string
+          credit_card_enabled: boolean | null
+          credit_card_installments_no_interest: number | null
+          credit_card_provider: string | null
           id: string
           mercadopago_accepts_credit: boolean | null
           mercadopago_accepts_pix: boolean | null
@@ -729,6 +734,9 @@ export type Database = {
           pagbank_email: string | null
           pagbank_enabled: boolean
           pagbank_token: string | null
+          pix_discount_percent: number | null
+          pix_enabled: boolean | null
+          pix_provider: string | null
           updated_at: string
           user_id: string
           whatsapp_accepts_cash: boolean | null
@@ -740,7 +748,12 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          boleto_enabled?: boolean | null
+          boleto_provider?: string | null
           created_at?: string
+          credit_card_enabled?: boolean | null
+          credit_card_installments_no_interest?: number | null
+          credit_card_provider?: string | null
           id?: string
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
@@ -754,6 +767,9 @@ export type Database = {
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_provider?: string | null
           updated_at?: string
           user_id: string
           whatsapp_accepts_cash?: boolean | null
@@ -765,7 +781,12 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          boleto_enabled?: boolean | null
+          boleto_provider?: string | null
           created_at?: string
+          credit_card_enabled?: boolean | null
+          credit_card_installments_no_interest?: number | null
+          credit_card_provider?: string | null
           id?: string
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
@@ -779,6 +800,9 @@ export type Database = {
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_provider?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_accepts_cash?: boolean | null

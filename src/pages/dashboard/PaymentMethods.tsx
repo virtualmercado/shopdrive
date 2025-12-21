@@ -6,70 +6,60 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { 
-  MessageCircle, 
   CreditCard, 
   QrCode, 
   ExternalLink,
   Settings2,
-  Trash2,
-  Banknote,
-  Smartphone,
-  Building2,
+  FileText,
   Percent,
-  Info
+  Info,
+  AlertTriangle
 } from "lucide-react";
 
 interface PaymentSettings {
   id?: string;
   user_id: string;
-  whatsapp_enabled: boolean;
-  whatsapp_number: string | null;
-  whatsapp_accepts_cash: boolean;
-  whatsapp_accepts_credit: boolean;
-  whatsapp_accepts_debit: boolean;
-  whatsapp_accepts_pix: boolean;
-  whatsapp_accepts_transfer: boolean;
+  // Legacy fields for gateway credentials
   mercadopago_enabled: boolean;
   mercadopago_access_token: string | null;
   mercadopago_public_key: string | null;
-  mercadopago_accepts_credit: boolean;
-  mercadopago_accepts_pix: boolean;
-  mercadopago_pix_discount: number;
-  mercadopago_installments_free: number;
   pagbank_enabled: boolean;
   pagbank_token: string | null;
   pagbank_email: string | null;
-  pagbank_accepts_credit: boolean;
-  pagbank_accepts_pix: boolean;
+  // New payment method fields
+  pix_enabled: boolean;
+  pix_provider: 'mercado_pago' | 'pagbank' | null;
+  pix_discount_percent: number;
+  credit_card_enabled: boolean;
+  credit_card_provider: 'mercado_pago' | 'pagbank' | null;
+  credit_card_installments_no_interest: number;
+  boleto_enabled: boolean;
+  boleto_provider: 'mercado_pago' | 'pagbank' | null;
 }
 
 const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
-  whatsapp_enabled: false,
-  whatsapp_number: null,
-  whatsapp_accepts_cash: true,
-  whatsapp_accepts_credit: true,
-  whatsapp_accepts_debit: true,
-  whatsapp_accepts_pix: true,
-  whatsapp_accepts_transfer: false,
   mercadopago_enabled: false,
   mercadopago_access_token: null,
   mercadopago_public_key: null,
-  mercadopago_accepts_credit: true,
-  mercadopago_accepts_pix: true,
-  mercadopago_pix_discount: 0,
-  mercadopago_installments_free: 1,
   pagbank_enabled: false,
   pagbank_token: null,
   pagbank_email: null,
-  pagbank_accepts_credit: true,
-  pagbank_accepts_pix: true,
+  pix_enabled: false,
+  pix_provider: null,
+  pix_discount_percent: 0,
+  credit_card_enabled: false,
+  credit_card_provider: null,
+  credit_card_installments_no_interest: 1,
+  boleto_enabled: false,
+  boleto_provider: null,
 };
 
 const PaymentMethodsContent = () => {
@@ -79,42 +69,55 @@ const PaymentMethodsContent = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // Dialog states
-  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  // Dialog states for gateway configuration
   const [mercadoPagoDialogOpen, setMercadoPagoDialogOpen] = useState(false);
   const [pagbankDialogOpen, setPagbankDialogOpen] = useState(false);
   
-  // Temp form states
-  const [tempWhatsappNumber, setTempWhatsappNumber] = useState("");
-  const [tempWhatsappAccepts, setTempWhatsappAccepts] = useState({
-    cash: true,
-    credit: true,
-    debit: true,
-    pix: true,
-    transfer: false,
-  });
-  
+  // Temp form states for gateway credentials
   const [tempMercadoPago, setTempMercadoPago] = useState({
     accessToken: "",
     publicKey: "",
-    acceptsCredit: true,
-    acceptsPix: true,
-    pixDiscount: 0,
-    installmentsFree: 1,
   });
   
   const [tempPagbank, setTempPagbank] = useState({
     token: "",
     email: "",
-    acceptsCredit: true,
-    acceptsPix: true,
   });
+
+  // Local state for payment methods configuration
+  const [pixEnabled, setPixEnabled] = useState(false);
+  const [pixProvider, setPixProvider] = useState<string>("");
+  const [pixDiscount, setPixDiscount] = useState(0);
+  
+  const [creditCardEnabled, setCreditCardEnabled] = useState(false);
+  const [creditCardProvider, setCreditCardProvider] = useState<string>("");
+  const [creditCardInstallments, setCreditCardInstallments] = useState(1);
+  
+  const [boletoEnabled, setBoletoEnabled] = useState(false);
+  const [boletoProvider, setBoletoProvider] = useState<string>("");
+
+  const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token && settings?.mercadopago_public_key);
+  const hasPagbankCredentials = !!(settings?.pagbank_token && settings?.pagbank_email);
+  const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials;
 
   useEffect(() => {
     if (user) {
       fetchSettings();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (settings) {
+      setPixEnabled(settings.pix_enabled || false);
+      setPixProvider(settings.pix_provider || "");
+      setPixDiscount(settings.pix_discount_percent || 0);
+      setCreditCardEnabled(settings.credit_card_enabled || false);
+      setCreditCardProvider(settings.credit_card_provider || "");
+      setCreditCardInstallments(settings.credit_card_installments_no_interest || 1);
+      setBoletoEnabled(settings.boleto_enabled || false);
+      setBoletoProvider(settings.boleto_provider || "");
+    }
+  }, [settings]);
 
   const fetchSettings = async () => {
     if (!user) return;
@@ -185,72 +188,72 @@ const PaymentMethodsContent = () => {
     }
   };
 
-  const toggleWhatsapp = async (enabled: boolean) => {
-    if (enabled && !settings?.whatsapp_number) {
-      // Open config dialog first
-      setTempWhatsappNumber(settings?.whatsapp_number || "");
-      setTempWhatsappAccepts({
-        cash: settings?.whatsapp_accepts_cash ?? true,
-        credit: settings?.whatsapp_accepts_credit ?? true,
-        debit: settings?.whatsapp_accepts_debit ?? true,
-        pix: settings?.whatsapp_accepts_pix ?? true,
-        transfer: settings?.whatsapp_accepts_transfer ?? false,
-      });
-      setWhatsappDialogOpen(true);
-    } else {
-      await saveSettings({ whatsapp_enabled: enabled });
-    }
-  };
-
-  const toggleMercadoPago = async (enabled: boolean) => {
-    if (enabled && !settings?.mercadopago_access_token) {
-      setTempMercadoPago({
-        accessToken: settings?.mercadopago_access_token || "",
-        publicKey: settings?.mercadopago_public_key || "",
-        acceptsCredit: settings?.mercadopago_accepts_credit ?? true,
-        acceptsPix: settings?.mercadopago_accepts_pix ?? true,
-        pixDiscount: settings?.mercadopago_pix_discount ?? 0,
-        installmentsFree: settings?.mercadopago_installments_free ?? 1,
-      });
-      setMercadoPagoDialogOpen(true);
-    } else {
-      await saveSettings({ mercadopago_enabled: enabled });
-    }
-  };
-
-  const togglePagbank = async (enabled: boolean) => {
-    if (enabled && !settings?.pagbank_token) {
-      setTempPagbank({
-        token: settings?.pagbank_token || "",
-        email: settings?.pagbank_email || "",
-        acceptsCredit: settings?.pagbank_accepts_credit ?? true,
-        acceptsPix: settings?.pagbank_accepts_pix ?? true,
-      });
-      setPagbankDialogOpen(true);
-    } else {
-      await saveSettings({ pagbank_enabled: enabled });
-    }
-  };
-
-  const saveWhatsappConfig = async () => {
-    if (!tempWhatsappNumber.trim()) {
-      toast.error("Informe o número do WhatsApp");
+  const validateAndSavePaymentMethods = async () => {
+    // Validation: if a method is enabled, it must have a provider
+    if (pixEnabled && !pixProvider) {
+      toast.error("Selecione um gateway para o Pix");
       return;
     }
-    
+    if (creditCardEnabled && !creditCardProvider) {
+      toast.error("Selecione um gateway para o Cartão de Crédito");
+      return;
+    }
+    if (boletoEnabled && !boletoProvider) {
+      toast.error("Selecione um gateway para o Boleto");
+      return;
+    }
+
+    // Validate provider credentials
+    if (pixEnabled && pixProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
+      toast.error("Configure as credenciais do Mercado Pago antes de ativar o Pix");
+      return;
+    }
+    if (pixEnabled && pixProvider === "pagbank" && !hasPagbankCredentials) {
+      toast.error("Configure as credenciais do PagBank antes de ativar o Pix");
+      return;
+    }
+    if (creditCardEnabled && creditCardProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
+      toast.error("Configure as credenciais do Mercado Pago antes de ativar o Cartão");
+      return;
+    }
+    if (creditCardEnabled && creditCardProvider === "pagbank" && !hasPagbankCredentials) {
+      toast.error("Configure as credenciais do PagBank antes de ativar o Cartão");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
+      toast.error("Configure as credenciais do Mercado Pago antes de ativar o Boleto");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "pagbank" && !hasPagbankCredentials) {
+      toast.error("Configure as credenciais do PagBank antes de ativar o Boleto");
+      return;
+    }
+
+    // Validate discount range
+    if (pixDiscount < 0 || pixDiscount > 100) {
+      toast.error("Desconto no Pix deve ser entre 0 e 100%");
+      return;
+    }
+
+    // Validate installments
+    if (creditCardInstallments < 1) {
+      toast.error("Parcelamento deve ser pelo menos 1x");
+      return;
+    }
+
     await saveSettings({
-      whatsapp_enabled: true,
-      whatsapp_number: tempWhatsappNumber,
-      whatsapp_accepts_cash: tempWhatsappAccepts.cash,
-      whatsapp_accepts_credit: tempWhatsappAccepts.credit,
-      whatsapp_accepts_debit: tempWhatsappAccepts.debit,
-      whatsapp_accepts_pix: tempWhatsappAccepts.pix,
-      whatsapp_accepts_transfer: tempWhatsappAccepts.transfer,
+      pix_enabled: pixEnabled,
+      pix_provider: pixEnabled && pixProvider ? (pixProvider as 'mercado_pago' | 'pagbank') : null,
+      pix_discount_percent: pixDiscount,
+      credit_card_enabled: creditCardEnabled,
+      credit_card_provider: creditCardEnabled && creditCardProvider ? (creditCardProvider as 'mercado_pago' | 'pagbank') : null,
+      credit_card_installments_no_interest: creditCardInstallments,
+      boleto_enabled: boletoEnabled,
+      boleto_provider: boletoEnabled && boletoProvider ? (boletoProvider as 'mercado_pago' | 'pagbank') : null,
     });
-    setWhatsappDialogOpen(false);
   };
 
-  const saveMercadoPagoConfig = async () => {
+  const saveMercadoPagoCredentials = async () => {
     if (!tempMercadoPago.accessToken.trim() || !tempMercadoPago.publicKey.trim()) {
       toast.error("Preencha todas as credenciais do Mercado Pago");
       return;
@@ -260,15 +263,11 @@ const PaymentMethodsContent = () => {
       mercadopago_enabled: true,
       mercadopago_access_token: tempMercadoPago.accessToken,
       mercadopago_public_key: tempMercadoPago.publicKey,
-      mercadopago_accepts_credit: tempMercadoPago.acceptsCredit,
-      mercadopago_accepts_pix: tempMercadoPago.acceptsPix,
-      mercadopago_pix_discount: tempMercadoPago.pixDiscount,
-      mercadopago_installments_free: tempMercadoPago.installmentsFree,
     });
     setMercadoPagoDialogOpen(false);
   };
 
-  const savePagbankConfig = async () => {
+  const savePagbankCredentials = async () => {
     if (!tempPagbank.token.trim() || !tempPagbank.email.trim()) {
       toast.error("Preencha todas as credenciais do PagBank");
       return;
@@ -278,49 +277,14 @@ const PaymentMethodsContent = () => {
       pagbank_enabled: true,
       pagbank_token: tempPagbank.token,
       pagbank_email: tempPagbank.email,
-      pagbank_accepts_credit: tempPagbank.acceptsCredit,
-      pagbank_accepts_pix: tempPagbank.acceptsPix,
     });
     setPagbankDialogOpen(false);
-  };
-
-  const removeIntegration = async (provider: 'mercadopago' | 'pagbank') => {
-    if (provider === 'mercadopago') {
-      await saveSettings({
-        mercadopago_enabled: false,
-        mercadopago_access_token: null,
-        mercadopago_public_key: null,
-      });
-    } else {
-      await saveSettings({
-        pagbank_enabled: false,
-        pagbank_token: null,
-        pagbank_email: null,
-      });
-    }
-    toast.success("Integração removida com sucesso");
-  };
-
-  const openWhatsappConfig = () => {
-    setTempWhatsappNumber(settings?.whatsapp_number || "");
-    setTempWhatsappAccepts({
-      cash: settings?.whatsapp_accepts_cash ?? true,
-      credit: settings?.whatsapp_accepts_credit ?? true,
-      debit: settings?.whatsapp_accepts_debit ?? true,
-      pix: settings?.whatsapp_accepts_pix ?? true,
-      transfer: settings?.whatsapp_accepts_transfer ?? false,
-    });
-    setWhatsappDialogOpen(true);
   };
 
   const openMercadoPagoConfig = () => {
     setTempMercadoPago({
       accessToken: settings?.mercadopago_access_token || "",
       publicKey: settings?.mercadopago_public_key || "",
-      acceptsCredit: settings?.mercadopago_accepts_credit ?? true,
-      acceptsPix: settings?.mercadopago_accepts_pix ?? true,
-      pixDiscount: settings?.mercadopago_pix_discount ?? 0,
-      installmentsFree: settings?.mercadopago_installments_free ?? 1,
     });
     setMercadoPagoDialogOpen(true);
   };
@@ -329,11 +293,11 @@ const PaymentMethodsContent = () => {
     setTempPagbank({
       token: settings?.pagbank_token || "",
       email: settings?.pagbank_email || "",
-      acceptsCredit: settings?.pagbank_accepts_credit ?? true,
-      acceptsPix: settings?.pagbank_accepts_pix ?? true,
     });
     setPagbankDialogOpen(true);
   };
+
+  const noMethodsActive = !pixEnabled && !creditCardEnabled && !boletoEnabled;
 
   if (loading) {
     return (
@@ -351,436 +315,328 @@ const PaymentMethodsContent = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Formas de Pagamento</h2>
           <p className="text-muted-foreground mt-1">
-            Configure como você deseja receber os pagamentos dos seus clientes.
+            Configure quais métodos de pagamento estarão disponíveis no checkout da sua loja.
           </p>
         </div>
 
-        {/* WhatsApp Payment */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${primaryColor}15` }}
-                >
-                  <MessageCircle className="h-6 w-6" style={{ color: primaryColor }} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Pagamento via WhatsApp</CardTitle>
-                  <CardDescription>
-                    Receba pedidos diretamente no seu WhatsApp
-                  </CardDescription>
-                </div>
-              </div>
-              <Switch
-                checked={settings?.whatsapp_enabled || false}
-                onCheckedChange={toggleWhatsapp}
-                style={{
-                  backgroundColor: settings?.whatsapp_enabled ? primaryColor : undefined,
-                }}
-              />
-            </div>
-          </CardHeader>
-          {settings?.whatsapp_enabled && (
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">WhatsApp configurado</p>
-                  <p className="text-sm text-muted-foreground">{settings.whatsapp_number}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openWhatsappConfig}
-                  className="gap-2"
-                  style={{ borderColor: primaryColor, color: primaryColor }}
-                >
-                  <Settings2 className="h-4 w-4" />
-                  Configurar
-                </Button>
-              </div>
-              
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex gap-2">
-                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium">Como funciona:</p>
-                    <p className="mt-1">
-                      Ao finalizar a compra, o cliente será redirecionado para o WhatsApp com um resumo do pedido, 
-                      valor total e forma de pagamento escolhida. O pagamento é coordenado diretamente entre você e o cliente.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
+        {/* Warning if no methods active */}
+        {noMethodsActive && (
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Ative pelo menos uma forma de pagamento para receber pedidos.
+            </AlertDescription>
+          </Alert>
+        )}
 
-        {/* Mercado Pago */}
+        {/* Gateway Configuration Section */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: '#00A1E415' }}
-                >
-                  <CreditCard className="h-6 w-6" style={{ color: '#00A1E4' }} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Mercado Pago</CardTitle>
-                  <CardDescription>
-                    Aceite cartões e Pix automaticamente
-                  </CardDescription>
-                </div>
-              </div>
-              <Switch
-                checked={settings?.mercadopago_enabled || false}
-                onCheckedChange={toggleMercadoPago}
-                style={{
-                  backgroundColor: settings?.mercadopago_enabled ? primaryColor : undefined,
-                }}
-              />
-            </div>
+            <CardTitle className="text-lg">Configurar Gateways</CardTitle>
+            <CardDescription>
+              Configure as credenciais dos gateways antes de ativar os métodos de pagamento.
+            </CardDescription>
           </CardHeader>
-          {settings?.mercadopago_enabled && settings.mercadopago_access_token && (
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Taxas */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium text-sm mb-2">Taxas informativas</h4>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Cartão de crédito: ~4,99%</p>
-                    <p>Pix: ~0,99%</p>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Mercado Pago */}
+              <div className={`p-4 rounded-lg border-2 ${hasMercadoPagoCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#00A1E4' }} />
+                    <span className="font-medium">Mercado Pago</span>
                   </div>
+                  {hasMercadoPagoCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
                 </div>
-                
-                {/* Configurações */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium text-sm mb-2">Suas configurações</h4>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Desconto no Pix: {settings.mercadopago_pix_discount}%</p>
-                    <p>Parcelamento s/ juros: até {settings.mercadopago_installments_free}x</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Atalhos */}
-              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={openMercadoPagoConfig}
-                  className="gap-2"
+                  className="w-full"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  <Settings2 className="h-4 w-4" />
-                  Configurar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => window.open('https://www.mercadopago.com.br/balance', '_blank')}
-                >
-                  <Banknote className="h-4 w-4" />
-                  Ver saldo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => window.open('https://www.mercadopago.com.br', '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Acessar Mercado Pago
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => removeIntegration('mercadopago')}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Remover integração
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasMercadoPagoCredentials ? "Editar credenciais" : "Configurar"}
                 </Button>
               </div>
-              
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex gap-2">
-                  <Info className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-800">
-                    <p>O recebimento é feito diretamente na sua conta Mercado Pago. As taxas são de responsabilidade do provedor.</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
 
-        {/* PagBank */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: '#FFC70015' }}
-                >
-                  <Building2 className="h-6 w-6" style={{ color: '#FFC700' }} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">PagBank</CardTitle>
-                  <CardDescription>
-                    Integração com PagBank para cartões e Pix
-                  </CardDescription>
-                </div>
-              </div>
-              <Switch
-                checked={settings?.pagbank_enabled || false}
-                onCheckedChange={togglePagbank}
-                style={{
-                  backgroundColor: settings?.pagbank_enabled ? primaryColor : undefined,
-                }}
-              />
-            </div>
-          </CardHeader>
-          {settings?.pagbank_enabled && settings.pagbank_token ? (
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Taxas */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium text-sm mb-2">Taxas informativas</h4>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Cartão de crédito: ~4,99%</p>
-                    <p>Pix: ~0,99%</p>
+              {/* PagBank */}
+              <div className={`p-4 rounded-lg border-2 ${hasPagbankCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#FFC700' }} />
+                    <span className="font-medium">PagBank</span>
                   </div>
+                  {hasPagbankCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
                 </div>
-                
-                {/* Prazos */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium text-sm mb-2">Prazos de recebimento</h4>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Cartão de crédito: 30 dias</p>
-                    <p>Pix: Imediato</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Atalhos */}
-              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={openPagbankConfig}
-                  className="gap-2"
+                  className="w-full"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  <Settings2 className="h-4 w-4" />
-                  Configurar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => window.open('https://pagseguro.uol.com.br', '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Acessar PagBank
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => removeIntegration('pagbank')}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Remover integração
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasPagbankCredentials ? "Editar credenciais" : "Configurar"}
                 </Button>
               </div>
-              
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex gap-2">
-                  <Info className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-800">
-                    <p>O recebimento é feito diretamente na sua conta PagBank. As taxas são de responsabilidade do provedor.</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          ) : !settings?.pagbank_enabled ? (
-            <CardContent>
+            </div>
+
+            {!hasAnyGateway && (
               <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
                 <div className="flex gap-2">
                   <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-amber-800">
-                    <p className="font-medium">Não possui conta PagBank?</p>
+                    <p className="font-medium">Configure pelo menos um gateway</p>
                     <p className="mt-1">
-                      Crie sua conta gratuitamente em{" "}
-                      <a 
-                        href="https://pagseguro.uol.com.br" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="underline font-medium"
-                      >
-                        pagseguro.uol.com.br
-                      </a>
+                      Para ativar os métodos de pagamento, você precisa configurar as credenciais do Mercado Pago ou PagBank.
                     </p>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          ) : null}
+            )}
+          </CardContent>
         </Card>
 
-        {/* WhatsApp Config Dialog */}
-        <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" style={{ color: primaryColor }} />
-                Configurar pagamento via WhatsApp
-              </DialogTitle>
-              <DialogDescription>
-                Configure como você deseja receber pagamentos via WhatsApp.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp-number">Número do WhatsApp *</Label>
-                <Input
-                  id="whatsapp-number"
-                  placeholder="+55 11 99999-9999"
-                  value={tempWhatsappNumber}
-                  onChange={(e) => setTempWhatsappNumber(e.target.value)}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Inclua o DDI (+55) e DDD
-                </p>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <Label>Formas de pagamento aceitas</Label>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="accepts-cash"
-                      checked={tempWhatsappAccepts.cash}
-                      onCheckedChange={(checked) => 
-                        setTempWhatsappAccepts(prev => ({ ...prev, cash: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempWhatsappAccepts.cash ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="accepts-cash" className="font-normal flex items-center gap-2">
-                      <Banknote className="h-4 w-4 text-muted-foreground" />
-                      Dinheiro
-                    </Label>
+        {/* Payment Methods Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Métodos de Pagamento</CardTitle>
+            <CardDescription>
+              Ative os métodos que deseja oferecer e escolha qual gateway será usado para cada um.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Pix */}
+            <div className="p-4 rounded-lg border">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <QrCode className="h-6 w-6" style={{ color: primaryColor }} />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="accepts-credit"
-                      checked={tempWhatsappAccepts.credit}
-                      onCheckedChange={(checked) => 
-                        setTempWhatsappAccepts(prev => ({ ...prev, credit: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempWhatsappAccepts.credit ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="accepts-credit" className="font-normal flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      Cartão de crédito
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="accepts-debit"
-                      checked={tempWhatsappAccepts.debit}
-                      onCheckedChange={(checked) => 
-                        setTempWhatsappAccepts(prev => ({ ...prev, debit: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempWhatsappAccepts.debit ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="accepts-debit" className="font-normal flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      Cartão de débito
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="accepts-pix"
-                      checked={tempWhatsappAccepts.pix}
-                      onCheckedChange={(checked) => 
-                        setTempWhatsappAccepts(prev => ({ ...prev, pix: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempWhatsappAccepts.pix ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="accepts-pix" className="font-normal flex items-center gap-2">
-                      <QrCode className="h-4 w-4 text-muted-foreground" />
-                      Pix
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="accepts-transfer"
-                      checked={tempWhatsappAccepts.transfer}
-                      onCheckedChange={(checked) => 
-                        setTempWhatsappAccepts(prev => ({ ...prev, transfer: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempWhatsappAccepts.transfer ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="accepts-transfer" className="font-normal flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      Transferência bancária
-                    </Label>
+                  <div>
+                    <h3 className="font-medium">Pix</h3>
+                    <p className="text-sm text-muted-foreground">Pagamento instantâneo via QR Code</p>
                   </div>
                 </div>
+                <Switch
+                  checked={pixEnabled}
+                  onCheckedChange={setPixEnabled}
+                  disabled={!hasAnyGateway}
+                  style={{
+                    backgroundColor: pixEnabled ? primaryColor : undefined,
+                  }}
+                />
               </div>
+              
+              {pixEnabled && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Gateway para Pix *</Label>
+                      <Select value={pixProvider} onValueChange={setPixProvider}>
+                        <SelectTrigger style={{ borderColor: primaryColor }}>
+                          <SelectValue placeholder="Selecione o gateway" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hasMercadoPagoCredentials && (
+                            <SelectItem value="mercado_pago">Mercado Pago</SelectItem>
+                          )}
+                          {hasPagbankCredentials && (
+                            <SelectItem value="pagbank">PagBank</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        Desconto no Pix (%)
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={pixDiscount}
+                        onChange={(e) => setPixDiscount(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        style={{ borderColor: primaryColor }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setWhatsappDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={saveWhatsappConfig}
+
+            {/* Cartão de Crédito */}
+            <div className="p-4 rounded-lg border">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <CreditCard className="h-6 w-6" style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Cartão de crédito</h3>
+                    <p className="text-sm text-muted-foreground">Pague em até 12x</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={creditCardEnabled}
+                  onCheckedChange={setCreditCardEnabled}
+                  disabled={!hasAnyGateway}
+                  style={{
+                    backgroundColor: creditCardEnabled ? primaryColor : undefined,
+                  }}
+                />
+              </div>
+              
+              {creditCardEnabled && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Gateway para Cartão *</Label>
+                      <Select value={creditCardProvider} onValueChange={setCreditCardProvider}>
+                        <SelectTrigger style={{ borderColor: primaryColor }}>
+                          <SelectValue placeholder="Selecione o gateway" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hasMercadoPagoCredentials && (
+                            <SelectItem value="mercado_pago">Mercado Pago</SelectItem>
+                          )}
+                          {hasPagbankCredentials && (
+                            <SelectItem value="pagbank">PagBank</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Parcelamento sem juros (até)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={creditCardInstallments}
+                        onChange={(e) => setCreditCardInstallments(Math.min(12, Math.max(1, Number(e.target.value))))}
+                        style={{ borderColor: primaryColor }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Boleto Bancário */}
+            <div className="p-4 rounded-lg border">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <FileText className="h-6 w-6" style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Boleto bancário</h3>
+                    <p className="text-sm text-muted-foreground">Pagamento via boleto</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={boletoEnabled}
+                  onCheckedChange={setBoletoEnabled}
+                  disabled={!hasAnyGateway}
+                  style={{
+                    backgroundColor: boletoEnabled ? primaryColor : undefined,
+                  }}
+                />
+              </div>
+              
+              {boletoEnabled && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Gateway para Boleto *</Label>
+                    <Select value={boletoProvider} onValueChange={setBoletoProvider}>
+                      <SelectTrigger style={{ borderColor: primaryColor }}>
+                        <SelectValue placeholder="Selecione o gateway" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hasMercadoPagoCredentials && (
+                          <SelectItem value="mercado_pago">Mercado Pago</SelectItem>
+                        )}
+                        {hasPagbankCredentials && (
+                          <SelectItem value="pagbank">PagBank</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Save Button */}
+            <div className="pt-4">
+              <Button
+                onClick={validateAndSavePaymentMethods}
                 disabled={saving}
+                className="w-full md:w-auto"
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
                 {saving ? "Salvando..." : "Salvar Configurações"}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Links úteis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open('https://www.mercadopago.com.br/developers/pt/docs/checkout-api/integration-configuration/integrate-with-pix', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Documentação Mercado Pago
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open('https://dev.pagseguro.uol.com.br/reference/pix-intro', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Documentação PagBank
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Mercado Pago Config Dialog */}
         <Dialog open={mercadoPagoDialogOpen} onOpenChange={setMercadoPagoDialogOpen}>
@@ -791,7 +647,7 @@ const PaymentMethodsContent = () => {
                 Configurar Mercado Pago
               </DialogTitle>
               <DialogDescription>
-                Conecte sua conta Mercado Pago para receber pagamentos.
+                Insira suas credenciais do Mercado Pago para habilitar pagamentos.
               </DialogDescription>
             </DialogHeader>
             
@@ -830,93 +686,21 @@ const PaymentMethodsContent = () => {
                   }}
                 />
               </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <Label>Métodos aceitos</Label>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="mp-accepts-credit"
-                      checked={tempMercadoPago.acceptsCredit}
-                      onCheckedChange={(checked) => 
-                        setTempMercadoPago(prev => ({ ...prev, acceptsCredit: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempMercadoPago.acceptsCredit ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="mp-accepts-credit" className="font-normal">
-                      Cartão de crédito
-                    </Label>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex gap-2">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p>Obtenha suas credenciais em:</p>
+                    <a 
+                      href="https://www.mercadopago.com.br/developers/panel/app" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      mercadopago.com.br/developers
+                    </a>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="mp-accepts-pix"
-                      checked={tempMercadoPago.acceptsPix}
-                      onCheckedChange={(checked) => 
-                        setTempMercadoPago(prev => ({ ...prev, acceptsPix: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempMercadoPago.acceptsPix ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="mp-accepts-pix" className="font-normal">
-                      Pix
-                    </Label>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="mp-pix-discount" className="flex items-center gap-1">
-                    <Percent className="h-3 w-3" />
-                    Desconto no Pix
-                  </Label>
-                  <Input
-                    id="mp-pix-discount"
-                    type="number"
-                    min="0"
-                    max="99"
-                    placeholder="0"
-                    value={tempMercadoPago.pixDiscount}
-                    onChange={(e) => setTempMercadoPago(prev => ({ ...prev, pixDiscount: Number(e.target.value) }))}
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="mp-installments">Parcelamento s/ juros</Label>
-                  <Input
-                    id="mp-installments"
-                    type="number"
-                    min="1"
-                    max="12"
-                    placeholder="1"
-                    value={tempMercadoPago.installmentsFree}
-                    onChange={(e) => setTempMercadoPago(prev => ({ ...prev, installmentsFree: Number(e.target.value) }))}
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
                 </div>
               </div>
             </div>
@@ -926,11 +710,11 @@ const PaymentMethodsContent = () => {
                 Cancelar
               </Button>
               <Button 
-                onClick={saveMercadoPagoConfig}
+                onClick={saveMercadoPagoCredentials}
                 disabled={saving}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
-                {saving ? "Salvando..." : "Salvar Configurações"}
+                {saving ? "Salvando..." : "Salvar Credenciais"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -941,15 +725,33 @@ const PaymentMethodsContent = () => {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" style={{ color: '#FFC700' }} />
+                <CreditCard className="h-5 w-5" style={{ color: '#FFC700' }} />
                 Configurar PagBank
               </DialogTitle>
               <DialogDescription>
-                Conecte sua conta PagBank para receber pagamentos.
+                Insira suas credenciais do PagBank para habilitar pagamentos.
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="pb-token">Token *</Label>
+                <Input
+                  id="pb-token"
+                  type="password"
+                  placeholder="Seu token do PagBank"
+                  value={tempPagbank.token}
+                  onChange={(e) => setTempPagbank(prev => ({ ...prev, token: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="pb-email">E-mail da conta PagBank *</Label>
                 <Input
@@ -967,63 +769,20 @@ const PaymentMethodsContent = () => {
                   }}
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="pb-token">Token de integração *</Label>
-                <Input
-                  id="pb-token"
-                  type="password"
-                  placeholder="Token PagBank"
-                  value={tempPagbank.token}
-                  onChange={(e) => setTempPagbank(prev => ({ ...prev, token: e.target.value }))}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <Label>Métodos aceitos</Label>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="pb-accepts-credit"
-                      checked={tempPagbank.acceptsCredit}
-                      onCheckedChange={(checked) => 
-                        setTempPagbank(prev => ({ ...prev, acceptsCredit: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempPagbank.acceptsCredit ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="pb-accepts-credit" className="font-normal">
-                      Cartão de crédito
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="pb-accepts-pix"
-                      checked={tempPagbank.acceptsPix}
-                      onCheckedChange={(checked) => 
-                        setTempPagbank(prev => ({ ...prev, acceptsPix: !!checked }))
-                      }
-                      style={{ 
-                        borderColor: primaryColor,
-                        backgroundColor: tempPagbank.acceptsPix ? primaryColor : undefined 
-                      }}
-                    />
-                    <Label htmlFor="pb-accepts-pix" className="font-normal">
-                      Pix
-                    </Label>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex gap-2">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p>Obtenha suas credenciais em:</p>
+                    <a 
+                      href="https://pagseguro.uol.com.br/preferencias/integracoes" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      pagseguro.uol.com.br/preferencias
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1034,11 +793,11 @@ const PaymentMethodsContent = () => {
                 Cancelar
               </Button>
               <Button 
-                onClick={savePagbankConfig}
+                onClick={savePagbankCredentials}
                 disabled={saving}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
-                {saving ? "Salvando..." : "Salvar Configurações"}
+                {saving ? "Salvando..." : "Salvar Credenciais"}
               </Button>
             </DialogFooter>
           </DialogContent>

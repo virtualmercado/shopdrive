@@ -14,7 +14,7 @@ import { useCoupon } from "@/hooks/useCoupon";
 import { PixPayment } from "@/components/checkout/PixPayment";
 
 type DeliveryMethod = "retirada" | "entrega";
-type PaymentMethod = "cartao_credito" | "cartao_debito" | "pix" | "whatsapp";
+type PaymentMethod = "cartao_credito" | "pix" | "boleto" | "whatsapp";
 
 interface CheckoutFormData {
   customer_name: string;
@@ -36,7 +36,7 @@ const checkoutSchema = z.object({
   customer_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   customer_address: z.string().trim().max(500).optional(),
   delivery_method: z.enum(["retirada", "entrega"]),
-  payment_method: z.enum(["cartao_credito", "cartao_debito", "pix", "whatsapp"]),
+  payment_method: z.enum(["cartao_credito", "pix", "boleto", "whatsapp"]),
   notes: z.string().max(1000).optional(),
 });
 
@@ -121,8 +121,11 @@ const CheckoutContent = () => {
 
         if (paySettings) {
           setPaymentSettings(paySettings);
-          // Determine which gateway to use for PIX
-          if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_pix) {
+          // Use the new payment method configuration to determine gateway
+          if (paySettings.pix_enabled && paySettings.pix_provider) {
+            setPixGateway(paySettings.pix_provider === "mercado_pago" ? "mercadopago" : "pagbank");
+          } else if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_pix) {
+            // Fallback to legacy settings
             setPixGateway("mercadopago");
           } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_pix) {
             setPixGateway("pagbank");
@@ -268,7 +271,14 @@ const CheckoutContent = () => {
 
       const subtotal = getTotal();
       const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
-      const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
+      
+      // Calculate PIX discount if applicable
+      const pixDiscountPercent = (formData.payment_method === "pix" && paymentSettings?.pix_discount_percent > 0) 
+        ? paymentSettings.pix_discount_percent 
+        : 0;
+      const pixDiscountAmount = (subtotal - couponDiscount) * (pixDiscountPercent / 100);
+      
+      const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
 
       const addressString = formData.delivery_method === "entrega" 
         ? `${formData.address}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ""}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`
@@ -367,8 +377,8 @@ const CheckoutContent = () => {
             ? "PIX" 
             : formData.payment_method === "cartao_credito" 
             ? "Cartão de Crédito" 
-            : formData.payment_method === "cartao_debito" 
-            ? "Cartão de Débito" 
+            : formData.payment_method === "boleto" 
+            ? "Boleto Bancário" 
             : "Combinar via WhatsApp";
 
         const whatsappMessage = `
@@ -452,7 +462,14 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
 
   const subtotal = getTotal();
   const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
-  const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
+  
+  // Calculate PIX discount if applicable
+  const pixDiscountPercent = (formData.payment_method === "pix" && paymentSettings?.pix_discount_percent > 0) 
+    ? paymentSettings.pix_discount_percent 
+    : 0;
+  const pixDiscountAmount = (subtotal - couponDiscount) * (pixDiscountPercent / 100);
+  
+  const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
   const isFormValid = formData.customer_name && formData.customer_phone && 
     (formData.delivery_method === "retirada" || 
      (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state));
@@ -695,39 +712,55 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
                   }
                   className="grid grid-cols-2 md:grid-cols-4 gap-4"
                 >
-                  <div>
-                    <RadioGroupItem value="pix" id="pix" className="peer sr-only" />
-                    <Label
-                      htmlFor="pix"
-                      className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
-                    >
-                      <span className="text-2xl mb-2">📱</span>
-                      <span className="text-sm font-medium text-center">PIX</span>
-                    </Label>
-                  </div>
+                  {/* PIX - show if enabled in new config or legacy config */}
+                  {(paymentSettings?.pix_enabled || (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_pix) || (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_pix)) && (
+                    <div>
+                      <RadioGroupItem value="pix" id="pix" className="peer sr-only" />
+                      <Label
+                        htmlFor="pix"
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
+                      >
+                        <span className="text-2xl mb-2">📱</span>
+                        <span className="text-sm font-medium text-center">PIX</span>
+                        {paymentSettings?.pix_discount_percent > 0 && (
+                          <span className="text-xs text-green-600 font-medium">-{paymentSettings.pix_discount_percent}%</span>
+                        )}
+                      </Label>
+                    </div>
+                  )}
 
-                  <div>
-                    <RadioGroupItem value="cartao_credito" id="cartao_credito" className="peer sr-only" />
-                    <Label
-                      htmlFor="cartao_credito"
-                      className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
-                    >
-                      <span className="text-2xl mb-2">💳</span>
-                      <span className="text-sm font-medium text-center">Crédito</span>
-                    </Label>
-                  </div>
+                  {/* Cartão de Crédito - show if enabled in new config or legacy config */}
+                  {(paymentSettings?.credit_card_enabled || (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_credit) || (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_credit)) && (
+                    <div>
+                      <RadioGroupItem value="cartao_credito" id="cartao_credito" className="peer sr-only" />
+                      <Label
+                        htmlFor="cartao_credito"
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
+                      >
+                        <span className="text-2xl mb-2">💳</span>
+                        <span className="text-sm font-medium text-center">Crédito</span>
+                        {paymentSettings?.credit_card_installments_no_interest > 1 && (
+                          <span className="text-xs text-muted-foreground">até {paymentSettings.credit_card_installments_no_interest}x</span>
+                        )}
+                      </Label>
+                    </div>
+                  )}
 
-                  <div>
-                    <RadioGroupItem value="cartao_debito" id="cartao_debito" className="peer sr-only" />
-                    <Label
-                      htmlFor="cartao_debito"
-                      className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
-                    >
-                      <span className="text-2xl mb-2">💳</span>
-                      <span className="text-sm font-medium text-center">Débito</span>
-                    </Label>
-                  </div>
+                  {/* Boleto - show if enabled */}
+                  {paymentSettings?.boleto_enabled && (
+                    <div>
+                      <RadioGroupItem value="boleto" id="boleto" className="peer sr-only" />
+                      <Label
+                        htmlFor="boleto"
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer h-full"
+                      >
+                        <span className="text-2xl mb-2">📄</span>
+                        <span className="text-sm font-medium text-center">Boleto</span>
+                      </Label>
+                    </div>
+                  )}
 
+                  {/* WhatsApp - always show as fallback */}
                   <div>
                     <RadioGroupItem value="whatsapp" id="whatsapp" className="peer sr-only" />
                     <Label
@@ -739,6 +772,15 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
                     </Label>
                   </div>
                 </RadioGroup>
+
+                {/* Pix discount info */}
+                {formData.payment_method === "pix" && paymentSettings?.pix_discount_percent > 0 && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">
+                      Você receberá <strong>{paymentSettings.pix_discount_percent}% de desconto</strong> pagando com PIX!
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Observações */}
@@ -871,6 +913,12 @@ ${formData.notes ? `📝 *Observações*\n${formData.notes}` : ""}
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Desconto (cupom)</span>
                     <span>-R$ {couponDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {pixDiscountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Desconto PIX ({pixDiscountPercent}%)</span>
+                    <span>-R$ {pixDiscountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
