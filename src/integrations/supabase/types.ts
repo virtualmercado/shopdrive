@@ -1158,6 +1158,10 @@ export type Database = {
           merchant_state: string | null
           phone: string | null
           pickup_address: string | null
+          pickup_hours_saturday_end: string | null
+          pickup_hours_saturday_start: string | null
+          pickup_hours_weekday_end: string | null
+          pickup_hours_weekday_start: string | null
           primary_color: string | null
           product_border_style: string | null
           product_button_display: string | null
@@ -1216,6 +1220,10 @@ export type Database = {
           merchant_state?: string | null
           phone?: string | null
           pickup_address?: string | null
+          pickup_hours_saturday_end?: string | null
+          pickup_hours_saturday_start?: string | null
+          pickup_hours_weekday_end?: string | null
+          pickup_hours_weekday_start?: string | null
           primary_color?: string | null
           product_border_style?: string | null
           product_button_display?: string | null
@@ -1274,6 +1282,10 @@ export type Database = {
           merchant_state?: string | null
           phone?: string | null
           pickup_address?: string | null
+          pickup_hours_saturday_end?: string | null
+          pickup_hours_saturday_start?: string | null
+          pickup_hours_weekday_end?: string | null
+          pickup_hours_weekday_start?: string | null
           primary_color?: string | null
           product_border_style?: string | null
           product_button_display?: string | null

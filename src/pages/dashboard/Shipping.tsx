@@ -27,6 +27,12 @@ const Shipping = () => {
   const [accountAddress, setAccountAddress] = useState("");
   const [loading, setLoading] = useState(false);
   
+  // Pickup hours state
+  const [pickupHoursWeekdayStart, setPickupHoursWeekdayStart] = useState("");
+  const [pickupHoursWeekdayEnd, setPickupHoursWeekdayEnd] = useState("");
+  const [pickupHoursSaturdayStart, setPickupHoursSaturdayStart] = useState("");
+  const [pickupHoursSaturdayEnd, setPickupHoursSaturdayEnd] = useState("");
+  
   // Modal states
   const [customShippingOpen, setCustomShippingOpen] = useState(false);
   const [correiosOpen, setCorreiosOpen] = useState(false);
@@ -52,7 +58,7 @@ const Shipping = () => {
       // Fetch profile settings
       const { data: profile } = await supabase
         .from("profiles")
-        .select("delivery_option, pickup_address, use_account_address_for_pickup, address, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip_code, free_shipping_minimum")
+        .select("delivery_option, pickup_address, use_account_address_for_pickup, address, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip_code, free_shipping_minimum, pickup_hours_weekday_start, pickup_hours_weekday_end, pickup_hours_saturday_start, pickup_hours_saturday_end")
         .eq("id", user.id)
         .single();
 
@@ -61,6 +67,12 @@ const Shipping = () => {
         setPickupAddress(profile.pickup_address || "");
         setUseAccountAddress(profile.use_account_address_for_pickup ?? true);
         setFreeShippingMinimum(profile.free_shipping_minimum);
+        
+        // Pickup hours
+        setPickupHoursWeekdayStart(profile.pickup_hours_weekday_start || "");
+        setPickupHoursWeekdayEnd(profile.pickup_hours_weekday_end || "");
+        setPickupHoursSaturdayStart(profile.pickup_hours_saturday_start || "");
+        setPickupHoursSaturdayEnd(profile.pickup_hours_saturday_end || "");
         
         // Build account address
         if (profile.address) {
@@ -119,6 +131,10 @@ const Shipping = () => {
           delivery_option: deliveryOption,
           pickup_address: finalPickupAddress,
           use_account_address_for_pickup: useAccountAddress,
+          pickup_hours_weekday_start: pickupHoursWeekdayStart || null,
+          pickup_hours_weekday_end: pickupHoursWeekdayEnd || null,
+          pickup_hours_saturday_start: pickupHoursSaturdayStart || null,
+          pickup_hours_saturday_end: pickupHoursSaturdayEnd || null,
         })
         .eq("id", user.id);
 
@@ -370,6 +386,67 @@ const Shipping = () => {
                 />
               </div>
             )}
+
+            {/* Pickup Hours Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-semibold text-foreground">Horário de entrega</h3>
+              
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span>De segunda a sexta, das</span>
+                <Input
+                  type="time"
+                  value={pickupHoursWeekdayStart}
+                  onChange={(e) => setPickupHoursWeekdayStart(e.target.value)}
+                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                  style={{
+                    borderColor: `${primaryColor}40`,
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = primaryColor}
+                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
+                />
+                <span>às</span>
+                <Input
+                  type="time"
+                  value={pickupHoursWeekdayEnd}
+                  onChange={(e) => setPickupHoursWeekdayEnd(e.target.value)}
+                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                  style={{
+                    borderColor: `${primaryColor}40`,
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = primaryColor}
+                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
+                />
+                <span>, e aos sábados das</span>
+                <Input
+                  type="time"
+                  value={pickupHoursSaturdayStart}
+                  onChange={(e) => setPickupHoursSaturdayStart(e.target.value)}
+                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                  style={{
+                    borderColor: `${primaryColor}40`,
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = primaryColor}
+                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
+                />
+                <span>às</span>
+                <Input
+                  type="time"
+                  value={pickupHoursSaturdayEnd}
+                  onChange={(e) => setPickupHoursSaturdayEnd(e.target.value)}
+                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                  style={{
+                    borderColor: `${primaryColor}40`,
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = primaryColor}
+                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
+                />
+                <span>.</span>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                Os horários serão vinculados no checkout da sua loja virtual quando o cliente escolher a opção "Retirada".
+              </p>
+            </div>
           </div>
         )}
 
