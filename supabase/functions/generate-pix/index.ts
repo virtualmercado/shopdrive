@@ -26,9 +26,24 @@ serve(async (req) => {
 
     const { orderId, amount, storeOwnerId, gateway, description } = await req.json() as PixRequest;
 
-    if (!orderId || !amount || !storeOwnerId || !gateway) {
+    console.log("PIX request received:", { orderId, amount, storeOwnerId, gateway, description });
+
+    if (!orderId || !storeOwnerId || !gateway) {
       return new Response(
         JSON.stringify({ error: "Parâmetros obrigatórios não informados" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate and format the amount - Mercado Pago requires positive number with max 2 decimal places
+    const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const validAmount = Math.round((parsedAmount || 0) * 100) / 100; // Round to 2 decimal places
+    
+    console.log("Amount validation:", { original: amount, parsed: parsedAmount, valid: validAmount });
+
+    if (!validAmount || validAmount <= 0 || isNaN(validAmount)) {
+      return new Response(
+        JSON.stringify({ error: "Valor do pagamento inválido. O valor deve ser maior que zero." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -61,6 +76,18 @@ serve(async (req) => {
 
       // Create PIX payment with Mercado Pago
       const idempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
+      const mpPayload = {
+        transaction_amount: validAmount,
+        description: description || `Pedido ${orderId.substring(0, 8)}`,
+        payment_method_id: "pix",
+        payer: {
+          email: "customer@email.com"
+        },
+        date_of_expiration: expiresAt.toISOString(),
+      };
+      
+      console.log("Mercado Pago payload:", JSON.stringify(mpPayload));
+      
       const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
         method: "POST",
         headers: {
@@ -68,15 +95,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
           "X-Idempotency-Key": idempotencyKey,
         },
-        body: JSON.stringify({
-          transaction_amount: amount,
-          description: description || `Pedido ${orderId.substring(0, 8)}`,
-          payment_method_id: "pix",
-          payer: {
-            email: "customer@email.com" // Required by MP but we use generic
-          },
-          date_of_expiration: expiresAt.toISOString(),
-        }),
+        body: JSON.stringify(mpPayload),
       });
 
       const mpData = await mpResponse.json();
@@ -104,7 +123,6 @@ serve(async (req) => {
       }
 
       // Create PIX payment with PagBank
-      // Using PagBank API v4
       const pbIdempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
       const pbResponse = await fetch("https://api.pagseguro.com/orders", {
         method: "POST",
@@ -124,13 +142,13 @@ serve(async (req) => {
             {
               name: description || `Pedido ${orderId.substring(0, 8)}`,
               quantity: 1,
-              unit_amount: Math.round(amount * 100), // PagBank uses cents
+              unit_amount: Math.round(validAmount * 100), // PagBank uses cents
             },
           ],
           qr_codes: [
             {
               amount: {
-                value: Math.round(amount * 100),
+                value: Math.round(validAmount * 100),
               },
               expiration_date: expiresAt.toISOString(),
             },
@@ -172,7 +190,7 @@ serve(async (req) => {
         store_owner_id: storeOwnerId,
         gateway,
         external_payment_id: pixData.externalPaymentId,
-        amount,
+        amount: validAmount,
         status: "pending",
         qr_code: pixData.qrCode,
         qr_code_base64: pixData.qrCodeBase64,
@@ -208,7 +226,7 @@ serve(async (req) => {
         qrCode: pixData.qrCode,
         qrCodeBase64: pixData.qrCodeBase64,
         expiresAt: pixData.expiresAt,
-        amount,
+        amount: validAmount,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
