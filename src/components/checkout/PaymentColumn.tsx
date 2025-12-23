@@ -19,6 +19,14 @@ export interface CardFormData {
   installments: string;
 }
 
+export interface CardTokenData {
+  token: string;
+  paymentMethodId: string;
+  issuerId?: string;
+  installments: number;
+  cardholderName: string;
+}
+
 interface PaymentColumnProps {
   paymentMethod: PaymentMethod;
   onPaymentMethodChange: (method: PaymentMethod) => void;
@@ -36,6 +44,7 @@ interface PaymentColumnProps {
     mercadopago_enabled?: boolean;
     mercadopago_accepts_pix?: boolean;
     mercadopago_accepts_credit?: boolean;
+    mercadopago_public_key?: string;
     pagbank_enabled?: boolean;
     pagbank_accepts_pix?: boolean;
     pagbank_accepts_credit?: boolean;
@@ -45,9 +54,17 @@ interface PaymentColumnProps {
   pixDiscountAmount: number;
   primaryColor: string;
   loading: boolean;
-  onFinalize: (cardData?: CardFormData) => void;
+  onFinalize: (cardTokenData?: CardTokenData) => void;
   isFormValid: boolean;
   cardProcessingError?: string | null;
+  customerCpf?: string;
+}
+
+// Declare MercadoPago global type
+declare global {
+  interface Window {
+    MercadoPago: any;
+  }
 }
 
 export const PaymentColumn = ({
@@ -62,6 +79,7 @@ export const PaymentColumn = ({
   onFinalize,
   isFormValid,
   cardProcessingError,
+  customerCpf,
 }: PaymentColumnProps) => {
   const [cardForm, setCardForm] = useState<CardFormData>({
     number: "",
@@ -72,6 +90,7 @@ export const PaymentColumn = ({
   });
   const [showPaymentDetails, setShowPaymentDetails] = useState(false);
   const [cardFormError, setCardFormError] = useState<string | null>(null);
+  const [isTokenizing, setIsTokenizing] = useState(false);
 
   // Check if payment methods are enabled
   const isPixEnabled = paymentSettings?.pix_enabled || 
@@ -163,12 +182,98 @@ export const PaymentColumn = ({
     return true;
   };
 
-  const handleFinalize = () => {
+  // Detect card brand from number
+  const getPaymentMethodId = (cardNumber: string): string => {
+    const cleanNumber = cardNumber.replace(/\s/g, '');
+    if (cleanNumber.startsWith('4')) return 'visa';
+    if (cleanNumber.startsWith('5')) return 'master';
+    if (cleanNumber.startsWith('34') || cleanNumber.startsWith('37')) return 'amex';
+    if (cleanNumber.startsWith('6011') || cleanNumber.startsWith('65')) return 'discover';
+    if (cleanNumber.startsWith('36') || cleanNumber.startsWith('38')) return 'diners';
+    if (cleanNumber.startsWith('35')) return 'jcb';
+    if (cleanNumber.startsWith('50') || cleanNumber.startsWith('6')) return 'elo';
+    if (cleanNumber.startsWith('606282') || cleanNumber.startsWith('3841')) return 'hipercard';
+    return 'visa'; // default
+  };
+
+  const handleFinalize = async () => {
     if (paymentMethod === "cartao_credito") {
       if (!validateCardForm()) {
         return;
       }
-      onFinalize(cardForm);
+      
+      // Check if MercadoPago SDK is available and public key is configured
+      const publicKey = paymentSettings?.mercadopago_public_key;
+      if (!publicKey) {
+        setCardFormError("Chave pública do Mercado Pago não configurada");
+        return;
+      }
+
+      if (!window.MercadoPago) {
+        setCardFormError("SDK do Mercado Pago não carregado. Recarregue a página.");
+        return;
+      }
+
+      setIsTokenizing(true);
+      setCardFormError(null);
+
+      try {
+        // Initialize MercadoPago SDK
+        const mp = new window.MercadoPago(publicKey);
+        
+        // Parse expiry date
+        const [expiryMonth, expiryYear] = cardForm.expiry.split('/');
+        const fullYear = parseInt(expiryYear) < 100 ? 2000 + parseInt(expiryYear) : parseInt(expiryYear);
+        
+        // Create card token
+        const cardData = {
+          cardNumber: cardForm.number.replace(/\s/g, ''),
+          cardholderName: cardForm.name,
+          cardExpirationMonth: expiryMonth,
+          cardExpirationYear: fullYear.toString(),
+          securityCode: cardForm.cvv,
+          identificationType: "CPF",
+          identificationNumber: customerCpf?.replace(/\D/g, '') || "00000000000",
+        };
+
+        console.log("Creating card token with MercadoPago SDK...");
+        
+        const tokenResponse = await mp.createCardToken(cardData);
+        
+        if (!tokenResponse || !tokenResponse.id) {
+          throw new Error("Falha ao gerar token do cartão");
+        }
+
+        console.log("Card token created successfully:", tokenResponse.id);
+
+        // Detect payment method from card number
+        const paymentMethodId = getPaymentMethodId(cardForm.number);
+
+        const tokenData: CardTokenData = {
+          token: tokenResponse.id,
+          paymentMethodId: paymentMethodId,
+          installments: parseInt(cardForm.installments),
+          cardholderName: cardForm.name,
+        };
+
+        onFinalize(tokenData);
+      } catch (error: any) {
+        console.error("Card tokenization error:", error);
+        let errorMessage = "Erro ao processar cartão. Verifique os dados.";
+        
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.cause && Array.isArray(error.cause)) {
+          const causes = error.cause.map((c: any) => c.description || c.message).filter(Boolean);
+          if (causes.length > 0) {
+            errorMessage = causes.join('. ');
+          }
+        }
+        
+        setCardFormError(errorMessage);
+      } finally {
+        setIsTokenizing(false);
+      }
     } else {
       onFinalize();
     }
@@ -373,13 +478,13 @@ export const PaymentColumn = ({
           type="button"
           className="w-full text-white font-semibold py-6"
           style={{ backgroundColor: primaryColor }}
-          disabled={loading || !isFormValid}
+          disabled={loading || isTokenizing || !isFormValid}
           onClick={handleFinalize}
         >
-          {loading ? (
+          {loading || isTokenizing ? (
             <>
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              {paymentMethod === "cartao_credito" ? "Processando pagamento..." : "Processando..."}
+              {isTokenizing ? "Validando cartão..." : paymentMethod === "cartao_credito" ? "Processando pagamento..." : "Processando..."}
             </>
           ) : (
             <>
