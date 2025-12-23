@@ -13,6 +13,14 @@ interface BoletoRequest {
   customerName: string;
   customerEmail: string;
   customerCpf?: string;
+  customerAddress?: {
+    zipCode: string;
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  };
   customerPhone?: string;
   description?: string;
 }
@@ -52,6 +60,7 @@ serve(async (req) => {
       customerEmail,
       customerCpf,
       customerPhone,
+      customerAddress,
       description 
     } = await req.json() as BoletoRequest;
 
@@ -128,6 +137,23 @@ serve(async (req) => {
     // Create boleto payment with Mercado Pago
     const idempotencyKey = `boleto-${orderId}-${Date.now()}-${crypto.randomUUID()}`;
     
+    // Build payer address object (required for boleto)
+    const payerAddress = customerAddress ? {
+      zip_code: customerAddress.zipCode?.replace(/\D/g, "") || "00000000",
+      street_name: customerAddress.street || "Rua não informada",
+      street_number: customerAddress.number || "S/N",
+      neighborhood: customerAddress.neighborhood || "Bairro não informado",
+      city: customerAddress.city || "Cidade não informada",
+      federal_unit: customerAddress.state?.toUpperCase() || "SP",
+    } : {
+      zip_code: "00000000",
+      street_name: "Endereço não informado",
+      street_number: "S/N",
+      neighborhood: "Bairro não informado",
+      city: "Cidade não informada",
+      federal_unit: "SP",
+    };
+
     const mpPayload = {
       transaction_amount: validAmount,
       description: description || `Pedido ${orderId.substring(0, 8)}`,
@@ -140,6 +166,7 @@ serve(async (req) => {
           type: identificationType,
           number: identificationNumber,
         },
+        address: payerAddress,
       },
       date_of_expiration: expiresAt.toISOString(),
     };

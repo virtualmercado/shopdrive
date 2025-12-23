@@ -475,6 +475,14 @@ const CheckoutContent = () => {
               customerEmail: customerEmail,
               customerCpf: customerProfile?.cpf || "",
               customerPhone: formData.customer_phone,
+              customerAddress: {
+                zipCode: formData.cep,
+                street: formData.address,
+                number: formData.number,
+                neighborhood: formData.neighborhood,
+                city: formData.city,
+                state: formData.state,
+              },
               description: `Pedido ${order.order_number || order.id.substring(0, 8)}`,
             },
           });
