@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Copy, ExternalLink, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface OrderData {
   order_number: string;
@@ -17,6 +18,11 @@ interface OrderData {
   delivery_fee: number;
   total_amount: number;
   notes: string | null;
+  boleto_barcode: string | null;
+  boleto_digitable_line: string | null;
+  boleto_url: string | null;
+  boleto_expires_at: string | null;
+  boleto_payment_status: string | null;
 }
 
 interface OrderItem {
@@ -194,8 +200,81 @@ const OrderConfirmation = () => {
               {orderData.payment_method === "cartao_credito" && "Cartão de Crédito"}
               {orderData.payment_method === "cartao_debito" && "Cartão de Débito"}
               {orderData.payment_method === "whatsapp" && "Combinar via WhatsApp"}
+              {orderData.payment_method === "boleto" && "Boleto Bancário"}
             </p>
           </div>
+
+          {/* Boleto Payment Section */}
+          {orderData.payment_method === "boleto" && orderData.boleto_url && (
+            <div className="mt-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-6 h-6 text-yellow-700" />
+                <h3 className="font-semibold text-yellow-900">Boleto Bancário</h3>
+              </div>
+              
+              {orderData.boleto_payment_status === "approved" ? (
+                <div className="p-4 bg-green-100 rounded-lg mb-4">
+                  <p className="text-green-800 font-medium flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Pagamento Confirmado!
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {orderData.boleto_expires_at && (
+                    <p className="text-sm text-yellow-800 mb-4">
+                      <strong>Vencimento:</strong> {new Date(orderData.boleto_expires_at).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
+
+                  {orderData.boleto_digitable_line && (
+                    <div className="mb-4">
+                      <p className="text-sm text-yellow-800 font-medium mb-2">Linha digitável:</p>
+                      <div className="flex items-center gap-2 bg-white p-3 rounded border border-yellow-300">
+                        <code className="flex-1 text-xs sm:text-sm break-all font-mono text-gray-800">
+                          {orderData.boleto_digitable_line}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(orderData.boleto_digitable_line || "");
+                            toast.success("Linha digitável copiada!");
+                          }}
+                          className="shrink-0"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      onClick={() => window.open(orderData.boleto_url || "", "_blank")}
+                      className="flex-1 gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Abrir Boleto
+                    </Button>
+                    {orderData.boleto_digitable_line && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(orderData.boleto_digitable_line || "");
+                          toast.success("Código de barras copiado!");
+                        }}
+                        className="flex-1 gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copiar Código
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {orderData.notes && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -208,10 +287,18 @@ const OrderConfirmation = () => {
         {/* Next Steps */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
           <h3 className="font-semibold text-blue-900 mb-2">Próximos Passos</h3>
-          <p className="text-sm text-blue-800">
-            Em breve, a loja entrará em contato com você para confirmar os detalhes do pedido e 
-            informar sobre o pagamento e entrega. Fique atento ao seu WhatsApp e telefone!
-          </p>
+          {orderData.payment_method === "boleto" && orderData.boleto_url ? (
+            <p className="text-sm text-blue-800">
+              Efetue o pagamento do boleto até a data de vencimento. Após a confirmação do pagamento 
+              (que pode levar até 3 dias úteis), seu pedido será processado e a loja entrará em contato 
+              para informar sobre a entrega.
+            </p>
+          ) : (
+            <p className="text-sm text-blue-800">
+              Em breve, a loja entrará em contato com você para confirmar os detalhes do pedido e 
+              informar sobre o pagamento e entrega. Fique atento ao seu WhatsApp e telefone!
+            </p>
+          )}
         </div>
 
         {/* Actions */}

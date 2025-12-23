@@ -461,6 +461,53 @@ const CheckoutContent = () => {
         return;
       }
 
+      // Boleto flow - generate boleto via Mercado Pago
+      if (formData.payment_method === "boleto" && paymentSettings?.boleto_enabled) {
+        try {
+          console.log("Generating boleto for order:", order.id);
+          
+          const boletoResponse = await supabase.functions.invoke("generate-boleto", {
+            body: {
+              orderId: order.id,
+              amount: total,
+              storeOwnerId: storeData.id,
+              customerName: formData.customer_name,
+              customerEmail: customerEmail,
+              customerCpf: customerProfile?.cpf || "",
+              customerPhone: formData.customer_phone,
+              description: `Pedido ${order.order_number || order.id.substring(0, 8)}`,
+            },
+          });
+
+          if (boletoResponse.error) {
+            console.error("Boleto generation error:", boletoResponse.error);
+            toast.error("Erro ao gerar boleto. O pedido foi criado, mas o boleto não foi gerado.");
+          } else if (boletoResponse.data?.success) {
+            console.log("Boleto generated successfully:", boletoResponse.data);
+            toast.success("Boleto gerado com sucesso!");
+            
+            // Record coupon usage if applicable
+            if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+              await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
+            }
+            
+            clearCart();
+            // Navigate to confirmation page where boleto details will be shown
+            navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
+            return;
+          } else {
+            console.error("Boleto generation failed:", boletoResponse.data);
+            toast.error(boletoResponse.data?.error || "Erro ao gerar boleto");
+          }
+        } catch (boletoError: any) {
+          console.error("Boleto generation exception:", boletoError);
+          toast.error("Erro ao processar boleto. Tente novamente.");
+        }
+        
+        setLoading(false);
+        return;
+      }
+
       // WhatsApp flow
       if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
         const now = new Date();

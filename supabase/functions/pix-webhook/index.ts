@@ -65,9 +65,50 @@ serve(async (req) => {
       .from("pix_payments")
       .select("*, orders(*)")
       .eq("external_payment_id", externalPaymentId)
-      .single();
+      .maybeSingle();
 
-    if (findError || !pixPayment) {
+    if (findError) {
+      console.error("Error finding PIX payment:", findError);
+    }
+
+    if (!pixPayment) {
+      // Check if this might be a boleto payment
+      const { data: boletoPayment } = await supabase
+        .from("boleto_payments")
+        .select("*")
+        .eq("external_payment_id", externalPaymentId)
+        .maybeSingle();
+
+      if (boletoPayment) {
+        console.log("Payment found in boleto_payments, this is a boleto payment - updating status");
+        
+        // Update boleto payment status if approved
+        if (paymentStatus === "approved" && boletoPayment.status !== "approved") {
+          await supabase
+            .from("boleto_payments")
+            .update({
+              status: "approved",
+              paid_at: new Date().toISOString(),
+            })
+            .eq("id", boletoPayment.id);
+
+          await supabase
+            .from("orders")
+            .update({
+              status: "paid",
+              boleto_payment_status: "approved",
+            })
+            .eq("id", boletoPayment.order_id);
+
+          console.log("Boleto payment approved for order:", boletoPayment.order_id);
+        }
+
+        return new Response(
+          JSON.stringify({ received: true, processed: true, type: "boleto" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log("PIX payment not found for external ID:", externalPaymentId);
       return new Response(
         JSON.stringify({ received: true, processed: false, reason: "Payment not found" }),
