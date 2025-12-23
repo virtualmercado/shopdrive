@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Shield, Lock, CheckCircle } from "lucide-react";
+import { CreditCard, Shield, Lock, CheckCircle, Loader2 } from "lucide-react";
 import pixLogo from "@/assets/pix-logo.png";
 import whatsappLogo from "@/assets/whatsapp-logo.svg";
 import creditCardIllustration from "@/assets/credit-card-illustration.png";
 
 type PaymentMethod = "pix" | "cartao_credito" | "boleto" | "whatsapp";
+
+export interface CardFormData {
+  number: string;
+  expiry: string;
+  name: string;
+  cvv: string;
+  installments: string;
+}
 
 interface PaymentColumnProps {
   paymentMethod: PaymentMethod;
@@ -37,16 +45,9 @@ interface PaymentColumnProps {
   pixDiscountAmount: number;
   primaryColor: string;
   loading: boolean;
-  onFinalize: () => void;
+  onFinalize: (cardData?: CardFormData) => void;
   isFormValid: boolean;
-}
-
-interface CardFormData {
-  number: string;
-  expiry: string;
-  name: string;
-  cvv: string;
-  installments: string;
+  cardProcessingError?: string | null;
 }
 
 export const PaymentColumn = ({
@@ -60,6 +61,7 @@ export const PaymentColumn = ({
   loading,
   onFinalize,
   isFormValid,
+  cardProcessingError,
 }: PaymentColumnProps) => {
   const [cardForm, setCardForm] = useState<CardFormData>({
     number: "",
@@ -69,6 +71,7 @@ export const PaymentColumn = ({
     installments: "1",
   });
   const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [cardFormError, setCardFormError] = useState<string | null>(null);
 
   // Check if payment methods are enabled
   const isPixEnabled = paymentSettings?.pix_enabled || 
@@ -101,10 +104,74 @@ export const PaymentColumn = ({
   const handleMethodSelect = (method: PaymentMethod) => {
     onPaymentMethodChange(method);
     setShowPaymentDetails(true);
+    setCardFormError(null);
   };
 
   const handleChangePaymentMethod = () => {
     setShowPaymentDetails(false);
+    setCardFormError(null);
+  };
+
+  // Format card number with spaces
+  const formatCardNumber = (value: string) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 16);
+    const groups = cleaned.match(/.{1,4}/g);
+    return groups ? groups.join(' ') : cleaned;
+  };
+
+  // Format expiry date
+  const formatExpiry = (value: string) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 4);
+    if (cleaned.length >= 2) {
+      return cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+    }
+    return cleaned;
+  };
+
+  // Validate card form
+  const validateCardForm = (): boolean => {
+    const cleanNumber = cardForm.number.replace(/\s/g, '');
+    
+    if (cleanNumber.length < 13 || cleanNumber.length > 19) {
+      setCardFormError("Número do cartão inválido");
+      return false;
+    }
+    
+    if (!cardForm.expiry || cardForm.expiry.length < 5) {
+      setCardFormError("Data de validade inválida");
+      return false;
+    }
+    
+    const [month, year] = cardForm.expiry.split('/');
+    const monthNum = parseInt(month);
+    if (monthNum < 1 || monthNum > 12) {
+      setCardFormError("Mês de validade inválido");
+      return false;
+    }
+    
+    if (!cardForm.cvv || cardForm.cvv.length < 3) {
+      setCardFormError("CVV inválido");
+      return false;
+    }
+    
+    if (!cardForm.name || cardForm.name.length < 3) {
+      setCardFormError("Nome no cartão é obrigatório");
+      return false;
+    }
+    
+    setCardFormError(null);
+    return true;
+  };
+
+  const handleFinalize = () => {
+    if (paymentMethod === "cartao_credito") {
+      if (!validateCardForm()) {
+        return;
+      }
+      onFinalize(cardForm);
+    } else {
+      onFinalize();
+    }
   };
 
   // If showing payment details
@@ -123,6 +190,7 @@ export const PaymentColumn = ({
             className="p-0"
             style={{ color: primaryColor }}
             onClick={handleChangePaymentMethod}
+            disabled={loading}
           >
             Alterar
           </Button>
@@ -162,12 +230,26 @@ export const PaymentColumn = ({
               />
             </div>
             
+            {/* Error display */}
+            {(cardFormError || cardProcessingError) && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">
+                  {cardFormError || cardProcessingError}
+                </p>
+              </div>
+            )}
+            
             <div>
               <Label className="text-xs">Número do cartão</Label>
               <Input
                 placeholder="0000 0000 0000 0000"
                 value={cardForm.number}
-                onChange={(e) => setCardForm({ ...cardForm, number: e.target.value })}
+                onChange={(e) => {
+                  setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) });
+                  setCardFormError(null);
+                }}
+                maxLength={19}
+                disabled={loading}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -176,7 +258,12 @@ export const PaymentColumn = ({
                 <Input
                   placeholder="MM/AA"
                   value={cardForm.expiry}
-                  onChange={(e) => setCardForm({ ...cardForm, expiry: e.target.value })}
+                  onChange={(e) => {
+                    setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) });
+                    setCardFormError(null);
+                  }}
+                  maxLength={5}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -185,7 +272,11 @@ export const PaymentColumn = ({
                   placeholder="123"
                   maxLength={4}
                   value={cardForm.cvv}
-                  onChange={(e) => setCardForm({ ...cardForm, cvv: e.target.value })}
+                  onChange={(e) => {
+                    setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '') });
+                    setCardFormError(null);
+                  }}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -194,7 +285,11 @@ export const PaymentColumn = ({
               <Input
                 placeholder="NOME COMO ESTÁ NO CARTÃO"
                 value={cardForm.name}
-                onChange={(e) => setCardForm({ ...cardForm, name: e.target.value.toUpperCase() })}
+                onChange={(e) => {
+                  setCardForm({ ...cardForm, name: e.target.value.toUpperCase() });
+                  setCardFormError(null);
+                }}
+                disabled={loading}
               />
             </div>
             <div>
@@ -202,6 +297,7 @@ export const PaymentColumn = ({
               <Select
                 value={cardForm.installments}
                 onValueChange={(value) => setCardForm({ ...cardForm, installments: value })}
+                disabled={loading}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -214,6 +310,13 @@ export const PaymentColumn = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            {/* Info about payment processing */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                Seu pagamento será processado de forma segura. O pedido só será confirmado após a aprovação do banco emissor do cartão.
+              </p>
             </div>
           </div>
         )}
@@ -271,14 +374,17 @@ export const PaymentColumn = ({
           className="w-full text-white font-semibold py-6"
           style={{ backgroundColor: primaryColor }}
           disabled={loading || !isFormValid}
-          onClick={onFinalize}
+          onClick={handleFinalize}
         >
           {loading ? (
-            "Processando..."
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              {paymentMethod === "cartao_credito" ? "Processando pagamento..." : "Processando..."}
+            </>
           ) : (
             <>
               <CheckCircle className="h-5 w-5 mr-2" />
-              Finalizar compra
+              {paymentMethod === "cartao_credito" ? "Pagar e finalizar" : "Finalizar compra"}
             </>
           )}
         </Button>
@@ -417,7 +523,7 @@ export const PaymentColumn = ({
         className="w-full text-white font-semibold py-6"
         style={{ backgroundColor: primaryColor }}
         disabled={loading || !isFormValid}
-        onClick={onFinalize}
+        onClick={handleFinalize}
       >
         {loading ? (
           "Processando..."

@@ -14,7 +14,7 @@ import { PixPayment } from "@/components/checkout/PixPayment";
 import { OrderSummaryHeader } from "@/components/checkout/OrderSummaryHeader";
 import { CustomerColumn } from "@/components/checkout/CustomerColumn";
 import { DeliveryColumn } from "@/components/checkout/DeliveryColumn";
-import { PaymentColumn } from "@/components/checkout/PaymentColumn";
+import { PaymentColumn, CardFormData } from "@/components/checkout/PaymentColumn";
 
 type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
 type PaymentMethod = "cartao_credito" | "pix" | "boleto" | "whatsapp";
@@ -80,6 +80,7 @@ const CheckoutContent = () => {
   const [showPixPayment, setShowPixPayment] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | null>(null);
+  const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
   
   // Customer data
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
@@ -357,7 +358,9 @@ const CheckoutContent = () => {
     }
   };
 
-  const handleFinalize = async () => {
+  const handleFinalize = async (cardData?: CardFormData) => {
+    setCardProcessingError(null);
+    
     if (cart.length === 0) {
       toast.error("Seu carrinho está vazio");
       return;
@@ -413,6 +416,140 @@ const CheckoutContent = () => {
 
       const deliveryMethodLabel = formData.delivery_method === "retirada" ? "retirada" : "entrega";
 
+      // CREDIT CARD FLOW - Process payment BEFORE creating order
+      if (formData.payment_method === "cartao_credito" && cardData) {
+        console.log("Processing credit card payment before order creation");
+        
+        // Parse expiry date (MM/YY format)
+        const [expiryMonth, expiryYear] = cardData.expiry.split('/');
+        const fullYear = parseInt(expiryYear) < 100 ? 2000 + parseInt(expiryYear) : parseInt(expiryYear);
+        
+        try {
+          const paymentResponse = await supabase.functions.invoke("process-credit-card", {
+            body: {
+              amount: total,
+              storeOwnerId: storeData.id,
+              customerName: formData.customer_name,
+              customerEmail: customerEmail || "",
+              customerCpf: customerProfile?.cpf || "",
+              customerPhone: formData.customer_phone,
+              customerAddress: {
+                zipCode: formData.cep,
+                street: formData.address,
+                number: formData.number,
+                neighborhood: formData.neighborhood,
+                city: formData.city,
+                state: formData.state,
+              },
+              cardData: {
+                cardNumber: cardData.number.replace(/\s/g, ''),
+                expirationMonth: expiryMonth,
+                expirationYear: fullYear.toString(),
+                securityCode: cardData.cvv,
+                cardholderName: cardData.name,
+              },
+              installments: parseInt(cardData.installments),
+              description: `Pedido na loja ${storeData.store_name || storeSlug}`,
+            },
+          });
+
+          console.log("Payment response:", paymentResponse);
+
+          // Handle edge function error
+          if (paymentResponse.error) {
+            console.error("Payment processing error:", paymentResponse.error);
+            const errorMessage = typeof paymentResponse.error === 'string' 
+              ? paymentResponse.error 
+              : paymentResponse.error.message || "Erro ao processar pagamento";
+            setCardProcessingError(errorMessage);
+            toast.error(errorMessage);
+            setLoading(false);
+            return;
+          }
+
+          const paymentData = paymentResponse.data;
+
+          // Handle rejected payment
+          if (paymentData.status === "rejected" || !paymentData.success) {
+            console.error("Payment rejected:", paymentData);
+            const errorMessage = paymentData.error || "Pagamento recusado pelo banco emissor";
+            setCardProcessingError(errorMessage);
+            toast.error(errorMessage);
+            setLoading(false);
+            return;
+          }
+
+          // Payment approved or pending - create order with payment info
+          const orderStatus = paymentData.status === "approved" ? "confirmed" : "pending";
+          
+          const { data: order, error: orderError } = await supabase
+            .from("orders")
+            .insert({
+              store_owner_id: storeData.id,
+              customer_id: user?.id || null,
+              customer_name: formData.customer_name,
+              customer_email: customerEmail || "",
+              customer_phone: formData.customer_phone,
+              customer_address: addressString,
+              delivery_method: deliveryMethodLabel,
+              payment_method: formData.payment_method,
+              subtotal,
+              delivery_fee: deliveryFee,
+              total_amount: total,
+              status: orderStatus,
+              notes: formData.notes || null,
+              order_source: "online",
+            })
+            .select()
+            .single();
+
+          if (orderError || !order) {
+            console.error("Order creation error after payment:", orderError);
+            throw new Error("Pagamento aprovado, mas houve erro ao criar o pedido. Entre em contato com a loja.");
+          }
+
+          // Insert order items
+          const orderItems = cart.map((item) => ({
+            order_id: order.id,
+            product_id: item.id,
+            product_name: item.name,
+            product_price: item.promotional_price || item.price,
+            quantity: item.quantity,
+            subtotal: (item.promotional_price || item.price) * item.quantity,
+          }));
+
+          const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+          if (itemsError) {
+            console.error("Order items error:", itemsError);
+          }
+
+          // Record coupon usage
+          if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+            await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
+          }
+
+          clearCart();
+          
+          if (paymentData.status === "approved") {
+            toast.success("Pagamento aprovado! Pedido confirmado.");
+          } else {
+            toast.info(paymentData.message || "Pagamento em processamento. Aguarde a confirmação.");
+          }
+          
+          navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
+          return;
+
+        } catch (paymentError: any) {
+          console.error("Credit card payment exception:", paymentError);
+          const errorMessage = paymentError.message || "Erro ao processar pagamento com cartão";
+          setCardProcessingError(errorMessage);
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // For non-credit card payments, create order first
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -427,7 +564,7 @@ const CheckoutContent = () => {
           subtotal,
           delivery_fee: deliveryFee,
           total_amount: total,
-          status: formData.payment_method === "whatsapp" ? "pending" : "pending",
+          status: "pending",
           notes: formData.notes || null,
           order_source: "online",
         })
@@ -447,9 +584,6 @@ const CheckoutContent = () => {
 
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw new Error("Erro ao adicionar itens ao pedido");
-
-      // Stock is no longer debited here - it will be debited when order status changes to "delivered"
-      // This ensures stock control is applied only when the order is actually fulfilled
 
       const isPix = formData.payment_method === "pix";
       const hasPixGateway = pixGateway !== null;
@@ -731,6 +865,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             loading={loading}
             onFinalize={handleFinalize}
             isFormValid={isFormValid}
+            cardProcessingError={cardProcessingError}
           />
         </div>
 
