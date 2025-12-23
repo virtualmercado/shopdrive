@@ -206,6 +206,37 @@ serve(async (req) => {
 
     console.log("Mercado Pago boleto response:", JSON.stringify(mpData));
 
+    // Check if payment was rejected
+    if (mpData.status === "rejected") {
+      console.error("Boleto was rejected by Mercado Pago:", mpData.status_detail);
+      
+      let errorMessage = "Boleto rejeitado pelo banco. ";
+      
+      switch (mpData.status_detail) {
+        case "rejected_by_bank":
+          errorMessage += "Verifique se sua conta Mercado Pago está habilitada para emitir boletos ou se há pendências cadastrais.";
+          break;
+        case "cc_rejected_insufficient_amount":
+          errorMessage += "Valor insuficiente.";
+          break;
+        case "cc_rejected_high_risk":
+          errorMessage += "Pagamento recusado por segurança.";
+          break;
+        default:
+          errorMessage += `Motivo: ${mpData.status_detail || "não especificado"}`;
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: errorMessage, 
+          status: mpData.status,
+          statusDetail: mpData.status_detail,
+          details: mpData 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Extract boleto data from response
     const boletoData = {
       externalPaymentId: mpData.id?.toString(),
@@ -220,7 +251,11 @@ serve(async (req) => {
     if (!boletoData.boletoUrl) {
       console.error("No boleto URL in response:", mpData);
       return new Response(
-        JSON.stringify({ error: "Falha ao gerar boleto - URL não retornada pelo gateway" }),
+        JSON.stringify({ 
+          error: "Falha ao gerar boleto - URL não retornada pelo gateway. Verifique as configurações da conta Mercado Pago.",
+          paymentStatus: mpData.status,
+          details: mpData
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
