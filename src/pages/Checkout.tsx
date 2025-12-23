@@ -395,6 +395,7 @@ const CheckoutContent = () => {
           total_amount: total,
           status: formData.payment_method === "whatsapp" ? "pending" : "pending",
           notes: formData.notes || null,
+          order_source: "online",
         })
         .select()
         .single();
@@ -413,18 +414,8 @@ const CheckoutContent = () => {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw new Error("Erro ao adicionar itens ao pedido");
 
-      for (const item of cart) {
-        const { data: product } = await supabase
-          .from("products")
-          .select("stock")
-          .eq("id", item.id)
-          .single();
-
-        if (product) {
-          const newStock = Math.max(0, product.stock - item.quantity);
-          await supabase.from("products").update({ stock: newStock }).eq("id", item.id);
-        }
-      }
+      // Stock is no longer debited here - it will be debited when order status changes to "delivered"
+      // This ensures stock control is applied only when the order is actually fulfilled
 
       const isPix = formData.payment_method === "pix";
       const hasPixGateway = pixGateway !== null;

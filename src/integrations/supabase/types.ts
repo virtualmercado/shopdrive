@@ -643,6 +643,7 @@ export type Database = {
           id: string
           notes: string | null
           order_number: string | null
+          order_source: string
           payment_method: string | null
           pix_expires_at: string | null
           pix_payment_id: string | null
@@ -667,6 +668,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string | null
+          order_source?: string
           payment_method?: string | null
           pix_expires_at?: string | null
           pix_payment_id?: string | null
@@ -691,6 +693,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string | null
+          order_source?: string
           payment_method?: string | null
           pix_expires_at?: string | null
           pix_payment_id?: string | null

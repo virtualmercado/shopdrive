@@ -27,6 +27,7 @@ export interface Order {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  order_source: 'manual' | 'online';
   order_items?: OrderItem[];
 }
 
@@ -56,7 +57,8 @@ export const useOrders = () => {
           payment_method,
           notes,
           created_at,
-          updated_at
+          updated_at,
+          order_source
         `)
         .eq("store_owner_id", user.id)
         .order("created_at", { ascending: false });
@@ -127,7 +129,35 @@ export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+    mutationFn: async ({ orderId, status, previousStatus }: { orderId: string; status: string; previousStatus?: string }) => {
+      // If changing to "delivered", debit stock
+      if (status === "delivered" && previousStatus !== "delivered") {
+        // Get order items to debit stock
+        const { data: orderItems, error: itemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .eq("order_id", orderId);
+
+        if (itemsError) throw itemsError;
+
+        // Debit stock for each item
+        for (const item of orderItems || []) {
+          const { data: product } = await supabase
+            .from("products")
+            .select("stock")
+            .eq("id", item.product_id)
+            .single();
+
+          if (product) {
+            const newStock = Math.max(0, product.stock - item.quantity);
+            await supabase
+              .from("products")
+              .update({ stock: newStock })
+              .eq("id", item.product_id);
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({ status })
@@ -138,6 +168,7 @@ export const useUpdateOrderStatus = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["order-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Status atualizado",
         description: "O status do pedido foi atualizado com sucesso.",

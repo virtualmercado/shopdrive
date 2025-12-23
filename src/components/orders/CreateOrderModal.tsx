@@ -394,6 +394,7 @@ export const CreateOrderModal = ({
             total_amount: total,
             notes: notes,
             status: "pending",
+            order_source: "manual",
           })
           .select()
           .single();

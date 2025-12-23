@@ -151,7 +151,9 @@ const Orders = () => {
       }
       return;
     }
-    updateStatus.mutate({ orderId, status: newStatus });
+    // Get current order status for stock control
+    const order = orders?.find((o) => o.id === orderId);
+    updateStatus.mutate({ orderId, status: newStatus, previousStatus: order?.status });
   };
 
   const handleCreateOrder = () => {
@@ -288,9 +290,33 @@ const Orders = () => {
     }
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    setOrderToDelete(orderId);
+  const handleDeleteOrder = (order: any) => {
+    // Check if order can be deleted
+    if (order.order_source === 'online') {
+      toast({
+        title: "Exclusão não permitida",
+        description: "Pedidos gerados pela loja online não podem ser excluídos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (order.status === 'delivered') {
+      toast({
+        title: "Exclusão não permitida",
+        description: "Pedidos com status 'Entregue' não podem ser excluídos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setOrderToDelete(order.id);
     setDeleteDialogOpen(true);
+  };
+
+  // Helper function to check if order can be deleted
+  const canDeleteOrder = (order: any): boolean => {
+    return order.order_source === 'manual' && order.status !== 'delivered';
   };
 
   const confirmDeleteOrder = async () => {
@@ -502,9 +528,16 @@ const Orders = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteOrder(order.id)}
-                            title="Excluir pedido"
+                            className={`h-8 w-8 ${canDeleteOrder(order) ? 'text-destructive hover:text-destructive' : 'text-muted-foreground cursor-not-allowed opacity-50'}`}
+                            onClick={() => handleDeleteOrder(order)}
+                            disabled={!canDeleteOrder(order)}
+                            title={
+                              order.order_source === 'online' 
+                                ? "Pedidos gerados pela loja online não podem ser excluídos" 
+                                : order.status === 'delivered' 
+                                  ? "Pedidos com status 'Entregue' não podem ser excluídos" 
+                                  : "Excluir pedido"
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
