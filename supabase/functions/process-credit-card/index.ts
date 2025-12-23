@@ -22,13 +22,9 @@ interface CreditCardRequest {
     city: string;
     state: string;
   };
-  cardData: {
-    cardNumber: string;
-    expirationMonth: string;
-    expirationYear: string;
-    securityCode: string;
-    cardholderName: string;
-  };
+  cardToken: string; // Card token from MercadoPago.js SDK
+  paymentMethodId: string; // e.g., "visa", "master", "amex"
+  issuerId?: string; // Card issuer ID
   installments: number;
   description: string;
 }
@@ -43,11 +39,7 @@ serve(async (req) => {
     const requestData: CreditCardRequest = await req.json();
     console.log("Processing credit card payment:", {
       ...requestData,
-      cardData: {
-        ...requestData.cardData,
-        cardNumber: requestData.cardData.cardNumber.slice(-4).padStart(requestData.cardData.cardNumber.length, '*'),
-        securityCode: '***'
-      }
+      cardToken: requestData.cardToken ? "***TOKEN***" : "MISSING"
     });
 
     const {
@@ -58,24 +50,25 @@ serve(async (req) => {
       customerCpf,
       customerPhone,
       customerAddress,
-      cardData,
+      cardToken,
+      paymentMethodId,
+      issuerId,
       installments,
       description,
     } = requestData;
 
     // Validate required fields
-    if (!amount || !storeOwnerId || !customerName || !customerEmail || !cardData) {
+    if (!amount || !storeOwnerId || !customerName || !customerEmail || !cardToken) {
       return new Response(
         JSON.stringify({ error: "Dados incompletos para processamento do cartão" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate card data
-    if (!cardData.cardNumber || !cardData.expirationMonth || !cardData.expirationYear || 
-        !cardData.securityCode || !cardData.cardholderName) {
+    // Validate card token
+    if (!cardToken || !paymentMethodId) {
       return new Response(
-        JSON.stringify({ error: "Dados do cartão incompletos" }),
+        JSON.stringify({ error: "Token do cartão ou método de pagamento não fornecido" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -119,19 +112,12 @@ serve(async (req) => {
       );
     }
 
-    // Clean card number (remove spaces and dashes)
-    const cleanCardNumber = cardData.cardNumber.replace(/[\s-]/g, '');
-
-    // First, we need to create a card token
-    // Note: In production, this should be done on the frontend using MercadoPago.js SDK
-    // to avoid sending raw card data to the server (PCI compliance)
-    // For now, we'll process directly but recommend frontend tokenization
-
-    // Prepare payment data for Mercado Pago
-    const paymentData = {
+    // Prepare payment data for Mercado Pago using token
+    const paymentData: Record<string, any> = {
       transaction_amount: amount,
+      token: cardToken, // Use the card token from frontend SDK
       description: description || "Pagamento de pedido",
-      payment_method_id: "master", // Will be auto-detected based on card
+      payment_method_id: paymentMethodId,
       installments: installments || 1,
       payer: {
         email: customerEmail,
@@ -154,30 +140,18 @@ serve(async (req) => {
           federal_unit: customerAddress?.state || "SP",
         },
       },
-      card: {
-        card_number: cleanCardNumber,
-        expiration_month: parseInt(cardData.expirationMonth),
-        expiration_year: parseInt(cardData.expirationYear),
-        security_code: cardData.securityCode,
-        cardholder: {
-          name: cardData.cardholderName.toUpperCase(),
-          identification: {
-            type: "CPF",
-            number: customerCpf?.replace(/\D/g, '') || "00000000000",
-          },
-        },
-      },
       statement_descriptor: "LOJA VIRTUAL",
       capture: true, // Capture immediately
     };
 
+    // Add issuer_id if provided
+    if (issuerId) {
+      paymentData.issuer_id = issuerId;
+    }
+
     console.log("Sending payment to Mercado Pago:", {
       ...paymentData,
-      card: {
-        ...paymentData.card,
-        card_number: cleanCardNumber.slice(-4).padStart(cleanCardNumber.length, '*'),
-        security_code: '***'
-      }
+      token: "***TOKEN***"
     });
 
     // Call Mercado Pago API

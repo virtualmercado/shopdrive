@@ -14,7 +14,7 @@ import { PixPayment } from "@/components/checkout/PixPayment";
 import { OrderSummaryHeader } from "@/components/checkout/OrderSummaryHeader";
 import { CustomerColumn } from "@/components/checkout/CustomerColumn";
 import { DeliveryColumn } from "@/components/checkout/DeliveryColumn";
-import { PaymentColumn, CardFormData } from "@/components/checkout/PaymentColumn";
+import { PaymentColumn, CardTokenData } from "@/components/checkout/PaymentColumn";
 
 type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
 type PaymentMethod = "cartao_credito" | "pix" | "boleto" | "whatsapp";
@@ -358,7 +358,7 @@ const CheckoutContent = () => {
     }
   };
 
-  const handleFinalize = async (cardData?: CardFormData) => {
+  const handleFinalize = async (cardTokenData?: CardTokenData) => {
     setCardProcessingError(null);
     
     if (cart.length === 0) {
@@ -416,13 +416,9 @@ const CheckoutContent = () => {
 
       const deliveryMethodLabel = formData.delivery_method === "retirada" ? "retirada" : "entrega";
 
-      // CREDIT CARD FLOW - Process payment BEFORE creating order
-      if (formData.payment_method === "cartao_credito" && cardData) {
-        console.log("Processing credit card payment before order creation");
-        
-        // Parse expiry date (MM/YY format)
-        const [expiryMonth, expiryYear] = cardData.expiry.split('/');
-        const fullYear = parseInt(expiryYear) < 100 ? 2000 + parseInt(expiryYear) : parseInt(expiryYear);
+      // CREDIT CARD FLOW - Process payment BEFORE creating order using card token
+      if (formData.payment_method === "cartao_credito" && cardTokenData) {
+        console.log("Processing credit card payment with token before order creation");
         
         try {
           const paymentResponse = await supabase.functions.invoke("process-credit-card", {
@@ -441,14 +437,9 @@ const CheckoutContent = () => {
                 city: formData.city,
                 state: formData.state,
               },
-              cardData: {
-                cardNumber: cardData.number.replace(/\s/g, ''),
-                expirationMonth: expiryMonth,
-                expirationYear: fullYear.toString(),
-                securityCode: cardData.cvv,
-                cardholderName: cardData.name,
-              },
-              installments: parseInt(cardData.installments),
+              cardToken: cardTokenData.token,
+              paymentMethodId: cardTokenData.paymentMethodId,
+              installments: cardTokenData.installments,
               description: `Pedido na loja ${storeData.store_name || storeSlug}`,
             },
           });
@@ -866,6 +857,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             onFinalize={handleFinalize}
             isFormValid={isFormValid}
             cardProcessingError={cardProcessingError}
+            customerCpf={customerProfile?.cpf || ""}
           />
         </div>
 
