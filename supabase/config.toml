@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.boleto-webhook]
 verify_jwt = false
+
+[functions.process-credit-card]
+verify_jwt = false
