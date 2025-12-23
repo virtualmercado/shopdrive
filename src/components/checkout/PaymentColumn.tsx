@@ -154,11 +154,11 @@ export const PaymentColumn = ({
         {paymentMethod === "cartao_credito" && (
           <div className="space-y-4">
             {/* Credit Card Illustration */}
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-2">
               <img 
                 src={creditCardIllustration} 
                 alt="Exemplo de cartão de crédito" 
-                className="w-full max-w-[280px] h-auto rounded-lg shadow-sm"
+                className="w-full max-w-[340px] h-auto rounded-lg shadow-md"
               />
             </div>
             
