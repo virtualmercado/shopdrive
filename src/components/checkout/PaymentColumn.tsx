@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreditCard, Shield, Lock, CheckCircle } from "lucide-react";
 import pixLogo from "@/assets/pix-logo.png";
 import whatsappLogo from "@/assets/whatsapp-logo.svg";
+import creditCardIllustration from "@/assets/credit-card-illustration.png";
 
 type PaymentMethod = "pix" | "cartao_credito" | "boleto" | "whatsapp";
 
@@ -151,7 +152,16 @@ export const PaymentColumn = ({
 
         {/* Credit Card Form */}
         {paymentMethod === "cartao_credito" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Credit Card Illustration */}
+            <div className="flex justify-center">
+              <img 
+                src={creditCardIllustration} 
+                alt="Exemplo de cartão de crédito" 
+                className="w-full max-w-[280px] h-auto rounded-lg shadow-sm"
+              />
+            </div>
+            
             <div>
               <Label className="text-xs">Número do cartão</Label>
               <Input
