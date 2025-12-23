@@ -245,7 +245,7 @@ serve(async (req) => {
           error: rejectionMessage,
           paymentId: mpData.id
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
