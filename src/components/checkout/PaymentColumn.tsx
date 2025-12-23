@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Shield, Lock, CheckCircle } from "lucide-react";
+import pixLogo from "@/assets/pix-logo.png";
+import whatsappLogo from "@/assets/whatsapp-logo.svg";
 
 type PaymentMethod = "pix" | "cartao_credito" | "boleto" | "whatsapp";
 
@@ -128,8 +130,8 @@ export const PaymentColumn = ({
         {/* PIX Details */}
         {paymentMethod === "pix" && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <span className="text-2xl">💚</span>
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <img src={pixLogo} alt="PIX" className="h-6 w-6 object-contain" />
               <div>
                 <p className="font-medium text-green-800">Pagamento via PIX</p>
                 {pixDiscount > 0 && (
@@ -230,7 +232,7 @@ export const PaymentColumn = ({
         {paymentMethod === "whatsapp" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <span className="text-2xl">💬</span>
+              <img src={whatsappLogo} alt="WhatsApp" className="h-6 w-6 object-contain" style={{ fill: '#25D366' }} />
               <div>
                 <p className="font-medium text-emerald-800">Combinar via WhatsApp</p>
                 <p className="text-sm text-emerald-600">
@@ -299,7 +301,7 @@ export const PaymentColumn = ({
             <div className="flex items-center gap-3">
               <RadioGroupItem value="pix" id="pix" />
               <div className="flex items-center gap-2">
-                <span className="text-xl">💚</span>
+                <img src={pixLogo} alt="PIX" className="h-5 w-5 object-contain" />
                 <Label htmlFor="pix" className="font-medium cursor-pointer">
                   Pix
                 </Label>
@@ -373,7 +375,7 @@ export const PaymentColumn = ({
           <div className="flex items-center gap-3">
             <RadioGroupItem value="whatsapp" id="whatsapp" />
             <div className="flex items-center gap-2">
-              <span className="text-xl">💬</span>
+              <img src={whatsappLogo} alt="WhatsApp" className="h-5 w-5 object-contain" style={{ filter: 'invert(52%) sepia(75%) saturate(518%) hue-rotate(108deg) brightness(94%) contrast(87%)' }} />
               <div>
                 <Label htmlFor="whatsapp" className="font-medium cursor-pointer">
                   Combinar via WhatsApp
