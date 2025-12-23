@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, MapPin, Edit, LogIn, UserPlus } from "lucide-react";
+import { User, MapPin, Edit, LogIn, UserPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ interface CustomerColumnProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (data: RegisterData) => Promise<void>;
   onAddAddress: (address: Omit<CustomerAddress, "id" | "is_default">) => Promise<void>;
+  onDeleteAddress?: (addressId: string) => Promise<void>;
   formData: {
     customer_name: string;
     customer_phone: string;
@@ -69,6 +70,7 @@ export const CustomerColumn = ({
   onLogin,
   onRegister,
   onAddAddress,
+  onDeleteAddress,
   formData,
   setFormData,
   primaryColor,
@@ -87,6 +89,8 @@ export const CustomerColumn = ({
     phone: "",
   });
   const [registerLoading, setRegisterLoading] = useState(false);
+
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
 
   const [newAddress, setNewAddress] = useState({
     recipient_name: "",
@@ -173,6 +177,22 @@ export const CustomerColumn = ({
     }
   };
 
+  const handleDeleteAddress = async (addressId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting the address when clicking delete
+    if (!onDeleteAddress) return;
+    
+    setDeletingAddressId(addressId);
+    try {
+      await onDeleteAddress(addressId);
+      // If the deleted address was selected, clear the selection
+      if (selectedAddressId === addressId) {
+        onSelectAddress(null);
+      }
+    } finally {
+      setDeletingAddressId(null);
+    }
+  };
+
   // Logged in user view
   if (isLoggedIn && customerProfile) {
     return (
@@ -214,7 +234,7 @@ export const CustomerColumn = ({
               {customerAddresses.map((address) => (
                 <div
                   key={address.id}
-                  className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                  className={`border rounded-lg p-3 cursor-pointer transition-all relative ${
                     selectedAddressId === address.id 
                       ? "border-2" 
                       : "border-border hover:border-muted-foreground"
@@ -222,15 +242,31 @@ export const CustomerColumn = ({
                   style={selectedAddressId === address.id ? { borderColor: primaryColor } : {}}
                   onClick={() => onSelectAddress(address.id)}
                 >
-                  <p className="font-medium text-sm">{address.recipient_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {address.street}, {address.number}
-                    {address.complement && ` - ${address.complement}`}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {address.neighborhood}, {address.city} - {address.state}
-                  </p>
-                  <p className="text-xs text-muted-foreground">CEP: {address.cep}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{address.recipient_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {address.street}, {address.number}
+                        {address.complement && ` - ${address.complement}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {address.neighborhood}, {address.city} - {address.state}
+                      </p>
+                      <p className="text-xs text-muted-foreground">CEP: {address.cep}</p>
+                    </div>
+                    {/* Only show delete button for non-default addresses when there are multiple addresses */}
+                    {!address.is_default && customerAddresses.length > 1 && onDeleteAddress && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={(e) => handleDeleteAddress(address.id, e)}
+                        disabled={deletingAddressId === address.id}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
