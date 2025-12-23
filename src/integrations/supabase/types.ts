@@ -62,6 +62,65 @@ export type Database = {
           },
         ]
       }
+      boleto_payments: {
+        Row: {
+          amount: number
+          barcode: string | null
+          boleto_url: string | null
+          created_at: string
+          digitable_line: string | null
+          expires_at: string | null
+          external_payment_id: string | null
+          gateway: string
+          id: string
+          order_id: string
+          paid_at: string | null
+          status: string
+          store_owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          barcode?: string | null
+          boleto_url?: string | null
+          created_at?: string
+          digitable_line?: string | null
+          expires_at?: string | null
+          external_payment_id?: string | null
+          gateway?: string
+          id?: string
+          order_id: string
+          paid_at?: string | null
+          status?: string
+          store_owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          barcode?: string | null
+          boleto_url?: string | null
+          created_at?: string
+          digitable_line?: string | null
+          expires_at?: string | null
+          external_payment_id?: string | null
+          gateway?: string
+          id?: string
+          order_id?: string
+          paid_at?: string | null
+          status?: string
+          store_owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boleto_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       correios_settings: {
         Row: {
           contract_code: string | null
@@ -632,6 +691,12 @@ export type Database = {
       }
       orders: {
         Row: {
+          boleto_barcode: string | null
+          boleto_digitable_line: string | null
+          boleto_expires_at: string | null
+          boleto_payment_id: string | null
+          boleto_payment_status: string | null
+          boleto_url: string | null
           created_at: string
           customer_address: string | null
           customer_email: string
@@ -657,6 +722,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          boleto_barcode?: string | null
+          boleto_digitable_line?: string | null
+          boleto_expires_at?: string | null
+          boleto_payment_id?: string | null
+          boleto_payment_status?: string | null
+          boleto_url?: string | null
           created_at?: string
           customer_address?: string | null
           customer_email: string
@@ -682,6 +753,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          boleto_barcode?: string | null
+          boleto_digitable_line?: string | null
+          boleto_expires_at?: string | null
+          boleto_payment_id?: string | null
+          boleto_payment_status?: string | null
+          boleto_url?: string | null
           created_at?: string
           customer_address?: string | null
           customer_email?: string
@@ -707,6 +784,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_boleto_payment_id_fkey"
+            columns: ["boleto_payment_id"]
+            isOneToOne: false
+            referencedRelation: "boleto_payments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]

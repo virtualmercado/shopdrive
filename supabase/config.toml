@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.check-pix-status]
 verify_jwt = false
+
+[functions.generate-boleto]
+verify_jwt = false
+
+[functions.boleto-webhook]
+verify_jwt = false
