@@ -323,6 +323,40 @@ const CheckoutContent = () => {
     setSelectedAddressId(data.id);
   };
 
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!user) return;
+
+    // Find the address to check if it's default
+    const addressToDelete = customerAddresses.find(a => a.id === addressId);
+    if (!addressToDelete) return;
+
+    // Prevent deletion of default address
+    if (addressToDelete.is_default) {
+      toast.error("Não é possível excluir o endereço principal");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("customer_addresses")
+      .delete()
+      .eq("id", addressId)
+      .eq("customer_id", user.id);
+
+    if (error) {
+      toast.error("Erro ao excluir endereço");
+      return;
+    }
+
+    toast.success("Endereço excluído!");
+    setCustomerAddresses(prev => prev.filter(a => a.id !== addressId));
+    
+    // If deleted address was selected, select the default one
+    if (selectedAddressId === addressId) {
+      const defaultAddress = customerAddresses.find(a => a.is_default && a.id !== addressId);
+      setSelectedAddressId(defaultAddress?.id || null);
+    }
+  };
+
   const handleFinalize = async () => {
     if (cart.length === 0) {
       toast.error("Seu carrinho está vazio");
@@ -609,6 +643,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             onLogin={handleLogin}
             onRegister={handleRegister}
             onAddAddress={handleAddAddress}
+            onDeleteAddress={handleDeleteAddress}
             formData={formData}
             setFormData={setFormData}
             primaryColor={primaryColor}
