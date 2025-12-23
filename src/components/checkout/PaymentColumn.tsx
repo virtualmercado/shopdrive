@@ -158,7 +158,7 @@ export const PaymentColumn = ({
               <img 
                 src={creditCardIllustration} 
                 alt="Exemplo de cartão de crédito" 
-                className="w-full max-w-[340px] h-auto rounded-lg shadow-md"
+                className="w-full max-w-[400px] h-auto rounded-lg shadow-md"
               />
             </div>
             
