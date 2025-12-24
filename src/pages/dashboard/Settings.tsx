@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -27,6 +28,15 @@ const Settings = () => {
     address: "",
     cep: "",
   });
+  
+  const [orderConfig, setOrderConfig] = useState({
+    minimumOrderValue: 0,
+    requireAddress: true,
+    requirePersonalInfo: true,
+    requireEmail: true,
+    requirePaymentMethod: true,
+    requireCpf: false,
+  });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -35,7 +45,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("full_name, email, phone, whatsapp_number, cpf_cnpj, address, address_zip_code")
+          .select("full_name, email, phone, whatsapp_number, cpf_cnpj, address, address_zip_code, minimum_order_value, checkout_require_address, checkout_require_personal_info, checkout_require_email, checkout_require_payment_method, checkout_require_cpf")
           .eq("id", user.id)
           .single();
 
@@ -56,6 +66,15 @@ const Settings = () => {
             cpf: !isCnpj && cleanCpfCnpj.length > 0 ? cpfCnpj : "",
             address: data.address || "",
             cep: data.address_zip_code || "",
+          });
+          
+          setOrderConfig({
+            minimumOrderValue: data.minimum_order_value || 0,
+            requireAddress: data.checkout_require_address ?? true,
+            requirePersonalInfo: data.checkout_require_personal_info ?? true,
+            requireEmail: data.checkout_require_email ?? true,
+            requirePaymentMethod: data.checkout_require_payment_method ?? true,
+            requireCpf: data.checkout_require_cpf ?? false,
           });
         }
       } catch (error) {
@@ -153,6 +172,12 @@ const Settings = () => {
           cpf_cnpj: cpfCnpj,
           address: formData.address,
           address_zip_code: formData.cep,
+          minimum_order_value: orderConfig.minimumOrderValue,
+          checkout_require_address: orderConfig.requireAddress,
+          checkout_require_personal_info: orderConfig.requirePersonalInfo,
+          checkout_require_email: orderConfig.requireEmail,
+          checkout_require_payment_method: orderConfig.requirePaymentMethod,
+          checkout_require_cpf: orderConfig.requireCpf,
         })
         .eq("id", user.id);
 
@@ -272,6 +297,106 @@ const Settings = () => {
                   placeholder="00000-000" 
                   value={formData.cep}
                   onChange={(e) => handleInputChange("cep", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Order Configuration */}
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-6">Configuração do pedido</h2>
+          
+          {/* Minimum Order Section */}
+          <div className="mb-8">
+            <h3 className="text-base font-semibold mb-1" style={{ color: primaryColor }}>Pedido mínimo</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Digite abaixo o valor mínimo aceito em um pedido
+            </p>
+            <div className="flex items-center gap-2 max-w-xs">
+              <span 
+                className="px-3 py-2 rounded-l-md text-sm font-medium"
+                style={{ backgroundColor: primaryColor, color: '#fff' }}
+              >
+                R$
+              </span>
+              <Input 
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                value={orderConfig.minimumOrderValue || ""}
+                onChange={(e) => setOrderConfig(prev => ({ 
+                  ...prev, 
+                  minimumOrderValue: parseFloat(e.target.value) || 0 
+                }))}
+                className="rounded-l-none"
+              />
+            </div>
+          </div>
+          
+          {/* Checkout Required Fields Section */}
+          <div>
+            <h3 className="text-base font-semibold mb-1" style={{ color: primaryColor }}>
+              Informações solicitadas na finalização do pedido
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione as informações que devem ser solicitadas ao seu cliente na tela de "finalizar pedido"
+            </p>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm">Endereço de entrega</span>
+                <Switch 
+                  checked={orderConfig.requireAddress}
+                  onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireAddress: checked }))}
+                  style={{ 
+                    backgroundColor: orderConfig.requireAddress ? primaryColor : undefined 
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm">Informações pessoais</span>
+                <Switch 
+                  checked={orderConfig.requirePersonalInfo}
+                  onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requirePersonalInfo: checked }))}
+                  style={{ 
+                    backgroundColor: orderConfig.requirePersonalInfo ? primaryColor : undefined 
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm">Email</span>
+                <Switch 
+                  checked={orderConfig.requireEmail}
+                  onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireEmail: checked }))}
+                  style={{ 
+                    backgroundColor: orderConfig.requireEmail ? primaryColor : undefined 
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm">Forma de pagamento</span>
+                <Switch 
+                  checked={orderConfig.requirePaymentMethod}
+                  onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requirePaymentMethod: checked }))}
+                  style={{ 
+                    backgroundColor: orderConfig.requirePaymentMethod ? primaryColor : undefined 
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm">CPF</span>
+                <Switch 
+                  checked={orderConfig.requireCpf}
+                  onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireCpf: checked }))}
+                  style={{ 
+                    backgroundColor: orderConfig.requireCpf ? primaryColor : undefined 
+                  }}
                 />
               </div>
             </div>

@@ -1247,6 +1247,11 @@ export type Database = {
           button_bg_color: string | null
           button_border_style: string | null
           button_text_color: string | null
+          checkout_require_address: boolean | null
+          checkout_require_cpf: boolean | null
+          checkout_require_email: boolean | null
+          checkout_require_payment_method: boolean | null
+          checkout_require_personal_info: boolean | null
           cpf_cnpj: string | null
           created_at: string
           delivery_option: string | null
@@ -1267,6 +1272,7 @@ export type Database = {
           merchant_city: string | null
           merchant_reference_cep: string | null
           merchant_state: string | null
+          minimum_order_value: number | null
           phone: string | null
           pickup_address: string | null
           pickup_hours_saturday_end: string | null
@@ -1309,6 +1315,11 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          checkout_require_address?: boolean | null
+          checkout_require_cpf?: boolean | null
+          checkout_require_email?: boolean | null
+          checkout_require_payment_method?: boolean | null
+          checkout_require_personal_info?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           delivery_option?: string | null
@@ -1329,6 +1340,7 @@ export type Database = {
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minimum_order_value?: number | null
           phone?: string | null
           pickup_address?: string | null
           pickup_hours_saturday_end?: string | null
@@ -1371,6 +1383,11 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          checkout_require_address?: boolean | null
+          checkout_require_cpf?: boolean | null
+          checkout_require_email?: boolean | null
+          checkout_require_payment_method?: boolean | null
+          checkout_require_personal_info?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           delivery_option?: string | null
@@ -1391,6 +1408,7 @@ export type Database = {
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minimum_order_value?: number | null
           phone?: string | null
           pickup_address?: string | null
           pickup_hours_saturday_end?: string | null
