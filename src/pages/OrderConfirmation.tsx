@@ -355,7 +355,7 @@ const OrderConfirmation = () => {
         </div>
 
         {/* Store Location Section */}
-        {mapsUrl && (
+        {mapsUrl && orderData.delivery_method === "retirada" && (
           <a
             href={mapsUrl}
             target="_blank"
