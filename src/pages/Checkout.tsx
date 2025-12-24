@@ -540,6 +540,60 @@ const CheckoutContent = () => {
         }
       }
 
+      // WhatsApp: abrir o WhatsApp Web imediatamente (sem api.whatsapp.com) enquanto ainda existe gesto do usuário
+      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("pt-BR");
+        const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+        const itemsList = cart
+          .map(
+            (item) =>
+              `• ${item.name} (x${item.quantity}) - R$ ${(
+                (item.promotional_price || item.price) * item.quantity
+              ).toFixed(2)}`
+          )
+          .join("\n");
+
+        const deliveryText = formData.delivery_method === "retirada" ? "Retirada" : "Entrega";
+
+        const whatsappMessage = `*Novo Pedido - ${storeData.store_name || "Loja"}*
+
+Cliente: ${formData.customer_name}
+Contato: ${formData.customer_phone}
+Data: ${dateStr} ${timeStr}
+
+Itens:
+${itemsList}
+
+Subtotal: R$ ${subtotal.toFixed(2)}
+Frete: R$ ${deliveryFee.toFixed(2)}
+Total: R$ ${total.toFixed(2)}
+
+Entrega: ${deliveryText}
+
+Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
+
+        // Normalize phone to E.164 format (55DDDNUMERO)
+        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
+        if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+
+        const encodedMessage = encodeURIComponent(whatsappMessage);
+
+        // Link direto do WhatsApp Web (evita redirecionamento para api.whatsapp.com)
+        const whatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}&type=phone_number&app_absent=0`;
+
+        console.log("[Checkout] Opening WhatsApp:", whatsappUrl);
+
+        const link = document.createElement("a");
+        link.href = whatsappUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
       // For non-credit card payments, create order first
       const { data: order, error: orderError } = await supabase
         .from("orders")
@@ -641,64 +695,7 @@ const CheckoutContent = () => {
         return;
       }
 
-      // WhatsApp flow - using direct links without api.whatsapp.com
-      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString("pt-BR");
-        const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-        const itemsList = cart.map(
-          (item) => `• ${item.name} (x${item.quantity}) - R$ ${((item.promotional_price || item.price) * item.quantity).toFixed(2)}`
-        ).join("\n");
-
-        const deliveryText = formData.delivery_method === "retirada" 
-          ? `Retirada` 
-          : `Entrega`;
-
-        const whatsappMessage = `*Novo Pedido - ${storeData.store_name || 'Loja'}*
-
-Cliente: ${formData.customer_name}
-Contato: ${formData.customer_phone}
-Data: ${dateStr} ${timeStr}
-
-Itens:
-${itemsList}
-
-Subtotal: R$ ${subtotal.toFixed(2)}
-Frete: R$ ${deliveryFee.toFixed(2)}
-Total: R$ ${total.toFixed(2)}
-
-Entrega: ${deliveryText}
-
-Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
-
-        // Normalize phone to E.164 format (55DDDNUMERO)
-        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
-        // Ensure Brazilian country code prefix
-        if (!cleanPhone.startsWith("55")) {
-          cleanPhone = "55" + cleanPhone;
-        }
-        
-        const encodedMessage = encodeURIComponent(whatsappMessage);
-        const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-        
-        // Desktop: WhatsApp Web direct link (avoids api.whatsapp.com redirect blocks)
-        // Mobile: wa.me universal link
-        const whatsappUrl = isMobile
-          ? `https://wa.me/${cleanPhone}?text=${encodedMessage}`
-          : `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}&type=phone_number&app_absent=0`;
-
-        console.log("[Checkout] Opening WhatsApp:", whatsappUrl);
-
-        // Open using anchor element to ensure it works in embedded contexts
-        const link = document.createElement("a");
-        link.href = whatsappUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
+      // WhatsApp flow: o WhatsApp Web é aberto antes da criação do pedido (para manter o gesto do usuário).
 
       if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
         await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
