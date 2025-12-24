@@ -123,6 +123,18 @@ const OrderConfirmation = () => {
 
   const mapsUrl = getGoogleMapsUrl();
 
+  const mapsTarget = (() => {
+    if (typeof window === "undefined") return "_blank";
+    try {
+      // If rendered inside an iframe/webview, opening external sites can be forced in-frame,
+      // which Google blocks via X-Frame-Options/CSP, surfacing as ERR_BLOCKED_BY_RESPONSE.
+      return window.self !== window.top ? "_top" : "_blank";
+    } catch {
+      return "_top";
+    }
+  })();
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -358,8 +370,9 @@ const OrderConfirmation = () => {
         {mapsUrl && orderData.delivery_method === "retirada" && (
           <a
             href={mapsUrl}
-            target="_blank"
+            target={mapsTarget}
             rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             aria-label="Abrir localização da loja no Google Maps"
           >
