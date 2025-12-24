@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -103,68 +103,122 @@ const OrderConfirmation = () => {
 
   const primaryColor = storeData?.primary_color || null;
 
-  const getGoogleMapsUrl = () => {
+  const getMapsLinks = () => {
     if (!storeData) return null;
-    
+
     const parts = [
       storeData.address,
       storeData.address_number,
       storeData.address_neighborhood,
       storeData.address_city,
       storeData.address_state,
-      storeData.address_zip_code
+      storeData.address_zip_code,
     ].filter(Boolean);
-    
+
     if (parts.length === 0) return null;
-    
+
     const fullAddress = parts.join(", ");
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+    const encoded = encodeURIComponent(fullAddress);
+
+    // Official format: https://developers.google.com/maps/documentation/urls/get-started
+    const webUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+    // Prefer deep links on mobile to open the native app (more reliable in in-app browsers/webviews).
+    const deepLinkUrl = isAndroid
+      ? `geo:0,0?q=${encoded}`
+      : isIOS
+        ? `comgooglemaps://?q=${encoded}`
+        : null;
+
+    return { webUrl, deepLinkUrl, fullAddress };
   };
 
-  const mapsUrl = getGoogleMapsUrl();
+  const maps = getMapsLinks();
+  const mapsUrl = maps?.webUrl ?? null;
 
-  const isInIframe = (() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.self !== window.top;
-    } catch {
-      return true;
-    }
-  })();
+  const openMapsWebUrl = () => {
+    if (!maps?.webUrl) return false;
 
-  const handleOpenMaps = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (!mapsUrl) return;
-    e.preventDefault();
-
-    // Official Google Maps URLs are just normal links; the main issue is when environments
-    // (iframes/webviews) block top navigation/popups. We try a new tab first.
-    const newTab = window.open(mapsUrl, "_blank", "noopener,noreferrer");
+    const newTab = window.open(maps.webUrl, "_blank", "noopener,noreferrer");
     if (newTab) {
       try {
         newTab.focus();
       } catch {
         // ignore
       }
-      return;
+      return true;
     }
 
-    // Popup blocked: fallback strategies
-    if (!isInIframe) {
-      window.location.assign(mapsUrl);
-      return;
-    }
-
+    // Popup blocked: navigate in the same tab.
     try {
-      window.top?.location.assign(mapsUrl);
-      return;
+      window.location.assign(maps.webUrl);
+      return true;
     } catch {
-      // ignore
+      return false;
     }
+  };
+
+  const handleCopyMapsLink = () => {
+    if (!mapsUrl) return;
+    navigator.clipboard
+      .writeText(mapsUrl)
+      .then(() => toast.success("Link do Google Maps copiado!"))
+      .catch(() => toast.error("Não foi possível copiar o link."));
+  };
+
+  const handleOpenMaps = () => {
+    if (!mapsUrl) return;
+
+    // Try native app first on mobile; if it doesn't open, fallback to the web URL.
+    if (maps?.deepLinkUrl) {
+      let fallbackTimer: number | undefined;
+
+      const onVisibilityChange = () => {
+        if (document.hidden) {
+          if (fallbackTimer) window.clearTimeout(fallbackTimer);
+          document.removeEventListener("visibilitychange", onVisibilityChange);
+        }
+      };
+
+      document.addEventListener("visibilitychange", onVisibilityChange);
+
+      // Attempt to open the app
+      window.location.href = maps.deepLinkUrl;
+
+      fallbackTimer = window.setTimeout(() => {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+
+        const opened = openMapsWebUrl();
+        if (opened) return;
+
+        // Last resort: copy the link
+        navigator.clipboard
+          .writeText(mapsUrl)
+          .then(() => toast.success("Link do Google Maps copiado. Cole no navegador."))
+          .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
+      }, 700);
+
+      return;
+    }
+
+    const opened = openMapsWebUrl();
+    if (opened) return;
 
     navigator.clipboard
       .writeText(mapsUrl)
       .then(() => toast.success("Link do Google Maps copiado. Cole no navegador."))
       .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
+  };
+
+  const handleLocationKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleOpenMaps();
+    }
   };
 
   if (loading) {
@@ -400,56 +454,71 @@ const OrderConfirmation = () => {
 
         {/* Store Location Section */}
         {mapsUrl && orderData.delivery_method === "retirada" && (
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={handleOpenMaps}
+            onKeyDown={handleLocationKeyDown}
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             aria-label="Abrir localização da loja no Google Maps"
           >
             <div className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Localização:</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">Localização:</h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopyMapsLink();
+                  }}
+                  className="inline-flex items-center gap-2 text-xs text-gray-600 hover:text-gray-900"
+                  aria-label="Copiar link do Google Maps"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Copiar link
+                </button>
+              </div>
+
               <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
                 {/* Static map preview background */}
                 <div className="absolute inset-0 bg-gray-50">
                   {/* Horizontal streets (yellow/beige) */}
                   <div className="absolute top-[40%] left-0 right-0 h-2 bg-amber-200"></div>
                   <div className="absolute top-[60%] left-0 right-0 h-2 bg-amber-200"></div>
-                  
+
                   {/* Vertical streets (green borders) */}
                   <div className="absolute top-0 bottom-0 left-[10%] w-1.5 bg-emerald-400"></div>
                   <div className="absolute top-0 bottom-0 left-[25%] w-1.5 bg-emerald-400"></div>
                   <div className="absolute top-0 bottom-0 left-[55%] w-1 bg-emerald-400"></div>
                   <div className="absolute top-0 bottom-0 right-[10%] w-1.5 bg-emerald-400"></div>
-                  
+
                   {/* Green blocks/areas */}
                   <div className="absolute top-2 left-[12%] w-8 h-10 bg-emerald-300 rounded-sm"></div>
                   <div className="absolute top-3 right-[20%] w-10 h-8 bg-emerald-400 rounded-sm"></div>
                   <div className="absolute bottom-3 left-[15%] w-6 h-8 bg-emerald-300 rounded-sm"></div>
-                  
+
                   {/* Blue block */}
                   <div className="absolute top-[45%] right-[25%] w-8 h-6 bg-sky-400 rounded-sm"></div>
                 </div>
-                
+
                 {/* Location pin */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative">
                     {/* Pin shape */}
-                    <div 
+                    <div
                       className="w-6 h-6 rounded-full shadow-md flex items-center justify-center"
-                      style={{ backgroundColor: '#ea4335' }}
+                      style={{ backgroundColor: "#ea4335" }}
                     >
                       <div className="w-2 h-2 bg-red-800 rounded-full"></div>
                     </div>
                     {/* Pin tail */}
-                    <div 
+                    <div
                       className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent"
-                      style={{ borderTopColor: '#ea4335' }}
+                      style={{ borderTopColor: "#ea4335" }}
                     ></div>
                   </div>
                 </div>
+
                 {/* Click hint */}
                 <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1">
                   <ExternalLink className="w-3 h-3" />
@@ -457,7 +526,7 @@ const OrderConfirmation = () => {
                 </div>
               </div>
             </div>
-          </a>
+          </div>
         )}
 
         {/* Actions */}
