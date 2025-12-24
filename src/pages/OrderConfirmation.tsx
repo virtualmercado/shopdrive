@@ -367,27 +367,41 @@ const OrderConfirmation = () => {
               <h3 className="font-semibold text-gray-900 mb-3">Localização:</h3>
               <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
                 {/* Static map preview background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-blue-50">
-                  {/* Decorative map-like elements */}
-                  <div className="absolute inset-0 opacity-30">
-                    <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-8 left-8 right-12 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-12 left-4 w-1/3 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-16 left-12 right-4 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-20 left-4 w-1/2 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-24 left-8 right-8 h-0.5 bg-gray-300 rounded"></div>
-                    <div className="absolute top-4 left-1/4 w-0.5 h-20 bg-gray-300 rounded"></div>
-                    <div className="absolute top-8 left-1/2 w-0.5 h-16 bg-gray-300 rounded"></div>
-                    <div className="absolute top-4 right-1/4 w-0.5 h-24 bg-gray-300 rounded"></div>
-                  </div>
+                <div className="absolute inset-0 bg-gray-50">
+                  {/* Horizontal streets (yellow/beige) */}
+                  <div className="absolute top-[40%] left-0 right-0 h-2 bg-amber-200"></div>
+                  <div className="absolute top-[60%] left-0 right-0 h-2 bg-amber-200"></div>
+                  
+                  {/* Vertical streets (green borders) */}
+                  <div className="absolute top-0 bottom-0 left-[10%] w-1.5 bg-emerald-400"></div>
+                  <div className="absolute top-0 bottom-0 left-[25%] w-1.5 bg-emerald-400"></div>
+                  <div className="absolute top-0 bottom-0 left-[55%] w-1 bg-emerald-400"></div>
+                  <div className="absolute top-0 bottom-0 right-[10%] w-1.5 bg-emerald-400"></div>
+                  
+                  {/* Green blocks/areas */}
+                  <div className="absolute top-2 left-[12%] w-8 h-10 bg-emerald-300 rounded-sm"></div>
+                  <div className="absolute top-3 right-[20%] w-10 h-8 bg-emerald-400 rounded-sm"></div>
+                  <div className="absolute bottom-3 left-[15%] w-6 h-8 bg-emerald-300 rounded-sm"></div>
+                  
+                  {/* Blue block */}
+                  <div className="absolute top-[45%] right-[25%] w-8 h-6 bg-sky-400 rounded-sm"></div>
                 </div>
+                
                 {/* Location pin */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                    style={{ backgroundColor: primaryColor || "hsl(var(--primary))" }}
-                  >
-                    <MapPin className="w-6 h-6 text-white" />
+                  <div className="relative">
+                    {/* Pin shape */}
+                    <div 
+                      className="w-6 h-6 rounded-full shadow-md flex items-center justify-center"
+                      style={{ backgroundColor: '#ea4335' }}
+                    >
+                      <div className="w-2 h-2 bg-red-800 rounded-full"></div>
+                    </div>
+                    {/* Pin tail */}
+                    <div 
+                      className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent"
+                      style={{ borderTopColor: '#ea4335' }}
+                    ></div>
                   </div>
                 </div>
                 {/* Click hint */}
