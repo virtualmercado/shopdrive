@@ -356,10 +356,20 @@ const OrderConfirmation = () => {
 
         {/* Store Location Section */}
         {mapsUrl && orderData.delivery_method === "retirada" && (
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
           >
             <div className="p-4">
@@ -396,7 +406,7 @@ const OrderConfirmation = () => {
                 </div>
               </div>
             </div>
-          </a>
+          </div>
         )}
 
         {/* Actions */}
