@@ -1,8 +1,8 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Copy, ExternalLink, FileText, MapPin } from "lucide-react";
+import { CheckCircle, Copy, ExternalLink, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -50,6 +50,8 @@ const OrderConfirmation = () => {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
+  const copyHintTimeoutRef = useRef<number | null>(null);
+  const [showMapsCopiedHint, setShowMapsCopiedHint] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -129,71 +131,31 @@ const OrderConfirmation = () => {
   const maps = getMapsLinks();
   const mapsUrl = maps?.webUrl ?? null;
 
+  const showCopiedHint = () => {
+    setShowMapsCopiedHint(true);
+
+    if (copyHintTimeoutRef.current) {
+      window.clearTimeout(copyHintTimeoutRef.current);
+    }
+
+    copyHintTimeoutRef.current = window.setTimeout(() => {
+      setShowMapsCopiedHint(false);
+    }, 9000);
+  };
+
   const handleCopyMapsLink = () => {
     if (!mapsUrl) return;
 
     navigator.clipboard
       .writeText(mapsUrl)
-      .then(() => toast.success("Link do Google Maps copiado!"))
+      .then(() => {
+        showCopiedHint();
+        toast.success("Link copiado!", {
+          description: "Cole a URL no navegador para abrir o endereço no Google Maps.",
+          duration: 9000,
+        });
+      })
       .catch(() => toast.error("Não foi possível copiar o link."));
-  };
-
-  const handleOpenMaps = () => {
-    if (!mapsUrl) return;
-
-    // If we're inside an iframe/webview sandbox, trying to open Google inside the frame often results in
-    // "A conexão com www.google.com foi recusada". So we try to escape to the top window first.
-    const isEmbedded = (() => {
-      try {
-        return window.self !== window.top;
-      } catch {
-        return true;
-      }
-    })();
-
-    if (isEmbedded) {
-      try {
-        // Navigate the top-level window to Google Maps.
-        window.top!.location.href = mapsUrl;
-        return;
-      } catch {
-        // ignore
-      }
-    }
-
-    // Prefer a new tab/window when possible.
-    const opened = window.open(mapsUrl, "_blank", "noopener,noreferrer");
-    if (opened) {
-      try {
-        opened.focus();
-      } catch {
-        // ignore
-      }
-      return;
-    }
-
-    // If popups are blocked, navigate in the same tab only when NOT embedded.
-    if (!isEmbedded) {
-      try {
-        window.location.assign(mapsUrl);
-        return;
-      } catch {
-        // ignore
-      }
-    }
-
-    // Last resort: copy the link (keeps the option available even in very restricted environments).
-    navigator.clipboard
-      .writeText(mapsUrl)
-      .then(() => toast.success("Não foi possível abrir automaticamente. Link copiado!"))
-      .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
-  };
-
-  const handleLocationKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleOpenMaps();
-    }
   };
 
   if (loading) {
@@ -432,10 +394,15 @@ const OrderConfirmation = () => {
           <div
             role="button"
             tabIndex={0}
-            onClick={handleOpenMaps}
-            onKeyDown={handleLocationKeyDown}
+            onClick={handleCopyMapsLink}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleCopyMapsLink();
+              }
+            }}
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-            aria-label="Abrir localização da loja no Google Maps"
+            aria-label="Copiar link da localização da loja"
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
@@ -443,6 +410,7 @@ const OrderConfirmation = () => {
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleCopyMapsLink();
                   }}
@@ -453,6 +421,15 @@ const OrderConfirmation = () => {
                   Copiar link
                 </button>
               </div>
+
+              {showMapsCopiedHint && (
+                <div className="mb-3 rounded-md border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-sm font-semibold text-foreground">Link copiado!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Cole a URL no navegador para abrir o endereço no Google Maps.
+                  </p>
+                </div>
+              )}
 
               <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
                 {/* Static map preview background */}
@@ -496,8 +473,8 @@ const OrderConfirmation = () => {
 
                 {/* Click hint */}
                 <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" />
-                  Abrir no Maps
+                  <Copy className="w-3 h-3" />
+                  Clique para copiar
                 </div>
               </div>
             </div>
