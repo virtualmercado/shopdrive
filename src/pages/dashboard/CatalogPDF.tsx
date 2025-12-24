@@ -1238,8 +1238,9 @@ const CatalogPDF = () => {
                   disabled={!canGenerate || isGenerating}
                   className="w-full gap-2"
                   style={{ 
-                    backgroundColor: canGenerate ? buttonBgColor : undefined, 
-                    color: canGenerate ? buttonTextColor : undefined 
+                    backgroundColor: buttonBgColor, 
+                    color: buttonTextColor,
+                    opacity: (!canGenerate && !isGenerating) ? 0.5 : 1
                   }}
                 >
                   {isGenerating ? (
