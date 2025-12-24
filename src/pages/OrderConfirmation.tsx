@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -123,17 +123,49 @@ const OrderConfirmation = () => {
 
   const mapsUrl = getGoogleMapsUrl();
 
-  const mapsTarget = (() => {
-    if (typeof window === "undefined") return "_blank";
+  const isInIframe = (() => {
+    if (typeof window === "undefined") return false;
     try {
-      // If rendered inside an iframe/webview, opening external sites can be forced in-frame,
-      // which Google blocks via X-Frame-Options/CSP, surfacing as ERR_BLOCKED_BY_RESPONSE.
-      return window.self !== window.top ? "_top" : "_blank";
+      return window.self !== window.top;
     } catch {
-      return "_top";
+      return true;
     }
   })();
 
+  const handleOpenMaps = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!mapsUrl) return;
+    e.preventDefault();
+
+    // Official Google Maps URLs are just normal links; the main issue is when environments
+    // (iframes/webviews) block top navigation/popups. We try a new tab first.
+    const newTab = window.open(mapsUrl, "_blank", "noopener,noreferrer");
+    if (newTab) {
+      try {
+        newTab.focus();
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    // Popup blocked: fallback strategies
+    if (!isInIframe) {
+      window.location.assign(mapsUrl);
+      return;
+    }
+
+    try {
+      window.top?.location.assign(mapsUrl);
+      return;
+    } catch {
+      // ignore
+    }
+
+    navigator.clipboard
+      .writeText(mapsUrl)
+      .then(() => toast.success("Link do Google Maps copiado. Cole no navegador."))
+      .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
+  };
 
   if (loading) {
     return (
@@ -370,9 +402,10 @@ const OrderConfirmation = () => {
         {mapsUrl && orderData.delivery_method === "retirada" && (
           <a
             href={mapsUrl}
-            target={mapsTarget}
+            target="_blank"
             rel="noopener noreferrer"
             referrerPolicy="no-referrer"
+            onClick={handleOpenMaps}
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             aria-label="Abrir localização da loja no Google Maps"
           >
