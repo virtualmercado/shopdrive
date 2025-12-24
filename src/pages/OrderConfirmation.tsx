@@ -123,47 +123,15 @@ const OrderConfirmation = () => {
     // Official format: https://developers.google.com/maps/documentation/urls/get-started
     const webUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
 
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const isAndroid = /Android/i.test(ua);
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
-
-    // Prefer deep links on mobile to open the native app (more reliable in in-app browsers/webviews).
-    const deepLinkUrl = isAndroid
-      ? `geo:0,0?q=${encoded}`
-      : isIOS
-        ? `comgooglemaps://?q=${encoded}`
-        : null;
-
-    return { webUrl, deepLinkUrl, fullAddress };
+    return { webUrl, fullAddress };
   };
 
   const maps = getMapsLinks();
   const mapsUrl = maps?.webUrl ?? null;
 
-  const openMapsWebUrl = () => {
-    if (!maps?.webUrl) return false;
-
-    const newTab = window.open(maps.webUrl, "_blank", "noopener,noreferrer");
-    if (newTab) {
-      try {
-        newTab.focus();
-      } catch {
-        // ignore
-      }
-      return true;
-    }
-
-    // Popup blocked: navigate in the same tab.
-    try {
-      window.location.assign(maps.webUrl);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const handleCopyMapsLink = () => {
     if (!mapsUrl) return;
+
     navigator.clipboard
       .writeText(mapsUrl)
       .then(() => toast.success("Link do Google Maps copiado!"))
@@ -173,44 +141,51 @@ const OrderConfirmation = () => {
   const handleOpenMaps = () => {
     if (!mapsUrl) return;
 
-    // Try native app first on mobile; if it doesn't open, fallback to the web URL.
-    if (maps?.deepLinkUrl) {
-      let fallbackTimer: number | undefined;
+    // If we're inside an iframe/webview sandbox, trying to open Google inside the frame often results in
+    // "A conexão com www.google.com foi recusada". So we try to escape to the top window first.
+    const isEmbedded = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
 
-      const onVisibilityChange = () => {
-        if (document.hidden) {
-          if (fallbackTimer) window.clearTimeout(fallbackTimer);
-          document.removeEventListener("visibilitychange", onVisibilityChange);
-        }
-      };
+    if (isEmbedded) {
+      try {
+        // Navigate the top-level window to Google Maps.
+        window.top!.location.href = mapsUrl;
+        return;
+      } catch {
+        // ignore
+      }
+    }
 
-      document.addEventListener("visibilitychange", onVisibilityChange);
-
-      // Attempt to open the app
-      window.location.href = maps.deepLinkUrl;
-
-      fallbackTimer = window.setTimeout(() => {
-        document.removeEventListener("visibilitychange", onVisibilityChange);
-
-        const opened = openMapsWebUrl();
-        if (opened) return;
-
-        // Last resort: copy the link
-        navigator.clipboard
-          .writeText(mapsUrl)
-          .then(() => toast.success("Link do Google Maps copiado. Cole no navegador."))
-          .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
-      }, 700);
-
+    // Prefer a new tab/window when possible.
+    const opened = window.open(mapsUrl, "_blank", "noopener,noreferrer");
+    if (opened) {
+      try {
+        opened.focus();
+      } catch {
+        // ignore
+      }
       return;
     }
 
-    const opened = openMapsWebUrl();
-    if (opened) return;
+    // If popups are blocked, navigate in the same tab only when NOT embedded.
+    if (!isEmbedded) {
+      try {
+        window.location.assign(mapsUrl);
+        return;
+      } catch {
+        // ignore
+      }
+    }
 
+    // Last resort: copy the link (keeps the option available even in very restricted environments).
     navigator.clipboard
       .writeText(mapsUrl)
-      .then(() => toast.success("Link do Google Maps copiado. Cole no navegador."))
+      .then(() => toast.success("Não foi possível abrir automaticamente. Link copiado!"))
       .catch(() => toast.error("Não foi possível abrir o Google Maps neste ambiente."));
   };
 
