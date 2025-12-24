@@ -2,12 +2,22 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 import { useCoupon } from "@/hooks/useCoupon";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
@@ -81,7 +91,12 @@ const CheckoutContent = () => {
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | null>(null);
   const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
-  
+  const [whatsappAssist, setWhatsappAssist] = useState<{
+    orderId: string;
+    url: string;
+    message: string;
+  } | null>(null);
+
   // Customer data
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
@@ -641,21 +656,22 @@ const CheckoutContent = () => {
         return;
       }
 
-      // WhatsApp flow - using direct links without api.whatsapp.com
+      // WhatsApp flow - use only official direct links (never api.whatsapp.com)
       if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
         const now = new Date();
         const dateStr = now.toLocaleDateString("pt-BR");
         const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-        const itemsList = cart.map(
-          (item) => `• ${item.name} (x${item.quantity}) - R$ ${((item.promotional_price || item.price) * item.quantity).toFixed(2)}`
-        ).join("\n");
+        const itemsList = cart
+          .map(
+            (item) =>
+              `• ${item.name} (x${item.quantity}) - R$ ${((item.promotional_price || item.price) * item.quantity).toFixed(2)}`
+          )
+          .join("\n");
 
-        const deliveryText = formData.delivery_method === "retirada" 
-          ? `Retirada` 
-          : `Entrega`;
+        const deliveryText = formData.delivery_method === "retirada" ? "Retirada" : "Entrega";
 
-        const whatsappMessage = `*Novo Pedido - ${storeData.store_name || 'Loja'}*
+        const whatsappMessage = `*Novo Pedido - ${storeData.store_name || "Loja"}*
 
 Cliente: ${formData.customer_name}
 Contato: ${formData.customer_phone}
@@ -672,32 +688,30 @@ Entrega: ${deliveryText}
 
 Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
-        // Normalize phone to E.164 format (55DDDNUMERO)
-        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
-        // Ensure Brazilian country code prefix
-        if (!cleanPhone.startsWith("55")) {
-          cleanPhone = "55" + cleanPhone;
-        }
-        
+        // phone_e164: only digits, prefix 55
+        let phoneE164 = storeData.whatsapp_number.replace(/\D/g, "");
+        if (!phoneE164.startsWith("55")) phoneE164 = `55${phoneE164}`;
+
         const encodedMessage = encodeURIComponent(whatsappMessage);
-        const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-        
-        // Desktop: WhatsApp Web direct link (avoids api.whatsapp.com redirect blocks)
-        // Mobile: wa.me universal link
-        const whatsappUrl = isMobile
-          ? `https://wa.me/${cleanPhone}?text=${encodedMessage}`
-          : `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}&type=phone_number&app_absent=0`;
 
-        console.log("[Checkout] Opening WhatsApp:", whatsappUrl);
+        const isMobileUA = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+        const isDesktop = !isMobileUA && window.innerWidth >= 1024;
 
-        // Open using anchor element to ensure it works in embedded contexts
-        const link = document.createElement("a");
-        link.href = whatsappUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const whatsappUrl = isDesktop
+          ? `https://web.whatsapp.com/send?phone=${phoneE164}&text=${encodedMessage}&type=phone_number&app_absent=0`
+          : `https://wa.me/${phoneE164}?text=${encodedMessage}`;
+
+        // Keep existing order/coupon behavior; only change the WhatsApp opening flow.
+        if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+          await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
+        }
+
+        clearCart();
+        toast.success("Pedido criado! Abra o WhatsApp para combinar o pagamento.");
+
+        // Show a stable, user-gesture CTA (no router, no iframe, no fetch)
+        setWhatsappAssist({ orderId: order.id, url: whatsappUrl, message: whatsappMessage });
+        return;
       }
 
       if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
@@ -896,6 +910,66 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             className="mt-2"
           />
         </div>
+
+        <AlertDialog open={!!whatsappAssist}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Combinar pagamento pelo WhatsApp</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se o WhatsApp não abrir no seu dispositivo, você pode abrir pelo link abaixo ou copiar a mensagem e colar no WhatsApp.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="flex flex-col gap-3">
+              <AlertDialogAction asChild>
+                <a
+                  href={whatsappAssist?.url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => toast.success("Abrindo WhatsApp...")}
+                >
+                  Abrir WhatsApp
+                </a>
+              </AlertDialogAction>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  const msg = whatsappAssist?.message;
+                  if (!msg) return;
+
+                  navigator.clipboard
+                    .writeText(msg)
+                    .then(() => {
+                      toast.success("Mensagem copiada!", {
+                        description: "Cole no WhatsApp e envie para a loja.",
+                      });
+                    })
+                    .catch(() => toast.error("Não foi possível copiar a mensagem."));
+                }}
+              >
+                <Copy className="h-4 w-4" />
+                Copiar mensagem
+              </Button>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  const targetOrderId = whatsappAssist?.orderId;
+                  setWhatsappAssist(null);
+                  if (targetOrderId) {
+                    navigate(`/loja/${storeSlug}/pedido-confirmado/${targetOrderId}`);
+                  }
+                }}
+              >
+                Ver confirmação do pedido
+              </AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
