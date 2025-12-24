@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Copy, ExternalLink, FileText } from "lucide-react";
+import { CheckCircle, Copy, ExternalLink, FileText, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -23,6 +23,7 @@ interface OrderData {
   boleto_url: string | null;
   boleto_expires_at: string | null;
   boleto_payment_status: string | null;
+  store_owner_id: string;
 }
 
 interface OrderItem {
@@ -32,12 +33,23 @@ interface OrderItem {
   subtotal: number;
 }
 
+interface StoreData {
+  primary_color: string | null;
+  address: string | null;
+  address_number: string | null;
+  address_neighborhood: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip_code: string | null;
+}
+
 const OrderConfirmation = () => {
   const { storeSlug, orderId } = useParams<{ storeSlug: string; orderId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [storeData, setStoreData] = useState<StoreData | null>(null);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -56,6 +68,17 @@ const OrderConfirmation = () => {
         }
 
         setOrderData(order);
+
+        // Fetch store data for primary color and address
+        const { data: store } = await supabase
+          .from("profiles")
+          .select("primary_color, address, address_number, address_neighborhood, address_city, address_state, address_zip_code")
+          .eq("id", order.store_owner_id)
+          .single();
+
+        if (store) {
+          setStoreData(store);
+        }
 
         // Fetch order items
         const { data: items, error: itemsError } = await supabase
@@ -77,6 +100,28 @@ const OrderConfirmation = () => {
 
     fetchOrderData();
   }, [orderId]);
+
+  const primaryColor = storeData?.primary_color || null;
+
+  const getGoogleMapsUrl = () => {
+    if (!storeData) return null;
+    
+    const parts = [
+      storeData.address,
+      storeData.address_number,
+      storeData.address_neighborhood,
+      storeData.address_city,
+      storeData.address_state,
+      storeData.address_zip_code
+    ].filter(Boolean);
+    
+    if (parts.length === 0) return null;
+    
+    const fullAddress = parts.join(", ");
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+  };
+
+  const mapsUrl = getGoogleMapsUrl();
 
   if (loading) {
     return (
@@ -128,7 +173,12 @@ const OrderConfirmation = () => {
           <div className="flex items-center justify-between mb-6 pb-4 border-b">
             <div>
               <p className="text-sm text-gray-600">Número do Pedido</p>
-              <p className="text-2xl font-bold text-primary">{orderData.order_number}</p>
+              <p 
+                className="text-2xl font-bold"
+                style={{ color: primaryColor || 'hsl(var(--primary))' }}
+              >
+                {orderData.order_number}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Data e Hora</p>
@@ -186,7 +236,10 @@ const OrderConfirmation = () => {
             </div>
             <div className="flex justify-between items-center pt-2 border-t">
               <span className="text-lg font-bold">Total</span>
-              <span className="text-2xl font-bold text-primary">
+              <span 
+                className="text-2xl font-bold"
+                style={{ color: primaryColor || 'hsl(var(--primary))' }}
+              >
                 R$ {orderData.total_amount.toFixed(2)}
               </span>
             </div>
@@ -301,12 +354,61 @@ const OrderConfirmation = () => {
           )}
         </div>
 
+        {/* Store Location Section */}
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Localização:</h3>
+              <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
+                {/* Static map preview background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-blue-50">
+                  {/* Decorative map-like elements */}
+                  <div className="absolute inset-0 opacity-30">
+                    <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-8 left-8 right-12 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-12 left-4 w-1/3 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-16 left-12 right-4 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-20 left-4 w-1/2 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-24 left-8 right-8 h-0.5 bg-gray-300 rounded"></div>
+                    <div className="absolute top-4 left-1/4 w-0.5 h-20 bg-gray-300 rounded"></div>
+                    <div className="absolute top-8 left-1/2 w-0.5 h-16 bg-gray-300 rounded"></div>
+                    <div className="absolute top-4 right-1/4 w-0.5 h-24 bg-gray-300 rounded"></div>
+                  </div>
+                </div>
+                {/* Location pin */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                    style={{ backgroundColor: primaryColor || 'hsl(var(--primary))' }}
+                  >
+                    <MapPin className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                {/* Click hint */}
+                <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  Abrir no Maps
+                </div>
+              </div>
+            </div>
+          </a>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={() => navigate(`/loja/${storeSlug}`)}
             className="flex-1"
             size="lg"
+            style={{ 
+              backgroundColor: primaryColor || undefined,
+              borderColor: primaryColor || undefined
+            }}
           >
             Voltar para a Loja
           </Button>
