@@ -356,21 +356,12 @@ const OrderConfirmation = () => {
 
         {/* Store Location Section */}
         {mapsUrl && orderData.delivery_method === "retirada" && (
-          <div
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-              }
-            }}
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="block mb-6 bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+            aria-label="Abrir localização da loja no Google Maps"
           >
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Localização:</h3>
@@ -392,9 +383,9 @@ const OrderConfirmation = () => {
                 </div>
                 {/* Location pin */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                    style={{ backgroundColor: primaryColor || 'hsl(var(--primary))' }}
+                    style={{ backgroundColor: primaryColor || "hsl(var(--primary))" }}
                   >
                     <MapPin className="w-6 h-6 text-white" />
                   </div>
@@ -406,7 +397,7 @@ const OrderConfirmation = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </a>
         )}
 
         {/* Actions */}
