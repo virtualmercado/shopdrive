@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Crown } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -141,17 +141,6 @@ const Settings = () => {
     }
     
     setFormData(prev => ({ ...prev, [field]: formattedValue }));
-  };
-
-  const getLighterShade = (color: string) => {
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const lighterR = Math.min(255, r + 40);
-    const lighterG = Math.min(255, g + 40);
-    const lighterB = Math.min(255, b + 40);
-    return `#${lighterR.toString(16).padStart(2, '0')}${lighterG.toString(16).padStart(2, '0')}${lighterB.toString(16).padStart(2, '0')}`;
   };
 
   const handleSave = async () => {
@@ -403,36 +392,6 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Plan */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Plano Atual</h2>
-          <div className="flex items-center justify-between p-4 rounded-lg mb-4" style={{ backgroundColor: getLighterShade(primaryColor) }}>
-            <div className="flex items-center gap-3">
-              <div 
-                className="h-10 w-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <Crown className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold">Plano Grátis</p>
-                <p className="text-sm text-muted-foreground">Até 10 produtos</p>
-              </div>
-            </div>
-            <Button 
-              className="transition-all hover:opacity-90"
-              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-            >
-              Fazer Upgrade
-            </Button>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            <p>Produtos: 5/10</p>
-            <div className="w-full bg-muted rounded-full h-2 mt-2">
-              <div className="h-2 rounded-full" style={{ width: '50%', backgroundColor: primaryColor }}></div>
-            </div>
-          </div>
-        </Card>
 
         {/* Password */}
         <Card className="p-6">
