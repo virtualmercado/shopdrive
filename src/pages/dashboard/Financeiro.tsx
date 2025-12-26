@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -157,11 +158,14 @@ const Financeiro = () => {
 
   return (
     <DashboardLayout>
-      <div className="bg-gray-50 rounded-xl p-6">
-        {/* Header */}
-        <h2 className="text-center text-2xl font-bold text-gray-800 mb-6">
+      <div className="space-y-6">
+        {/* Page Title - Left aligned, following dashboard pattern */}
+        <h1 className="text-2xl font-semibold text-foreground">
           Meu Plano / Planos
-        </h2>
+        </h1>
+
+        {/* Content Card Container */}
+        <Card className="p-6">
 
         {/* Toggle Mensal/Anual */}
         <div className="flex justify-center pb-6">
@@ -315,6 +319,7 @@ const Financeiro = () => {
             );
           })}
         </div>
+        </Card>
       </div>
     </DashboardLayout>
   );
