@@ -16,7 +16,8 @@ import {
   Truck,
   Users,
   CreditCard,
-  FileText
+  FileText,
+  Wallet
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
+import PlansModal from "@/components/dashboard/PlansModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -35,6 +37,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [plansModalOpen, setPlansModalOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -91,6 +94,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Settings, label: "Configurações", path: "/lojista/settings" },
   ];
 
+  const handleFinanceiroClick = () => {
+    setPlansModalOpen(true);
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate("/", { replace: true });
@@ -132,22 +139,36 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         <nav className="p-4 space-y-2">
-          {menuItems.map((item) => {
+          {menuItems.map((item, index) => {
             const isActive = location.pathname === item.path;
+            const isMessagesItem = item.label === "Mensagens";
+            
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-white",
-                  isActive 
-                    ? "bg-white/20 font-medium" 
-                    : "hover:bg-white/10"
+              <div key={item.path}>
+                <Link
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-white",
+                    isActive 
+                      ? "bg-white/20 font-medium" 
+                      : "hover:bg-white/10"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {sidebarOpen && <span>{item.label}</span>}
+                </Link>
+                
+                {/* Financeiro button after Mensagens */}
+                {isMessagesItem && (
+                  <button
+                    onClick={handleFinanceiroClick}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-white hover:bg-white/10 w-full mt-2"
+                  >
+                    <Wallet className="h-5 w-5 flex-shrink-0" />
+                    {sidebarOpen && <span>Financeiro</span>}
+                  </button>
                 )}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {sidebarOpen && <span>{item.label}</span>}
-              </Link>
+              </div>
             );
           })}
         </nav>
@@ -233,6 +254,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </main>
       </div>
+
+      {/* Plans Modal */}
+      <PlansModal open={plansModalOpen} onOpenChange={setPlansModalOpen} />
     </div>
   );
 };
