@@ -285,12 +285,17 @@ const Financeiro = () => {
                       O melhor custo benefício<br />do mercado online.
                     </p>
                   )}
+                  {plan.id === "premium" && (
+                    <p className="text-sm text-gray-600 text-left mt-2">
+                      A solução ideal para quem quer<br />escalar mais rápido as vendas.
+                    </p>
+                  )}
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
                     <p 
                       className="text-sm font-bold mt-1"
                       style={{ color: VM_PRIMARY }}
                     >
-                      30% de desconto no plano anual
+                      - 30% de desconto no plano anual
                     </p>
                   )}
                 </div>
