@@ -151,8 +151,8 @@ const Financeiro = () => {
   const calculateAnnualPrice = (monthlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
     const annualTotal = monthlyPrice * 12;
-    const discounted = annualTotal * 0.7; // 30% off
-    return discounted / 12; // Monthly equivalent
+    const discounted = annualTotal * 0.7; // 30% off = (valor_mensal × 12) − 30%
+    return discounted;
   };
 
   const getDisplayPrice = (plan: Plan) => {
@@ -165,6 +165,11 @@ const Financeiro = () => {
   const formatPrice = (price: number) => {
     if (price === 0) return "0";
     return price.toFixed(2).replace(".", ",");
+  };
+
+  const getPriceSuffix = (plan: Plan) => {
+    if (plan.monthlyPrice === 0) return "/mês";
+    return billingPeriod === "monthly" ? "/mês" : "/ano";
   };
 
   const handlePlanAction = (plan: Plan) => {
@@ -256,7 +261,7 @@ const Financeiro = () => {
                     <span className="text-3xl font-bold text-gray-800">
                       R$ {formatPrice(price)}
                     </span>
-                    <span className="text-gray-500 text-sm">/mês</span>
+                    <span className="text-gray-500 text-sm">{getPriceSuffix(plan)}</span>
                   </div>
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
                     <p className="text-xs text-green-600 mt-1">
