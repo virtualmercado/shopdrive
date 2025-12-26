@@ -58,7 +58,7 @@ const PLANS: Plan[] = [
     monthlyPrice: 0,
     features: [
       { text: "Até 20 produtos cadastrados", included: true },
-      { text: "Até 50 clientes ativos", included: true },
+      { text: "Até 40 clientes ativos", included: true },
       { text: "Pedidos ilimitados", included: true },
       { text: "ERP (Gestor Virtual) integrado", included: true },
       { text: "Frete personalizado", included: true },
@@ -280,7 +280,7 @@ const Financeiro = () => {
                   
                   {/* Valor anual sem desconto (tachado) - apenas PRO/PREMIUM no período anual */}
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
-                    <p className="text-sm text-gray-500 line-through mb-1">
+                    <p className="text-lg text-gray-500 line-through mb-1">
                       R$ {formatPrice(plan.monthlyPrice * 12)}
                     </p>
                   )}
