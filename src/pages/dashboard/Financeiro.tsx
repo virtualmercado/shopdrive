@@ -198,13 +198,13 @@ const Financeiro = () => {
 
         {/* Toggle Mensal/Anual */}
         <div className="flex justify-center pb-6">
-          <div className="inline-flex rounded-full bg-gray-200 p-1">
+          <div className="inline-flex items-center rounded-lg bg-gray-100 p-1 gap-1">
             <button
               onClick={() => setBillingPeriod("monthly")}
               className={cn(
-                "px-6 py-2 rounded-full text-sm font-medium transition-all",
+                "px-8 py-2.5 rounded-md text-sm font-semibold transition-all",
                 billingPeriod === "monthly"
-                  ? "text-white"
+                  ? "text-white shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               )}
               style={{
@@ -213,20 +213,32 @@ const Financeiro = () => {
             >
               Mensal
             </button>
-            <button
-              onClick={() => setBillingPeriod("annual")}
-              className={cn(
-                "px-6 py-2 rounded-full text-sm font-medium transition-all",
-                billingPeriod === "annual"
-                  ? "text-white"
-                  : "text-gray-600 hover:text-gray-800"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setBillingPeriod("annual")}
+                className={cn(
+                  "px-8 py-2.5 rounded-md text-sm font-semibold transition-all",
+                  billingPeriod === "annual"
+                    ? "text-white shadow-sm"
+                    : "hover:text-gray-800"
+                )}
+                style={{
+                  backgroundColor: billingPeriod === "annual" ? VM_PRIMARY : "transparent",
+                  color: billingPeriod === "annual" ? "white" : VM_PRIMARY,
+                }}
+              >
+                Anual
+              </button>
+              {/* Discount badge - visible only when monthly is selected */}
+              {billingPeriod === "monthly" && (
+                <span 
+                  className="px-2 py-1 rounded text-xs font-bold text-white whitespace-nowrap"
+                  style={{ backgroundColor: VM_ORANGE }}
+                >
+                  -30% DESC.
+                </span>
               )}
-              style={{
-                backgroundColor: billingPeriod === "annual" ? VM_PRIMARY : "transparent",
-              }}
-            >
-              Anual
-            </button>
+            </div>
           </div>
         </div>
 
