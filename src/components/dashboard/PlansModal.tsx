@@ -164,7 +164,7 @@ const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-50 p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-50 p-0 z-[60]">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-center text-2xl font-bold text-gray-800">
             Meu Plano / Planos
