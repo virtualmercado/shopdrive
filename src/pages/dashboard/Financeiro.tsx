@@ -277,6 +277,14 @@ const Financeiro = () => {
                   >
                     {plan.displayName}
                   </h3>
+                  
+                  {/* Valor anual sem desconto (tachado) - apenas PRO/PREMIUM no período anual */}
+                  {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
+                    <p className="text-sm text-gray-500 line-through mb-1">
+                      R$ {formatPrice(plan.monthlyPrice * 12)}
+                    </p>
+                  )}
+                  
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-bold text-gray-800">
                       R$ {formatPrice(price)}
@@ -308,9 +316,9 @@ const Financeiro = () => {
                   )}
                 </div>
 
-                {/* Divider */}
+                {/* Divider - linha mais fina e suave */}
                 <div
-                  className="h-0.5 w-full mb-4"
+                  className="h-px w-full mb-4"
                   style={{ backgroundColor: VM_ORANGE }}
                 />
 
