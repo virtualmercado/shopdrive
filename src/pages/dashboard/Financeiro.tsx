@@ -423,7 +423,10 @@ const Financeiro = () => {
                             style={{ color: VM_GREEN }}
                             strokeWidth={2}
                           />
-                          <span className="text-sm font-semibold text-black">
+                          <span 
+                            className="text-sm font-semibold"
+                            style={{ color: VM_GREEN }}
+                          >
                             {guarantee.text}
                           </span>
                         </div>
