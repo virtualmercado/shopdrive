@@ -1,28 +1,42 @@
 import { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import editIcon from "@/assets/edit-icon.png";
 
 // VirtualMercado default colors (NOT merchant colors)
 const VM_PRIMARY = "#6a1b9a";
 const VM_ORANGE = "#f97316";
+const VM_GREEN = "#22c55e";
 
 interface PlanFeature {
   text: string;
   included: boolean;
-  highlight?: string;
+}
+
+interface ExtraFeature {
+  text: string;
 }
 
 interface Plan {
   id: string;
   name: string;
   displayName: string;
+  subtitle: string;
   monthlyPrice: number;
   features: PlanFeature[];
+  extraFeatures?: ExtraFeature[];
+  previousPlanIncluded?: {
+    planName: string;
+    planLabel: string;
+    labelColor: string;
+    labelBgColor: string;
+    description: string;
+  };
   buttonText: string;
   buttonAction: "free" | "current" | "upgrade";
 }
@@ -32,6 +46,7 @@ const PLANS: Plan[] = [
     id: "gratis",
     name: "GRÁTIS",
     displayName: "Plano GRÁTIS",
+    subtitle: "",
     monthlyPrice: 0,
     features: [
       { text: "Até 20 produtos cadastrados", included: true },
@@ -41,14 +56,14 @@ const PLANS: Plan[] = [
       { text: "Frete personalizado", included: true },
       { text: "Gerador de catálogo PDF ilimitado", included: true },
       { text: "Controle de estoque", included: true },
-      { text: "Sem anúncios", included: false },
-      { text: "Agente de mensagens", included: false },
-      { text: "Calculadora de frete", included: false },
-      { text: "Versão mobile responsiva", included: false },
-      { text: "Categorias e subcategorias ilimitadas", included: false },
-      { text: "Dashboard e relatórios avançados", included: false },
-      { text: "Compartilhamento com suas redes sociais", included: false },
-      { text: "Gateway e checkout de pagamentos", included: false },
+      { text: "Sem anúncios", included: true },
+      { text: "Agente de mensagens", included: true },
+      { text: "Calculadora de frete", included: true },
+      { text: "Versão mobile responsiva", included: true },
+      { text: "Categorias e subcategorias ilimitadas", included: true },
+      { text: "Dashboard e relatórios avançados", included: true },
+      { text: "Compartilhamento com suas redes sociais", included: true },
+      { text: "Gateway e checkout de pagamentos", included: true },
     ],
     buttonText: "Começar grátis",
     buttonAction: "free",
@@ -57,17 +72,21 @@ const PLANS: Plan[] = [
     id: "pro",
     name: "PRO",
     displayName: "Plano PRO",
+    subtitle: "",
     monthlyPrice: 29.97,
-    features: [
-      { text: "Plano GRÁTIS", included: true, highlight: "GRÁTIS" },
-      { text: "Tudo que o plano", included: true, highlight: "GRÁTIS" },
-      { text: "e mais:", included: true },
-      { text: "", included: false },
-      { text: "Até 150 produtos cadastrados", included: true },
-      { text: "Até 300 clientes ativos", included: true },
-      { text: "", included: false },
-      { text: "Personalização total do seu site (sua logo e cores)", included: true },
-      { text: "Cupons de desconto ilimitado", included: true },
+    features: [],
+    previousPlanIncluded: {
+      planName: "Plano GRÁTIS",
+      planLabel: "GRÁTIS",
+      labelColor: "#22c55e",
+      labelBgColor: "#dcfce7",
+      description: "Tudo o que o plano GRÁTIS oferece, e mais:",
+    },
+    extraFeatures: [
+      { text: "Até 150 produtos cadastrados" },
+      { text: "Até 300 clientes ativos" },
+      { text: "Personalização total do seu site (sua logo e cores)" },
+      { text: "Cupons de desconto ilimitado" },
     ],
     buttonText: "Alterar para este plano",
     buttonAction: "upgrade",
@@ -76,17 +95,22 @@ const PLANS: Plan[] = [
     id: "premium",
     name: "PREMIUM",
     displayName: "Plano PREMIUM",
+    subtitle: "",
     monthlyPrice: 49.97,
-    features: [
-      { text: "Plano PRO", included: true, highlight: "PRO" },
-      { text: "Tudo que o plano", included: true, highlight: "PRO" },
-      { text: "e mais:", included: true },
-      { text: "", included: false },
-      { text: "∞ Produtos ilimitados", included: true },
-      { text: "Clientes ilimitados", included: true },
-      { text: "Editor de imagens com IA", included: true },
-      { text: "Vínculo de domínio próprio", included: true },
-      { text: "Suporte dedicado via e-mail e WhatsApp", included: true },
+    features: [],
+    previousPlanIncluded: {
+      planName: "Plano PRO",
+      planLabel: "PRO",
+      labelColor: "#f97316",
+      labelBgColor: "#fff7ed",
+      description: "Tudo o que o plano PRO oferece, e mais:",
+    },
+    extraFeatures: [
+      { text: "∞ Produtos ilimitados" },
+      { text: "Clientes ilimitados" },
+      { text: "Editor de imagens com IA" },
+      { text: "Vínculo de domínio próprio" },
+      { text: "Suporte dedicado via e-mail e WhatsApp" },
     ],
     buttonText: "Alterar para este plano",
     buttonAction: "upgrade",
@@ -221,7 +245,7 @@ const Financeiro = () => {
                 }}
               >
                 {/* Plan Header */}
-                <div className="text-center mb-6">
+                <div className="text-center mb-4">
                   <h3
                     className="text-lg font-bold italic mb-3"
                     style={{ color: VM_PRIMARY }}
@@ -247,57 +271,69 @@ const Financeiro = () => {
                   style={{ backgroundColor: VM_ORANGE }}
                 />
 
-                {/* Features List */}
-                <div className="flex-1 space-y-2 mb-6">
-                  {plan.features.map((feature, idx) => {
-                    if (!feature.text) return <div key={idx} className="h-2" />;
-                    
-                    return (
-                      <div key={idx} className="flex items-start gap-2">
-                        {feature.included ? (
-                          <Check
-                            className="h-4 w-4 mt-0.5 flex-shrink-0"
-                            style={{ color: VM_PRIMARY }}
+                {/* Content Area */}
+                <div className="flex-1 flex flex-col">
+                  {/* Plano GRÁTIS - Lista completa de recursos */}
+                  {plan.id === "gratis" && (
+                    <div className="space-y-2 mb-6">
+                      {plan.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <img 
+                            src={editIcon} 
+                            alt="Incluído" 
+                            className="w-4 h-4 mt-0.5 flex-shrink-0"
                           />
-                        ) : (
-                          <X className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-300" />
-                        )}
-                        <span
-                          className={cn(
-                            "text-sm",
-                            feature.included ? "text-gray-700" : "text-gray-400"
-                          )}
-                        >
-                          {feature.highlight ? (
-                            <>
-                              {feature.text.replace(feature.highlight, "")}{" "}
-                              <span
-                                className="font-semibold px-1 py-0.5 rounded text-xs"
-                                style={{
-                                  backgroundColor:
-                                    feature.highlight === "GRÁTIS"
-                                      ? "#e8f5e9"
-                                      : feature.highlight === "PRO"
-                                      ? "#fff3e0"
-                                      : "#f3e5f5",
-                                  color:
-                                    feature.highlight === "GRÁTIS"
-                                      ? "#2e7d32"
-                                      : feature.highlight === "PRO"
-                                      ? VM_ORANGE
-                                      : VM_PRIMARY,
-                                }}
-                              >
-                                {feature.highlight}
-                              </span>
-                            </>
-                          ) : (
-                            feature.text
-                          )}
-                        </span>
+                          <span className="text-sm text-gray-700">
+                            {feature.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* PRO e PREMIUM - Card do plano anterior + recursos extras */}
+                  {plan.previousPlanIncluded && (
+                    <>
+                      {/* Card simulando plano anterior */}
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className="text-xs font-semibold px-2 py-0.5 rounded"
+                            style={{
+                              backgroundColor: plan.previousPlanIncluded.labelBgColor,
+                              color: plan.previousPlanIncluded.labelColor,
+                            }}
+                          >
+                            {plan.previousPlanIncluded.planLabel}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {plan.previousPlanIncluded.description}
+                        </p>
                       </div>
-                    );
-                  })}
+
+                      {/* Recursos extras em verde */}
+                      {plan.extraFeatures && plan.extraFeatures.length > 0 && (
+                        <div className="space-y-2 mb-6">
+                          {plan.extraFeatures.map((feature, idx) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <img 
+                                src={editIcon} 
+                                alt="Incluído" 
+                                className="w-4 h-4 mt-0.5 flex-shrink-0"
+                              />
+                              <span 
+                                className="text-sm font-medium"
+                                style={{ color: VM_GREEN }}
+                              >
+                                {feature.text}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Action Button */}
@@ -305,7 +341,7 @@ const Financeiro = () => {
                   onClick={() => handlePlanAction(plan)}
                   disabled={isCurrent}
                   className={cn(
-                    "w-full py-3 font-semibold text-white transition-all",
+                    "w-full py-3 font-semibold text-white transition-all mt-auto",
                     isCurrent && "cursor-default"
                   )}
                   style={{
