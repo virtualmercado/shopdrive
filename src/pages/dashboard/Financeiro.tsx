@@ -106,7 +106,7 @@ const PLANS: Plan[] = [
       description: "Tudo o que o plano PRO oferece, e mais:",
     },
     extraFeatures: [
-      { text: "∞ Produtos ilimitados" },
+      { text: "Produtos ilimitados" },
       { text: "Clientes ilimitados" },
       { text: "Editor de imagens com IA" },
       { text: "Vínculo de domínio próprio" },
@@ -288,7 +288,7 @@ const Financeiro = () => {
                             alt="Incluído" 
                             className="w-4 h-4 mt-0.5 flex-shrink-0"
                           />
-                          <span className="text-sm text-black">
+                          <span className="text-sm font-medium text-black">
                             {feature.text}
                           </span>
                         </div>
