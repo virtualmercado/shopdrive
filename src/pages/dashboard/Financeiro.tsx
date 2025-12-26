@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { CircleDollarSign, Coins, LockOpen, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,15 @@ import editIcon from "@/assets/edit-icon.png";
 // VirtualMercado default colors (NOT merchant colors)
 const VM_PRIMARY = "#6a1b9a";
 const VM_ORANGE = "#f97316";
-const VM_GREEN = "#22c55e";
+const VM_GREEN = "#16a34a";
+
+// Garantias fixas padrão para PRO e PREMIUM
+const PLAN_GUARANTEES = [
+  { icon: CircleDollarSign, text: "Garantia de 7 dias" },
+  { icon: Coins, text: "Sem comissão sobre as vendas" },
+  { icon: LockOpen, text: "Cancele a qualquer momento, sem multas ou taxas" },
+  { icon: Trophy, text: "Plano escolhido por milhares de assinantes" },
+];
 
 interface PlanFeature {
   text: string;
@@ -403,6 +411,24 @@ const Financeiro = () => {
                         </div>
                       )}
                     </>
+                  )}
+
+                  {/* Garantias fixas - apenas para PRO e PREMIUM */}
+                  {(plan.id === "pro" || plan.id === "premium") && (
+                    <div className="space-y-3 mt-auto mb-5">
+                      {PLAN_GUARANTEES.map((guarantee, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5">
+                          <guarantee.icon 
+                            className="w-5 h-5 flex-shrink-0 mt-0.5" 
+                            style={{ color: VM_GREEN }}
+                            strokeWidth={2}
+                          />
+                          <span className="text-sm font-semibold text-black">
+                            {guarantee.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
