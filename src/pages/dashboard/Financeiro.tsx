@@ -320,23 +320,18 @@ const Financeiro = () => {
                       {/* Recursos extras em verde */}
                       {plan.extraFeatures && plan.extraFeatures.length > 0 && (
                         <div className="space-y-3 mb-6">
-                          {plan.extraFeatures.map((feature, idx) => {
-                            const isProdutosIlimitados = plan.id === "premium" && feature.text.includes("Produtos ilimitados");
-                            return (
-                              <div key={idx} className="flex items-start gap-2">
-                                {!isProdutosIlimitados && (
-                                  <img 
-                                    src={editIcon} 
-                                    alt="Incluído" 
-                                    className="w-4 h-4 mt-0.5 flex-shrink-0"
-                                  />
-                                )}
-                                <span className="text-sm font-medium text-black">
-                                  {feature.text}
-                                </span>
-                              </div>
-                            );
-                          })}
+                          {plan.extraFeatures.map((feature, idx) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <img 
+                                src={editIcon} 
+                                alt="Incluído" 
+                                className="w-4 h-4 mt-0.5 flex-shrink-0"
+                              />
+                              <span className="text-sm font-medium text-black">
+                                {feature.text}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </>
