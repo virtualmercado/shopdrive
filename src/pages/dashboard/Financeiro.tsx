@@ -280,6 +280,11 @@ const Financeiro = () => {
                       Comece a vender agora,<br />sem custos.
                     </p>
                   )}
+                  {plan.id === "pro" && (
+                    <p className="text-sm text-gray-600 text-left mt-2">
+                      O melhor custo benefício<br />do mercado online.
+                    </p>
+                  )}
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
                     <p 
                       className="text-sm font-bold mt-1"
