@@ -73,7 +73,7 @@ const Customers = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 50;
 
   // New customer registration states
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -1004,7 +1004,7 @@ const Customers = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center items-center gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1014,9 +1014,55 @@ const Customers = () => {
                 >
                   Anterior
                 </Button>
-                <span className="flex items-center px-3 text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
-                </span>
+                
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    const maxVisiblePages = 5;
+                    
+                    if (totalPages <= maxVisiblePages) {
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      if (currentPage <= 3) {
+                        for (let i = 1; i <= 4; i++) pages.push(i);
+                        pages.push('...');
+                        pages.push(totalPages);
+                      } else if (currentPage >= totalPages - 2) {
+                        pages.push(1);
+                        pages.push('...');
+                        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+                      } else {
+                        pages.push(1);
+                        pages.push('...');
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                        pages.push('...');
+                        pages.push(totalPages);
+                      }
+                    }
+                    return pages;
+                  })().map((page, index) => (
+                    typeof page === 'number' ? (
+                      <Button
+                        key={index}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="min-w-[36px]"
+                        onClick={() => setCurrentPage(page)}
+                        style={currentPage === page 
+                          ? { backgroundColor: primaryColor, color: '#FFFFFF' }
+                          : { borderColor: primaryColor, color: primaryColor }
+                        }
+                      >
+                        {page}
+                      </Button>
+                    ) : (
+                      <span key={index} className="px-2 text-muted-foreground">...</span>
+                    )
+                  ))}
+                </div>
+                
                 <Button
                   variant="outline"
                   size="sm"

@@ -38,6 +38,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
+const ITEMS_PER_PAGE = 50;
+
 const Orders = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -58,6 +60,9 @@ const Orders = () => {
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
   
   const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
   const { data: stats, isLoading: statsLoading } = useOrderStats();
@@ -136,6 +141,47 @@ const Orders = () => {
     
     return filtered;
   }, [orders, searchTerm, filterType, selectedDate, selectedMonth, selectedYear, startDate, endDate]);
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, selectedDate, selectedMonth, selectedYear, startDate, endDate]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   const handleViewDetails = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -455,7 +501,7 @@ const Orders = () => {
           <div className="p-6 border-b flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Checkbox
-                checked={filteredOrders.length > 0 && selectedOrders.size === filteredOrders.length}
+                checked={paginatedOrders.length > 0 && selectedOrders.size === paginatedOrders.length}
                 onCheckedChange={handleSelectAll}
               />
               <h2 className="text-xl font-bold">Pedidos</h2>
@@ -471,116 +517,165 @@ const Orders = () => {
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : filteredOrders && filteredOrders.length > 0 ? (
-            <div className="divide-y">
-              {filteredOrders.map((order) => (
-                <div key={order.id} className="p-6 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    {/* Checkbox */}
-                    <div className="pt-1">
-                      <Checkbox
-                        checked={selectedOrders.has(order.id)}
-                        onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
-                      />
-                    </div>
-
-                    {/* Order Info */}
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="font-semibold">
-                          Pedido {order.order_number || `#${order.id.slice(0, 8)}`}
-                        </p>
-                        <OrderStatusBadge status={order.status} />
+          ) : paginatedOrders && paginatedOrders.length > 0 ? (
+            <>
+              <div className="divide-y">
+                {paginatedOrders.map((order) => (
+                  <div key={order.id} className="p-6 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-start gap-4">
+                      {/* Checkbox */}
+                      <div className="pt-1">
+                        <Checkbox
+                          checked={selectedOrders.has(order.id)}
+                          onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
+                        />
                       </div>
-                      <p className="text-sm text-muted-foreground">{order.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">{order.customer_email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
 
-                    {/* Total and Actions */}
-                    <div className="text-right space-y-3">
-                      <p className="text-xl font-bold" style={{ color: '#000000' }}>
-                        R$ {order.total_amount.toFixed(2)}
-                      </p>
-                      <div className="flex gap-2 flex-wrap justify-end items-center">
-                        {/* Action Icons */}
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditOrder(order)}
-                            title="Editar pedido"
+                      {/* Order Info */}
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <p className="font-semibold">
+                            Pedido {order.order_number || `#${order.id.slice(0, 8)}`}
+                          </p>
+                          <OrderStatusBadge status={order.status} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{order.customer_name}</p>
+                        <p className="text-sm text-muted-foreground">{order.customer_email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+
+                      {/* Total and Actions */}
+                      <div className="text-right space-y-3">
+                        <p className="text-xl font-bold" style={{ color: '#000000' }}>
+                          R$ {order.total_amount.toFixed(2)}
+                        </p>
+                        <div className="flex gap-2 flex-wrap justify-end items-center">
+                          {/* Action Icons */}
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEditOrder(order)}
+                              title="Editar pedido"
+                            >
+                              <Pencil className="h-4 w-4" style={{ color: primaryColor }} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handlePrintOrder(order)}
+                              title="Imprimir pedido"
+                            >
+                              <Printer className="h-4 w-4" style={{ color: primaryColor }} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-8 w-8 ${canDeleteOrder(order) ? 'text-destructive hover:text-destructive' : 'text-muted-foreground cursor-not-allowed opacity-50'}`}
+                              onClick={() => handleDeleteOrder(order)}
+                              disabled={!canDeleteOrder(order)}
+                              title={
+                                order.order_source === 'online' 
+                                  ? "Pedidos gerados pela loja online não podem ser excluídos" 
+                                  : order.status === 'delivered' 
+                                    ? "Pedidos com status 'Entregue' não podem ser excluídos" 
+                                    : "Excluir pedido"
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Status Selector */}
+                          <Select
+                            value={order.status}
+                            onValueChange={(value) => handleStatusChange(order.id, value)}
                           >
-                            <Pencil className="h-4 w-4" style={{ color: primaryColor }} />
-                          </Button>
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pendente</SelectItem>
+                              <SelectItem value="paid">Pago</SelectItem>
+                              <SelectItem value="processing">Processando</SelectItem>
+                              <SelectItem value="shipped">Enviado</SelectItem>
+                              <SelectItem value="delivered">Entregue</SelectItem>
+                              <SelectItem value="cancelled">Cancelado</SelectItem>
+                              <Separator className="my-1" />
+                              <SelectItem value="print_shipping_label" className="leading-tight whitespace-pre-line">
+                                {"Imprimir etiqueta\nde envio"}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {/* View Details Button */}
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handlePrintOrder(order)}
-                            title="Imprimir pedido"
+                            size="sm"
+                            className="gap-2 transition-all hover:opacity-90"
+                            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                            onClick={() => handleViewDetails(order.id)}
                           >
-                            <Printer className="h-4 w-4" style={{ color: primaryColor }} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`h-8 w-8 ${canDeleteOrder(order) ? 'text-destructive hover:text-destructive' : 'text-muted-foreground cursor-not-allowed opacity-50'}`}
-                            onClick={() => handleDeleteOrder(order)}
-                            disabled={!canDeleteOrder(order)}
-                            title={
-                              order.order_source === 'online' 
-                                ? "Pedidos gerados pela loja online não podem ser excluídos" 
-                                : order.status === 'delivered' 
-                                  ? "Pedidos com status 'Entregue' não podem ser excluídos" 
-                                  : "Excluir pedido"
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
+                            Ver
                           </Button>
                         </div>
-
-                        {/* Status Selector */}
-                        <Select
-                          value={order.status}
-                          onValueChange={(value) => handleStatusChange(order.id, value)}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pendente</SelectItem>
-                            <SelectItem value="paid">Pago</SelectItem>
-                            <SelectItem value="processing">Processando</SelectItem>
-                            <SelectItem value="shipped">Enviado</SelectItem>
-                            <SelectItem value="delivered">Entregue</SelectItem>
-                            <SelectItem value="cancelled">Cancelado</SelectItem>
-                            <Separator className="my-1" />
-                            <SelectItem value="print_shipping_label" className="leading-tight whitespace-pre-line">
-                              {"Imprimir etiqueta\nde envio"}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        {/* View Details Button */}
-                        <Button
-                          size="sm"
-                          className="gap-2 transition-all hover:opacity-90"
-                          style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                          onClick={() => handleViewDetails(order.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          Ver
-                        </Button>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="p-4 border-t flex justify-center items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    style={{ borderColor: primaryColor, color: primaryColor }}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, index) => (
+                      typeof page === 'number' ? (
+                        <Button
+                          key={index}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          className="min-w-[36px]"
+                          onClick={() => setCurrentPage(page)}
+                          style={currentPage === page 
+                            ? { backgroundColor: primaryColor, color: '#FFFFFF' }
+                            : { borderColor: primaryColor, color: primaryColor }
+                          }
+                        >
+                          {page}
+                        </Button>
+                      ) : (
+                        <span key={index} className="px-2 text-muted-foreground">...</span>
+                      )
+                    ))}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    style={{ borderColor: primaryColor, color: primaryColor }}
+                  >
+                    Próxima
+                  </Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <div className="p-12 text-center">
               <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
