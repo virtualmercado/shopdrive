@@ -261,7 +261,7 @@ const Financeiro = () => {
                     <span className="text-3xl font-bold text-gray-800">
                       R$ {formatPrice(price)}
                     </span>
-                    <span className="text-gray-500 text-sm">{getPriceSuffix(plan)}</span>
+                    <span className="text-gray-800 text-sm">{getPriceSuffix(plan)}</span>
                   </div>
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
                     <p className="text-xs text-green-600 mt-1">
