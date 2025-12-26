@@ -198,11 +198,11 @@ const Financeiro = () => {
 
         {/* Toggle Mensal/Anual */}
         <div className="flex justify-center pb-6">
-          <div className="inline-flex items-center rounded-lg bg-gray-100 p-1 gap-1">
+          <div className="inline-flex items-center rounded-lg bg-gray-100 p-1">
             <button
               onClick={() => setBillingPeriod("monthly")}
               className={cn(
-                "px-8 py-2.5 rounded-md text-sm font-semibold transition-all",
+                "px-5 py-2 rounded-md text-sm font-semibold transition-all",
                 billingPeriod === "monthly"
                   ? "text-white shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
@@ -213,11 +213,11 @@ const Financeiro = () => {
             >
               Mensal
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <button
                 onClick={() => setBillingPeriod("annual")}
                 className={cn(
-                  "px-8 py-2.5 rounded-md text-sm font-semibold transition-all",
+                  "px-5 py-2 rounded-md text-sm font-semibold transition-all",
                   billingPeriod === "annual"
                     ? "text-white shadow-sm"
                     : "hover:text-gray-800"
@@ -232,10 +232,10 @@ const Financeiro = () => {
               {/* Discount badge - visible only when monthly is selected */}
               {billingPeriod === "monthly" && (
                 <span 
-                  className="px-2 py-1 rounded text-xs font-bold text-white whitespace-nowrap"
+                  className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold text-white whitespace-nowrap"
                   style={{ backgroundColor: VM_ORANGE }}
                 >
-                  -30% DESC.
+                  -30%
                 </span>
               )}
             </div>
