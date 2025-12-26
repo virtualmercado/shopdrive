@@ -26,7 +26,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
-import PlansModal from "@/components/dashboard/PlansModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -37,7 +36,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [plansModalOpen, setPlansModalOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
