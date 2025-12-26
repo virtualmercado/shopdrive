@@ -280,7 +280,7 @@ const Financeiro = () => {
                 <div className="flex-1 flex flex-col">
                   {/* Plano GRÁTIS - Lista completa de recursos */}
                   {plan.id === "gratis" && (
-                    <div className="space-y-2 mb-6">
+                    <div className="space-y-3 mb-6">
                       {plan.features.map((feature, idx) => (
                         <div key={idx} className="flex items-start gap-2">
                           <img 
@@ -288,7 +288,7 @@ const Financeiro = () => {
                             alt="Incluído" 
                             className="w-4 h-4 mt-0.5 flex-shrink-0"
                           />
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-black">
                             {feature.text}
                           </span>
                         </div>
@@ -319,22 +319,24 @@ const Financeiro = () => {
 
                       {/* Recursos extras em verde */}
                       {plan.extraFeatures && plan.extraFeatures.length > 0 && (
-                        <div className="space-y-2 mb-6">
-                          {plan.extraFeatures.map((feature, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <img 
-                                src={editIcon} 
-                                alt="Incluído" 
-                                className="w-4 h-4 mt-0.5 flex-shrink-0"
-                              />
-                              <span 
-                                className="text-sm font-medium"
-                                style={{ color: VM_GREEN }}
-                              >
-                                {feature.text}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="space-y-3 mb-6">
+                          {plan.extraFeatures.map((feature, idx) => {
+                            const isProdutosIlimitados = plan.id === "premium" && feature.text.includes("Produtos ilimitados");
+                            return (
+                              <div key={idx} className="flex items-start gap-2">
+                                {!isProdutosIlimitados && (
+                                  <img 
+                                    src={editIcon} 
+                                    alt="Incluído" 
+                                    className="w-4 h-4 mt-0.5 flex-shrink-0"
+                                  />
+                                )}
+                                <span className="text-sm font-medium text-black">
+                                  {feature.text}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </>
