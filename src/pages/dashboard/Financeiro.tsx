@@ -326,28 +326,66 @@ const Financeiro = () => {
                     </div>
                   )}
 
-                  {/* PRO e PREMIUM - Card do plano anterior + recursos extras */}
+                  {/* PRO e PREMIUM - Card visual do plano anterior + recursos extras */}
                   {plan.previousPlanIncluded && (
                     <>
-                      {/* Card simulando plano anterior */}
-                      <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span
-                            className="text-xs font-semibold px-2 py-0.5 rounded"
-                            style={{
-                              backgroundColor: plan.previousPlanIncluded.labelBgColor,
-                              color: plan.previousPlanIncluded.labelColor,
-                            }}
-                          >
-                            {plan.previousPlanIncluded.planLabel}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {plan.previousPlanIncluded.description}
+                      {/* Box visual simulando recursos do plano anterior */}
+                      <div 
+                        className="rounded-lg p-4 mb-3"
+                        style={{ backgroundColor: "#f3e8ff" }}
+                      >
+                        {/* Título do plano anterior */}
+                        <p 
+                          className="text-sm font-medium text-center mb-3 italic"
+                          style={{ color: VM_PRIMARY }}
+                        >
+                          {plan.previousPlanIncluded.planName}
                         </p>
+                        
+                        {/* Linhas simulando recursos com check icons e barras roxas */}
+                        <div className="space-y-2.5">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((_, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <svg 
+                                className="w-4 h-4 flex-shrink-0" 
+                                viewBox="0 0 20 20" 
+                                fill="none"
+                                style={{ color: "#c4b5fd" }}
+                              >
+                                <path 
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+                                  fill="currentColor"
+                                />
+                              </svg>
+                              <div className="flex gap-1.5 flex-1">
+                                <div 
+                                  className="h-2.5 rounded-full"
+                                  style={{ 
+                                    backgroundColor: "#c4b5fd",
+                                    width: idx % 3 === 0 ? "45%" : idx % 3 === 1 ? "60%" : "35%"
+                                  }}
+                                />
+                                <div 
+                                  className="h-2.5 rounded-full"
+                                  style={{ 
+                                    backgroundColor: "#c4b5fd",
+                                    width: idx % 3 === 0 ? "30%" : idx % 3 === 1 ? "20%" : "40%"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      {/* Recursos extras em verde */}
+                      {/* Texto fora do box */}
+                      <p className="text-sm text-gray-700 mb-4">
+                        {plan.previousPlanIncluded.description.split(plan.previousPlanIncluded.planLabel)[0]}
+                        <span className="font-bold">{plan.previousPlanIncluded.planLabel}</span>
+                        {plan.previousPlanIncluded.description.split(plan.previousPlanIncluded.planLabel)[1]}
+                      </p>
+
+                      {/* Recursos extras */}
                       {plan.extraFeatures && plan.extraFeatures.length > 0 && (
                         <div className="space-y-3 mb-6">
                           {plan.extraFeatures.map((feature, idx) => (
