@@ -1,15 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-
-interface PlansModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // VirtualMercado default colors (NOT merchant colors)
 const VM_PRIMARY = "#6a1b9a";
@@ -97,7 +92,7 @@ const PLANS: Plan[] = [
   },
 ];
 
-const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
+const Financeiro = () => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
   const [currentPlan, setCurrentPlan] = useState<string>("gratis");
   const { user } = useAuth();
@@ -125,10 +120,8 @@ const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
       }
     };
 
-    if (open) {
-      fetchCurrentPlan();
-    }
-  }, [user, open]);
+    fetchCurrentPlan();
+  }, [user]);
 
   const calculateAnnualPrice = (monthlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
@@ -163,16 +156,15 @@ const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
   const isCurrentPlan = (planId: string) => planId === currentPlan;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-50 p-0 z-[60]">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="text-center text-2xl font-bold text-gray-800">
-            Meu Plano / Planos
-          </DialogTitle>
-        </DialogHeader>
+    <DashboardLayout>
+      <div className="bg-gray-50 rounded-xl p-6">
+        {/* Header */}
+        <h2 className="text-center text-2xl font-bold text-gray-800 mb-6">
+          Meu Plano / Planos
+        </h2>
 
         {/* Toggle Mensal/Anual */}
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center pb-6">
           <div className="inline-flex rounded-full bg-gray-200 p-1">
             <button
               onClick={() => setBillingPeriod("monthly")}
@@ -206,7 +198,7 @@ const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PLANS.map((plan) => {
             const isCurrent = isCurrentPlan(plan.id);
             const price = getDisplayPrice(plan);
@@ -323,9 +315,9 @@ const PlansModal = ({ open, onOpenChange }: PlansModalProps) => {
             );
           })}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DashboardLayout>
   );
 };
 
-export default PlansModal;
+export default Financeiro;

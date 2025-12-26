@@ -13,6 +13,7 @@ import Customize from "./pages/dashboard/Customize";
 import Settings from "./pages/dashboard/Settings";
 import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
+import Financeiro from "./pages/dashboard/Financeiro";
 import Coupons from "./pages/dashboard/Coupons";
 import Shipping from "./pages/dashboard/Shipping";
 import PaymentMethods from "./pages/dashboard/PaymentMethods";
@@ -55,7 +56,7 @@ function App() {
             <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />
             <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
             <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
-            
+            <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
             {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
             <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
