@@ -275,6 +275,11 @@ const Financeiro = () => {
                     </span>
                     <span className="text-gray-800 text-sm">{getPriceSuffix(plan)}</span>
                   </div>
+                  {plan.id === "gratis" && (
+                    <p className="text-sm text-gray-600 text-left mt-2">
+                      Comece a vender agora,<br />sem custos.
+                    </p>
+                  )}
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
                     <p 
                       className="text-sm font-bold mt-1"
