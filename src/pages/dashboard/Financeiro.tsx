@@ -264,7 +264,10 @@ const Financeiro = () => {
                     <span className="text-gray-800 text-sm">{getPriceSuffix(plan)}</span>
                   </div>
                   {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
-                    <p className="text-xs text-green-600 mt-1">
+                    <p 
+                      className="text-sm font-bold mt-1"
+                      style={{ color: VM_PRIMARY }}
+                    >
                       30% de desconto no plano anual
                     </p>
                   )}
