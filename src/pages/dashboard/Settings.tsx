@@ -10,6 +10,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { User, ShoppingBag, Lock } from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -203,7 +204,14 @@ const Settings = () => {
       <div className="space-y-6">
         {/* Personal Info */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Dados Pessoais</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <User className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Dados Pessoais</h2>
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome Completo</Label>
@@ -294,7 +302,14 @@ const Settings = () => {
 
         {/* Order Configuration */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Configuração do pedido</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <ShoppingBag className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Configuração do pedido</h2>
+            </div>
+          </div>
           
           {/* Minimum Order Section */}
           <div className="mb-8">
@@ -395,7 +410,14 @@ const Settings = () => {
 
         {/* Password */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Alterar Senha</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Lock className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Alterar Senha</h2>
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Senha Atual</Label>

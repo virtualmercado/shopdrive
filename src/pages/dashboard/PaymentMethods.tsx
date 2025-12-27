@@ -312,9 +312,14 @@ const PaymentMethodsContent = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Formas de Pagamento</h2>
-          <p className="text-muted-foreground mt-1">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+              <CreditCard className="h-4 w-4 text-gray-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Formas de Pagamento</h2>
+          </div>
+          <p className="text-sm text-muted-foreground ml-10">
             Configure quais métodos de pagamento estarão disponíveis no checkout da sua loja.
           </p>
         </div>
