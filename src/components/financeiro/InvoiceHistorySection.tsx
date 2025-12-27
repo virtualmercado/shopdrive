@@ -33,22 +33,24 @@ interface InvoiceHistorySectionProps {
 const ITEMS_PER_PAGE = 50;
 
 const getStatusBadge = (status: Invoice["status"]) => {
+  const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[140px] inline-block";
+  
   switch (status) {
     case "pending":
       return (
-        <Badge className="bg-orange-400 hover:bg-orange-400 text-white font-normal text-xs px-3 py-1 rounded">
+        <Badge className={`bg-orange-400 hover:bg-orange-400 ${baseClasses}`}>
           Aguardando pagamento
         </Badge>
       );
     case "paid":
       return (
-        <Badge className="bg-green-500 hover:bg-green-500 text-white font-normal text-xs px-3 py-1 rounded">
+        <Badge className={`bg-green-500 hover:bg-green-500 ${baseClasses}`}>
           Paga
         </Badge>
       );
     case "exempt":
       return (
-        <Badge className="bg-gray-400 hover:bg-gray-400 text-white font-normal text-xs px-3 py-1 rounded">
+        <Badge className={`bg-gray-400 hover:bg-gray-400 ${baseClasses}`}>
           Isenta
         </Badge>
       );
