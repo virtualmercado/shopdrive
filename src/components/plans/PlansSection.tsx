@@ -508,12 +508,22 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                   onClick={() => onPlanAction?.(plan.id, plan.buttonAction)}
                   disabled={isCurrent}
                   className={cn(
-                    "w-full py-3 font-semibold text-white transition-all mt-auto",
-                    isCurrent && "cursor-default"
+                    "w-full py-3 font-semibold text-white transition-all duration-300 mt-auto",
+                    isCurrent ? "cursor-default" : "hover:scale-105 hover:shadow-lg"
                   )}
                   style={{
                     backgroundColor: isCurrent ? VM_PRIMARY : VM_ORANGE,
                     opacity: 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCurrent) {
+                      e.currentTarget.style.backgroundColor = "#ea580c";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCurrent) {
+                      e.currentTarget.style.backgroundColor = VM_ORANGE;
+                    }
                   }}
                 >
                   {isCurrent ? "Meu plano atual" : plan.buttonText}
