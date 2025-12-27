@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Check, Store, Palette, ShoppingCart, BarChart3, Zap, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag } from "lucide-react";
+import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag } from "lucide-react";
+import { PlansSection } from "@/components/plans/PlansSection";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
@@ -23,28 +24,7 @@ const Home = () => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   
-  const plans = [{
-    name: "Grátis",
-    price: "R$ 0",
-    period: "/mês",
-    features: ["Até 10 produtos", "Loja personalizada", "Pagamentos online", "Suporte por email"],
-    cta: "Começar Grátis",
-    highlight: false
-  }, {
-    name: "Pro",
-    price: "R$ 49",
-    period: "/mês",
-    features: ["Até 100 produtos", "Domínio personalizado", "Relatórios avançados", "Suporte prioritário", "Integrações ilimitadas"],
-    cta: "Escolher Pro",
-    highlight: true
-  }, {
-    name: "Premium",
-    price: "R$ 99",
-    period: "/mês",
-    features: ["Produtos ilimitados", "Multi-lojas", "API completa", "Suporte 24/7", "Consultoria mensal"],
-    cta: "Escolher Premium",
-    highlight: false
-  }];
+  
   const benefits = [{
     icon: Store,
     title: "Loja Profissional",
@@ -411,39 +391,13 @@ const Home = () => {
       {/* Pricing Section */}
       <section id="planos" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-4xl font-bold mb-4">Planos para todos os tamanhos</h2>
             <p className="text-xl" style={{ color: '#5A5A5A' }}>
-              Comece grátis e cresça com seu negócio
+              Comece grátis e escale seu negócio
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {plans.map((plan, index) => <Card key={index} className={`p-8 relative ${plan.highlight ? 'border-2 border-secondary shadow-xl scale-105' : ''}`}>
-                {plan.highlight && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-white px-4 py-1 rounded-full text-sm font-medium">
-                    Mais Popular
-                  </div>}
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, fIndex) => <li key={fIndex} className="flex items-center gap-2">
-                      <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Check className="h-3 w-3 text-primary" />
-                      </div>
-                      <span className="text-sm">{feature}</span>
-                    </li>)}
-                </ul>
-                <Link to="/register">
-                  <Button className={`w-full ${plan.highlight ? 'bg-secondary hover:bg-secondary/90' : ''}`} variant={plan.highlight ? 'default' : 'outline'}>
-                    {plan.cta}
-                  </Button>
-                </Link>
-              </Card>)}
-          </div>
+          <PlansSection isLandingPage={true} />
         </div>
       </section>
 
