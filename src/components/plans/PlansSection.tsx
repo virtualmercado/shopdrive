@@ -487,11 +487,17 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 <Link to="/register" className="mt-auto">
                   <Button
                     className={cn(
-                      "w-full font-semibold text-white transition-all",
+                      "w-full font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg",
                       isLandingPage ? "py-2.5" : "py-3"
                     )}
                     style={{
                       backgroundColor: VM_ORANGE,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#ea580c";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = VM_ORANGE;
                     }}
                   >
                     {plan.buttonText}
