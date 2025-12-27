@@ -215,6 +215,8 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
           const isCurrent = isCurrentPlan(plan.id);
           const price = getDisplayPrice(plan);
 
+          const isProPlan = plan.id === "pro";
+
           return (
             <div
               key={plan.id}
@@ -223,12 +225,23 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 isLandingPage ? "p-4 md:p-5" : "p-6",
                 isCurrent
                   ? "border-2 shadow-lg scale-[1.02]"
-                  : "border border-gray-200"
+                  : isProPlan && isLandingPage
+                    ? "border-[3px] shadow-lg"
+                    : "border border-gray-200"
               )}
               style={{
-                borderColor: isCurrent ? VM_PRIMARY : undefined,
+                borderColor: isCurrent ? VM_PRIMARY : (isProPlan && isLandingPage ? VM_PRIMARY : undefined),
               }}
             >
+              {/* Badge Recomendado para Plano PRO na Landing Page */}
+              {isProPlan && isLandingPage && (
+                <div 
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white"
+                  style={{ backgroundColor: VM_ORANGE }}
+                >
+                  Recomendado
+                </div>
+              )}
               {/* Plan Header */}
               <div className="text-center mb-4">
                 <h3
