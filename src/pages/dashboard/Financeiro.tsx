@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
 import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySection";
+import { Crown } from "lucide-react";
 
 // Mock saved card for demonstration - in production this would come from the database
 const mockSavedCard = {
@@ -86,13 +87,22 @@ const Financeiro = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Page Title - Left aligned, following dashboard pattern */}
-        <h1 className="text-2xl font-semibold text-foreground">
-          Meu Plano / Planos
-        </h1>
-
         {/* Plans Card Container */}
         <Card className="p-6">
+          {/* Header for Plans Section */}
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Crown className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Meu Plano / Planos
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground ml-10">
+              Gerencie sua assinatura e conheça nossos planos
+            </p>
+          </div>
           <PlansSection 
             currentPlan={currentPlan} 
             onPlanAction={handlePlanAction}

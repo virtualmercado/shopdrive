@@ -98,11 +98,16 @@ export const PaymentDataSection = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Dados para pagamento
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+            <CreditCard className="h-4 w-4 text-gray-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Dados para pagamento
+          </h2>
+        </div>
+        <p className="text-sm text-muted-foreground ml-10">
           Escolha a forma de pagamento do seu plano
         </p>
       </div>
