@@ -1479,6 +1479,7 @@ export type Database = {
           customer_id: string
           id: string
           is_active: boolean
+          origin: string
           store_owner_id: string
           updated_at: string
         }
@@ -1488,6 +1489,7 @@ export type Database = {
           customer_id: string
           id?: string
           is_active?: boolean
+          origin?: string
           store_owner_id: string
           updated_at?: string
         }
@@ -1497,6 +1499,7 @@ export type Database = {
           customer_id?: string
           id?: string
           is_active?: boolean
+          origin?: string
           store_owner_id?: string
           updated_at?: string
         }
