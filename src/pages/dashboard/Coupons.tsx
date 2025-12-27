@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -152,9 +152,14 @@ const Coupons = () => {
       `}</style>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Cupons</h2>
-            <p className="text-muted-foreground">Gerencie os cupons da sua loja</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Tag className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Cupons</h2>
+            </div>
+            <p className="text-sm text-muted-foreground ml-10">Gerencie os cupons da sua loja</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal } from "lucide-react";
 
 const Customize = () => {
   const { toast } = useToast();
@@ -201,7 +201,14 @@ const Customize = () => {
       <div className="space-y-6">
         {/* Colors */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Cores</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Palette className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Cores</h2>
+            </div>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="primary">Cor Primária</Label>
@@ -264,7 +271,14 @@ const Customize = () => {
 
         {/* Logo */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Logo</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Image className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Logo</h2>
+            </div>
+          </div>
           <div className="space-y-4">
             {logoUrl ? (
               <div className="space-y-4">
@@ -329,7 +343,14 @@ const Customize = () => {
 
         {/* Typography */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Tipografia</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Type className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Tipografia</h2>
+            </div>
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
             {/* Fonte Principal */}
             <div className="space-y-2">
@@ -452,7 +473,14 @@ const Customize = () => {
 
         {/* Product Designer */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-6">Designer dos Produtos</h2>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <LayoutGrid className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Designer dos Produtos</h2>
+            </div>
+          </div>
           
           {/* Row 1: Formato das Imagens, Estilo das Bordas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">

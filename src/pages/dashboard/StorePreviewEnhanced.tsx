@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const StorePreviewEnhanced = () => {
@@ -332,16 +332,28 @@ const StorePreviewEnhanced = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Minha Loja Virtual</h1>
-          <p className="text-muted-foreground">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+              <Store className="h-4 w-4 text-gray-600" />
+            </div>
+            <h1 className="text-lg font-semibold text-foreground">Minha Loja Virtual</h1>
+          </div>
+          <p className="text-sm text-muted-foreground ml-10">
             Configure e personalize completamente sua loja online
           </p>
         </div>
 
         {/* Informações Básicas */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informações Básicas</h2>
+          <div className="space-y-1 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <Store className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Informações Básicas</h2>
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -535,7 +547,14 @@ const StorePreviewEnhanced = () => {
 
         {/* Banners */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Banners</h2>
+          <div className="space-y-1 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <ImagePlus className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Banners</h2>
+            </div>
+          </div>
           <div className="space-y-6">
             {/* Banner Principal Desktop/Tablet */}
             <div className="space-y-3">

@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Package, ShoppingCart, DollarSign, TrendingUp } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, TrendingUp, ClipboardList } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDashboardStats, useRecentOrders } from "@/hooks/useDashboardStats";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,7 +92,14 @@ const Dashboard = () => {
 
         {/* Recent Orders */}
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">Pedidos Recentes</h2>
+          <div className="space-y-1 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+                <ClipboardList className="h-4 w-4 text-gray-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Pedidos Recentes</h2>
+            </div>
+          </div>
           <div className="space-y-4">
             {ordersLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
