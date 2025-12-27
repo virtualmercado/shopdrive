@@ -191,7 +191,8 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
         .upsert({
           store_owner_id: storeProfile.id,
           customer_id: userId,
-          is_active: true
+          is_active: true,
+          origin: 'online_store'
         }, { onConflict: 'store_owner_id,customer_id' });
     }
 
@@ -260,7 +261,8 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
           .upsert({
             store_owner_id: storeProfile.id,
             customer_id: userId,
-            is_active: true
+            is_active: true,
+            origin: 'online_store'
           }, { onConflict: 'store_owner_id,customer_id' });
       }
     }

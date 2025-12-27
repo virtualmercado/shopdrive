@@ -25,6 +25,7 @@ interface Customer {
   birth_date?: string | null;
   gender?: string | null;
   customer_code?: string | null;
+  origin?: string; // 'manual' | 'online_store'
 }
 
 interface CustomerGroup {
@@ -94,8 +95,9 @@ const Customers = () => {
   });
   const [addingCustomer, setAddingCustomer] = useState(false);
   
-  // Customer codes map
+  // Customer codes and origins map
   const [customerCodes, setCustomerCodes] = useState<Map<string, string>>(new Map());
+  const [customerOrigins, setCustomerOrigins] = useState<Map<string, string>>(new Map());
 
   // Customer deletion states
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
@@ -178,7 +180,7 @@ const Customers = () => {
     try {
       const { data: storeCustomers, error: storeError } = await supabase
         .from('store_customers')
-        .select('customer_id, is_active, customer_code')
+        .select('customer_id, is_active, customer_code, origin')
         .eq('store_owner_id', user.id);
 
       if (storeError) throw storeError;
@@ -188,6 +190,7 @@ const Customers = () => {
         setAllCustomers([]);
         setTotalCustomers(0);
         setCustomerCodes(new Map());
+        setCustomerOrigins(new Map());
         setLoading(false);
         return;
       }
@@ -195,7 +198,9 @@ const Customers = () => {
       const customerIds = storeCustomers.map(sc => sc.customer_id);
       const activeMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.is_active]));
       const codesMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.customer_code || '']));
+      const originsMap = new Map(storeCustomers.map(sc => [sc.customer_id, sc.origin || 'manual']));
       setCustomerCodes(codesMap);
+      setCustomerOrigins(originsMap);
 
       // Fetch all customer profiles for filtering purposes
       const { data: allCustomerProfiles, error: allError } = await supabase
@@ -468,7 +473,8 @@ const Customers = () => {
         .insert({
           store_owner_id: user.id,
           customer_id: customerId,
-          is_active: true
+          is_active: true,
+          origin: 'manual'
         });
 
       if (storeCustomerError) throw storeCustomerError;
@@ -981,14 +987,25 @@ const Customers = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => confirmDeleteCustomer(customer)}
-                              className="hover:bg-red-50 transition-colors"
-                              style={{ color: primaryColor }}
+                              onClick={() => customerOrigins.get(customer.id) !== 'online_store' && confirmDeleteCustomer(customer)}
+                              className="transition-colors"
+                              disabled={customerOrigins.get(customer.id) === 'online_store'}
+                              style={{ 
+                                color: customerOrigins.get(customer.id) === 'online_store' ? '#9ca3af' : primaryColor,
+                                opacity: customerOrigins.get(customer.id) === 'online_store' ? 0.5 : 1,
+                                cursor: customerOrigins.get(customer.id) === 'online_store' ? 'not-allowed' : 'pointer'
+                              }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#ef4444';
+                                if (customerOrigins.get(customer.id) !== 'online_store') {
+                                  e.currentTarget.style.color = '#ef4444';
+                                  e.currentTarget.style.backgroundColor = 'rgb(254 242 242)';
+                                }
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.color = primaryColor;
+                                if (customerOrigins.get(customer.id) !== 'online_store') {
+                                  e.currentTarget.style.color = primaryColor;
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
