@@ -218,7 +218,7 @@ const Home = () => {
               </div>
               
               {/* Social Media Icons - All Purple #6a1b9a - Minimalist Flat Design */}
-              <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-6 justify-items-center">
+              <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-7 gap-8 justify-items-center">
                 {/* Instagram */}
                 <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <rect x="2" y="2" width="20" height="20" rx="5" stroke="#6a1b9a" strokeWidth="1.5"/>
@@ -254,12 +254,6 @@ const Home = () => {
                 {/* X (Twitter) */}
                 <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#6a1b9a" strokeWidth="0"/>
-                </svg>
-                {/* Snapchat - Minimalist design matching others */}
-                <svg className="h-10 w-10 md:h-8 md:w-8 lg:h-10 lg:w-10 transition-all duration-300 hover:scale-125 hover:opacity-70 cursor-pointer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="#6a1b9a" strokeWidth="1.5"/>
-                  <path d="M12 6.5c-1.8 0-3 1.5-3 3.5v2.5c0 0.3-0.2 0.5-0.5 0.5h-0.5c-0.3 0-0.5 0.2-0.5 0.5s0.2 0.5 0.5 0.5h0.5c0.5 0 1 0.2 1.3 0.6 0.3 0.4 0.7 0.9 1.2 0.9h4c0.5 0 0.9-0.5 1.2-0.9 0.3-0.4 0.8-0.6 1.3-0.6h0.5c0.3 0 0.5-0.2 0.5-0.5s-0.2-0.5-0.5-0.5h-0.5c-0.3 0-0.5-0.2-0.5-0.5V10c0-2-1.2-3.5-3-3.5z" stroke="#6a1b9a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 16.5c0.5 0.5 1.5 1 3 1s2.5-0.5 3-1" stroke="#6a1b9a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               
