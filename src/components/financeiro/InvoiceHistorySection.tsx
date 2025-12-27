@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -36,19 +36,19 @@ const getStatusBadge = (status: Invoice["status"]) => {
   switch (status) {
     case "pending":
       return (
-        <Badge className="bg-orange-500 hover:bg-orange-500 text-white font-normal text-xs px-3 py-1">
+        <Badge className="bg-orange-400 hover:bg-orange-400 text-white font-normal text-xs px-3 py-1 rounded">
           Aguardando pagamento
         </Badge>
       );
     case "paid":
       return (
-        <Badge className="bg-green-500 hover:bg-green-500 text-white font-normal text-xs px-3 py-1">
+        <Badge className="bg-green-500 hover:bg-green-500 text-white font-normal text-xs px-3 py-1 rounded">
           Paga
         </Badge>
       );
     case "exempt":
       return (
-        <Badge className="bg-gray-400 hover:bg-gray-400 text-white font-normal text-xs px-3 py-1">
+        <Badge className="bg-gray-400 hover:bg-gray-400 text-white font-normal text-xs px-3 py-1 rounded">
           Isenta
         </Badge>
       );
@@ -71,26 +71,23 @@ const formatDate = (dateString: string) => {
 
 // Mock data for demonstration - will be replaced with real data from master panel
 const generateMockInvoices = (): Invoice[] => {
-  const plans = ["Pro", "Premium", "Pro", "Grátis"];
-  const statuses: Invoice["status"][] = ["paid", "pending", "exempt"];
-  const invoices: Invoice[] = [];
+  const invoicesData = [
+    { id: "2548925", date: "2026-11-01", amount: 49.97, plan: "PREMIUM", status: "pending" as const },
+    { id: "2533921", date: "2026-10-01", amount: 29.97, plan: "PRO", status: "paid" as const },
+    { id: "2437922", date: "2026-09-01", amount: 29.97, plan: "PRO", status: "paid" as const },
+    { id: "2433181", date: "2026-08-01", amount: 29.97, plan: "PRO", status: "paid" as const },
+    { id: "2333427", date: "2026-07-01", amount: 29.97, plan: "PRO", status: "paid" as const },
+    { id: "2236944", date: "2026-06-01", amount: 29.97, plan: "PRO", status: "paid" as const },
+    { id: "2233907", date: "2026-05-01", amount: 0, plan: "GRÁTIS", status: "exempt" as const },
+  ];
 
-  for (let i = 1; i <= 5; i++) {
-    const randomPlan = plans[Math.floor(Math.random() * plans.length)];
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
-    const year = 2024 + Math.floor(Math.random() * 2);
-
-    invoices.push({
-      id: `FAT-${String(i).padStart(5, "0")}`,
-      dueDate: `${year}-${month}-15`,
-      amount: randomPlan === "Grátis" ? 0 : randomPlan === "Pro" ? 49.9 : 99.9,
-      plan: randomPlan,
-      status: randomPlan === "Grátis" ? "exempt" : randomStatus,
-    });
-  }
-
-  return invoices;
+  return invoicesData.map((inv) => ({
+    id: inv.id,
+    dueDate: inv.date,
+    amount: inv.amount,
+    plan: inv.plan,
+    status: inv.status,
+  }));
 };
 
 export const InvoiceHistorySection = ({
@@ -149,28 +146,30 @@ export const InvoiceHistorySection = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold text-foreground">
+          <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
+            <Receipt className="h-4 w-4 text-gray-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">
             Histórico de faturas
           </h2>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground ml-10">
           Histórico dos seus pagamentos dentro da plataforma
         </p>
       </div>
 
       {/* Invoices Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold text-foreground">ID</TableHead>
-              <TableHead className="font-semibold text-foreground">Vencimento</TableHead>
-              <TableHead className="font-semibold text-foreground">Valor</TableHead>
-              <TableHead className="font-semibold text-foreground">Plano</TableHead>
-              <TableHead className="font-semibold text-foreground">Situação</TableHead>
+            <TableRow className="bg-gray-50 border-b border-gray-200">
+              <TableHead className="font-semibold text-gray-700 text-sm py-3">ID</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-sm py-3">Vencimento</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-sm py-3">Valor</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-sm py-3">Plano</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-sm py-3 text-right">Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -181,21 +180,24 @@ export const InvoiceHistorySection = ({
                 </TableCell>
               </TableRow>
             ) : (
-              currentInvoices.map((invoice) => (
-                <TableRow key={invoice.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium text-foreground">
+              currentInvoices.map((invoice, index) => (
+                <TableRow 
+                  key={invoice.id} 
+                  className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                >
+                  <TableCell className="font-medium text-gray-800 py-3">
                     {invoice.id}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-gray-600 py-3">
                     {formatDate(invoice.dueDate)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-gray-600 py-3">
                     {formatCurrency(invoice.amount)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-gray-600 py-3">
                     {invoice.plan}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3 text-right">
                     {getStatusBadge(invoice.status)}
                   </TableCell>
                 </TableRow>
@@ -203,6 +205,13 @@ export const InvoiceHistorySection = ({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* View All Link */}
+      <div className="text-center">
+        <button className="text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors">
+          Ver todo o histórico de faturas
+        </button>
       </div>
 
       {/* Pagination */}
