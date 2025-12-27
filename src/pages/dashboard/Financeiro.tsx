@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
+import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySection";
 
 // Mock saved card for demonstration - in production this would come from the database
 const mockSavedCard = {
@@ -105,6 +106,11 @@ const Financeiro = () => {
             onCardSave={handleCardSave}
             onPaymentMethodChange={handlePaymentMethodChange}
           />
+        </Card>
+
+        {/* Invoice History Card Container */}
+        <Card className="p-6">
+          <InvoiceHistorySection />
         </Card>
       </div>
     </DashboardLayout>
