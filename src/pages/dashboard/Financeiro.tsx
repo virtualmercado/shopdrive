@@ -4,9 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
+import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
+
+// Mock saved card for demonstration - in production this would come from the database
+const mockSavedCard = {
+  holderName: "GENILSON R DE OLIVEIRA",
+  lastFourDigits: "0104",
+  expirationMonth: "12",
+  expirationYear: "2023",
+};
 
 const Financeiro = () => {
   const [currentPlan, setCurrentPlan] = useState<string>("gratis");
+  const [savedCard, setSavedCard] = useState<typeof mockSavedCard | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -33,6 +43,10 @@ const Financeiro = () => {
     };
 
     fetchCurrentPlan();
+    
+    // For demonstration, simulate having a saved card
+    // In production, this would fetch from the database
+    setSavedCard(mockSavedCard);
   }, [user]);
 
   const handlePlanAction = (planId: string, action: "free" | "current" | "upgrade") => {
@@ -46,6 +60,28 @@ const Financeiro = () => {
     }
   };
 
+  const handleCardSave = (cardData: {
+    cardNumber: string;
+    holderName: string;
+    expirationMonth: string;
+    expirationYear: string;
+    cvv: string;
+  }) => {
+    // In production, this would save to the database and validate with payment gateway
+    console.log("Card data to save:", cardData);
+    setSavedCard({
+      holderName: cardData.holderName,
+      lastFourDigits: cardData.cardNumber.replace(/\s/g, "").slice(-4),
+      expirationMonth: cardData.expirationMonth,
+      expirationYear: cardData.expirationYear,
+    });
+  };
+
+  const handlePaymentMethodChange = (method: "card" | "boleto") => {
+    console.log("Payment method changed to:", method);
+    // In production, this would update the user's preferred payment method
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -54,11 +90,20 @@ const Financeiro = () => {
           Meu Plano / Planos
         </h1>
 
-        {/* Content Card Container */}
+        {/* Plans Card Container */}
         <Card className="p-6">
           <PlansSection 
             currentPlan={currentPlan} 
             onPlanAction={handlePlanAction}
+          />
+        </Card>
+
+        {/* Payment Data Card Container */}
+        <Card className="p-6">
+          <PaymentDataSection
+            savedCard={savedCard}
+            onCardSave={handleCardSave}
+            onPaymentMethodChange={handlePaymentMethodChange}
           />
         </Card>
       </div>
