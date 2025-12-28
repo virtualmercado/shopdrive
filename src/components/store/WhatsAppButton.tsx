@@ -125,7 +125,7 @@ const WhatsAppButton = ({
           
           {/* Content inside the bubble - text only */}
           <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '18px' }}>
-            <span className="text-white font-semibold text-lg leading-tight text-center">
+            <span className="text-white font-semibold text-base leading-tight text-center">
               Fale
               <br />
               com a
