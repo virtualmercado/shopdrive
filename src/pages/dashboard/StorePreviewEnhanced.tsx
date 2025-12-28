@@ -389,25 +389,6 @@ const StorePreviewEnhanced = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="store_description">Slogan de Rodapé</Label>
-              <p className="text-xs text-muted-foreground">
-                O texto será exibido no rodapé da sua loja online
-              </p>
-              <Textarea
-                id="store_description"
-                value={storeData.store_description}
-                onChange={(e) =>
-                  setStoreData({
-                    ...storeData,
-                    store_description: e.target.value,
-                  })
-                }
-                placeholder="Descreva sua loja..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="email">E-mail da Loja</Label>
               <Input
                 id="email"
@@ -941,6 +922,25 @@ const StorePreviewEnhanced = () => {
                 }
                 placeholder="Descreva sua política de trocas e devoluções..."
                 rows={6}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="store_description">Slogan de Rodapé</Label>
+              <p className="text-xs text-muted-foreground">
+                O texto será exibido no rodapé da sua loja online
+              </p>
+              <Textarea
+                id="store_description"
+                value={storeData.store_description}
+                onChange={(e) =>
+                  setStoreData({
+                    ...storeData,
+                    store_description: e.target.value,
+                  })
+                }
+                placeholder="Descreva sua loja..."
+                rows={3}
               />
             </div>
 
