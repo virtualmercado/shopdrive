@@ -23,6 +23,7 @@ import CatalogPDF from "./pages/dashboard/CatalogPDF";
 import OnlineStore from "./pages/OnlineStore";
 import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ReturnPolicyPage from "./pages/ReturnPolicyPage";
+import AboutUsPage from "./pages/AboutUsPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -66,6 +67,7 @@ function App() {
             <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
             <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
+            <Route path="/loja/:storeSlug/sobre-nos" element={<AboutUsPage />} />
             
             {/* Customer Account Routes */}
             <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
