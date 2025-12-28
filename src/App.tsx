@@ -22,6 +22,7 @@ import CustomerDetail from "./pages/dashboard/CustomerDetail";
 import CatalogPDF from "./pages/dashboard/CatalogPDF";
 import OnlineStore from "./pages/OnlineStore";
 import StoreCategoryPage from "./pages/StoreCategoryPage";
+import ReturnPolicyPage from "./pages/ReturnPolicyPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -64,6 +65,7 @@ function App() {
             <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
             <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
+            <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
             
             {/* Customer Account Routes */}
             <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
