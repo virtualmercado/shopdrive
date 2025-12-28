@@ -74,7 +74,7 @@ const Messages = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
               <MessageCircle className="h-4 w-4 text-gray-600" />
             </div>
-            <h1 className="text-lg font-semibold text-foreground">Mensagens WhatsApp</h1>
+            <h1 className="text-lg font-semibold text-foreground">Mensagens Loja Online</h1>
           </div>
           <p className="text-sm text-muted-foreground ml-10">
             Acompanhe as mensagens recebidas através do botão flutuante da sua loja
