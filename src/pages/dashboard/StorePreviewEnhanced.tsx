@@ -389,7 +389,10 @@ const StorePreviewEnhanced = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="store_description">Descrição da Loja</Label>
+              <Label htmlFor="store_description">Slogan de Rodapé</Label>
+              <p className="text-xs text-muted-foreground">
+                O texto será exibido no rodapé da sua loja online
+              </p>
               <Textarea
                 id="store_description"
                 value={storeData.store_description}
