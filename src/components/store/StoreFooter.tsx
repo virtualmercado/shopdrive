@@ -37,7 +37,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
     if (user) {
       return `/loja/${storeData.store_slug}/conta`;
     }
-    return `/loja/${storeData.store_slug}/entrar`;
+    return `/loja/${storeData.store_slug}/auth`;
   };
 
   // Formatar endereço completo em duas linhas
