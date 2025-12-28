@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 interface StoreFooterProps {
   storeData: {
     store_name: string;
+    store_slug?: string;
     store_logo_url?: string;
     store_description?: string;
     instagram_url?: string;
@@ -156,19 +157,9 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
                   Home
                 </Link>
-                <a 
-                  href="#todos-produtos" 
-                  className="block text-sm hover:opacity-70 transition-opacity cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const element = document.getElementById('todos-produtos');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                >
+                <Link to={`/loja/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Produtos
-                </a>
+                </Link>
                 <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
                   Sobre
                 </Link>
