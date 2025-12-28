@@ -925,7 +925,7 @@ const StorePreviewEnhanced = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="store_description">Slogan de Rodapé</Label>
               <p className="text-xs text-muted-foreground">
                 O texto será exibido no rodapé da sua loja online
@@ -933,14 +933,16 @@ const StorePreviewEnhanced = () => {
               <Textarea
                 id="store_description"
                 value={storeData.store_description}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value.slice(0, 90);
                   setStoreData({
                     ...storeData,
-                    store_description: e.target.value,
-                  })
-                }
-                placeholder="Descreva sua loja..."
-                rows={3}
+                    store_description: value,
+                  });
+                }}
+                placeholder="Máximo de 90 caracteres"
+                maxLength={90}
+                rows={2}
               />
             </div>
 
