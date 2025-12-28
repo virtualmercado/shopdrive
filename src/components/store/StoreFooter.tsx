@@ -1,5 +1,5 @@
 import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
 interface StoreFooterProps {
@@ -32,12 +32,28 @@ interface StoreFooterProps {
 const StoreFooter = ({ storeData }: StoreFooterProps) => {
   const currentYear = new Date().getFullYear();
   const { user } = useCustomerAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const getAccountLink = () => {
     if (user) {
       return `/loja/${storeData.store_slug}/conta`;
     }
     return `/loja/${storeData.store_slug}/auth`;
+  };
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const storeHomePath = `/loja/${storeData.store_slug}`;
+    
+    if (location.pathname === storeHomePath) {
+      // Already on home page, just scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Navigate to home page and scroll to top
+      navigate(storeHomePath);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   // Formatar endereço completo em duas linhas
@@ -163,9 +179,13 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
             <div className="space-y-4">
               <h4 className="font-semibold text-lg">Links Úteis</h4>
               <div className="space-y-2">
-                <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
+                <a 
+                  href="#" 
+                  onClick={handleHomeClick}
+                  className="block text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                >
                   Home
-                </Link>
+                </a>
                 <Link to={`/loja/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Produtos
                 </Link>
