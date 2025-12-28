@@ -925,7 +925,7 @@ const StorePreviewEnhanced = () => {
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="store_description">Slogan de Rodapé</Label>
               <p className="text-xs text-muted-foreground">
                 O texto será exibido no rodapé da sua loja online
@@ -942,7 +942,7 @@ const StorePreviewEnhanced = () => {
                 }}
                 placeholder="Máximo de 90 caracteres"
                 maxLength={90}
-                rows={2}
+                rows={3}
               />
             </div>
 
