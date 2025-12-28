@@ -949,6 +949,26 @@ const StorePreviewEnhanced = () => {
               </p>
             </div>
 
+            {/* About Us Section */}
+            <div className="space-y-2">
+              <Label htmlFor="about_us_text">Sobre nós</Label>
+              <p className="text-xs text-muted-foreground">
+                O texto será vinculado ao link Sobre Nós no rodapé da sua loja online
+              </p>
+              <Textarea
+                id="about_us_text"
+                value={(storeData as any).about_us_text || ''}
+                onChange={(e) => {
+                  setStoreData({
+                    ...storeData,
+                    about_us_text: e.target.value,
+                  } as any);
+                }}
+                placeholder="Digite o texto institucional da sua loja..."
+                rows={5}
+              />
+            </div>
+
             {/* Maintenance Mode */}
             <div className="space-y-3 pt-4 border-t">
               <Label htmlFor="maintenance_mode" className="text-base font-medium">
