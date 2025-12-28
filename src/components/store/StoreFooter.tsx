@@ -1,5 +1,6 @@
 import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
 interface StoreFooterProps {
   storeData: {
@@ -30,6 +31,14 @@ interface StoreFooterProps {
 
 const StoreFooter = ({ storeData }: StoreFooterProps) => {
   const currentYear = new Date().getFullYear();
+  const { user } = useCustomerAuth();
+  
+  const getAccountLink = () => {
+    if (user) {
+      return `/loja/${storeData.store_slug}/conta`;
+    }
+    return `/loja/${storeData.store_slug}/entrar`;
+  };
 
   // Formatar endereço completo em duas linhas
   const formatFullAddress = () => {
@@ -166,7 +175,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <Link to={`/loja/${storeData.store_slug}/trocas-e-devolucoes`} className="block text-sm hover:opacity-70 transition-opacity">
                   Trocas e Devoluções
                 </Link>
-                <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={getAccountLink()} className="block text-sm hover:opacity-70 transition-opacity">
                   Entrar
                 </Link>
               </div>
