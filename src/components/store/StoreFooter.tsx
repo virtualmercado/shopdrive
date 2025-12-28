@@ -189,7 +189,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <Link to={`/loja/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Produtos
                 </Link>
-                <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={`/loja/${storeData.store_slug}/sobre-nos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Sobre Nós
                 </Link>
                 <Link to={`/loja/${storeData.store_slug}/trocas-e-devolucoes`} className="block text-sm hover:opacity-70 transition-opacity">
