@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle, ShoppingCart } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 interface WhatsAppButtonProps {
   phoneNumber: string;
@@ -107,70 +107,30 @@ const WhatsAppButton = ({
         <div className="relative">
           {/* Speech bubble shape */}
           <svg
-            width="110"
-            height="120"
-            viewBox="0 0 110 120"
+            width="95"
+            height="105"
+            viewBox="0 0 95 105"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             className="drop-shadow-lg"
           >
             {/* Main bubble - circular shape */}
-            <circle cx="55" cy="50" r="50" fill="#7B2D8E" />
+            <circle cx="47.5" cy="42" r="42" fill="#2EAE4E" />
             {/* Tail/pointer - pointing bottom left */}
             <path
-              d="M30 90 Q25 110 20 115 Q35 105 45 95"
-              fill="#7B2D8E"
+              d="M22 76 Q15 95 8 100 Q25 88 35 78"
+              fill="#2EAE4E"
             />
           </svg>
           
-          {/* Content inside the bubble */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '20px' }}>
-            {/* VM Logo icon - Cart with V */}
-            <div className="mb-0.5 relative">
-              <svg 
-                width="32" 
-                height="28" 
-                viewBox="0 0 32 28" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Cart body */}
-                <path 
-                  d="M6 8 L8 20 H26 L28 8 H6Z" 
-                  stroke="#A855F7" 
-                  strokeWidth="2" 
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {/* Cart handle */}
-                <path 
-                  d="M6 8 L4 4 H1" 
-                  stroke="#A855F7" 
-                  strokeWidth="2" 
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {/* Cart wheels */}
-                <circle cx="11" cy="24" r="2.5" fill="#A855F7" />
-                <circle cx="23" cy="24" r="2.5" fill="#A855F7" />
-                {/* V letter inside cart */}
-                <path 
-                  d="M12 10 L17 17 L22 10" 
-                  stroke="#A855F7" 
-                  strokeWidth="2.5" 
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            {/* Text */}
-            <span className="text-white font-medium text-base leading-tight text-center">
-              Fale com
+          {/* Content inside the bubble - text only */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '18px' }}>
+            <span className="text-white font-semibold text-lg leading-tight text-center">
+              Fale
               <br />
-              a gente
+              com a
+              <br />
+              gente
             </span>
           </div>
         </div>
