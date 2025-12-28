@@ -107,30 +107,67 @@ const WhatsAppButton = ({
         <div className="relative">
           {/* Speech bubble shape */}
           <svg
-            width="140"
-            height="140"
-            viewBox="0 0 140 140"
+            width="110"
+            height="120"
+            viewBox="0 0 110 120"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             className="drop-shadow-lg"
           >
-            {/* Main bubble */}
-            <ellipse cx="70" cy="60" rx="65" ry="55" fill="#7B2D8E" />
-            {/* Tail/pointer */}
+            {/* Main bubble - circular shape */}
+            <circle cx="55" cy="50" r="50" fill="#7B2D8E" />
+            {/* Tail/pointer - pointing bottom left */}
             <path
-              d="M70 115 L55 135 L85 115 Z"
+              d="M30 90 Q25 110 20 115 Q35 105 45 95"
               fill="#7B2D8E"
             />
           </svg>
           
           {/* Content inside the bubble */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pb-6">
-            {/* VM Logo icon */}
-            <div className="mb-1">
-              <ShoppingCart className="w-8 h-8 text-purple-300" strokeWidth={1.5} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '20px' }}>
+            {/* VM Logo icon - Cart with V */}
+            <div className="mb-0.5 relative">
+              <svg 
+                width="32" 
+                height="28" 
+                viewBox="0 0 32 28" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                {/* Cart body */}
+                <path 
+                  d="M6 8 L8 20 H26 L28 8 H6Z" 
+                  stroke="#A855F7" 
+                  strokeWidth="2" 
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {/* Cart handle */}
+                <path 
+                  d="M6 8 L4 4 H1" 
+                  stroke="#A855F7" 
+                  strokeWidth="2" 
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {/* Cart wheels */}
+                <circle cx="11" cy="24" r="2.5" fill="#A855F7" />
+                <circle cx="23" cy="24" r="2.5" fill="#A855F7" />
+                {/* V letter inside cart */}
+                <path 
+                  d="M12 10 L17 17 L22 10" 
+                  stroke="#A855F7" 
+                  strokeWidth="2.5" 
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
             {/* Text */}
-            <span className="text-white font-medium text-sm leading-tight text-center">
+            <span className="text-white font-medium text-base leading-tight text-center">
               Fale com
               <br />
               a gente
