@@ -156,9 +156,19 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
                   Home
                 </Link>
-                <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
+                <a 
+                  href="#todos-produtos" 
+                  className="block text-sm hover:opacity-70 transition-opacity cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const element = document.getElementById('todos-produtos');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Produtos
-                </Link>
+                </a>
                 <Link to="#" className="block text-sm hover:opacity-70 transition-opacity">
                   Sobre
                 </Link>

@@ -265,9 +265,10 @@ const OnlineStoreContent = () => {
               selectedCategory={selectedCategory}
             />
 
-            <ProductCarousel
-              title="Todos os Produtos"
-              subtitle="Navegue por todo o catálogo"
+            <section id="todos-produtos">
+              <ProductCarousel
+                title="Todos os Produtos"
+                subtitle="Navegue por todo o catálogo"
               storeOwnerId={storeData.id}
               storeSlug={storeSlug}
               primaryColor={storeData.primary_color}
@@ -278,8 +279,9 @@ const OnlineStoreContent = () => {
               productBorderStyle={productBorderStyle}
               productTextAlignment={productTextAlignment}
               productButtonDisplay={productButtonDisplay}
-              selectedCategory={selectedCategory}
-            />
+                selectedCategory={selectedCategory}
+              />
+            </section>
           </>
         )}
 
