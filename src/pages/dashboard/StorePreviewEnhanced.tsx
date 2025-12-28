@@ -940,10 +940,13 @@ const StorePreviewEnhanced = () => {
                     store_description: value,
                   });
                 }}
-                placeholder="Máximo de 90 caracteres"
+                placeholder="Digite seu slogan..."
                 maxLength={90}
                 rows={3}
               />
+              <p className="text-xs text-muted-foreground">
+                Máximo de 90 caracteres
+              </p>
             </div>
 
             {/* Maintenance Mode */}
