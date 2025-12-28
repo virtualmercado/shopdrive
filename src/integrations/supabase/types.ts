@@ -1231,6 +1231,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          about_us_text: string | null
           address: string | null
           address_city: string | null
           address_complement: string | null
@@ -1299,6 +1300,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          about_us_text?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -1367,6 +1369,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          about_us_text?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
