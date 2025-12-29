@@ -107,8 +107,8 @@ const WhatsAppButton = ({
         <div className="relative">
           {/* Speech bubble shape */}
           <svg
-            width="95"
-            height="105"
+            width="76"
+            height="84"
             viewBox="0 0 95 105"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -124,8 +124,8 @@ const WhatsAppButton = ({
           </svg>
           
           {/* Content inside the bubble - text only */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '18px' }}>
-            <span className="text-white font-semibold text-sm leading-tight text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '14px' }}>
+            <span className="text-white font-semibold text-xs leading-tight text-center">
               Fale
               <br />
               com a
