@@ -243,67 +243,69 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               {/* Formas de Pagamento - Alinhado à esquerda */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium opacity-80">Formas de pagamento</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="space-y-4">
+                <p className="text-xl font-light text-gray-500">Formas de pagamento</p>
+                <div className="flex flex-wrap gap-3">
                   {/* Mastercard */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-8 h-5">
-                      <circle cx="14" cy="13" r="8" fill="#666666"/>
-                      <circle cx="26" cy="13" r="8" fill="#999999"/>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <svg viewBox="0 0 60 40" className="w-10 h-8">
+                      <circle cx="22" cy="20" r="12" fill="#808080"/>
+                      <circle cx="38" cy="20" r="12" fill="#A0A0A0"/>
                     </svg>
+                    <span className="text-[7px] text-gray-500 -mt-1">mastercard</span>
                   </div>
                   {/* Visa */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-[10px] font-bold text-gray-600 italic">VISA</span>
-                  </div>
-                  {/* Hipercard */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-[8px] font-bold text-gray-600 bg-gray-400 px-1 rounded">hipercard</span>
-                  </div>
-                  {/* American Express */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-8 h-5">
-                      <rect x="8" y="8" width="24" height="10" fill="#666666" rx="1"/>
-                    </svg>
-                  </div>
-                  {/* Diners */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-8 h-5">
-                      <circle cx="20" cy="13" r="9" fill="none" stroke="#666666" strokeWidth="2"/>
-                      <path d="M14 9v8M26 9v8" stroke="#666666" strokeWidth="2"/>
-                    </svg>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-lg font-bold text-gray-500 italic tracking-tight">VISA</span>
                   </div>
                   {/* Elo */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-[10px] font-bold text-gray-600">elo</span>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-lg font-bold text-gray-500 tracking-wide">elo</span>
                   </div>
-                  {/* Crédito */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-8 h-5">
-                      <rect x="6" y="6" width="28" height="14" rx="2" fill="none" stroke="#666666" strokeWidth="1.5"/>
-                      <line x1="6" y1="11" x2="34" y2="11" stroke="#666666" strokeWidth="1.5"/>
+                  {/* American Express */}
+                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <span className="text-[8px] font-bold text-gray-500 leading-tight">AMERICAN</span>
+                    <span className="text-[8px] font-bold text-gray-500 leading-tight">EXPRESS</span>
+                  </div>
+                  {/* Diners Club */}
+                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 30" className="w-6 h-5">
+                      <circle cx="20" cy="15" r="10" fill="none" stroke="#666666" strokeWidth="1.5"/>
+                      <ellipse cx="14" cy="15" rx="3" ry="7" fill="none" stroke="#666666" strokeWidth="1"/>
+                      <ellipse cx="26" cy="15" rx="3" ry="7" fill="none" stroke="#666666" strokeWidth="1"/>
                     </svg>
+                    <span className="text-[7px] text-gray-500 italic">Diners Club</span>
                   </div>
                   {/* Pix */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-6 h-4">
-                      <path d="M20 4L26 10L20 16L14 10L20 4Z" fill="#666666"/>
-                      <path d="M10 10L16 16L10 22L4 16L10 10Z" fill="#888888"/>
-                      <path d="M30 10L36 16L30 22L24 16L30 10Z" fill="#888888"/>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5">
+                      <path d="M12.5 6.5L15 9L12.5 11.5L10 9L12.5 6.5Z" fill="#666666"/>
+                      <path d="M6.5 12.5L9 15L6.5 17.5L4 15L6.5 12.5Z" fill="#888888"/>
+                      <path d="M18.5 12.5L21 15L18.5 17.5L16 15L18.5 12.5Z" fill="#888888"/>
+                      <path d="M12.5 18.5L15 21L12.5 23.5L10 21L12.5 18.5Z" fill="#666666"/>
+                      <path d="M9 9L6.5 11.5" stroke="#666666" strokeWidth="1.5"/>
+                      <path d="M15 9L17.5 11.5" stroke="#888888" strokeWidth="1.5"/>
+                      <path d="M9 15L11 17" stroke="#666666" strokeWidth="1.5"/>
+                      <path d="M15 15L13 17" stroke="#666666" strokeWidth="1.5"/>
                     </svg>
+                    <span className="text-sm font-medium text-gray-500">pix</span>
                   </div>
-                  {/* Boleto */}
-                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 26" className="w-8 h-5">
-                      <rect x="8" y="6" width="2" height="14" fill="#666666"/>
-                      <rect x="12" y="6" width="1" height="14" fill="#666666"/>
-                      <rect x="15" y="6" width="3" height="14" fill="#666666"/>
-                      <rect x="20" y="6" width="1" height="14" fill="#666666"/>
-                      <rect x="23" y="6" width="2" height="14" fill="#666666"/>
-                      <rect x="27" y="6" width="1" height="14" fill="#666666"/>
-                      <rect x="30" y="6" width="2" height="14" fill="#666666"/>
+                  {/* Boleto Bancário */}
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5">
+                      <rect x="2" y="4" width="1.5" height="16" fill="#666666"/>
+                      <rect x="5" y="4" width="1" height="16" fill="#666666"/>
+                      <rect x="7.5" y="4" width="2" height="16" fill="#666666"/>
+                      <rect x="11" y="4" width="1" height="16" fill="#666666"/>
+                      <rect x="13.5" y="4" width="1.5" height="16" fill="#666666"/>
+                      <rect x="16.5" y="4" width="1" height="16" fill="#666666"/>
+                      <rect x="19" y="4" width="1" height="16" fill="#666666"/>
+                      <rect x="21" y="4" width="1.5" height="16" fill="#666666"/>
                     </svg>
+                    <div className="flex flex-col text-[7px] text-gray-500 leading-tight">
+                      <span>Boleto</span>
+                      <span>Bancário</span>
+                    </div>
                   </div>
                 </div>
               </div>
