@@ -12,8 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle } from "lucide-react";
-
+import { CheckCircle, Mail } from "lucide-react";
 interface WhatsAppButtonProps {
   phoneNumber: string;
   storeOwnerId: string;
@@ -98,42 +97,14 @@ const WhatsAppButton = ({
 
   return (
     <>
-      {/* Floating balloon button */}
+      {/* Floating rectangular button - fixed to bottom right */}
       <button
         onClick={handleOpenDialog}
-        className="fixed bottom-6 right-6 z-40 hover:scale-105 transition-transform focus:outline-none"
+        className="fixed bottom-0 right-6 z-40 hover:opacity-90 transition-opacity focus:outline-none flex items-center gap-2 px-5 py-3 bg-[#4a4a4a] text-white rounded-t-lg shadow-lg md:right-8"
         aria-label="Fale com a gente"
       >
-        <div className="relative">
-          {/* Speech bubble shape */}
-          <svg
-            width="76"
-            height="84"
-            viewBox="0 0 95 105"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="drop-shadow-lg"
-          >
-            {/* Main bubble - circular shape */}
-            <circle cx="47.5" cy="42" r="42" fill="#2EAE4E" />
-            {/* Tail/pointer - pointing bottom left */}
-            <path
-              d="M22 76 Q15 95 8 100 Q25 88 35 78"
-              fill="#2EAE4E"
-            />
-          </svg>
-          
-          {/* Content inside the bubble - text only */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: '14px' }}>
-            <span className="text-white font-semibold text-xs leading-tight text-center">
-              Fale
-              <br />
-              com a
-              <br />
-              gente
-            </span>
-          </div>
-        </div>
+        <Mail className="w-5 h-5" />
+        <span className="text-sm font-medium whitespace-nowrap">Fale com a gente</span>
       </button>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
