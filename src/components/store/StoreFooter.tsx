@@ -238,7 +238,8 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
         </div>
 
         {/* Linha separadora e Bloco de Formas de Pagamento e Segurança */}
-        <div className="border-t border-gray-300">
+        <div className="container mx-auto px-4">
+          <div className="border-t border-gray-300">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               {/* Formas de Pagamento - Alinhado à esquerda */}
@@ -337,11 +338,12 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
             </div>
           </div>
         </div>
+        </div>
       </footer>
 
       {/* Subrodapé - Sem selos de segurança */}
       <div className="bg-[#f2f2f2] text-[#333] py-4">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-screen-xl">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
             <div className="text-center md:text-left">
               <p>
