@@ -236,9 +236,110 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
             </div>
           </div>
         </div>
+
+        {/* Linha separadora e Bloco de Formas de Pagamento e Segurança */}
+        <div className="border-t border-gray-300">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              {/* Formas de Pagamento - Alinhado à esquerda */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium opacity-80">Formas de pagamento</p>
+                <div className="flex flex-wrap gap-2">
+                  {/* Mastercard */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-8 h-5">
+                      <circle cx="14" cy="13" r="8" fill="#666666"/>
+                      <circle cx="26" cy="13" r="8" fill="#999999"/>
+                    </svg>
+                  </div>
+                  {/* Visa */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-[10px] font-bold text-gray-600 italic">VISA</span>
+                  </div>
+                  {/* Hipercard */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-[8px] font-bold text-gray-600 bg-gray-400 px-1 rounded">hipercard</span>
+                  </div>
+                  {/* American Express */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-8 h-5">
+                      <rect x="8" y="8" width="24" height="10" fill="#666666" rx="1"/>
+                    </svg>
+                  </div>
+                  {/* Diners */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-8 h-5">
+                      <circle cx="20" cy="13" r="9" fill="none" stroke="#666666" strokeWidth="2"/>
+                      <path d="M14 9v8M26 9v8" stroke="#666666" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  {/* Elo */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-[10px] font-bold text-gray-600">elo</span>
+                  </div>
+                  {/* Crédito */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-8 h-5">
+                      <rect x="6" y="6" width="28" height="14" rx="2" fill="none" stroke="#666666" strokeWidth="1.5"/>
+                      <line x1="6" y1="11" x2="34" y2="11" stroke="#666666" strokeWidth="1.5"/>
+                    </svg>
+                  </div>
+                  {/* Pix */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-6 h-4">
+                      <path d="M20 4L26 10L20 16L14 10L20 4Z" fill="#666666"/>
+                      <path d="M10 10L16 16L10 22L4 16L10 10Z" fill="#888888"/>
+                      <path d="M30 10L36 16L30 22L24 16L30 10Z" fill="#888888"/>
+                    </svg>
+                  </div>
+                  {/* Boleto */}
+                  <div className="w-12 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 26" className="w-8 h-5">
+                      <rect x="8" y="6" width="2" height="14" fill="#666666"/>
+                      <rect x="12" y="6" width="1" height="14" fill="#666666"/>
+                      <rect x="15" y="6" width="3" height="14" fill="#666666"/>
+                      <rect x="20" y="6" width="1" height="14" fill="#666666"/>
+                      <rect x="23" y="6" width="2" height="14" fill="#666666"/>
+                      <rect x="27" y="6" width="1" height="14" fill="#666666"/>
+                      <rect x="30" y="6" width="2" height="14" fill="#666666"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selos de Segurança - Alinhados à direita */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium opacity-80 md:text-right">Segurança</p>
+                <div className="flex gap-3 items-center">
+                  {/* SSL Badge */}
+                  <div className="flex items-center gap-1 bg-gray-500 text-white px-2 py-1 rounded text-[8px] font-bold">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                    </svg>
+                    <div className="flex flex-col leading-tight">
+                      <span>SITE SEGURO</span>
+                      <span className="text-[10px] font-bold">SSL</span>
+                      <span className="text-[6px]">256 BITS</span>
+                    </div>
+                  </div>
+                  {/* Google Safe Browsing */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col text-[8px] text-gray-500 leading-tight text-right">
+                      <span>Safe browsing</span>
+                    </div>
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#666666">
+                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                    </svg>
+                    <span className="text-sm font-medium text-gray-600">Google</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </footer>
 
-      {/* Seção Final */}
+      {/* Subrodapé - Sem selos de segurança */}
       <div className="bg-[#f2f2f2] text-[#333] py-4">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
@@ -249,19 +350,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 reservados © {currentYear}
               </p>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex gap-4">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/5/5a/Ssl_logo.png"
-                  alt="SSL"
-                  className="h-8 brightness-0"
-                />
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Google_Safe_Browsing.svg/512px-Google_Safe_Browsing.svg.png"
-                  alt="Google Safe Browsing"
-                  className="h-8 brightness-0"
-                />
-              </div>
+            <div className="flex items-center">
               <p className="text-xs opacity-70">
                 Criado com{" "}
                 <span className="font-semibold text-[#333]">VirtualMercado</span>
