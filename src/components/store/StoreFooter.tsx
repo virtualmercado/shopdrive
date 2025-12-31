@@ -243,56 +243,55 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               {/* Formas de Pagamento - Alinhado à esquerda */}
-              <div className="space-y-4">
-                <p className="text-xl font-light text-gray-500">Formas de pagamento</p>
-                <div className="flex flex-wrap gap-3">
+              <div className="space-y-2">
+                <p className="text-base font-light text-gray-500">Formas de pagamento</p>
+                <div className="flex flex-wrap gap-2">
                   {/* Mastercard */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 60 40" className="w-10 h-8">
+                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <svg viewBox="0 0 60 40" className="w-8 h-6">
                       <circle cx="22" cy="20" r="12" fill="#808080"/>
                       <circle cx="38" cy="20" r="12" fill="#A0A0A0"/>
                     </svg>
-                    <span className="text-[7px] text-gray-500 -mt-1">mastercard</span>
+                    <span className="text-[6px] text-gray-500 -mt-1">mastercard</span>
                   </div>
                   {/* Visa */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-lg font-bold text-gray-500 italic tracking-tight">VISA</span>
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-sm font-bold text-gray-500 italic tracking-tight">VISA</span>
                   </div>
                   {/* Elo */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-lg font-bold text-gray-500 tracking-wide">elo</span>
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-sm font-bold text-gray-500 tracking-wide">elo</span>
                   </div>
-                  {/* American Express */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <span className="text-[8px] font-bold text-gray-500 leading-tight">AMERICAN</span>
-                    <span className="text-[8px] font-bold text-gray-500 leading-tight">EXPRESS</span>
-                  </div>
-                  {/* Diners Club */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 30" className="w-6 h-5">
-                      <circle cx="20" cy="15" r="10" fill="none" stroke="#666666" strokeWidth="1.5"/>
-                      <ellipse cx="14" cy="15" rx="3" ry="7" fill="none" stroke="#666666" strokeWidth="1"/>
-                      <ellipse cx="26" cy="15" rx="3" ry="7" fill="none" stroke="#666666" strokeWidth="1"/>
+                  {/* American Express - Fiel ao modelo */}
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white p-1">
+                    <svg viewBox="0 0 50 30" className="w-full h-full">
+                      <rect x="2" y="2" width="46" height="26" fill="#6B6B6B" rx="1"/>
+                      <text x="25" y="13" textAnchor="middle" fill="white" fontSize="5" fontWeight="bold" fontFamily="Arial, sans-serif">AMERICAN</text>
+                      <text x="25" y="20" textAnchor="middle" fill="white" fontSize="5" fontWeight="bold" fontFamily="Arial, sans-serif">EXPRESS</text>
                     </svg>
-                    <span className="text-[7px] text-gray-500 italic">Diners Club</span>
                   </div>
-                  {/* Pix */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
-                    <svg viewBox="0 0 24 24" className="w-5 h-5">
-                      <path d="M12.5 6.5L15 9L12.5 11.5L10 9L12.5 6.5Z" fill="#666666"/>
-                      <path d="M6.5 12.5L9 15L6.5 17.5L4 15L6.5 12.5Z" fill="#888888"/>
-                      <path d="M18.5 12.5L21 15L18.5 17.5L16 15L18.5 12.5Z" fill="#888888"/>
-                      <path d="M12.5 18.5L15 21L12.5 23.5L10 21L12.5 18.5Z" fill="#666666"/>
-                      <path d="M9 9L6.5 11.5" stroke="#666666" strokeWidth="1.5"/>
-                      <path d="M15 9L17.5 11.5" stroke="#888888" strokeWidth="1.5"/>
-                      <path d="M9 15L11 17" stroke="#666666" strokeWidth="1.5"/>
-                      <path d="M15 15L13 17" stroke="#666666" strokeWidth="1.5"/>
+                  {/* Diners Club - Fiel ao modelo */}
+                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white p-1">
+                    <svg viewBox="0 0 50 20" className="w-10 h-4">
+                      <ellipse cx="16" cy="10" rx="9" ry="9" fill="none" stroke="#6B6B6B" strokeWidth="1.5"/>
+                      <ellipse cx="13" cy="10" rx="4" ry="7" fill="#6B6B6B"/>
+                      <ellipse cx="19" cy="10" rx="4" ry="7" fill="none" stroke="#6B6B6B" strokeWidth="1"/>
                     </svg>
-                    <span className="text-sm font-medium text-gray-500">pix</span>
+                    <span className="text-[6px] text-gray-500 font-serif">Diners Club<sup className="text-[4px]">®</sup></span>
+                  </div>
+                  {/* Pix - Fiel ao modelo */}
+                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white p-1">
+                    <div className="flex items-center gap-1">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4">
+                        <path d="M13.6 13.47l3.22 3.22c.2.16.48.24.76.24s.56-.09.76-.26l2.93-2.93c.84-.84.84-2.21 0-3.05l-2.93-2.93c-.2-.17-.48-.26-.76-.26s-.56.09-.76.26l-3.22 3.22c-.29.29-.29.77 0 1.06 0 .12.01.24.01.36-.01.11-.01.22-.01.33zm-3.21-3.22l-3.22-3.22c-.2-.16-.48-.24-.76-.24s-.56.09-.76.26L2.71 9.97c-.84.84-.84 2.21 0 3.05l2.93 2.93c.2.17.48.26.76.26s.56-.09.76-.26l3.22-3.22c.29-.29.29-.77 0-1.06v-.36c0-.11.01-.22.01-.33zM9.93 9.93l2.93-2.93c.2-.16.48-.24.76-.24s.56.09.76.26l2.93 2.93c.29.29.29.77 0 1.06l-2.93 2.93c-.2.17-.48.26-.76.26s-.56-.09-.76-.26l-2.93-2.93c-.29-.3-.29-.78 0-1.08z" fill="#6B6B6B"/>
+                      </svg>
+                      <span className="text-xs font-medium text-gray-500">pix</span>
+                    </div>
+                    <span className="text-[5px] text-gray-400">Powered by Banco Central</span>
                   </div>
                   {/* Boleto Bancário */}
-                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
-                    <svg viewBox="0 0 24 24" className="w-5 h-5">
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4">
                       <rect x="2" y="4" width="1.5" height="16" fill="#666666"/>
                       <rect x="5" y="4" width="1" height="16" fill="#666666"/>
                       <rect x="7.5" y="4" width="2" height="16" fill="#666666"/>
@@ -302,7 +301,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                       <rect x="19" y="4" width="1" height="16" fill="#666666"/>
                       <rect x="21" y="4" width="1.5" height="16" fill="#666666"/>
                     </svg>
-                    <div className="flex flex-col text-[7px] text-gray-500 leading-tight">
+                    <div className="flex flex-col text-[6px] text-gray-500 leading-tight">
                       <span>Boleto</span>
                       <span>Bancário</span>
                     </div>
