@@ -243,27 +243,27 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               {/* Formas de Pagamento - Alinhado à esquerda */}
-              <div className="space-y-1.5">
-                <p className="text-sm font-light text-gray-500">Formas de pagamento</p>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-3">
+                <p className="text-base font-light text-gray-500">Formas de pagamento</p>
+                <div className="flex flex-wrap gap-3">
                   {/* Mastercard */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 60 40" className="w-7 h-5">
+                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <svg viewBox="0 0 60 40" className="w-10 h-7">
                       <circle cx="22" cy="20" r="12" fill="#808080"/>
                       <circle cx="38" cy="20" r="12" fill="#A0A0A0"/>
                     </svg>
-                    <span className="text-[5px] text-gray-500 -mt-1">mastercard</span>
+                    <span className="text-[7px] text-gray-500 -mt-1">mastercard</span>
                   </div>
                   {/* Visa */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-xs font-bold text-gray-500 italic tracking-tight">VISA</span>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-base font-bold text-gray-500 italic tracking-tight">VISA</span>
                   </div>
                   {/* Elo */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-xs font-bold text-gray-500 tracking-wide">elo</span>
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-base font-bold text-gray-500 tracking-wide">elo</span>
                   </div>
                   {/* American Express */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex items-center justify-center bg-white p-0.5">
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white p-1">
                     <svg viewBox="0 0 50 30" className="w-full h-full">
                       <rect x="2" y="2" width="46" height="26" fill="#6B6B6B" rx="1"/>
                       <text x="25" y="13" textAnchor="middle" fill="white" fontSize="5" fontWeight="bold" fontFamily="Arial, sans-serif">AMERICAN</text>
@@ -271,19 +271,19 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     </svg>
                   </div>
                   {/* Diners Club - Fiel ao modelo da imagem */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 24" className="w-8 h-4">
+                  <div className="w-20 h-12 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <svg viewBox="0 0 40 24" className="w-10 h-6">
                       {/* Logo oval com círculos internos */}
                       <rect x="5" y="2" width="30" height="14" rx="7" fill="#5C5C5C"/>
                       <circle cx="16" cy="9" r="5" fill="white"/>
                       <circle cx="24" cy="9" r="5" fill="none" stroke="white" strokeWidth="1"/>
                       <line x1="20" y1="4" x2="20" y2="14" stroke="white" strokeWidth="1"/>
                     </svg>
-                    <span className="text-[6px] text-gray-500 font-serif italic mt-0.5">Diners Club</span>
+                    <span className="text-[8px] text-gray-500 font-serif italic mt-0.5">Diners Club</span>
                   </div>
                   {/* Pix - Fiel ao modelo da imagem */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex items-center justify-center bg-white gap-0.5 px-1">
-                    <svg viewBox="0 0 32 32" className="w-5 h-5">
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1 px-2">
+                    <svg viewBox="0 0 32 32" className="w-7 h-7">
                       {/* Símbolo Pix - losangos conectados */}
                       <path d="M16 6.5l-4.5 4.5 4.5 4.5 4.5-4.5L16 6.5z" fill="#5C5C5C"/>
                       <path d="M6.5 16l4.5-4.5 4.5 4.5-4.5 4.5L6.5 16z" fill="#5C5C5C"/>
@@ -292,11 +292,11 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                       <path d="M11 11l5 5-5 5" stroke="#5C5C5C" strokeWidth="1" fill="none"/>
                       <path d="M21 11l-5 5 5 5" stroke="#5C5C5C" strokeWidth="1" fill="none"/>
                     </svg>
-                    <span className="text-sm font-medium text-gray-400">pix</span>
+                    <span className="text-base font-medium text-gray-400">pix</span>
                   </div>
                   {/* Boleto Bancário */}
-                  <div className="w-14 h-8 border border-gray-300 rounded flex items-center justify-center bg-white gap-0.5">
-                    <svg viewBox="0 0 24 24" className="w-3 h-3">
+                  <div className="w-20 h-12 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4">
                       <rect x="2" y="4" width="1.5" height="16" fill="#666666"/>
                       <rect x="5" y="4" width="1" height="16" fill="#666666"/>
                       <rect x="7.5" y="4" width="2" height="16" fill="#666666"/>
@@ -306,7 +306,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                       <rect x="19" y="4" width="1" height="16" fill="#666666"/>
                       <rect x="21" y="4" width="1.5" height="16" fill="#666666"/>
                     </svg>
-                    <div className="flex flex-col text-[5px] text-gray-500 leading-tight">
+                    <div className="flex flex-col text-[7px] text-gray-500 leading-tight">
                       <span>Boleto</span>
                       <span>Bancário</span>
                     </div>
