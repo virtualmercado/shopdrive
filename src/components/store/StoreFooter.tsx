@@ -260,16 +260,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   </div>
                   {/* Elo - Fiel ao modelo da imagem */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 80 32" className="w-12 h-6">
-                      {/* Círculo esquerdo (e) com linha atravessando */}
-                      <circle cx="14" cy="16" r="8" fill="none" stroke="#5C5C5C" strokeWidth="4"/>
-                      <line x1="2" y1="16" x2="22" y2="16" stroke="#5C5C5C" strokeWidth="4"/>
-                      {/* Letra L maiúscula */}
-                      <path d="M28 8 L28 24 L38 24" fill="none" stroke="#5C5C5C" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-                      {/* Círculo direito (o) com linha saindo para direita */}
-                      <circle cx="52" cy="16" r="8" fill="none" stroke="#5C5C5C" strokeWidth="4"/>
-                      <line x1="60" y1="16" x2="76" y2="16" stroke="#5C5C5C" strokeWidth="4" strokeLinecap="round"/>
-                    </svg>
+                    <span className="text-base font-medium text-gray-500" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>eLo</span>
                   </div>
                   {/* American Express - Fiel ao modelo da imagem */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
@@ -282,13 +273,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   </div>
                   {/* Pix - Fiel ao modelo da imagem */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 50 20" className="w-12 h-5">
-                      {/* Símbolo Pix minimalista - traços finos */}
-                      <path d="M8 5 L12 10 L8 15" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M16 5 L12 10 L16 15" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      {/* Texto pix */}
-                      <text x="24" y="14" fill="#9CA3AF" fontSize="11" fontWeight="300" fontFamily="Arial, sans-serif">pix</text>
-                    </svg>
+                    <span className="text-base font-normal text-gray-500" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '1px' }}>pix</span>
                   </div>
                   {/* Boleto Bancário */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
