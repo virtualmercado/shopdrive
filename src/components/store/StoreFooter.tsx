@@ -260,19 +260,15 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   </div>
                   {/* Elo - Fiel ao modelo da imagem */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <svg viewBox="0 0 60 24" className="w-12 h-5">
-                      {/* Círculo esquerdo com traço horizontal */}
-                      <circle cx="10" cy="12" r="6" fill="none" stroke="#666666" strokeWidth="2.5"/>
-                      <line x1="4" y1="12" x2="16" y2="12" stroke="#666666" strokeWidth="2.5"/>
-                      {/* Letra e */}
-                      <text x="22" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">e</text>
-                      {/* Letra l */}
-                      <text x="32" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">l</text>
-                      {/* Letra o */}
-                      <text x="38" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">o</text>
-                      {/* Círculo direito com traço horizontal */}
-                      <circle cx="50" cy="12" r="6" fill="none" stroke="#666666" strokeWidth="2.5"/>
-                      <line x1="44" y1="12" x2="56" y2="12" stroke="#666666" strokeWidth="2.5"/>
+                    <svg viewBox="0 0 80 32" className="w-12 h-6">
+                      {/* Círculo esquerdo (e) com linha atravessando */}
+                      <circle cx="14" cy="16" r="8" fill="none" stroke="#5C5C5C" strokeWidth="4"/>
+                      <line x1="2" y1="16" x2="22" y2="16" stroke="#5C5C5C" strokeWidth="4"/>
+                      {/* Letra L maiúscula */}
+                      <path d="M28 8 L28 24 L38 24" fill="none" stroke="#5C5C5C" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                      {/* Círculo direito (o) com linha saindo para direita */}
+                      <circle cx="52" cy="16" r="8" fill="none" stroke="#5C5C5C" strokeWidth="4"/>
+                      <line x1="60" y1="16" x2="76" y2="16" stroke="#5C5C5C" strokeWidth="4" strokeLinecap="round"/>
                     </svg>
                   </div>
                   {/* American Express - Fiel ao modelo da imagem */}
