@@ -258,41 +258,41 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
                     <span className="text-sm font-bold text-gray-500 italic tracking-tight">VISA</span>
                   </div>
-                  {/* Elo */}
+                  {/* Elo - Fiel ao modelo da imagem */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-sm font-bold text-gray-500 tracking-wide">elo</span>
-                  </div>
-                  {/* American Express */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white p-0.5">
-                    <svg viewBox="0 0 50 30" className="w-full h-full">
-                      <rect x="2" y="2" width="46" height="26" fill="#6B6B6B" rx="1"/>
-                      <text x="25" y="13" textAnchor="middle" fill="white" fontSize="5" fontWeight="bold" fontFamily="Arial, sans-serif">AMERICAN</text>
-                      <text x="25" y="20" textAnchor="middle" fill="white" fontSize="5" fontWeight="bold" fontFamily="Arial, sans-serif">EXPRESS</text>
+                    <svg viewBox="0 0 60 24" className="w-12 h-5">
+                      {/* Círculo esquerdo com traço horizontal */}
+                      <circle cx="10" cy="12" r="6" fill="none" stroke="#666666" strokeWidth="2.5"/>
+                      <line x1="4" y1="12" x2="16" y2="12" stroke="#666666" strokeWidth="2.5"/>
+                      {/* Letra e */}
+                      <text x="22" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">e</text>
+                      {/* Letra l */}
+                      <text x="32" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">l</text>
+                      {/* Letra o */}
+                      <text x="38" y="17" fill="#666666" fontSize="16" fontWeight="600" fontFamily="Arial, sans-serif">o</text>
+                      {/* Círculo direito com traço horizontal */}
+                      <circle cx="50" cy="12" r="6" fill="none" stroke="#666666" strokeWidth="2.5"/>
+                      <line x1="44" y1="12" x2="56" y2="12" stroke="#666666" strokeWidth="2.5"/>
                     </svg>
+                  </div>
+                  {/* American Express - Fiel ao modelo da imagem */}
+                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
+                    <span className="text-[8px] font-bold text-gray-500 tracking-wide leading-tight">AMERICAN</span>
+                    <span className="text-[8px] font-bold text-gray-500 tracking-wide leading-tight">EXPRESS</span>
                   </div>
                   {/* Diners Club - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 40 24" className="w-9 h-5">
-                      {/* Logo oval com círculos internos */}
-                      <rect x="5" y="2" width="30" height="14" rx="7" fill="#5C5C5C"/>
-                      <circle cx="16" cy="9" r="5" fill="white"/>
-                      <circle cx="24" cy="9" r="5" fill="none" stroke="white" strokeWidth="1"/>
-                      <line x1="20" y1="4" x2="20" y2="14" stroke="white" strokeWidth="1"/>
-                    </svg>
-                    <span className="text-[7px] text-gray-500 font-serif italic mt-0.5">Diners Club</span>
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <span className="text-[10px] text-gray-500 italic" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>Diners Club</span>
                   </div>
                   {/* Pix - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white gap-1 px-1.5">
-                    <svg viewBox="0 0 32 32" className="w-6 h-6">
-                      {/* Símbolo Pix - losangos conectados */}
-                      <path d="M16 6.5l-4.5 4.5 4.5 4.5 4.5-4.5L16 6.5z" fill="#5C5C5C"/>
-                      <path d="M6.5 16l4.5-4.5 4.5 4.5-4.5 4.5L6.5 16z" fill="#5C5C5C"/>
-                      <path d="M25.5 16l-4.5-4.5-4.5 4.5 4.5 4.5 4.5-4.5z" fill="#5C5C5C"/>
-                      <path d="M16 25.5l4.5-4.5-4.5-4.5-4.5 4.5 4.5 4.5z" fill="#5C5C5C"/>
-                      <path d="M11 11l5 5-5 5" stroke="#5C5C5C" strokeWidth="1" fill="none"/>
-                      <path d="M21 11l-5 5 5 5" stroke="#5C5C5C" strokeWidth="1" fill="none"/>
+                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
+                    <svg viewBox="0 0 50 20" className="w-12 h-5">
+                      {/* Símbolo Pix minimalista - traços finos */}
+                      <path d="M8 5 L12 10 L8 15" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M16 5 L12 10 L16 15" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      {/* Texto pix */}
+                      <text x="24" y="14" fill="#9CA3AF" fontSize="11" fontWeight="300" fontFamily="Arial, sans-serif">pix</text>
                     </svg>
-                    <span className="text-sm font-medium text-gray-400">pix</span>
                   </div>
                   {/* Boleto Bancário */}
                   <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
