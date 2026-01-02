@@ -233,7 +233,7 @@ const Products = () => {
             <p className="text-muted-foreground">Carregando produtos...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-3">
             {filteredProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
                 <div className="aspect-square bg-muted">
