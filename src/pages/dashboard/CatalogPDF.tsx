@@ -1091,7 +1091,7 @@ const CatalogPDF = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* CSS custom properties for radio buttons - merchant color binding */}
+                {/* CSS custom properties for radio buttons and product list hover - merchant color binding */}
                 <style>{`
                   /* Radio buttons - white background with primary border */
                   .catalog-merchant-radio {
@@ -1122,6 +1122,16 @@ const CatalogPDF = () => {
                   .catalog-merchant-radio:focus-visible {
                     box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
                     outline: none !important;
+                  }
+                  
+                  /* Single product select item hover - merchant color binding */
+                  .single-product-select-item[data-highlighted] {
+                    background-color: ${buttonBgColor} !important;
+                    color: #FFFFFF !important;
+                  }
+                  .single-product-select-item:hover {
+                    background-color: ${buttonBgColor} !important;
+                    color: #FFFFFF !important;
                   }
                 `}</style>
 
@@ -1219,12 +1229,29 @@ const CatalogPDF = () => {
                         className="w-full"
                         style={{ borderColor: primaryColor }}
                       >
-                        <SelectValue placeholder="Escolha um produto" />
+                        <SelectValue placeholder="Escolha um produto">
+                          {selectedProduct && products.find(p => p.id === selectedProduct)?.name && (
+                            <span className="truncate block max-w-[200px]" title={products.find(p => p.id === selectedProduct)?.name}>
+                              {products.find(p => p.id === selectedProduct)!.name.length > 35
+                                ? products.find(p => p.id === selectedProduct)!.name.slice(0, 35) + "..."
+                                : products.find(p => p.id === selectedProduct)!.name}
+                            </span>
+                          )}
+                        </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-w-[300px]">
                         {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
+                          <SelectItem 
+                            key={product.id} 
+                            value={product.id}
+                            className="single-product-select-item cursor-pointer transition-colors"
+                            title={product.name}
+                          >
+                            <span className="truncate block max-w-[250px]">
+                              {product.name.length > 40 
+                                ? product.name.slice(0, 40) + "..." 
+                                : product.name}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
