@@ -311,6 +311,14 @@ const PaymentMethodsContent = () => {
 
   return (
     <DashboardLayout>
+      {/* CSS for gateway credential buttons hover with merchant primary color */}
+      <style>{`
+        .gateway-credentials-btn:hover {
+          background-color: ${buttonBgColor} !important;
+          color: ${buttonTextColor} !important;
+          border-color: ${buttonBgColor} !important;
+        }
+      `}</style>
       <div className="space-y-6 max-w-4xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -359,7 +367,7 @@ const PaymentMethodsContent = () => {
                   variant="outline"
                   size="sm"
                   onClick={openMercadoPagoConfig}
-                  className="w-full"
+                  className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
                   <Settings2 className="h-4 w-4 mr-2" />
@@ -382,7 +390,7 @@ const PaymentMethodsContent = () => {
                   variant="outline"
                   size="sm"
                   onClick={openPagbankConfig}
-                  className="w-full"
+                  className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}
                 >
                   <Settings2 className="h-4 w-4 mr-2" />
