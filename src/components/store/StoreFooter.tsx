@@ -1,6 +1,7 @@
 import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import paymentMethodsBanner from "@/assets/payment-methods-banner.png";
 
 interface StoreFooterProps {
   storeData: {
@@ -243,56 +244,12 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               {/* Formas de Pagamento - Alinhado à esquerda */}
-              <div className="space-y-2">
-                <p className="text-sm font-light text-gray-500">Formas de pagamento</p>
-                <div className="flex flex-wrap gap-2">
-                  {/* Mastercard */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <svg viewBox="0 0 60 40" className="w-8 h-6">
-                      <circle cx="22" cy="20" r="12" fill="#808080"/>
-                      <circle cx="38" cy="20" r="12" fill="#A0A0A0"/>
-                    </svg>
-                    <span className="text-[6px] text-gray-500 -mt-1">mastercard</span>
-                  </div>
-                  {/* Visa */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-sm font-bold text-gray-500 italic tracking-tight">VISA</span>
-                  </div>
-                  {/* Elo - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-base font-medium text-gray-500" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>eLo</span>
-                  </div>
-                  {/* American Express - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex flex-col items-center justify-center bg-white">
-                    <span className="text-[8px] font-bold text-gray-500 tracking-wide leading-tight">AMERICAN</span>
-                    <span className="text-[8px] font-bold text-gray-500 tracking-wide leading-tight">EXPRESS</span>
-                  </div>
-                  {/* Diners Club - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-[10px] text-gray-500 italic" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>Diners Club</span>
-                  </div>
-                  {/* Pix - Fiel ao modelo da imagem */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white">
-                    <span className="text-base font-normal text-gray-500" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '1px' }}>pix</span>
-                  </div>
-                  {/* Boleto Bancário */}
-                  <div className="w-16 h-10 border border-gray-300 rounded flex items-center justify-center bg-white gap-1">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5">
-                      <rect x="2" y="4" width="1.5" height="16" fill="#666666"/>
-                      <rect x="5" y="4" width="1" height="16" fill="#666666"/>
-                      <rect x="7.5" y="4" width="2" height="16" fill="#666666"/>
-                      <rect x="11" y="4" width="1" height="16" fill="#666666"/>
-                      <rect x="13.5" y="4" width="1.5" height="16" fill="#666666"/>
-                      <rect x="16.5" y="4" width="1" height="16" fill="#666666"/>
-                      <rect x="19" y="4" width="1" height="16" fill="#666666"/>
-                      <rect x="21" y="4" width="1.5" height="16" fill="#666666"/>
-                    </svg>
-                    <div className="flex flex-col text-[6px] text-gray-500 leading-tight">
-                      <span>Boleto</span>
-                      <span>Bancário</span>
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <img 
+                  src={paymentMethodsBanner} 
+                  alt="Formas de pagamento: Mastercard, Visa, Elo, American Express, Diners Club, Pix, Boleto Bancário" 
+                  className="h-auto max-h-16 w-auto"
+                />
               </div>
 
               {/* Selos de Segurança - Alinhados à direita */}
