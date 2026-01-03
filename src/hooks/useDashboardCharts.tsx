@@ -31,17 +31,17 @@ const extractStateFromAddress = (address: string | null): string => {
   // Brazilian states abbreviations
   const states = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
   
-  // Try to find state at the end of address (common format: "..., City - UF" or "..., UF")
   const upperAddress = address.toUpperCase();
   
   for (const state of states) {
-    // Check for patterns like "- SP", ", SP", " SP" at the end
     if (upperAddress.endsWith(` ${state}`) || 
         upperAddress.endsWith(`-${state}`) || 
         upperAddress.endsWith(`, ${state}`) ||
         upperAddress.includes(` ${state},`) ||
         upperAddress.includes(`-${state},`) ||
-        upperAddress.includes(` ${state} `)) {
+        upperAddress.includes(` ${state} `) ||
+        upperAddress.includes(`, ${state} `) ||
+        upperAddress.includes(` ${state}-`)) {
       return state;
     }
   }
@@ -85,23 +85,27 @@ export const useSalesByState = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      // Get all orders from the last 30 days (all statuses to have data)
       const { data: orders, error } = await supabase
         .from("orders")
         .select("customer_address")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (error) throw error;
 
+      if (!orders || orders.length === 0) {
+        return [{ state: "Sem dados", count: 0, percentage: 100 }];
+      }
+
       // Group by state
       const stateCount: Record<string, number> = {};
-      orders?.forEach(order => {
+      orders.forEach(order => {
         const state = extractStateFromAddress(order.customer_address);
         stateCount[state] = (stateCount[state] || 0) + 1;
       });
 
-      const total = orders?.length || 1;
+      const total = orders.length;
       
       // Sort by count descending and get top 5 + Others
       const sortedStates = Object.entries(stateCount)
@@ -124,7 +128,7 @@ export const useSalesByState = () => {
         });
       }
 
-      return result.length > 0 ? result : [{ state: "Sem dados", count: 0, percentage: 100 }];
+      return result;
     },
     refetchInterval: 30000,
   });
@@ -140,54 +144,60 @@ export const useSalesByGender = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Get orders from last 30 days with customer_id
+      // Get ALL orders from last 30 days (any status) to have data for demographics
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
-        .select("customer_id")
+        .select("customer_id, customer_email")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
-        .gte("created_at", thirtyDaysAgo.toISOString())
-        .not("customer_id", "is", null);
+        .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (ordersError) throw ordersError;
 
-      // Get unique customer IDs
-      const customerIds = [...new Set(orders?.map(o => o.customer_id).filter(Boolean))];
-
-      if (customerIds.length === 0) {
+      if (!orders || orders.length === 0) {
         return [{ gender: "Sem dados", count: 0, percentage: 100 }];
       }
 
-      // Get customer profiles with gender
-      const { data: profiles, error: profilesError } = await supabase
-        .from("customer_profiles")
-        .select("id, gender")
-        .in("id", customerIds);
+      // Get customer IDs that are not null
+      const customerIds = [...new Set(orders.map(o => o.customer_id).filter(Boolean))];
 
-      if (profilesError) throw profilesError;
+      // If no customer_ids linked, try to get profiles by email
+      let genderCount: Record<string, number> = {};
+      
+      if (customerIds.length > 0) {
+        // Get customer profiles with gender
+        const { data: profiles } = await supabase
+          .from("customer_profiles")
+          .select("id, gender")
+          .in("id", customerIds);
 
-      // Create a map of customer_id to gender
-      const customerGenderMap: Record<string, string> = {};
-      profiles?.forEach(p => {
-        customerGenderMap[p.id] = p.gender || "Não informado";
-      });
+        if (profiles && profiles.length > 0) {
+          const customerGenderMap: Record<string, string> = {};
+          profiles.forEach(p => {
+            const normalizedGender = 
+              p.gender === "F" || p.gender === "Feminino" || p.gender === "female" ? "Feminino" :
+              p.gender === "M" || p.gender === "Masculino" || p.gender === "male" ? "Masculino" :
+              "Não informado";
+            customerGenderMap[p.id] = normalizedGender;
+          });
 
-      // Count genders from orders
-      const genderCount: Record<string, number> = {};
-      orders?.forEach(order => {
-        if (order.customer_id) {
-          const gender = customerGenderMap[order.customer_id] || "Não informado";
-          const normalizedGender = gender === "F" || gender === "Feminino" || gender === "female" ? "Feminino" :
-                                   gender === "M" || gender === "Masculino" || gender === "male" ? "Masculino" :
-                                   "Não informado";
-          genderCount[normalizedGender] = (genderCount[normalizedGender] || 0) + 1;
+          orders.forEach(order => {
+            if (order.customer_id && customerGenderMap[order.customer_id]) {
+              const gender = customerGenderMap[order.customer_id];
+              genderCount[gender] = (genderCount[gender] || 0) + 1;
+            }
+          });
         }
-      });
+      }
 
-      const total = orders?.length || 1;
+      // If no gender data from customer_id, show "Não informado" for all orders
+      if (Object.keys(genderCount).length === 0) {
+        genderCount["Não informado"] = orders.length;
+      }
+
+      const total = Object.values(genderCount).reduce((sum, count) => sum + count, 0);
 
       const result: SalesByGender[] = Object.entries(genderCount)
-        .filter(([gender]) => gender !== "Não informado" || genderCount["Não informado"] > 0)
+        .sort((a, b) => b[1] - a[1])
         .map(([gender, count]) => ({
           gender,
           count,
@@ -210,49 +220,53 @@ export const useSalesByAgeRange = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Get orders from last 30 days with customer_id
+      // Get ALL orders from last 30 days (any status) to have data for demographics
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("customer_id")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
-        .gte("created_at", thirtyDaysAgo.toISOString())
-        .not("customer_id", "is", null);
+        .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (ordersError) throw ordersError;
 
-      // Get unique customer IDs
-      const customerIds = [...new Set(orders?.map(o => o.customer_id).filter(Boolean))];
-
-      if (customerIds.length === 0) {
+      if (!orders || orders.length === 0) {
         return [{ range: "Sem dados", count: 0, percentage: 100 }];
       }
 
-      // Get customer profiles with birth_date
-      const { data: profiles, error: profilesError } = await supabase
-        .from("customer_profiles")
-        .select("id, birth_date")
-        .in("id", customerIds);
+      // Get unique customer IDs that are not null
+      const customerIds = [...new Set(orders.map(o => o.customer_id).filter(Boolean))];
 
-      if (profilesError) throw profilesError;
+      let ageRangeCount: Record<string, number> = {};
 
-      // Create a map of customer_id to age range
-      const customerAgeMap: Record<string, string> = {};
-      profiles?.forEach(p => {
-        const age = calculateAge(p.birth_date);
-        customerAgeMap[p.id] = getAgeRange(age);
-      });
+      if (customerIds.length > 0) {
+        // Get customer profiles with birth_date
+        const { data: profiles } = await supabase
+          .from("customer_profiles")
+          .select("id, birth_date")
+          .in("id", customerIds);
 
-      // Count age ranges from orders
-      const ageRangeCount: Record<string, number> = {};
-      orders?.forEach(order => {
-        if (order.customer_id) {
-          const ageRange = customerAgeMap[order.customer_id] || "Não informado";
-          ageRangeCount[ageRange] = (ageRangeCount[ageRange] || 0) + 1;
+        if (profiles && profiles.length > 0) {
+          const customerAgeMap: Record<string, string> = {};
+          profiles.forEach(p => {
+            const age = calculateAge(p.birth_date);
+            customerAgeMap[p.id] = getAgeRange(age);
+          });
+
+          orders.forEach(order => {
+            if (order.customer_id && customerAgeMap[order.customer_id]) {
+              const ageRange = customerAgeMap[order.customer_id];
+              ageRangeCount[ageRange] = (ageRangeCount[ageRange] || 0) + 1;
+            }
+          });
         }
-      });
+      }
 
-      const total = orders?.length || 1;
+      // If no age data from customer_id, show "Não informado" for all orders
+      if (Object.keys(ageRangeCount).length === 0) {
+        ageRangeCount["Não informado"] = orders.length;
+      }
+
+      const total = Object.values(ageRangeCount).reduce((sum, count) => sum + count, 0);
 
       // Order the ranges properly
       const rangeOrder = ["Até 15", "16-18", "19-25", "26-30", "31-35", "36-45", "46-60", "60+", "Não informado"];
@@ -281,6 +295,7 @@ export const useRevenueStats = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      // For revenue, only count paid orders
       const { data: orders, error } = await supabase
         .from("orders")
         .select("total_amount")
