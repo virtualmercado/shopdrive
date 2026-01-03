@@ -1,13 +1,13 @@
 import { Card } from "@/components/ui/card";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Package, ShoppingCart, DollarSign, TrendingUp, MapPin, Users, Calendar, Wallet } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, TrendingUp, MapPin, Users, Calendar } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useSalesByState, useSalesByGender, useSalesByAgeRange, useRevenueStats } from "@/hooks/useDashboardCharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-const CHART_COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00C49F", "#FFBB28", "#FF8042", "#0088FE", "#00C49F"];
+const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478"];
 
 const Dashboard = () => {
   const { primaryColor } = useTheme();
@@ -58,13 +58,14 @@ const Dashboard = () => {
     }
   ];
 
+  // Custom label renderer for pie charts - format: "percentage% name"
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.2;
+    const radius = outerRadius * 1.25;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    if (percent < 0.05) return null;
+    const percentValue = Math.round(percent * 100);
 
     return (
       <text
@@ -75,15 +76,23 @@ const Dashboard = () => {
         dominantBaseline="central"
         className="text-xs"
       >
-        {`${name} ${(percent * 100).toFixed(0)}%`}
+        {`${percentValue}% `}
+        <tspan fill="#999">{name}</tspan>
       </text>
     );
+  };
+
+  // Gender chart colors: Blue for Masculino, Green for Feminino
+  const getGenderColor = (gender: string) => {
+    if (gender === "Feminino") return "#5B9BD5";
+    if (gender === "Masculino") return "#70AD47";
+    return "#A5A5A5";
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Stats Grid */}
+        {/* Stats Grid - Unchanged */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statsCards.map((stat, index) => (
             <Card key={index} className="p-6">
@@ -109,17 +118,9 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Chart 1 - Sales by State */}
           <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div 
-                className="flex items-center justify-center w-8 h-8 rounded"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <MapPin className="h-4 w-4" style={{ color: primaryColor }} />
-              </div>
-              <h3 className="text-lg font-semibold" style={{ color: primaryColor }}>
-                Vendas por Estado / últimos 30 dias
-              </h3>
-            </div>
+            <h3 className="text-base font-medium text-foreground mb-4">
+              Vendas por Estado / últimos 30 dias
+            </h3>
             {stateLoading ? (
               <div className="h-[280px] flex items-center justify-center">
                 <Skeleton className="h-48 w-48 rounded-full" />
@@ -134,8 +135,8 @@ const Dashboard = () => {
                       nameKey="state"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
-                      labelLine={true}
+                      outerRadius={90}
+                      labelLine={false}
                       label={renderCustomLabel}
                     >
                       {salesByState?.map((_, index) => (
@@ -153,17 +154,9 @@ const Dashboard = () => {
 
           {/* Chart 2 - Sales by Gender */}
           <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div 
-                className="flex items-center justify-center w-8 h-8 rounded"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <Users className="h-4 w-4" style={{ color: primaryColor }} />
-              </div>
-              <h3 className="text-lg font-semibold" style={{ color: primaryColor }}>
-                Vendas por gênero / últimos 30 dias
-              </h3>
-            </div>
+            <h3 className="text-base font-medium text-foreground mb-4">
+              Vendas por gênero / últimos 30 dias
+            </h3>
             {genderLoading ? (
               <div className="h-[280px] flex items-center justify-center">
                 <Skeleton className="h-48 w-48 rounded-full" />
@@ -178,15 +171,12 @@ const Dashboard = () => {
                       nameKey="gender"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
-                      labelLine={true}
+                      outerRadius={90}
+                      labelLine={false}
                       label={renderCustomLabel}
                     >
-                      {salesByGender?.map((_, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={index === 0 ? "#FF69B4" : index === 1 ? "#4169E1" : "#808080"} 
-                        />
+                      {salesByGender?.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getGenderColor(entry.gender)} />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -200,17 +190,9 @@ const Dashboard = () => {
 
           {/* Chart 3 - Sales by Age Range */}
           <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div 
-                className="flex items-center justify-center w-8 h-8 rounded"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <Calendar className="h-4 w-4" style={{ color: primaryColor }} />
-              </div>
-              <h3 className="text-lg font-semibold" style={{ color: primaryColor }}>
-                Vendas por faixa etária / últimos 30 dias
-              </h3>
-            </div>
+            <h3 className="text-base font-medium text-foreground mb-4">
+              Vendas por faixa etária / últimos 30 dias
+            </h3>
             {ageLoading ? (
               <div className="h-[280px] flex items-center justify-center">
                 <Skeleton className="h-48 w-48 rounded-full" />
@@ -225,8 +207,8 @@ const Dashboard = () => {
                       nameKey="range"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
-                      labelLine={true}
+                      outerRadius={90}
+                      labelLine={false}
                       label={renderCustomLabel}
                     >
                       {salesByAgeRange?.map((_, index) => (
@@ -242,48 +224,38 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Card 4 - Revenue Stats (2 stacked cards) */}
+          {/* Card 4 - Revenue Stats (2 stacked cards) - Clean style matching reference */}
           <div className="flex flex-col gap-6">
-            <Card className="p-6 flex-1">
-              <div className="flex items-center gap-2 mb-4">
-                <div 
-                  className="flex items-center justify-center w-8 h-8 rounded"
-                  style={{ backgroundColor: getLighterShade(primaryColor) }}
-                >
-                  <Wallet className="h-4 w-4" style={{ color: primaryColor }} />
-                </div>
-                <h3 className="text-lg font-semibold" style={{ color: primaryColor }}>
-                  Faturamento / últimos 30 dias
-                </h3>
-              </div>
-              <div className="flex items-center justify-center h-[80px]">
+            <Card className="p-6">
+              <h3 className="text-base font-medium text-muted-foreground text-center mb-4">
+                Faturamento / últimos 30 dias
+              </h3>
+              <div className="flex items-center justify-center">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
-                  <p className="text-3xl font-bold text-foreground">
+                  <p 
+                    className="text-3xl font-medium"
+                    style={{ color: primaryColor }}
+                  >
                     {formatCurrency(revenueStats?.totalRevenue || 0)}
                   </p>
                 )}
               </div>
             </Card>
 
-            <Card className="p-6 flex-1">
-              <div className="flex items-center gap-2 mb-4">
-                <div 
-                  className="flex items-center justify-center w-8 h-8 rounded"
-                  style={{ backgroundColor: getLighterShade(primaryColor) }}
-                >
-                  <TrendingUp className="h-4 w-4" style={{ color: primaryColor }} />
-                </div>
-                <h3 className="text-lg font-semibold" style={{ color: primaryColor }}>
-                  Faturamento médio dia / últimos 30 dias
-                </h3>
-              </div>
-              <div className="flex items-center justify-center h-[80px]">
+            <Card className="p-6">
+              <h3 className="text-base font-medium text-muted-foreground text-center mb-4">
+                Faturamento médio dia / últimos 30 dias
+              </h3>
+              <div className="flex items-center justify-center">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
-                  <p className="text-3xl font-bold text-foreground">
+                  <p 
+                    className="text-3xl font-medium"
+                    style={{ color: primaryColor }}
+                  >
                     {formatCurrency(revenueStats?.averageDailyRevenue || 0)}
                   </p>
                 )}
