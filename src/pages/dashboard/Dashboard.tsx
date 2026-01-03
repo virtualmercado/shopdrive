@@ -224,13 +224,13 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Card 4 - Revenue Stats (2 stacked cards) - Clean style matching reference */}
-          <div className="flex flex-col gap-6">
-            <Card className="p-6">
-              <h3 className="text-base font-medium text-muted-foreground text-center mb-4">
+          {/* Card 4 - Revenue Stats (2 stacked cards) - Aligned with chart height */}
+          <div className="flex flex-col gap-8">
+            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
+              <h3 className="text-base font-medium text-muted-foreground text-center mb-6">
                 Faturamento / últimos 30 dias
               </h3>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center flex-1">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
@@ -244,11 +244,11 @@ const Dashboard = () => {
               </div>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-base font-medium text-muted-foreground text-center mb-4">
+            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
+              <h3 className="text-base font-medium text-muted-foreground text-center mb-6">
                 Faturamento médio dia / últimos 30 dias
               </h3>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center flex-1">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
