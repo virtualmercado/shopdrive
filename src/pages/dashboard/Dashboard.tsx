@@ -1,13 +1,13 @@
 import { Card } from "@/components/ui/card";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Package, ShoppingCart, DollarSign, TrendingUp, MapPin, Users, Calendar } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, TrendingUp } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { useSalesByState, useSalesByGender, useSalesByAgeRange, useRevenueStats } from "@/hooks/useDashboardCharts";
+import { useSalesByState, useSalesByGender, useSalesByAgeRange, useRevenueStats, useTopProducts, useTopCustomers } from "@/hooks/useDashboardCharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
-const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478"];
+const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478", "#4472C4"];
 
 const Dashboard = () => {
   const { primaryColor } = useTheme();
@@ -16,6 +16,8 @@ const Dashboard = () => {
   const { data: salesByGender, isLoading: genderLoading } = useSalesByGender();
   const { data: salesByAgeRange, isLoading: ageLoading } = useSalesByAgeRange();
   const { data: revenueStats, isLoading: revenueLoading } = useRevenueStats();
+  const { data: topProducts, isLoading: productsLoading } = useTopProducts();
+  const { data: topCustomers, isLoading: customersLoading } = useTopCustomers();
   
   const getLighterShade = (color: string) => {
     const hex = color.replace('#', '');
@@ -224,7 +226,79 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Card 4 - Revenue Stats (2 stacked cards) - Aligned with chart height */}
+          {/* Chart 4 - Top 10 Products */}
+          <Card className="p-6">
+            <h3 className="text-base font-medium text-foreground mb-4">
+              Top 10 produtos mais vendidos / últimos 30 dias
+            </h3>
+            {productsLoading ? (
+              <div className="h-[280px] flex items-center justify-center">
+                <Skeleton className="h-48 w-48 rounded-full" />
+              </div>
+            ) : (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={topProducts}
+                      dataKey="quantity"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      labelLine={false}
+                      label={renderCustomLabel}
+                    >
+                      {topProducts?.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [`${value} unidades`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+
+          {/* Chart 5 - Top 10 Customers */}
+          <Card className="p-6">
+            <h3 className="text-base font-medium text-foreground mb-4">
+              Top 10 clientes que mais compraram / últimos 6 meses
+            </h3>
+            {customersLoading ? (
+              <div className="h-[280px] flex items-center justify-center">
+                <Skeleton className="h-48 w-48 rounded-full" />
+              </div>
+            ) : (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={topCustomers}
+                      dataKey="totalValue"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      labelLine={false}
+                      label={renderCustomLabel}
+                    >
+                      {topCustomers?.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+
+          {/* Card 6 - Revenue Stats (2 stacked cards) - Last position */}
           <div className="flex flex-col gap-8">
             <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
               <h3 className="text-base font-medium text-muted-foreground text-center mb-6">
