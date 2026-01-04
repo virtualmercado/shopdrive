@@ -101,6 +101,30 @@ export const useAuth = () => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/login`;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao enviar e-mail",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+
+    toast({
+      title: "E-mail enviado!",
+      description: "Verifique sua caixa de entrada para redefinir sua senha.",
+    });
+
+    return { error: null };
+  };
+
   return {
     user,
     session,
@@ -108,5 +132,6 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    resetPassword,
   };
 };
