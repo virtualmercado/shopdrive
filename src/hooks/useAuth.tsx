@@ -102,10 +102,10 @@ export const useAuth = () => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/login`;
-    
+    const redirectUrl = `${window.location.origin}/login?mode=recovery`;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl
+      redirectTo: redirectUrl,
     });
 
     if (error) {
@@ -125,6 +125,28 @@ export const useAuth = () => {
     return { error: null };
   };
 
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao redefinir senha",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+
+    toast({
+      title: "Senha atualizada!",
+      description: "Sua nova senha foi salva com sucesso.",
+    });
+
+    return { error: null };
+  };
+
   return {
     user,
     session,
@@ -133,5 +155,6 @@ export const useAuth = () => {
     signIn,
     signOut,
     resetPassword,
+    updatePassword,
   };
 };
