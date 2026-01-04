@@ -316,3 +316,129 @@ export const useRevenueStats = () => {
     refetchInterval: 30000,
   });
 };
+
+export interface TopProduct {
+  name: string;
+  quantity: number;
+  percentage: number;
+}
+
+export interface TopCustomer {
+  name: string;
+  totalValue: number;
+  percentage: number;
+}
+
+export const useTopProducts = () => {
+  return useQuery({
+    queryKey: ["top-products-30-days"],
+    queryFn: async (): Promise<TopProduct[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Get paid orders from last 30 days
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("store_owner_id", user.id)
+        .in("status", ["paid", "delivered", "shipped", "confirmed"])
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      if (ordersError) throw ordersError;
+
+      if (!orders || orders.length === 0) {
+        return [{ name: "Sem dados", quantity: 0, percentage: 100 }];
+      }
+
+      const orderIds = orders.map(o => o.id);
+
+      // Get order items for these orders
+      const { data: orderItems, error: itemsError } = await supabase
+        .from("order_items")
+        .select("product_name, quantity")
+        .in("order_id", orderIds);
+
+      if (itemsError) throw itemsError;
+
+      if (!orderItems || orderItems.length === 0) {
+        return [{ name: "Sem dados", quantity: 0, percentage: 100 }];
+      }
+
+      // Group by product name and sum quantities
+      const productCount: Record<string, number> = {};
+      orderItems.forEach(item => {
+        const name = item.product_name || "Produto sem nome";
+        productCount[name] = (productCount[name] || 0) + item.quantity;
+      });
+
+      const totalQuantity = Object.values(productCount).reduce((sum, qty) => sum + qty, 0);
+
+      // Sort by quantity descending and get top 10
+      const sortedProducts = Object.entries(productCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const result: TopProduct[] = sortedProducts.map(([name, quantity]) => ({
+        name,
+        quantity,
+        percentage: Math.round((quantity / totalQuantity) * 100)
+      }));
+
+      return result.length > 0 ? result : [{ name: "Sem dados", quantity: 0, percentage: 100 }];
+    },
+    refetchInterval: 30000,
+  });
+};
+
+export const useTopCustomers = () => {
+  return useQuery({
+    queryKey: ["top-customers-6-months"],
+    queryFn: async (): Promise<TopCustomer[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      // Get paid orders from last 6 months
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
+        .select("customer_name, total_amount")
+        .eq("store_owner_id", user.id)
+        .in("status", ["paid", "delivered", "shipped", "confirmed"])
+        .gte("created_at", sixMonthsAgo.toISOString());
+
+      if (ordersError) throw ordersError;
+
+      if (!orders || orders.length === 0) {
+        return [{ name: "Sem dados", totalValue: 0, percentage: 100 }];
+      }
+
+      // Group by customer name and sum total values
+      const customerTotals: Record<string, number> = {};
+      orders.forEach(order => {
+        const name = order.customer_name || "Cliente não identificado";
+        customerTotals[name] = (customerTotals[name] || 0) + Number(order.total_amount);
+      });
+
+      const grandTotal = Object.values(customerTotals).reduce((sum, val) => sum + val, 0);
+
+      // Sort by total value descending and get top 10
+      const sortedCustomers = Object.entries(customerTotals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const result: TopCustomer[] = sortedCustomers.map(([name, totalValue]) => ({
+        name,
+        totalValue,
+        percentage: Math.round((totalValue / grandTotal) * 100)
+      }));
+
+      return result.length > 0 ? result : [{ name: "Sem dados", totalValue: 0, percentage: 100 }];
+    },
+    refetchInterval: 30000,
+  });
+};
