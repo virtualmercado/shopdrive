@@ -31,6 +31,20 @@ import CustomerAuth from "./pages/CustomerAuth";
 import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
 import { MerchantRoute } from "./components/MerchantRoute";
+import { AdminRoute } from "./components/AdminRoute";
+
+// Admin Panel Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCommandCenter from "./pages/admin/AdminCommandCenter";
+import AdminAI from "./pages/admin/AdminAI";
+import AdminSubscribers from "./pages/admin/AdminSubscribers";
+import AdminInvoices from "./pages/admin/AdminInvoices";
+import AdminAutomations from "./pages/admin/AdminAutomations";
+import AdminIntegrations from "./pages/admin/AdminIntegrations";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminSupport from "./pages/admin/AdminSupport";
+import AdminSecurity from "./pages/admin/AdminSecurity";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +59,21 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            
+            {/* Admin Master Panel Routes */}
+            <Route path="/gestor/login" element={<AdminLogin />} />
+            <Route path="/gestor" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/gestor/comando-ia" element={<AdminRoute><AdminCommandCenter /></AdminRoute>} />
+            <Route path="/gestor/inteligencia-artificial" element={<AdminRoute><AdminAI /></AdminRoute>} />
+            <Route path="/gestor/assinantes" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
+            <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
+            <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
+            <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
+            <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
+            <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
+            <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
+            
+            {/* Merchant Routes */}
             <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
             <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
             <Route path="/lojista/coupons" element={<MerchantRoute><Coupons /></MerchantRoute>} />
@@ -59,6 +88,7 @@ function App() {
             <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
             <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
             <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
+            
             {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
             <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
