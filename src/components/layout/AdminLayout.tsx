@@ -66,13 +66,15 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
-            <Link to="/gestor" className="flex items-center">
-              <img 
-                src={logoVmMaster} 
-                alt="Virtual Mercado" 
-                className={sidebarOpen ? "h-10 w-auto" : "h-8 w-auto"}
-              />
-            </Link>
+            {sidebarOpen && (
+              <Link to="/gestor" className="flex items-center">
+                <img 
+                  src={logoVmMaster} 
+                  alt="Virtual Mercado" 
+                  className="h-7 w-auto"
+                />
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
