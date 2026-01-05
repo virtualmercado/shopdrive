@@ -11,6 +11,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const adminAuthSchema = z.object({
+  email: z
+    .string()
+    .email("E-mail inválido")
+    .max(255, "E-mail muito longo")
+    .toLowerCase()
+    .trim(),
+  password: z
+    .string()
+    .min(6, "A senha deve ter pelo menos 6 caracteres.")
+    .max(100, "Senha muito longa"),
+});
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -20,6 +34,7 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
+
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
   const { hasAnyRole, loading: roleLoading } = useRoleCheck();
@@ -27,8 +42,8 @@ const AdminLogin = () => {
   // Redirect if already logged in as admin
   useEffect(() => {
     if (!authLoading && !roleLoading && user) {
-      if (hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico'])) {
-        navigate('/gestor', { replace: true });
+      if (hasAnyRole(["admin", "financeiro", "suporte", "tecnico"])) {
+        navigate("/gestor", { replace: true });
       }
     }
   }, [user, authLoading, roleLoading, hasAnyRole, navigate]);
@@ -38,11 +53,25 @@ const AdminLogin = () => {
     setIsLoading(true);
     setError("");
 
+    const parsed = adminAuthSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.errors[0]?.message ?? "Dados inválidos.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { error: signInError } = await signIn(email, password);
-      
+      const { error: signInError } = await signIn(parsed.data.email, parsed.data.password);
+
       if (signInError) {
-        setError("Credenciais inválidas. Verifique seu e-mail e senha.");
+        const msg = (signInError.message || "").toLowerCase();
+        if (msg.includes("confirm") || msg.includes("not confirmed")) {
+          setError(
+            "Conta criada, mas o e-mail ainda não foi confirmado. Verifique sua caixa de entrada ou recupere a senha."
+          );
+        } else {
+          setError("Credenciais inválidas. Verifique seu e-mail e senha.");
+        }
         return;
       }
 
@@ -59,93 +88,92 @@ const AdminLogin = () => {
     setIsLoading(true);
     setError("");
 
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+    const parsed = adminAuthSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.errors[0]?.message ?? "Dados inválidos.");
       setIsLoading(false);
       return;
     }
 
+    const normalizedEmail = parsed.data.email;
+    const normalizedPassword = parsed.data.password;
+
     try {
-      // First, try to sign in with existing credentials (for existing users)
+      // 1) Tenta entrar: se a conta já existir e a senha estiver correta, promove a admin.
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: normalizedEmail,
+        password: normalizedPassword,
       });
 
       if (signInData?.user) {
-        // User exists and password is correct - promote to admin
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: signInData.user.id,
-            role: 'admin'
-          });
+        const { error: roleError } = await supabase.from("user_roles").insert({
+          user_id: signInData.user.id,
+          role: "admin",
+        });
 
         if (roleError) {
-          if (roleError.code === '23505') {
-            // Already has admin role
+          if (roleError.code === "23505") {
             toast.success("Você já é administrador! Redirecionando...");
-            navigate('/gestor', { replace: true });
+            navigate("/gestor", { replace: true });
             return;
           }
-          console.error('Error adding admin role:', roleError);
           setError("Erro ao definir permissões de administrador.");
           return;
         }
 
         toast.success("Você foi promovido a administrador! Redirecionando...");
-        navigate('/gestor', { replace: true });
+        navigate("/gestor", { replace: true });
         return;
       }
 
-      // If sign in failed, try to create a new account
-      if (signInError) {
-        // Check if it's an invalid credentials error (user exists but wrong password)
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError("E-mail já cadastrado. Insira a senha correta da sua conta existente para se tornar administrador.");
-          return;
+      // 2) Se não conseguiu entrar, tenta criar conta.
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: normalizedPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/gestor/login`,
+          data: {
+            full_name: fullName.trim(),
+          },
+        },
+      });
+
+      if (signUpError) {
+        const msg = (signUpError.message || "").toLowerCase();
+        if (msg.includes("already registered")) {
+          setError(
+            "Este e-mail já está cadastrado. Use a senha correta da conta existente (ou recupere a senha) para se tornar administrador."
+          );
+        } else {
+          setError(signUpError.message);
         }
-
-        // Try to create new user
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/gestor`,
-            data: {
-              full_name: fullName
-            }
-          }
-        });
-
-        if (signUpError) {
-          if (signUpError.message.includes('already registered')) {
-            setError("Este e-mail já está cadastrado. Use a senha da sua conta existente.");
-          } else {
-            setError(signUpError.message);
-          }
-          return;
-        }
-
-        if (signUpData.user) {
-          // Add admin role to the new user
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({
-              user_id: signUpData.user.id,
-              role: 'admin'
-            });
-
-          if (roleError) {
-            console.error('Error adding admin role:', roleError);
-            setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
-            return;
-          }
-
-          toast.success("Conta de administrador criada com sucesso!");
-          navigate('/gestor', { replace: true });
-        }
+        return;
       }
+
+      if (!signUpData.user) {
+        setError(signInError?.message || "Não foi possível criar a conta. Tente novamente.");
+        return;
+      }
+
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        user_id: signUpData.user.id,
+        role: "admin",
+      });
+
+      if (roleError) {
+        setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
+        return;
+      }
+
+      // Se por algum motivo não vier sessão (ex: confirmação de e-mail ligada), orienta o próximo passo.
+      if (!signUpData.session) {
+        toast.success("Conta criada! Se necessário, confirme o e-mail e depois faça login.");
+        setActiveTab("login");
+        return;
+      }
+
+      toast.success("Conta de administrador criada com sucesso!");
+      navigate("/gestor", { replace: true });
     } catch (err) {
       setError("Erro ao processar. Tente novamente.");
     } finally {
