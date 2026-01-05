@@ -75,16 +75,6 @@ const AdminIntegrations = () => {
       icon: 'ME',
       hasCredentials: true
     },
-    {
-      id: 'fretekm',
-      name: 'Frete por KM',
-      category: 'shipping',
-      description: 'Cálculo de frete por distância',
-      status: 'inactive',
-      enabled: false,
-      icon: 'KM',
-      hasCredentials: false
-    },
     // Analytics
     {
       id: 'ga',
