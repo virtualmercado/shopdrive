@@ -5,21 +5,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, AlertCircle, Eye, EyeOff, Lock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, AlertCircle, Eye, EyeOff, Lock, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
+  const [canSignup, setCanSignup] = useState(false);
+  const [checkingAdmins, setCheckingAdmins] = useState(true);
   
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
   const { hasAnyRole, loading: roleLoading } = useRoleCheck();
+
+  // Check if any admin exists
+  useEffect(() => {
+    const checkAdminExists = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1);
+        
+        if (error) {
+          console.error('Error checking admin:', error);
+          setCanSignup(true); // Allow signup on error to not block setup
+        } else {
+          setCanSignup(!data || data.length === 0);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setCanSignup(true);
+      } finally {
+        setCheckingAdmins(false);
+      }
+    };
+
+    checkAdminExists();
+  }, []);
 
   // Redirect if already logged in as admin
   useEffect(() => {
@@ -30,7 +64,7 @@ const AdminLogin = () => {
     }
   }, [user, authLoading, roleLoading, hasAnyRole, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -43,7 +77,6 @@ const AdminLogin = () => {
         return;
       }
 
-      // The useEffect will handle the redirect after roles are loaded
       toast.success("Login realizado com sucesso!");
     } catch (err) {
       setError("Erro ao fazer login. Tente novamente.");
@@ -52,7 +85,74 @@ const AdminLogin = () => {
     }
   };
 
-  if (authLoading || roleLoading) {
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Create the user account
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/gestor`,
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          setError("Este e-mail já está registrado. Tente fazer login.");
+        } else {
+          setError(signUpError.message);
+        }
+        return;
+      }
+
+      if (signUpData.user) {
+        // Add admin role to the new user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: signUpData.user.id,
+            role: 'admin'
+          });
+
+        if (roleError) {
+          console.error('Error adding admin role:', roleError);
+          setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
+          return;
+        }
+
+        toast.success("Conta de administrador criada com sucesso! Você já pode fazer login.");
+        setActiveTab("login");
+        setPassword("");
+        setConfirmPassword("");
+        setFullName("");
+      }
+    } catch (err) {
+      setError("Erro ao criar conta. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading || roleLoading || checkingAdmins) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#6a1b9a] to-[#4a148c]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -73,67 +173,184 @@ const AdminLogin = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@virtualmercado.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="signup" disabled={!canSignup}>
+                Criar Conta
+              </TabsTrigger>
+            </TabsList>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Entrando...
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">E-mail</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="admin@virtualmercado.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Entrando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Acessar Painel Master
+                    </div>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              {canSignup ? (
+                <form onSubmit={handleSignup} className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      Você está criando a primeira conta de administrador do sistema.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Nome Completo</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">E-mail</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="admin@virtualmercado.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Mínimo 6 caracteres"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                    <Input
+                      id="signup-confirm-password"
+                      type="password"
+                      placeholder="Repita a senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Criando conta...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        Criar Conta de Administrador
+                      </div>
+                    )}
+                  </Button>
+                </form>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Acessar Painel Master
-                </div>
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    Já existe um administrador cadastrado. Novos administradores devem ser adicionados pelo painel de gestão.
+                  </AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </form>
+            </TabsContent>
+          </Tabs>
 
           <div className="mt-6 pt-4 border-t text-center">
             <p className="text-xs text-muted-foreground">
