@@ -15,7 +15,6 @@ import { toast } from "sonner";
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,12 +89,6 @@ const AdminLogin = () => {
     setIsLoading(true);
     setError("");
 
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
-      setIsLoading(false);
-      return;
-    }
-
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres.");
       setIsLoading(false);
@@ -103,50 +96,88 @@ const AdminLogin = () => {
     }
 
     try {
-      // Create the user account
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // First, try to sign in with existing credentials (for existing users)
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/gestor`,
-          data: {
-            full_name: fullName
-          }
-        }
+        password
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          setError("Este e-mail já está registrado. Tente fazer login.");
-        } else {
-          setError(signUpError.message);
-        }
-        return;
-      }
-
-      if (signUpData.user) {
-        // Add admin role to the new user
+      if (signInData?.user) {
+        // User exists and password is correct - promote to admin
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
-            user_id: signUpData.user.id,
+            user_id: signInData.user.id,
             role: 'admin'
           });
 
         if (roleError) {
+          if (roleError.code === '23505') {
+            // Already has admin role
+            toast.success("Você já é administrador! Redirecionando...");
+            navigate('/gestor', { replace: true });
+            return;
+          }
           console.error('Error adding admin role:', roleError);
-          setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
+          setError("Erro ao definir permissões de administrador.");
           return;
         }
 
-        toast.success("Conta de administrador criada com sucesso! Você já pode fazer login.");
-        setActiveTab("login");
-        setPassword("");
-        setConfirmPassword("");
-        setFullName("");
+        toast.success("Você foi promovido a administrador! Redirecionando...");
+        navigate('/gestor', { replace: true });
+        return;
+      }
+
+      // If sign in failed, try to create a new account
+      if (signInError) {
+        // Check if it's an invalid credentials error (user exists but wrong password)
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError("E-mail já cadastrado. Insira a senha correta da sua conta existente para se tornar administrador.");
+          return;
+        }
+
+        // Try to create new user
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/gestor`,
+            data: {
+              full_name: fullName
+            }
+          }
+        });
+
+        if (signUpError) {
+          if (signUpError.message.includes('already registered')) {
+            setError("Este e-mail já está cadastrado. Use a senha da sua conta existente.");
+          } else {
+            setError(signUpError.message);
+          }
+          return;
+        }
+
+        if (signUpData.user) {
+          // Add admin role to the new user
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: signUpData.user.id,
+              role: 'admin'
+            });
+
+          if (roleError) {
+            console.error('Error adding admin role:', roleError);
+            setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
+            return;
+          }
+
+          toast.success("Conta de administrador criada com sucesso!");
+          navigate('/gestor', { replace: true });
+        }
       }
     } catch (err) {
-      setError("Erro ao criar conta. Tente novamente.");
+      setError("Erro ao processar. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -258,21 +289,24 @@ const AdminLogin = () => {
                   <Alert>
                     <Shield className="h-4 w-4" />
                     <AlertDescription>
-                      Você está criando a primeira conta de administrador do sistema.
+                      Se você já tem uma conta de lojista, use o mesmo e-mail e senha para se tornar administrador.
+                      Caso contrário, crie uma nova conta.
                     </AlertDescription>
                   </Alert>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo</Label>
+                    <Label htmlFor="signup-name">Nome Completo (para nova conta)</Label>
                     <Input
                       id="signup-name"
                       type="text"
                       placeholder="Seu nome completo"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      required
                       disabled={isLoading}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Opcional se você já tem uma conta
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -280,7 +314,7 @@ const AdminLogin = () => {
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder="admin@virtualmercado.com"
+                      placeholder="seu@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -294,7 +328,7 @@ const AdminLogin = () => {
                       <Input
                         id="signup-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Sua senha"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -308,19 +342,9 @@ const AdminLogin = () => {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
-                    <Input
-                      id="signup-confirm-password"
-                      type="password"
-                      placeholder="Repita a senha"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use a senha da sua conta existente ou crie uma nova
+                    </p>
                   </div>
 
                   <Button 
@@ -331,12 +355,12 @@ const AdminLogin = () => {
                     {isLoading ? (
                       <div className="flex items-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Criando conta...
+                        Processando...
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <UserPlus className="h-4 w-4" />
-                        Criar Conta de Administrador
+                        Tornar-me Administrador
                       </div>
                     )}
                   </Button>
