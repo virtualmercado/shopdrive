@@ -20,39 +20,9 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const [canSignup, setCanSignup] = useState(false);
-  const [checkingAdmins, setCheckingAdmins] = useState(true);
-  
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
   const { hasAnyRole, loading: roleLoading } = useRoleCheck();
-
-  // Check if any admin exists
-  useEffect(() => {
-    const checkAdminExists = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('id')
-          .eq('role', 'admin')
-          .limit(1);
-        
-        if (error) {
-          console.error('Error checking admin:', error);
-          setCanSignup(true); // Allow signup on error to not block setup
-        } else {
-          setCanSignup(!data || data.length === 0);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        setCanSignup(true);
-      } finally {
-        setCheckingAdmins(false);
-      }
-    };
-
-    checkAdminExists();
-  }, []);
 
   // Redirect if already logged in as admin
   useEffect(() => {
@@ -183,7 +153,7 @@ const AdminLogin = () => {
     }
   };
 
-  if (authLoading || roleLoading || checkingAdmins) {
+  if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#6a1b9a] to-[#4a148c]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -207,7 +177,7 @@ const AdminLogin = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup" disabled={!canSignup}>
+              <TabsTrigger value="signup">
                 Criar Conta
               </TabsTrigger>
             </TabsList>
@@ -277,102 +247,93 @@ const AdminLogin = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              {canSignup ? (
-                <form onSubmit={handleSignup} className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Alert>
-                    <Shield className="h-4 w-4" />
-                    <AlertDescription>
-                      Se você já tem uma conta de lojista, use o mesmo e-mail e senha para se tornar administrador.
-                      Caso contrário, crie uma nova conta.
-                    </AlertDescription>
+              <form onSubmit={handleSignup} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
                   </Alert>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo (para nova conta)</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Opcional se você já tem uma conta
-                    </p>
-                  </div>
+                )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">E-mail</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Sua senha"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Use a senha da sua conta existente ou crie uma nova
-                    </p>
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Processando...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <UserPlus className="h-4 w-4" />
-                        Tornar-me Administrador
-                      </div>
-                    )}
-                  </Button>
-                </form>
-              ) : (
                 <Alert>
                   <Shield className="h-4 w-4" />
                   <AlertDescription>
-                    Já existe um administrador cadastrado. Novos administradores devem ser adicionados pelo painel de gestão.
+                    Se você já tem uma conta de lojista, use o mesmo e-mail e senha para se tornar administrador.
+                    Caso contrário, crie uma nova conta.
                   </AlertDescription>
                 </Alert>
-              )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Nome Completo (para nova conta)</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Opcional se você já tem uma conta
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">E-mail</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Sua senha"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use a senha da sua conta existente ou crie uma nova (mínimo 6 caracteres)
+                  </p>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Processando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Tornar-me Administrador
+                    </div>
+                  )}
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
 
