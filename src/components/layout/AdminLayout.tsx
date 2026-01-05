@@ -15,6 +15,7 @@ import {
   Cpu,
   AlertTriangle
 } from "lucide-react";
+import logoVmMaster from "@/assets/logo-vm-master.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,14 +67,15 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <Link to="/gestor" className="flex items-center gap-2">
-              <Shield className="h-6 w-6" />
+              <img 
+                src={logoVmMaster} 
+                alt="Virtual Mercado" 
+                className={sidebarOpen ? "h-10 w-auto" : "h-8 w-auto"}
+              />
               {sidebarOpen && (
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm">VirtualMercado</span>
-                  <Badge variant="secondary" className="text-[10px] bg-[#FB8C00] text-white border-0">
-                    MASTER
-                  </Badge>
-                </div>
+                <Badge variant="secondary" className="text-[10px] bg-[#FB8C00] text-white border-0 ml-1">
+                  MASTER
+                </Badge>
               )}
             </Link>
             <Button
