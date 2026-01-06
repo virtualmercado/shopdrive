@@ -1869,6 +1869,7 @@ export type Database = {
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
+      promote_to_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "financeiro" | "suporte" | "tecnico"

@@ -106,17 +106,10 @@ const AdminLogin = () => {
       });
 
       if (signInData?.user) {
-        const { error: roleError } = await supabase.from("user_roles").insert({
-          user_id: signInData.user.id,
-          role: "admin",
-        });
+        // Usa função RPC segura para auto-promoção
+        const { data: promoted, error: roleError } = await supabase.rpc('promote_to_admin');
 
         if (roleError) {
-          if (roleError.code === "23505") {
-            toast.success("Você já é administrador! Redirecionando...");
-            navigate("/gestor", { replace: true });
-            return;
-          }
           setError("Erro ao definir permissões de administrador.");
           return;
         }
@@ -155,10 +148,8 @@ const AdminLogin = () => {
         return;
       }
 
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: signUpData.user.id,
-        role: "admin",
-      });
+      // Usa função RPC segura para auto-promoção
+      const { error: roleError } = await supabase.rpc('promote_to_admin');
 
       if (roleError) {
         setError("Conta criada, mas houve um erro ao definir permissões. Entre em contato com o suporte.");
