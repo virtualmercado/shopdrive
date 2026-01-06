@@ -75,7 +75,27 @@ const AdminLogin = () => {
         return;
       }
 
-      toast.success("Login realizado com sucesso!");
+      // Verifica se o usuário tem role de admin após login
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', currentUser.id);
+        
+        const adminRoles = ['admin', 'financeiro', 'suporte', 'tecnico'];
+        const hasAdminRole = userRoles?.some(r => adminRoles.includes(r.role)) || false;
+        
+        if (hasAdminRole) {
+          toast.success("Login realizado com sucesso!");
+          navigate("/gestor", { replace: true });
+          return;
+        } else {
+          setError("Você não tem permissão de administrador. Crie uma conta na aba 'Criar Conta'.");
+          await supabase.auth.signOut();
+          return;
+        }
+      }
     } catch (err) {
       setError("Erro ao fazer login. Tente novamente.");
     } finally {
