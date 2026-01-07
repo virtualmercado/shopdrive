@@ -92,8 +92,7 @@ const Messages = () => {
                 <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhuma mensagem ainda</h3>
                 <p className="text-muted-foreground">
-                  As mensagens enviadas através do botão WhatsApp da sua loja aparecerão
-                  aqui
+                  As mensagens enviadas através do botão fale com a gente da sua loja, aparecerão aqui
                 </p>
               </div>
             </CardContent>
