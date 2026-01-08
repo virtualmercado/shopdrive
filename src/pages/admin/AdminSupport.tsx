@@ -36,7 +36,8 @@ import {
   RefreshCw,
   Send,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -211,6 +212,22 @@ const AdminSupport = () => {
     setDialogOpen(true);
   };
 
+  const handleDeleteTicket = async (ticketId: string) => {
+    const { error } = await supabase
+      .from('merchant_support_tickets')
+      .delete()
+      .eq('id', ticketId);
+
+    if (error) {
+      toast.error("Erro ao excluir ticket");
+      return;
+    }
+
+    toast.success("Ticket excluído com sucesso");
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets-stats'] });
+  };
+
   const filteredTickets = tickets?.filter(ticket => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
@@ -342,14 +359,28 @@ const AdminSupport = () => {
                         {format(new Date(ticket.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openTicketDialog(ticket)}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Ver
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openTicketDialog(ticket)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteTicket(ticket.id)}
+                            disabled={ticket.status !== 'read'}
+                            className={ticket.status === 'read' 
+                              ? "text-red-600 hover:text-red-700 hover:bg-red-50" 
+                              : "text-muted-foreground opacity-50 cursor-not-allowed"
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
