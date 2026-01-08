@@ -137,7 +137,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
-          <nav className="p-4 space-y-1">
+          <nav className="p-4 space-y-2">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               
