@@ -17,7 +17,8 @@ import {
   Users,
   CreditCard,
   FileText,
-  Wallet
+  Wallet,
+  HeadphonesIcon
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
     { icon: MessageCircle, label: "Mensagens", path: "/lojista/messages" },
     { icon: Wallet, label: "Financeiro", path: "/lojista/financeiro" },
+    { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/lojista/support" },
     { icon: Settings, label: "Configurações", path: "/lojista/settings" },
   ];
 

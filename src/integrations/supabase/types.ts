@@ -471,6 +471,36 @@ export type Database = {
         }
         Relationships: []
       }
+      faq_items: {
+        Row: {
+          answer: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json | null
@@ -607,6 +637,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_id_melhor_envio?: string | null
+        }
+        Relationships: []
+      }
+      merchant_support_tickets: {
+        Row: {
+          answered_at: string | null
+          created_at: string
+          id: string
+          merchant_id: string
+          message: string
+          read_at: string | null
+          response: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          merchant_id: string
+          message: string
+          read_at?: string | null
+          response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          message?: string
+          read_at?: string | null
+          response?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
