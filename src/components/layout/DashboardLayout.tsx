@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   LayoutDashboard, 
   Package, 
@@ -105,7 +106,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300",
+          "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300 flex flex-col",
           sidebarOpen ? "w-64" : "w-20"
         )}
         style={{ backgroundColor: themeLoading ? '#6a1b9a' : primaryColor }}
@@ -135,29 +136,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-white",
-                  isActive 
-                    ? "bg-white/20 font-medium" 
-                    : "hover:bg-white/10"
-                )}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {sidebarOpen && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
+        <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
+          <nav className="p-4 space-y-1">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
+                    isActive 
+                      ? "bg-white/20 font-medium" 
+                      : "hover:bg-white/10"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+        </ScrollArea>
 
-        <div className="absolute bottom-4 left-0 right-0 px-4">
+        <div className="p-4 border-t border-white/10">
           <Button
             variant="ghost"
             onClick={handleLogout}
