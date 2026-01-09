@@ -5,8 +5,7 @@ import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
-import { MiniCartProvider } from "@/contexts/MiniCartContext";
-import { CartProvider, useCart } from "@/contexts/CartContext";
+import { useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/store/ProductCard";
 import { Menu, X } from "lucide-react";
@@ -129,7 +128,7 @@ const calculateSimilarity = (product: Product, search: string): number => {
   return totalScore / searchWords.length;
 };
 
-const StoreCategoryPageContent = () => {
+const StoreCategoryPage = () => {
   const { storeSlug, categoryId } = useParams<{ storeSlug: string; categoryId?: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -456,16 +455,6 @@ const StoreCategoryPageContent = () => {
         primaryColor={storeData.primary_color}
       />
     </div>
-  );
-};
-
-const StoreCategoryPage = () => {
-  return (
-    <CartProvider>
-      <MiniCartProvider>
-        <StoreCategoryPageContent />
-      </MiniCartProvider>
-    </CartProvider>
   );
 };
 
