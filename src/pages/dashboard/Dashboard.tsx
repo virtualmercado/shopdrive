@@ -190,37 +190,52 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Chart 3 - Sales by Age Range */}
+          {/* Chart 3 - Sales by Age Range - Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
               Vendas por faixa etária / últimos 30 dias
             </h3>
             {ageLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-48 w-full" />
               </div>
             ) : (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={salesByAgeRange}
-                      dataKey="count"
-                      nameKey="range"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      labelLine={false}
-                      label={renderCustomLabel}
-                    >
-                      {salesByAgeRange?.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [`${value} pedidos`, name]}
+                  <BarChart
+                    data={salesByAgeRange}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                  >
+                    <XAxis 
+                      dataKey="range" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 12 }}
                     />
-                  </PieChart>
+                    <Tooltip 
+                      formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#5B9BD5" 
+                      radius={[4, 4, 0, 0]}
+                      label={{
+                        position: 'top',
+                        fill: '#666',
+                        fontSize: 12,
+                        formatter: (value: number) => {
+                          const total = salesByAgeRange?.reduce((sum, item) => sum + item.count, 0) || 1;
+                          return `${Math.round((value / total) * 100)}%`;
+                        }
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
