@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { HeadphonesIcon, Send, GraduationCap, ChevronDown, ChevronUp } from "lucide-react";
+import { HeadphonesIcon, Send, GraduationCap, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ interface SupportTicket {
   created_at: string;
   answered_at: string | null;
   read_at: string | null;
+  deleted_by_merchant: boolean;
 }
 
 interface FaqItem {
@@ -52,6 +53,7 @@ const Support = () => {
       .from("merchant_support_tickets")
       .select("*")
       .eq("merchant_id", user.id)
+      .eq("deleted_by_merchant", false)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -133,6 +135,27 @@ const Support = () => {
     }
   };
 
+  const handleDeleteTicket = async (ticketId: string) => {
+    const { error } = await supabase
+      .from("merchant_support_tickets")
+      .update({ deleted_by_merchant: true })
+      .eq("id", ticketId);
+
+    if (error) {
+      console.error("Error deleting ticket:", error);
+      toast.error("Erro ao excluir mensagem");
+      return;
+    }
+
+    toast.success("Mensagem excluída com sucesso");
+    fetchTickets();
+  };
+
+  const canDeleteTicket = (ticket: SupportTicket) => {
+    // Somente mensagens respondidas pela VM E lidas pelo lojista podem ser excluídas
+    return ticket.status === 'read' && ticket.response !== null;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -187,39 +210,53 @@ const Support = () => {
                   Histórico de mensagens
                 </h3>
                 <div className="space-y-2">
-                  {tickets.map((ticket) => (
+                {tickets.map((ticket) => (
                     <div 
                       key={ticket.id} 
                       className="border rounded-lg overflow-hidden"
                     >
-                      <button
-                        onClick={() => handleToggleTicket(ticket)}
-                        className={`w-full p-3 text-left flex items-start justify-between gap-3 hover:bg-muted/50 transition-colors ${getTicketStyle(ticket)}`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">{ticket.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            {ticket.status === 'pending' && (
-                              <span className="ml-2 text-xs text-amber-600">
-                                • Aguardando resposta
-                              </span>
-                            )}
-                            {ticket.status === 'answered' && (
-                              <span className="ml-2 text-xs text-blue-600 font-medium">
-                                • Nova resposta
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        {ticket.response && (
-                          expandedTicketId === ticket.id ? (
-                            <ChevronUp className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          )
-                        )}
-                      </button>
+                      <div className="flex items-start">
+                        <button
+                          onClick={() => handleToggleTicket(ticket)}
+                          className={`flex-1 p-3 text-left flex items-start justify-between gap-3 hover:bg-muted/50 transition-colors ${getTicketStyle(ticket)}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{ticket.message}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              {ticket.status === 'pending' && (
+                                <span className="ml-2 text-xs text-amber-600">
+                                  • Aguardando resposta
+                                </span>
+                              )}
+                              {ticket.status === 'answered' && (
+                                <span className="ml-2 text-xs text-blue-600 font-medium">
+                                  • Nova resposta
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {ticket.response && (
+                            expandedTicketId === ticket.id ? (
+                              <ChevronUp className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            )
+                          )}
+                        </button>
+                        <button
+                          onClick={() => canDeleteTicket(ticket) && handleDeleteTicket(ticket.id)}
+                          disabled={!canDeleteTicket(ticket)}
+                          className={`p-3 flex-shrink-0 transition-colors ${
+                            canDeleteTicket(ticket)
+                              ? "text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                              : "text-muted-foreground/40 cursor-not-allowed"
+                          }`}
+                          title={canDeleteTicket(ticket) ? "Excluir mensagem" : "Somente mensagens respondidas e lidas podem ser excluídas"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                       
                       {/* Response area */}
                       {expandedTicketId === ticket.id && ticket.response && (

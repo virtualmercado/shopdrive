@@ -644,6 +644,8 @@ export type Database = {
         Row: {
           answered_at: string | null
           created_at: string
+          deleted_by_admin: boolean
+          deleted_by_merchant: boolean
           id: string
           merchant_id: string
           message: string
@@ -655,6 +657,8 @@ export type Database = {
         Insert: {
           answered_at?: string | null
           created_at?: string
+          deleted_by_admin?: boolean
+          deleted_by_merchant?: boolean
           id?: string
           merchant_id: string
           message: string
@@ -666,6 +670,8 @@ export type Database = {
         Update: {
           answered_at?: string | null
           created_at?: string
+          deleted_by_admin?: boolean
+          deleted_by_merchant?: boolean
           id?: string
           merchant_id?: string
           message?: string
