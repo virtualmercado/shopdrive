@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2 } from "lucide-react";
-import { CartProvider, useCart } from "@/contexts/CartContext";
-import { useMiniCart, MiniCartProvider } from "@/contexts/MiniCartContext";
+import { useCart } from "@/contexts/CartContext";
+import { useMiniCart } from "@/contexts/MiniCartContext";
 import MiniCart from "@/components/store/MiniCart";
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
@@ -69,7 +69,7 @@ interface StoreData {
   cpf_cnpj?: string;
 }
 
-const ProductDetailContent = () => {
+const ProductDetail = () => {
   const { storeSlug, productId } = useParams();
   const navigate = useNavigate();
   const { addToCart, getItemCount } = useCart();
@@ -587,16 +587,6 @@ const ProductDetailContent = () => {
         storeSlug={storeSlug || ""}
       />
     </div>
-  );
-};
-
-const ProductDetail = () => {
-  return (
-    <CartProvider>
-      <MiniCartProvider>
-        <ProductDetailContent />
-      </MiniCartProvider>
-    </CartProvider>
   );
 };
 

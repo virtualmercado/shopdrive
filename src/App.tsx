@@ -33,6 +33,7 @@ import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import StoreLayout from "./components/layout/StoreLayout";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -91,19 +92,19 @@ function App() {
             <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
             <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
             
-            {/* Public Store Routes */}
-            <Route path="/loja/:storeSlug" element={<OnlineStore />} />
-            <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
-            <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
-            <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
-            <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
-            <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
-            <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
-            <Route path="/loja/:storeSlug/sobre-nos" element={<AboutUsPage />} />
+            {/* Public Store Routes - wrapped with StoreLayout */}
+            <Route path="/loja/:storeSlug" element={<StoreLayout><OnlineStore /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/produtos" element={<StoreLayout><StoreCategoryPage /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreLayout><StoreCategoryPage /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/produto/:productId" element={<StoreLayout><ProductDetail /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/checkout" element={<StoreLayout><Checkout /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<StoreLayout><OrderConfirmation /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<StoreLayout><ReturnPolicyPage /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/sobre-nos" element={<StoreLayout><AboutUsPage /></StoreLayout>} />
             
-            {/* Customer Account Routes */}
-            <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
-            <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
+            {/* Customer Account Routes - wrapped with StoreLayout */}
+            <Route path="/loja/:storeSlug/auth" element={<StoreLayout><CustomerAuth /></StoreLayout>} />
+            <Route path="/loja/:storeSlug/conta" element={<StoreLayout><CustomerAccount /></StoreLayout>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
