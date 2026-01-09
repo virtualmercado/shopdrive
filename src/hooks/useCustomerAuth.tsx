@@ -27,7 +27,19 @@ export const useCustomerAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, storeSlug: string) => {
+  const signUp = async (
+    email: string, 
+    password: string, 
+    fullName: string, 
+    storeSlug: string,
+    additionalData?: {
+      phone?: string;
+      birth_date?: string;
+      person_type?: string;
+      gender?: string;
+      cpf?: string;
+    }
+  ) => {
     const redirectUrl = `${window.location.origin}/loja/${storeSlug}/conta`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -55,13 +67,23 @@ export const useCustomerAuth = () => {
       return { data: null, error };
     }
 
-    // Create customer profile manually if trigger didn't work
+    // Create customer profile with additional data
     if (data?.user) {
-      const { error: profileError } = await supabase.from('customer_profiles').upsert({
+      const profileData = {
         id: data.user.id,
         full_name: fullName,
         email: email,
-      }, { onConflict: 'id' });
+        phone: additionalData?.phone || null,
+        birth_date: additionalData?.birth_date || null,
+        person_type: additionalData?.person_type || null,
+        gender: additionalData?.gender || null,
+        cpf: additionalData?.cpf ? additionalData.cpf.replace(/\D/g, '') : null, // Store only numbers
+      };
+
+      const { error: profileError } = await supabase.from('customer_profiles').upsert(
+        profileData, 
+        { onConflict: 'id' }
+      );
       
       if (profileError) {
         console.error('Error creating customer profile:', profileError);
