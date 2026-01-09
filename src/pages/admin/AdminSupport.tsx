@@ -76,9 +76,10 @@ const AdminSupport = () => {
   const { data: tickets, isLoading, refetch } = useQuery({
     queryKey: ['admin-merchant-tickets', statusFilter, searchTerm],
     queryFn: async () => {
-      let query = supabase
+  let query = supabase
         .from('merchant_support_tickets')
         .select('*')
+        .eq('deleted_by_admin', false)
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
@@ -110,17 +111,20 @@ const AdminSupport = () => {
       const { count: pendingCount } = await supabase
         .from('merchant_support_tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .eq('deleted_by_admin', false);
 
       const { count: answeredCount } = await supabase
         .from('merchant_support_tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'answered');
+        .eq('status', 'answered')
+        .eq('deleted_by_admin', false);
 
       const { count: readCount } = await supabase
         .from('merchant_support_tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'read');
+        .eq('status', 'read')
+        .eq('deleted_by_admin', false);
 
       return {
         pending: pendingCount || 0,
@@ -215,7 +219,7 @@ const AdminSupport = () => {
   const handleDeleteTicket = async (ticketId: string) => {
     const { error } = await supabase
       .from('merchant_support_tickets')
-      .delete()
+      .update({ deleted_by_admin: true })
       .eq('id', ticketId);
 
     if (error) {
