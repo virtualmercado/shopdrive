@@ -5,7 +5,8 @@ import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
-import { useCart } from "@/contexts/CartContext";
+import { MiniCartProvider } from "@/contexts/MiniCartContext";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StoreData {
@@ -39,7 +40,7 @@ interface StoreData {
   cpf_cnpj?: string;
 }
 
-const AboutUsPage = () => {
+const AboutUsPageContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +142,16 @@ const AboutUsPage = () => {
         primaryColor={storeData.primary_color}
       />
     </div>
+  );
+};
+
+const AboutUsPage = () => {
+  return (
+    <CartProvider>
+      <MiniCartProvider>
+        <AboutUsPageContent />
+      </MiniCartProvider>
+    </CartProvider>
   );
 };
 

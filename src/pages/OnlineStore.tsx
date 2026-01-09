@@ -7,8 +7,10 @@ import StoreBanner from "@/components/store/StoreBanner";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
-import { useCart } from "@/contexts/CartContext";
+import { MiniCartProvider } from "@/contexts/MiniCartContext";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
+
 interface StoreData {
   id: string;
   store_name: string;
@@ -41,7 +43,7 @@ interface StoreData {
   is_maintenance_mode?: boolean;
 }
 
-const OnlineStore = () => {
+const OnlineStoreContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -320,6 +322,16 @@ const OnlineStore = () => {
         primaryColor={storeData.primary_color}
       />
     </div>
+  );
+};
+
+const OnlineStore = () => {
+  return (
+    <CartProvider>
+      <MiniCartProvider>
+        <OnlineStoreContent />
+      </MiniCartProvider>
+    </CartProvider>
   );
 };
 

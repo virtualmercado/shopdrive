@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCart } from "@/contexts/CartContext";
+import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -64,7 +64,7 @@ const checkoutSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
-const Checkout = () => {
+const CheckoutContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
   const { cart, getTotal, clearCart, updateQuantity, removeFromCart } = useCart();
@@ -925,6 +925,14 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         </div>
       </div>
     </div>
+  );
+};
+
+const Checkout = () => {
+  return (
+    <CartProvider>
+      <CheckoutContent />
+    </CartProvider>
   );
 };
 
