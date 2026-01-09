@@ -298,8 +298,23 @@ const CheckoutContent = () => {
     await signIn(email, password);
   };
 
-  const handleRegister = async (data: { full_name: string; email: string; password: string; phone: string }) => {
-    await signUp(data.email, data.password, data.full_name, storeSlug || "");
+  const handleRegister = async (data: { 
+    full_name: string; 
+    email: string; 
+    password: string; 
+    phone: string;
+    birth_date?: string;
+    person_type?: string;
+    gender?: string;
+    cpf?: string;
+  }) => {
+    await signUp(data.email, data.password, data.full_name, storeSlug || "", {
+      phone: data.phone,
+      birth_date: data.birth_date,
+      person_type: data.person_type,
+      gender: data.gender,
+      cpf: data.cpf,
+    });
   };
 
   const handleAddAddress = async (address: Omit<CustomerAddress, "id" | "is_default">) => {

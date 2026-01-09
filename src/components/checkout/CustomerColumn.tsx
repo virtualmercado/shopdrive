@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, MapPin, Edit, LogIn, UserPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,6 +60,10 @@ interface RegisterData {
   email: string;
   password: string;
   phone: string;
+  birth_date?: string;
+  person_type?: string;
+  gender?: string;
+  cpf?: string;
 }
 
 export const CustomerColumn = ({
@@ -87,8 +92,32 @@ export const CustomerColumn = ({
     email: "",
     password: "",
     phone: "",
+    birth_date: "",
+    person_type: "fisica",
+    gender: "",
+    cpf: "",
   });
   const [registerLoading, setRegisterLoading] = useState(false);
+
+  const formatCpfCnpj = (value: string, type: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (type === "fisica") {
+      // CPF format: 000.000.000-00
+      return numbers
+        .slice(0, 11)
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    } else {
+      // CNPJ format: 00.000.000/0000-00
+      return numbers
+        .slice(0, 14)
+        .replace(/(\d{2})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1/$2")
+        .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+    }
+  };
 
   const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
 
@@ -494,6 +523,63 @@ export const CustomerColumn = ({
                 onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
               />
             </div>
+            
+            {/* New fields for dashboard analytics */}
+            <div>
+              <Label className="text-sm">Data de Nascimento</Label>
+              <Input
+                type="date"
+                value={registerData.birth_date}
+                onChange={(e) => setRegisterData({ ...registerData, birth_date: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm">Tipo de Cadastro</Label>
+              <Select
+                value={registerData.person_type}
+                onValueChange={(value) => setRegisterData({ ...registerData, person_type: value, cpf: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fisica">Pessoa Física</SelectItem>
+                  <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm">Sexo</Label>
+              <Select
+                value={registerData.gender}
+                onValueChange={(value) => setRegisterData({ ...registerData, gender: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="feminino">Feminino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm">
+                {registerData.person_type === "juridica" ? "CNPJ" : "CPF"}
+              </Label>
+              <Input
+                placeholder={registerData.person_type === "juridica" ? "00.000.000/0000-00" : "000.000.000-00"}
+                value={registerData.cpf}
+                onChange={(e) => setRegisterData({ 
+                  ...registerData, 
+                  cpf: formatCpfCnpj(e.target.value, registerData.person_type) 
+                })}
+              />
+            </div>
+
             <div className="flex gap-2">
               <Button
                 type="button"
