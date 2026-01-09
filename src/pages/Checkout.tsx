@@ -307,6 +307,14 @@ const CheckoutContent = () => {
     person_type?: string;
     gender?: string;
     cpf?: string;
+    // Address fields
+    cep?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
   }) => {
     await signUp(data.email, data.password, data.full_name, storeSlug || "", {
       phone: data.phone,
@@ -314,7 +322,14 @@ const CheckoutContent = () => {
       person_type: data.person_type,
       gender: data.gender,
       cpf: data.cpf,
-    });
+      cep: data.cep,
+      street: data.street,
+      number: data.number,
+      complement: data.complement,
+      neighborhood: data.neighborhood,
+      city: data.city,
+      state: data.state,
+    }, storeData?.id);
   };
 
   const handleAddAddress = async (address: Omit<CustomerAddress, "id" | "is_default">) => {
