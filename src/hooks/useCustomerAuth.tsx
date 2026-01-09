@@ -38,7 +38,16 @@ export const useCustomerAuth = () => {
       person_type?: string;
       gender?: string;
       cpf?: string;
-    }
+      // Address fields
+      cep?: string;
+      street?: string;
+      number?: string;
+      complement?: string;
+      neighborhood?: string;
+      city?: string;
+      state?: string;
+    },
+    storeOwnerId?: string
   ) => {
     const redirectUrl = `${window.location.origin}/loja/${storeSlug}/conta`;
     
@@ -77,7 +86,7 @@ export const useCustomerAuth = () => {
         birth_date: additionalData?.birth_date || null,
         person_type: additionalData?.person_type || null,
         gender: additionalData?.gender || null,
-        cpf: additionalData?.cpf ? additionalData.cpf.replace(/\D/g, '') : null, // Store only numbers
+        cpf: additionalData?.cpf ? additionalData.cpf.replace(/\D/g, '') : null,
       };
 
       const { error: profileError } = await supabase.from('customer_profiles').upsert(
@@ -87,6 +96,29 @@ export const useCustomerAuth = () => {
       
       if (profileError) {
         console.error('Error creating customer profile:', profileError);
+      }
+
+      // Create address if provided
+      if (additionalData?.cep && additionalData?.street && additionalData?.number) {
+        const addressData = {
+          customer_id: data.user.id,
+          recipient_name: fullName,
+          cep: additionalData.cep.replace(/\D/g, ''),
+          street: additionalData.street,
+          number: additionalData.number,
+          complement: additionalData.complement || null,
+          neighborhood: additionalData.neighborhood || '',
+          city: additionalData.city || '',
+          state: additionalData.state || '',
+          is_default: true,
+          store_owner_id: storeOwnerId || null,
+        };
+
+        const { error: addressError } = await supabase.from('customer_addresses').insert(addressData);
+        
+        if (addressError) {
+          console.error('Error creating customer address:', addressError);
+        }
       }
     }
 

@@ -64,6 +64,14 @@ interface RegisterData {
   person_type?: string;
   gender?: string;
   cpf?: string;
+  // Address fields
+  cep?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
 }
 
 export const CustomerColumn = ({
@@ -96,6 +104,14 @@ export const CustomerColumn = ({
     person_type: "fisica",
     gender: "",
     cpf: "",
+    // Address fields
+    cep: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
   });
   const [registerLoading, setRegisterLoading] = useState(false);
 
@@ -185,25 +201,41 @@ export const CustomerColumn = ({
     }
   };
 
-  const fetchAddressFromCep = async (cep: string) => {
+  const fetchAddressFromCep = async (cep: string, forRegister = false) => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length === 8) {
       try {
         const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
         const data = await response.json();
         if (!data.erro) {
-          setNewAddress(prev => ({
-            ...prev,
-            street: data.logradouro || "",
-            neighborhood: data.bairro || "",
-            city: data.localidade || "",
-            state: data.uf || "",
-          }));
+          if (forRegister) {
+            setRegisterData(prev => ({
+              ...prev,
+              street: data.logradouro || "",
+              neighborhood: data.bairro || "",
+              city: data.localidade || "",
+              state: data.uf || "",
+            }));
+          } else {
+            setNewAddress(prev => ({
+              ...prev,
+              street: data.logradouro || "",
+              neighborhood: data.bairro || "",
+              city: data.localidade || "",
+              state: data.uf || "",
+            }));
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
       }
     }
+  };
+
+  const formatCep = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 8);
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
   };
 
   const handleDeleteAddress = async (addressId: string, e: React.MouseEvent) => {
@@ -578,6 +610,86 @@ export const CustomerColumn = ({
                   cpf: formatCpfCnpj(e.target.value, registerData.person_type) 
                 })}
               />
+            </div>
+
+            {/* Address Section */}
+            <div className="border-t pt-4 mt-2">
+              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4" style={{ color: primaryColor }} />
+                Endereço Principal
+              </h4>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm">CEP</Label>
+                  <Input
+                    placeholder="00000-000"
+                    value={registerData.cep}
+                    onChange={(e) => {
+                      const formattedCep = formatCep(e.target.value);
+                      setRegisterData({ ...registerData, cep: formattedCep });
+                      fetchAddressFromCep(e.target.value, true);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm">Endereço</Label>
+                  <Input
+                    placeholder="Rua, Avenida..."
+                    value={registerData.street}
+                    onChange={(e) => setRegisterData({ ...registerData, street: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-sm">Número</Label>
+                    <Input
+                      placeholder="Nº"
+                      value={registerData.number}
+                      onChange={(e) => setRegisterData({ ...registerData, number: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-sm">Complemento</Label>
+                    <Input
+                      placeholder="Apto, Bloco..."
+                      value={registerData.complement}
+                      onChange={(e) => setRegisterData({ ...registerData, complement: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm">Bairro</Label>
+                  <Input
+                    placeholder="Bairro"
+                    value={registerData.neighborhood}
+                    onChange={(e) => setRegisterData({ ...registerData, neighborhood: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-sm">Cidade</Label>
+                    <Input
+                      placeholder="Cidade"
+                      value={registerData.city}
+                      onChange={(e) => setRegisterData({ ...registerData, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Estado</Label>
+                    <Input
+                      placeholder="UF"
+                      maxLength={2}
+                      value={registerData.state}
+                      onChange={(e) => setRegisterData({ ...registerData, state: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2">
