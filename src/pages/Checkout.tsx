@@ -75,6 +75,7 @@ const CheckoutContent = () => {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [motoboyFee, setMotoboyFee] = useState<number | null>(null);
   const [motoboyAvailable, setMotoboyAvailable] = useState(false);
+  const [miniEnviosAvailable, setMiniEnviosAvailable] = useState(true);
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingRules, setShippingRules] = useState<any[]>([]);
   const [deliveryOption, setDeliveryOption] = useState<string>("delivery_only");
@@ -286,10 +287,10 @@ const CheckoutContent = () => {
       try {
         const products = cart.map((item, index) => ({
           id: item.id || `product-${index}`,
-          width: 11,
-          height: 2,
-          length: 16,
-          weight: 0.3,
+          width: item.width || 11,
+          height: item.height || 2,
+          length: item.length || 16,
+          weight: item.weight || 0.3,
           insurance_value: (item.promotional_price || item.price) * item.quantity,
           quantity: item.quantity,
         }));
@@ -410,6 +411,98 @@ const CheckoutContent = () => {
       }
     }
   }, [formData.neighborhood, formData.city, formData.cep, shippingRules, storeData]);
+
+  // Mini Envios validation rules based on official Correios specifications
+  // Min dimensions: 1cm height, 8cm width, 13cm length
+  // Max dimensions: 4cm height, 16cm width, 24cm length
+  // Max weight: 300g (0.3kg)
+  const validateMiniEnvios = (): boolean => {
+    if (cart.length === 0) return false;
+
+    // Calculate consolidated package dimensions
+    // For multiple items, we need to estimate package size
+    let totalWeight = 0;
+    let maxHeight = 0;
+    let maxWidth = 0;
+    let maxLength = 0;
+
+    for (const item of cart) {
+      const itemWeight = (item.weight || 0.3) * item.quantity;
+      const itemHeight = item.height || 2;
+      const itemWidth = item.width || 11;
+      const itemLength = item.length || 16;
+
+      totalWeight += itemWeight;
+      
+      // For stacked items, we sum heights and take max of width/length
+      maxHeight += itemHeight * item.quantity;
+      maxWidth = Math.max(maxWidth, itemWidth);
+      maxLength = Math.max(maxLength, itemLength);
+    }
+
+    // Validate weight (max 300g = 0.3kg)
+    if (totalWeight > 0.3) {
+      console.log("Mini Envios: Weight exceeds 300g limit", totalWeight);
+      return false;
+    }
+
+    // Validate minimum dimensions
+    if (maxHeight < 1) {
+      console.log("Mini Envios: Height below 1cm minimum", maxHeight);
+      return false;
+    }
+    if (maxWidth < 8) {
+      console.log("Mini Envios: Width below 8cm minimum", maxWidth);
+      return false;
+    }
+    if (maxLength < 13) {
+      console.log("Mini Envios: Length below 13cm minimum", maxLength);
+      return false;
+    }
+
+    // Validate maximum dimensions
+    if (maxHeight > 4) {
+      console.log("Mini Envios: Height exceeds 4cm maximum", maxHeight);
+      return false;
+    }
+    if (maxWidth > 16) {
+      console.log("Mini Envios: Width exceeds 16cm maximum", maxWidth);
+      return false;
+    }
+    if (maxLength > 24) {
+      console.log("Mini Envios: Length exceeds 24cm maximum", maxLength);
+      return false;
+    }
+
+    return true;
+  };
+
+  // Update Mini Envios availability whenever cart changes
+  useEffect(() => {
+    const isValid = validateMiniEnvios();
+    setMiniEnviosAvailable(isValid);
+    
+    // If Mini Envios was selected but is no longer valid, switch to another method
+    if (formData.delivery_method === "mini_envios" && !isValid) {
+      // Try PAC first
+      if (melhorEnvioEnabled && melhorEnvioQuotes.length > 0) {
+        const pacQuote = melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
+        if (pacQuote) {
+          setFormData(prev => ({ ...prev, delivery_method: "pac" }));
+          return;
+        }
+      }
+      // Fallback to motoboy if available
+      if (motoboyAvailable) {
+        setFormData(prev => ({ ...prev, delivery_method: "motoboy" }));
+        return;
+      }
+      // Fallback to pickup if available
+      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
+      }
+    }
+  }, [cart, formData.delivery_method, melhorEnvioEnabled, melhorEnvioQuotes, motoboyAvailable, deliveryOption]);
 
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
@@ -1054,6 +1147,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             melhorEnvioEnabled={melhorEnvioEnabled}
             motoboyFee={motoboyFee}
             motoboyAvailable={motoboyAvailable}
+            miniEnviosAvailable={miniEnviosAvailable}
           />
 
           {/* Column 3 - Payment */}
