@@ -114,9 +114,10 @@ export const DeliveryColumn = ({
   };
 
   // Find Melhor Envio quotes by service ID
-  const getSedexQuote = () => melhorEnvioQuotes.find(q => [1, 3].includes(q.id));
-  const getPacQuote = () => melhorEnvioQuotes.find(q => [2, 4].includes(q.id));
-  const getMiniEnviosQuote = () => melhorEnvioQuotes.find(q => q.id === 17);
+  // Melhor Envio API returns: ID 1 = PAC, ID 2 = SEDEX, ID 17 = Mini Envios
+  const getSedexQuote = () => melhorEnvioQuotes.find(q => q.id === 2 || q.name?.toUpperCase().includes('SEDEX'));
+  const getPacQuote = () => melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
+  const getMiniEnviosQuote = () => melhorEnvioQuotes.find(q => q.id === 17 || q.name?.toUpperCase().includes('MINI'));
 
   const formatDeliveryTime = (quote: MelhorEnvioQuote | undefined) => {
     if (!quote) return "";
