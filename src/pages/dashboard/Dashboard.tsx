@@ -241,37 +241,58 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Chart 4 - Top 10 Products */}
+          {/* Chart 4 - Top 10 Products - Horizontal Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
               Top 10 produtos mais vendidos / últimos 30 dias
             </h3>
             {productsLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-48 w-full" />
               </div>
             ) : (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={topProducts}
-                      dataKey="quantity"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      labelLine={false}
-                      label={renderCustomLabel}
-                    >
-                      {topProducts?.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [`${value} unidades`, name]}
+                  <BarChart
+                    data={topProducts?.slice().reverse()}
+                    layout="vertical"
+                    margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                  >
+                    <XAxis 
+                      type="number" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 11 }}
                     />
-                  </PieChart>
+                    <YAxis 
+                      type="category" 
+                      dataKey="name" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 10 }}
+                      width={120}
+                      tickFormatter={(value) => value.length > 18 ? `${value.substring(0, 18)}...` : value}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`${value} unidades`, 'Quantidade']}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="quantity" 
+                      fill="#5B9BD5" 
+                      radius={[0, 4, 4, 0]}
+                      label={{
+                        position: 'right',
+                        fill: '#666',
+                        fontSize: 11
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
