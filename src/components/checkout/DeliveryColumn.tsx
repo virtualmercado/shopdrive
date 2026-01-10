@@ -1,9 +1,22 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Truck, Store, Package } from "lucide-react";
+import { Truck, Store, Package, Loader2 } from "lucide-react";
 
 type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
+
+interface MelhorEnvioQuote {
+  id: number;
+  name: string;
+  company: string;
+  price: number;
+  custom_price: number;
+  discount: number;
+  delivery_time: number;
+  delivery_range: { min: number; max: number };
+  currency: string;
+  error: string | null;
+}
 
 interface DeliveryColumnProps {
   deliveryMethod: DeliveryMethod;
@@ -30,6 +43,9 @@ interface DeliveryColumnProps {
   setFormData: (data: any) => void;
   primaryColor: string;
   hasSelectedAddress: boolean;
+  melhorEnvioQuotes?: MelhorEnvioQuote[];
+  melhorEnvioLoading?: boolean;
+  melhorEnvioEnabled?: boolean;
 }
 
 export const DeliveryColumn = ({
@@ -43,6 +59,9 @@ export const DeliveryColumn = ({
   setFormData,
   primaryColor,
   hasSelectedAddress,
+  melhorEnvioQuotes = [],
+  melhorEnvioLoading = false,
+  melhorEnvioEnabled = false,
 }: DeliveryColumnProps) => {
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
@@ -88,6 +107,25 @@ export const DeliveryColumn = ({
     return parts.length > 0 ? parts.join(" | ") : null;
   };
 
+  // Find Melhor Envio quotes by service ID
+  const getSedexQuote = () => melhorEnvioQuotes.find(q => [1, 3].includes(q.id));
+  const getPacQuote = () => melhorEnvioQuotes.find(q => [2, 4].includes(q.id));
+  const getMiniEnviosQuote = () => melhorEnvioQuotes.find(q => q.id === 17);
+
+  const formatDeliveryTime = (quote: MelhorEnvioQuote | undefined) => {
+    if (!quote) return "";
+    if (quote.delivery_range.min === quote.delivery_range.max) {
+      return `${quote.delivery_range.min} dias úteis`;
+    }
+    return `${quote.delivery_range.min} a ${quote.delivery_range.max} dias úteis`;
+  };
+
+  const sedexQuote = getSedexQuote();
+  const pacQuote = getPacQuote();
+  const miniEnviosQuote = getMiniEnviosQuote();
+
+  const hasCep = formData.cep.replace(/\D/g, "").length === 8;
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
       <div>
@@ -129,66 +167,156 @@ export const DeliveryColumn = ({
             </div>
           )}
 
-          {/* Correios SEDEX */}
-          {showDeliveryOptions && (
+          {/* Correios SEDEX - Melhor Envio */}
+          {showDeliveryOptions && melhorEnvioEnabled && (
             <div 
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all opacity-50 ${
-                deliveryMethod === "sedex" ? "border-2" : "border-border"
-              }`}
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
+                !hasCep || melhorEnvioLoading || !sedexQuote ? "opacity-60" : ""
+              } ${deliveryMethod === "sedex" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "sedex" ? { borderColor: primaryColor } : {}}
+              onClick={() => {
+                if (hasCep && sedexQuote && !melhorEnvioLoading) {
+                  onDeliveryMethodChange("sedex");
+                }
+              }}
             >
               <div className="flex items-center gap-3">
-                <RadioGroupItem value="sedex" id="sedex" disabled />
+                <RadioGroupItem 
+                  value="sedex" 
+                  id="sedex" 
+                  disabled={!hasCep || melhorEnvioLoading || !sedexQuote}
+                />
                 <div>
                   <Label htmlFor="sedex" className="font-medium cursor-pointer">
                     📦 Correios SEDEX
                   </Label>
-                  <p className="text-xs text-muted-foreground">Em breve (Melhor Envio)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {melhorEnvioLoading ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Calculando...
+                      </span>
+                    ) : !hasCep ? (
+                      "Informe o CEP"
+                    ) : sedexQuote ? (
+                      formatDeliveryTime(sedexQuote)
+                    ) : (
+                      "Não disponível para este CEP"
+                    )}
+                  </p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">--</span>
+              <span className="font-semibold text-sm">
+                {melhorEnvioLoading ? (
+                  "--"
+                ) : sedexQuote ? (
+                  `R$ ${(sedexQuote.custom_price || sedexQuote.price).toFixed(2)}`
+                ) : (
+                  "--"
+                )}
+              </span>
             </div>
           )}
 
-          {/* Correios PAC */}
-          {showDeliveryOptions && (
+          {/* Correios PAC - Melhor Envio */}
+          {showDeliveryOptions && melhorEnvioEnabled && (
             <div 
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all opacity-50 ${
-                deliveryMethod === "pac" ? "border-2" : "border-border"
-              }`}
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
+                !hasCep || melhorEnvioLoading || !pacQuote ? "opacity-60" : ""
+              } ${deliveryMethod === "pac" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "pac" ? { borderColor: primaryColor } : {}}
+              onClick={() => {
+                if (hasCep && pacQuote && !melhorEnvioLoading) {
+                  onDeliveryMethodChange("pac");
+                }
+              }}
             >
               <div className="flex items-center gap-3">
-                <RadioGroupItem value="pac" id="pac" disabled />
+                <RadioGroupItem 
+                  value="pac" 
+                  id="pac" 
+                  disabled={!hasCep || melhorEnvioLoading || !pacQuote}
+                />
                 <div>
                   <Label htmlFor="pac" className="font-medium cursor-pointer">
                     📦 Correios PAC
                   </Label>
-                  <p className="text-xs text-muted-foreground">Em breve (Melhor Envio)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {melhorEnvioLoading ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Calculando...
+                      </span>
+                    ) : !hasCep ? (
+                      "Informe o CEP"
+                    ) : pacQuote ? (
+                      formatDeliveryTime(pacQuote)
+                    ) : (
+                      "Não disponível para este CEP"
+                    )}
+                  </p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">--</span>
+              <span className="font-semibold text-sm">
+                {melhorEnvioLoading ? (
+                  "--"
+                ) : pacQuote ? (
+                  `R$ ${(pacQuote.custom_price || pacQuote.price).toFixed(2)}`
+                ) : (
+                  "--"
+                )}
+              </span>
             </div>
           )}
 
-          {/* Correios Mini Envios */}
-          {showDeliveryOptions && (
+          {/* Correios Mini Envios - Melhor Envio */}
+          {showDeliveryOptions && melhorEnvioEnabled && (
             <div 
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all opacity-50 ${
-                deliveryMethod === "mini_envios" ? "border-2" : "border-border"
-              }`}
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
+                !hasCep || melhorEnvioLoading || !miniEnviosQuote ? "opacity-60" : ""
+              } ${deliveryMethod === "mini_envios" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "mini_envios" ? { borderColor: primaryColor } : {}}
+              onClick={() => {
+                if (hasCep && miniEnviosQuote && !melhorEnvioLoading) {
+                  onDeliveryMethodChange("mini_envios");
+                }
+              }}
             >
               <div className="flex items-center gap-3">
-                <RadioGroupItem value="mini_envios" id="mini_envios" disabled />
+                <RadioGroupItem 
+                  value="mini_envios" 
+                  id="mini_envios" 
+                  disabled={!hasCep || melhorEnvioLoading || !miniEnviosQuote}
+                />
                 <div>
                   <Label htmlFor="mini_envios" className="font-medium cursor-pointer">
                     📦 Correios Mini Envios
                   </Label>
-                  <p className="text-xs text-muted-foreground">Em breve (Melhor Envio)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {melhorEnvioLoading ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Calculando...
+                      </span>
+                    ) : !hasCep ? (
+                      "Informe o CEP"
+                    ) : miniEnviosQuote ? (
+                      formatDeliveryTime(miniEnviosQuote)
+                    ) : (
+                      "Não disponível para este CEP"
+                    )}
+                  </p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">--</span>
+              <span className="font-semibold text-sm">
+                {melhorEnvioLoading ? (
+                  "--"
+                ) : miniEnviosQuote ? (
+                  `R$ ${(miniEnviosQuote.custom_price || miniEnviosQuote.price).toFixed(2)}`
+                ) : (
+                  "--"
+                )}
+              </span>
             </div>
           )}
 

@@ -86,6 +86,23 @@ const CheckoutContent = () => {
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  
+  // Melhor Envio quotes
+  interface MelhorEnvioQuote {
+    id: number;
+    name: string;
+    company: string;
+    price: number;
+    custom_price: number;
+    discount: number;
+    delivery_time: number;
+    delivery_range: { min: number; max: number };
+    currency: string;
+    error: string | null;
+  }
+  const [melhorEnvioQuotes, setMelhorEnvioQuotes] = useState<MelhorEnvioQuote[]>([]);
+  const [melhorEnvioLoading, setMelhorEnvioLoading] = useState(false);
+  const [melhorEnvioEnabled, setMelhorEnvioEnabled] = useState(false);
 
   const {
     couponCode,
@@ -156,6 +173,18 @@ const CheckoutContent = () => {
           } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_pix) {
             setPixGateway("pagbank");
           }
+        }
+
+        // Check if Melhor Envio is enabled for this store
+        const { data: melhorEnvioSettings } = await supabase
+          .from("melhor_envio_settings")
+          .select("is_active")
+          .eq("user_id", data.id)
+          .eq("is_active", true)
+          .single();
+
+        if (melhorEnvioSettings) {
+          setMelhorEnvioEnabled(true);
         }
       }
     };
@@ -232,7 +261,64 @@ const CheckoutContent = () => {
   // Calculate delivery fee
   useEffect(() => {
     calculateDeliveryFee();
-  }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules]);
+  }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules, melhorEnvioQuotes]);
+
+  // Fetch Melhor Envio quotes when CEP changes
+  useEffect(() => {
+    const fetchMelhorEnvioQuotes = async () => {
+      const cepClean = formData.cep.replace(/\D/g, "");
+      if (!melhorEnvioEnabled || !storeData || cepClean.length !== 8) {
+        setMelhorEnvioQuotes([]);
+        return;
+      }
+
+      const originCep = storeData.merchant_cep || storeData.pickup_address?.match(/\d{5}-?\d{3}/)?.[0] || "";
+      const originCepClean = originCep.replace(/\D/g, "");
+      
+      if (originCepClean.length !== 8) {
+        console.log("Origin CEP not configured for Melhor Envio");
+        return;
+      }
+
+      setMelhorEnvioLoading(true);
+      try {
+        const products = cart.map((item, index) => ({
+          id: item.id || `product-${index}`,
+          width: 11,
+          height: 2,
+          length: 16,
+          weight: 0.3,
+          insurance_value: (item.promotional_price || item.price) * item.quantity,
+          quantity: item.quantity,
+        }));
+
+        const { data, error } = await supabase.functions.invoke("calculate-melhor-envio", {
+          body: {
+            store_user_id: storeData.id,
+            from_postal_code: originCepClean,
+            to_postal_code: cepClean,
+            products,
+          },
+        });
+
+        if (error) {
+          console.error("Error fetching Melhor Envio quotes:", error);
+          setMelhorEnvioQuotes([]);
+        } else if (data?.quotes) {
+          console.log("Melhor Envio quotes received:", data.quotes);
+          setMelhorEnvioQuotes(data.quotes);
+        }
+      } catch (error) {
+        console.error("Error calling Melhor Envio:", error);
+        setMelhorEnvioQuotes([]);
+      } finally {
+        setMelhorEnvioLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchMelhorEnvioQuotes, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.cep, storeData, cart, melhorEnvioEnabled]);
 
   const checkFreeShippingEligibility = () => {
     if (!storeData?.free_shipping_minimum) return false;
@@ -259,6 +345,21 @@ const CheckoutContent = () => {
     if (checkFreeShippingEligibility()) {
       setDeliveryFee(0);
       return;
+    }
+
+    // Check Melhor Envio quotes for SEDEX, PAC, Mini Envios
+    if (["sedex", "pac", "mini_envios"].includes(formData.delivery_method)) {
+      const serviceMap: Record<string, number[]> = {
+        sedex: [1, 3], // SEDEX codes
+        pac: [2, 4],   // PAC codes
+        mini_envios: [17], // Mini Envios code
+      };
+      const serviceCodes = serviceMap[formData.delivery_method] || [];
+      const quote = melhorEnvioQuotes.find(q => serviceCodes.includes(q.id));
+      if (quote) {
+        setDeliveryFee(quote.custom_price || quote.price);
+        return;
+      }
     }
 
     if (shippingRules.length > 0) {
@@ -892,6 +993,9 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             setFormData={setFormData}
             primaryColor={primaryColor}
             hasSelectedAddress={!!selectedAddressId}
+            melhorEnvioQuotes={melhorEnvioQuotes}
+            melhorEnvioLoading={melhorEnvioLoading}
+            melhorEnvioEnabled={melhorEnvioEnabled}
           />
 
           {/* Column 3 - Payment */}
