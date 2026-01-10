@@ -319,7 +319,7 @@ const PaymentMethodsContent = () => {
           border-color: ${buttonBgColor} !important;
         }
       `}</style>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl lg:max-w-none">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
