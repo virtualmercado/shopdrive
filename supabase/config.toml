@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.process-credit-card]
 verify_jwt = false
+
+[functions.calculate-melhor-envio]
+verify_jwt = false
