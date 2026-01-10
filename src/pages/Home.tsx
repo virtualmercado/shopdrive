@@ -638,8 +638,8 @@ const Home = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#midias" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>
-                    Mídias Sociais
+                  <a href="#afiliados" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>
+                    Programa de Afiliados
                   </a>
                 </li>
               </ul>
