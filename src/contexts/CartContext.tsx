@@ -7,6 +7,11 @@ export interface CartItem {
   promotional_price: number | null;
   image_url: string;
   quantity: number;
+  // Product dimensions for shipping calculations
+  weight?: number | null;
+  height?: number | null;
+  width?: number | null;
+  length?: number | null;
 }
 
 interface CartContextType {

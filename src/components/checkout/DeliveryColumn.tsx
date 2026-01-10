@@ -50,6 +50,7 @@ interface DeliveryColumnProps {
   melhorEnvioEnabled?: boolean;
   motoboyFee?: number | null;
   motoboyAvailable?: boolean;
+  miniEnviosAvailable?: boolean;
 }
 
 export const DeliveryColumn = ({
@@ -68,6 +69,7 @@ export const DeliveryColumn = ({
   melhorEnvioEnabled = false,
   motoboyFee = null,
   motoboyAvailable = false,
+  miniEnviosAvailable = true,
 }: DeliveryColumnProps) => {
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
@@ -297,15 +299,15 @@ export const DeliveryColumn = ({
             </div>
           )}
 
-          {/* Correios Mini Envios - Melhor Envio */}
+          {/* Correios Mini Envios - Melhor Envio (with dimension/weight validation) */}
           {showDeliveryOptions && melhorEnvioEnabled && (
             <div 
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
-                !hasCep || melhorEnvioLoading || !miniEnviosQuote ? "opacity-60" : ""
+              className={`flex items-center justify-between p-3 border rounded-lg transition-all ${
+                !hasCep || melhorEnvioLoading || !miniEnviosQuote || !miniEnviosAvailable ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
               } ${deliveryMethod === "mini_envios" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "mini_envios" ? { borderColor: primaryColor } : {}}
               onClick={() => {
-                if (hasCep && miniEnviosQuote && !melhorEnvioLoading) {
+                if (hasCep && miniEnviosQuote && !melhorEnvioLoading && miniEnviosAvailable) {
                   onDeliveryMethodChange("mini_envios");
                 }
               }}
@@ -314,7 +316,7 @@ export const DeliveryColumn = ({
                 <RadioGroupItem 
                   value="mini_envios" 
                   id="mini_envios" 
-                  disabled={!hasCep || melhorEnvioLoading || !miniEnviosQuote}
+                  disabled={!hasCep || melhorEnvioLoading || !miniEnviosQuote || !miniEnviosAvailable}
                 />
                 <div>
                   <Label htmlFor="mini_envios" className="font-medium cursor-pointer">
@@ -328,6 +330,8 @@ export const DeliveryColumn = ({
                       </span>
                     ) : !hasCep ? (
                       "Informe o CEP"
+                    ) : !miniEnviosAvailable ? (
+                      "Peso ou dimensões excedem o limite"
                     ) : miniEnviosQuote ? (
                       formatDeliveryTime(miniEnviosQuote)
                     ) : (
@@ -339,7 +343,7 @@ export const DeliveryColumn = ({
               <span className="font-semibold text-sm">
                 {melhorEnvioLoading ? (
                   "--"
-                ) : miniEnviosQuote ? (
+                ) : miniEnviosQuote && miniEnviosAvailable ? (
                   `R$ ${(miniEnviosQuote.custom_price || miniEnviosQuote.price).toFixed(2)}`
                 ) : (
                   "--"

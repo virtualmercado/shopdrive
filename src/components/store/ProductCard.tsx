@@ -14,6 +14,11 @@ interface ProductCardProps {
     image_url: string | null;
     images: any;
     stock: number;
+    // Product dimensions for shipping
+    weight?: number | null;
+    height?: number | null;
+    width?: number | null;
+    length?: number | null;
   };
   storeSlug?: string;
   primaryColor?: string;
@@ -86,6 +91,10 @@ const ProductCard = ({
       price: product.price,
       promotional_price: product.promotional_price,
       image_url: primaryImage,
+      weight: product.weight,
+      height: product.height,
+      width: product.width,
+      length: product.length,
     };
 
     addToCart(cartItem);
