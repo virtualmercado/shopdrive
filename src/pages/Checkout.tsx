@@ -73,6 +73,8 @@ const CheckoutContent = () => {
   const [loading, setLoading] = useState(false);
   const [storeData, setStoreData] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [motoboyFee, setMotoboyFee] = useState<number | null>(null);
+  const [motoboyAvailable, setMotoboyAvailable] = useState(false);
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingRules, setShippingRules] = useState<any[]>([]);
   const [deliveryOption, setDeliveryOption] = useState<string>("delivery_only");
@@ -261,7 +263,7 @@ const CheckoutContent = () => {
   // Calculate delivery fee
   useEffect(() => {
     calculateDeliveryFee();
-  }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules, melhorEnvioQuotes]);
+  }, [formData.delivery_method, formData.neighborhood, formData.city, formData.cep, cart, storeData, shippingRules, melhorEnvioQuotes, motoboyFee]);
 
   // Fetch Melhor Envio quotes when CEP changes
   useEffect(() => {
@@ -336,6 +338,79 @@ const CheckoutContent = () => {
     return false;
   };
 
+  // Calculate Motoboy fee based on custom shipping rules only
+  const calculateMotoboyFee = (): { fee: number | null; available: boolean } => {
+    if (!storeData || shippingRules.length === 0) {
+      return { fee: null, available: false };
+    }
+
+    const storeMerchantCity = (storeData.merchant_city || storeData.address_city || "").trim().toLowerCase();
+    const customerCity = formData.city.trim().toLowerCase();
+
+    // Motoboy is only available if customer is in the same city as the store
+    if (!storeMerchantCity || !customerCity || storeMerchantCity !== customerCity) {
+      return { fee: null, available: false };
+    }
+
+    // Check for neighborhood-specific rule first
+    if (formData.neighborhood) {
+      const neighborhoodRule = shippingRules.find(
+        rule => rule.scope_type === "neighborhood" && 
+        rule.scope_value.toLowerCase().trim() === formData.neighborhood.toLowerCase().trim()
+      );
+      if (neighborhoodRule) {
+        return { fee: neighborhoodRule.shipping_fee, available: true };
+      }
+    }
+
+    // Check for city-wide rule (single price for entire city)
+    const cityRule = shippingRules.find(
+      rule => rule.scope_type === "city" && 
+      rule.scope_value.toLowerCase().trim() === customerCity
+    );
+    if (cityRule) {
+      return { fee: cityRule.shipping_fee, available: true };
+    }
+
+    // Check for CEP-based rule
+    const cepClean = formData.cep.replace(/\D/g, "");
+    if (cepClean.length === 8) {
+      const zipcodeRule = shippingRules.find(
+        rule => rule.scope_type === "zipcode" && 
+        rule.scope_value.replace(/\D/g, "") === cepClean
+      );
+      if (zipcodeRule) {
+        return { fee: zipcodeRule.shipping_fee, available: true };
+      }
+    }
+
+    // No matching rule found - motoboy not available
+    return { fee: null, available: false };
+  };
+
+  // Update motoboy availability whenever address changes
+  useEffect(() => {
+    const { fee, available } = calculateMotoboyFee();
+    setMotoboyFee(fee);
+    setMotoboyAvailable(available);
+
+    // If motoboy was selected but is no longer available, switch to another method
+    if (formData.delivery_method === "motoboy" && !available) {
+      // Try to find an available delivery method
+      if (melhorEnvioEnabled && melhorEnvioQuotes.length > 0) {
+        const pacQuote = melhorEnvioQuotes.find(q => [2, 4].includes(q.id));
+        if (pacQuote) {
+          setFormData(prev => ({ ...prev, delivery_method: "pac" }));
+          return;
+        }
+      }
+      // Fallback to pickup if available
+      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
+      }
+    }
+  }, [formData.neighborhood, formData.city, formData.cep, shippingRules, storeData]);
+
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
       setDeliveryFee(0);
@@ -344,6 +419,16 @@ const CheckoutContent = () => {
     if (!storeData) return;
     if (checkFreeShippingEligibility()) {
       setDeliveryFee(0);
+      return;
+    }
+
+    // Motoboy uses custom shipping rules exclusively
+    if (formData.delivery_method === "motoboy") {
+      if (motoboyFee !== null) {
+        setDeliveryFee(motoboyFee);
+      } else {
+        setDeliveryFee(0);
+      }
       return;
     }
 
@@ -362,36 +447,7 @@ const CheckoutContent = () => {
       }
     }
 
-    if (shippingRules.length > 0) {
-      const neighborhoodRule = shippingRules.find(
-        rule => rule.scope_type === "neighborhood" && 
-        rule.scope_value.toLowerCase() === formData.neighborhood.toLowerCase()
-      );
-      if (neighborhoodRule) {
-        setDeliveryFee(neighborhoodRule.shipping_fee);
-        return;
-      }
-
-      const cityRule = shippingRules.find(
-        rule => rule.scope_type === "city" && 
-        rule.scope_value.toLowerCase() === formData.city.toLowerCase()
-      );
-      if (cityRule) {
-        setDeliveryFee(cityRule.shipping_fee);
-        return;
-      }
-
-      const cepClean = formData.cep.replace(/\D/g, "");
-      const zipcodeRule = shippingRules.find(
-        rule => rule.scope_type === "zipcode" && 
-        rule.scope_value.replace(/\D/g, "") === cepClean
-      );
-      if (zipcodeRule) {
-        setDeliveryFee(zipcodeRule.shipping_fee);
-        return;
-      }
-    }
-
+    // Fallback to fixed fee for other cases
     setDeliveryFee(storeData.shipping_fixed_fee || 10);
   };
 
@@ -996,6 +1052,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             melhorEnvioQuotes={melhorEnvioQuotes}
             melhorEnvioLoading={melhorEnvioLoading}
             melhorEnvioEnabled={melhorEnvioEnabled}
+            motoboyFee={motoboyFee}
+            motoboyAvailable={motoboyAvailable}
           />
 
           {/* Column 3 - Payment */}

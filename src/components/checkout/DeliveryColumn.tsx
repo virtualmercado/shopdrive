@@ -29,6 +29,8 @@ interface DeliveryColumnProps {
     pickup_hours_weekday_end?: string;
     pickup_hours_saturday_start?: string;
     pickup_hours_saturday_end?: string;
+    merchant_city?: string;
+    address_city?: string;
   } | null;
   shippingRules: any[];
   formData: {
@@ -46,6 +48,8 @@ interface DeliveryColumnProps {
   melhorEnvioQuotes?: MelhorEnvioQuote[];
   melhorEnvioLoading?: boolean;
   melhorEnvioEnabled?: boolean;
+  motoboyFee?: number | null;
+  motoboyAvailable?: boolean;
 }
 
 export const DeliveryColumn = ({
@@ -62,6 +66,8 @@ export const DeliveryColumn = ({
   melhorEnvioQuotes = [],
   melhorEnvioLoading = false,
   melhorEnvioEnabled = false,
+  motoboyFee = null,
+  motoboyAvailable = false,
 }: DeliveryColumnProps) => {
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
@@ -144,25 +150,46 @@ export const DeliveryColumn = ({
           onValueChange={(value) => onDeliveryMethodChange(value as DeliveryMethod)}
           className="space-y-3"
         >
-          {/* Motoboy Option */}
+          {/* Motoboy Option - Only available in same city with custom shipping rules */}
           {showDeliveryOptions && shippingRules.length > 0 && (
             <div 
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
-                deliveryMethod === "motoboy" ? "border-2" : "border-border"
-              }`}
+              className={`flex items-center justify-between p-3 border rounded-lg transition-all ${
+                !motoboyAvailable ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+              } ${deliveryMethod === "motoboy" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "motoboy" ? { borderColor: primaryColor } : {}}
+              onClick={() => {
+                if (motoboyAvailable) {
+                  onDeliveryMethodChange("motoboy");
+                }
+              }}
             >
               <div className="flex items-center gap-3">
-                <RadioGroupItem value="motoboy" id="motoboy" />
+                <RadioGroupItem 
+                  value="motoboy" 
+                  id="motoboy" 
+                  disabled={!motoboyAvailable}
+                />
                 <div>
                   <Label htmlFor="motoboy" className="font-medium cursor-pointer">
                     🏍️ Motoboy
                   </Label>
-                  <p className="text-xs text-muted-foreground">De 01 a 02 dias</p>
+                  <p className="text-xs text-muted-foreground">
+                    {!formData.city ? (
+                      "Informe o endereço"
+                    ) : !motoboyAvailable ? (
+                      "Indisponível para este endereço"
+                    ) : (
+                      "De 01 a 02 dias"
+                    )}
+                  </p>
                 </div>
               </div>
               <span className="font-semibold text-sm">
-                R$ {deliveryFee.toFixed(2)}
+                {motoboyAvailable && motoboyFee !== null ? (
+                  `R$ ${motoboyFee.toFixed(2)}`
+                ) : (
+                  "--"
+                )}
               </span>
             </div>
           )}
