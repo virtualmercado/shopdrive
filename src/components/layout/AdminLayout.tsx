@@ -41,7 +41,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: FileText, label: "Faturas e Pagamentos", path: "/gestor/faturas" },
     { icon: Zap, label: "Automações", path: "/gestor/automacoes" },
     { icon: LinkIcon, label: "Integrações", path: "/gestor/integracoes" },
-    { icon: Layers, label: "Gerenciador de Conteúdo", path: "/gestor/cms" },
+    { icon: Layers, label: "Gerenciador CMS", path: "/gestor/cms" },
     { icon: Image, label: "Biblioteca de Mídia", path: "/gestor/biblioteca-midia" },
     { icon: BarChart3, label: "Relatórios", path: "/gestor/relatorios" },
     { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/gestor/suporte" },
