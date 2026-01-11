@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
   FileText,
-  Upload,
   Image as ImageIcon,
   RefreshCw
 } from "lucide-react";
@@ -230,26 +229,16 @@ const AdminCMS = () => {
                       </div>
 
                       {/* Upload Controls */}
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="flex-1">
-                          <Input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            ref={(el) => fileInputRefs.current[banner.id] = el}
-                            onChange={(e) => handleFileChange(banner.id, e)}
-                          />
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => handleUploadClick(banner.id)}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Selecionar Nova Imagem
-                          </Button>
-                        </div>
+                      <div>
+                        <Input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          ref={(el) => fileInputRefs.current[banner.id] = el}
+                          onChange={(e) => handleFileChange(banner.id, e)}
+                        />
                         <Button
-                          className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
+                          className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full sm:w-auto"
                           onClick={() => handleUploadClick(banner.id)}
                         >
                           <RefreshCw className="h-4 w-4 mr-2" />
