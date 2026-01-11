@@ -1,124 +1,113 @@
 import { useState } from "react";
-import { CircleDollarSign, Coins, LockOpen, Trophy } from "lucide-react";
+import { CircleDollarSign, Coins, LockOpen, Trophy, Check, Star, Zap, Shield, Gift, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import editIcon from "@/assets/edit-icon.png";
+import { useCMSContent } from "@/hooks/useCMSContent";
 
 // VirtualMercado default colors
 const VM_PRIMARY = "#6a1b9a";
 const VM_ORANGE = "#f97316";
 const VM_GREEN = "#16a34a";
 
-// Garantias fixas padrão para PRO e PREMIUM
-const PLAN_GUARANTEES = [
-  { icon: CircleDollarSign, text: "Garantia de 7 dias" },
-  { icon: Coins, text: "Sem comissão sobre as vendas" },
-  { icon: LockOpen, text: "Cancele a qualquer momento, sem multas ou taxas" },
-  { icon: Trophy, text: "Plano escolhido por milhares de assinantes" },
+// Icon mapping for dynamic icons
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  CircleDollarSign,
+  Coins,
+  LockOpen,
+  Trophy,
+  Check,
+  Star,
+  Zap,
+  Shield,
+  Gift,
+  Award,
+  Crown,
+};
+
+// Default guarantees (fallback)
+const DEFAULT_GUARANTEES = [
+  { icon: "CircleDollarSign", text: "Garantia de 7 dias" },
+  { icon: "Coins", text: "Sem comissão sobre as vendas" },
+  { icon: "LockOpen", text: "Cancele a qualquer momento, sem multas ou taxas" },
+  { icon: "Trophy", text: "Plano escolhido por milhares de assinantes" },
 ];
 
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
-
-interface ExtraFeature {
-  text: string;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  displayName: string;
-  subtitle: string;
-  monthlyPrice: number;
-  features: PlanFeature[];
-  extraFeatures?: ExtraFeature[];
-  previousPlanIncluded?: {
-    planName: string;
-    planLabel: string;
-    labelColor: string;
-    labelBgColor: string;
-    description: string;
-  };
-  buttonText: string;
-  buttonAction: "free" | "current" | "upgrade";
-}
-
-const PLANS: Plan[] = [
+// Default plans (fallback)
+const DEFAULT_PLANS = [
   {
     id: "gratis",
     name: "GRÁTIS",
-    displayName: "Plano GRÁTIS",
-    subtitle: "",
-    monthlyPrice: 0,
+    display_name: "Plano GRÁTIS",
+    subtitle: "Comece a vender agora, sem custos.",
+    monthly_price: 0,
+    button_text: "Começar grátis",
+    badge_text: "",
+    badge_active: false,
+    badge_color: "#f97316",
     features: [
-      { text: "Até 20 produtos cadastrados", included: true },
-      { text: "Até 40 clientes ativos", included: true },
-      { text: "Pedidos ilimitados", included: true },
-      { text: "ERP (Gestor Virtual) integrado", included: true },
-      { text: "Frete personalizado", included: true },
-      { text: "Gerador de catálogo PDF ilimitado", included: true },
-      { text: "Controle de estoque", included: true },
-      { text: "Sem anúncios", included: true },
-      { text: "Agente de mensagens", included: true },
-      { text: "Calculadora de frete", included: true },
-      { text: "Versão mobile responsiva", included: true },
-      { text: "Categorias e subcategorias ilimitadas", included: true },
-      { text: "Dashboard e relatórios avançados", included: true },
-      { text: "Compartilhamento com suas redes sociais", included: true },
-      { text: "Gateway e checkout de pagamentos", included: true },
+      { icon: "Check", text: "Até 20 produtos cadastrados" },
+      { icon: "Check", text: "Até 40 clientes ativos" },
+      { icon: "Check", text: "Pedidos ilimitados" },
+      { icon: "Check", text: "ERP (Gestor Virtual) integrado" },
+      { icon: "Check", text: "Frete personalizado" },
+      { icon: "Check", text: "Gerador de catálogo PDF ilimitado" },
+      { icon: "Check", text: "Controle de estoque" },
+      { icon: "Check", text: "Sem anúncios" },
+      { icon: "Check", text: "Agente de mensagens" },
+      { icon: "Check", text: "Calculadora de frete" },
+      { icon: "Check", text: "Versão mobile responsiva" },
+      { icon: "Check", text: "Categorias e subcategorias ilimitadas" },
+      { icon: "Check", text: "Dashboard e relatórios avançados" },
+      { icon: "Check", text: "Compartilhamento com suas redes sociais" },
+      { icon: "Check", text: "Gateway e checkout de pagamentos" },
     ],
-    buttonText: "Começar grátis",
-    buttonAction: "free",
   },
   {
     id: "pro",
     name: "PRO",
-    displayName: "Plano PRO",
-    subtitle: "",
-    monthlyPrice: 29.97,
-    features: [],
-    previousPlanIncluded: {
-      planName: "Plano GRÁTIS",
-      planLabel: "GRÁTIS",
-      labelColor: "#22c55e",
-      labelBgColor: "#dcfce7",
+    display_name: "Plano PRO",
+    subtitle: "O melhor custo benefício do mercado online.",
+    monthly_price: 29.97,
+    button_text: "Escolher PRO",
+    badge_text: "Recomendado",
+    badge_active: true,
+    badge_color: "#f97316",
+    previous_plan: {
+      name: "Plano GRÁTIS",
+      label: "GRÁTIS",
       description: "Tudo o que o plano GRÁTIS oferece, e mais:",
     },
-    extraFeatures: [
-      { text: "Até 150 produtos cadastrados" },
-      { text: "Até 300 clientes ativos" },
-      { text: "Personalização total do seu site (sua logo e cores)" },
-      { text: "Cupons de desconto ilimitado" },
+    features: [
+      { icon: "Check", text: "Até 150 produtos cadastrados" },
+      { icon: "Check", text: "Até 300 clientes ativos" },
+      { icon: "Check", text: "Personalização total do seu site (sua logo e cores)" },
+      { icon: "Check", text: "Cupons de desconto ilimitado" },
     ],
-    buttonText: "Escolher PRO",
-    buttonAction: "upgrade",
   },
   {
     id: "premium",
     name: "PREMIUM",
-    displayName: "Plano PREMIUM",
-    subtitle: "",
-    monthlyPrice: 49.97,
-    features: [],
-    previousPlanIncluded: {
-      planName: "Plano PRO",
-      planLabel: "PRO",
-      labelColor: "#f97316",
-      labelBgColor: "#fff7ed",
+    display_name: "Plano PREMIUM",
+    subtitle: "A solução ideal para quem quer escalar mais rápido as vendas.",
+    monthly_price: 49.97,
+    button_text: "Escolher PREMIUM",
+    badge_text: "",
+    badge_active: false,
+    badge_color: "#f97316",
+    previous_plan: {
+      name: "Plano PRO",
+      label: "PRO",
       description: "Tudo o que o plano PRO oferece, e mais:",
     },
-    extraFeatures: [
-      { text: "Produtos ilimitados" },
-      { text: "Clientes ilimitados" },
-      { text: "Editor de imagens com IA" },
-      { text: "Vínculo de domínio próprio" },
-      { text: "Suporte dedicado via e-mail e WhatsApp" },
+    features: [
+      { icon: "Check", text: "Produtos ilimitados" },
+      { icon: "Check", text: "Clientes ilimitados" },
+      { icon: "Check", text: "Editor de imagens com IA" },
+      { icon: "Check", text: "Vínculo de domínio próprio" },
+      { icon: "Check", text: "Suporte dedicado via e-mail e WhatsApp" },
     ],
-    buttonText: "Escolher PREMIUM",
-    buttonAction: "upgrade",
   },
 ];
 
@@ -130,6 +119,16 @@ interface PlansSectionProps {
 
 export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction }: PlansSectionProps) => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
+  const { data: cmsContent } = useCMSContent();
+
+  // Get plans content from CMS or use defaults
+  const plansContent = cmsContent?.plans || {};
+  const plans = plansContent.plans || DEFAULT_PLANS;
+  const guarantees = plansContent.guarantees || DEFAULT_GUARANTEES;
+  const toggleMonthly = plansContent.toggle_monthly || "Mensal";
+  const toggleAnnual = plansContent.toggle_annual || "Anual";
+  const discountBadge = plansContent.discount_badge || "-30% DESC.";
+  const annualDiscountText = plansContent.annual_discount_text || "- 30% de desconto no plano anual";
 
   const calculateAnnualPrice = (monthlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
@@ -138,11 +137,11 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
     return discounted;
   };
 
-  const getDisplayPrice = (plan: Plan) => {
+  const getDisplayPrice = (monthlyPrice: number) => {
     if (billingPeriod === "monthly") {
-      return plan.monthlyPrice;
+      return monthlyPrice;
     }
-    return calculateAnnualPrice(plan.monthlyPrice);
+    return calculateAnnualPrice(monthlyPrice);
   };
 
   const formatPrice = (price: number) => {
@@ -150,12 +149,22 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
     return price.toFixed(2).replace(".", ",");
   };
 
-  const getPriceSuffix = (plan: Plan) => {
-    if (plan.monthlyPrice === 0) return "/mês";
+  const getPriceSuffix = (monthlyPrice: number) => {
+    if (monthlyPrice === 0) return "/mês";
     return billingPeriod === "monthly" ? "/mês" : "/ano";
   };
 
   const isCurrentPlan = (planId: string) => planId === currentPlan;
+
+  const getButtonAction = (planId: string): "free" | "current" | "upgrade" => {
+    if (planId === "gratis") return "free";
+    if (isCurrentPlan(planId)) return "current";
+    return "upgrade";
+  };
+
+  const getIconComponent = (iconName: string) => {
+    return ICON_MAP[iconName] || Check;
+  };
 
   return (
     <div className="w-full">
@@ -174,7 +183,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
               backgroundColor: billingPeriod === "monthly" ? VM_PRIMARY : "transparent",
             }}
           >
-            Mensal
+            {toggleMonthly}
           </button>
           <div className="flex items-center gap-2">
             <button
@@ -190,14 +199,14 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 color: billingPeriod === "annual" ? "white" : VM_PRIMARY,
               }}
             >
-              Anual
+              {toggleAnnual}
             </button>
             {billingPeriod === "monthly" && (
               <span 
                 className="px-2 py-1 rounded text-xs font-bold text-white whitespace-nowrap"
                 style={{ backgroundColor: VM_ORANGE }}
               >
-                -30% DESC.
+                {discountBadge}
               </span>
             )}
           </div>
@@ -211,11 +220,11 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
           ? "grid-cols-1 md:grid-cols-3 max-w-5xl mx-auto" 
           : "grid-cols-1 md:grid-cols-3"
       )}>
-        {PLANS.map((plan) => {
+        {plans.map((plan: any) => {
           const isCurrent = isCurrentPlan(plan.id);
-          const price = getDisplayPrice(plan);
-
+          const price = getDisplayPrice(plan.monthly_price);
           const isProPlan = plan.id === "pro";
+          const showBadge = plan.badge_active && plan.badge_text;
 
           return (
             <div
@@ -225,23 +234,24 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 isLandingPage ? "p-4 md:p-5" : "p-6",
                 isCurrent
                   ? "border-2 shadow-lg scale-[1.02]"
-                  : isProPlan && isLandingPage
+                  : (showBadge && isLandingPage)
                     ? "border-[3px] shadow-lg"
                     : "border border-gray-200"
               )}
               style={{
-                borderColor: isCurrent ? VM_PRIMARY : (isProPlan && isLandingPage ? VM_PRIMARY : undefined),
+                borderColor: isCurrent ? VM_PRIMARY : (showBadge && isLandingPage ? VM_PRIMARY : undefined),
               }}
             >
-              {/* Badge Recomendado para Plano PRO na Landing Page */}
-              {isProPlan && isLandingPage && (
+              {/* Badge */}
+              {showBadge && isLandingPage && (
                 <div 
                   className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: VM_ORANGE }}
+                  style={{ backgroundColor: plan.badge_color || VM_ORANGE }}
                 >
-                  Recomendado
+                  {plan.badge_text}
                 </div>
               )}
+              
               {/* Plan Header */}
               <div className="text-center mb-4">
                 <h3
@@ -251,16 +261,16 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                   )}
                   style={{ color: VM_PRIMARY }}
                 >
-                  {plan.displayName}
+                  {plan.display_name}
                 </h3>
                 
                 {/* Valor anual sem desconto (tachado) */}
-                {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
+                {billingPeriod === "annual" && plan.monthly_price > 0 && (
                   <p className={cn(
                     "text-gray-500 line-through mb-1",
                     isLandingPage ? "text-base" : "text-lg"
                   )}>
-                    R$ {formatPrice(plan.monthlyPrice * 12)}
+                    R$ {formatPrice(plan.monthly_price * 12)}
                   </p>
                 )}
                 
@@ -271,33 +281,24 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                   )}>
                     R$ {formatPrice(price)}
                   </span>
-                  <span className="text-gray-800 text-sm">{getPriceSuffix(plan)}</span>
+                  <span className="text-gray-800 text-sm">{getPriceSuffix(plan.monthly_price)}</span>
                 </div>
-                {plan.id === "gratis" && (
+                
+                {plan.subtitle && (
                   <p className={cn(
                     "text-gray-600 text-left mt-2",
                     isLandingPage ? "text-xs md:text-sm" : "text-sm"
                   )}>
-                    Comece a vender agora,<br />sem custos.
+                    {plan.subtitle.split('\n').map((line: string, i: number) => (
+                      <span key={i}>
+                        {line}
+                        {i < plan.subtitle.split('\n').length - 1 && <br />}
+                      </span>
+                    ))}
                   </p>
                 )}
-                {plan.id === "pro" && (
-                  <p className={cn(
-                    "text-gray-600 text-left mt-2",
-                    isLandingPage ? "text-xs md:text-sm" : "text-sm"
-                  )}>
-                    O melhor custo benefício<br />do mercado online.
-                  </p>
-                )}
-                {plan.id === "premium" && (
-                  <p className={cn(
-                    "text-gray-600 text-left mt-2",
-                    isLandingPage ? "text-xs md:text-sm" : "text-sm"
-                  )}>
-                    A solução ideal para quem quer<br />escalar mais rápido as vendas.
-                  </p>
-                )}
-                {billingPeriod === "annual" && plan.monthlyPrice > 0 && (
+                
+                {billingPeriod === "annual" && plan.monthly_price > 0 && (
                   <p 
                     className={cn(
                       "font-bold mt-1",
@@ -305,7 +306,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                     )}
                     style={{ color: VM_PRIMARY }}
                   >
-                    - 30% de desconto no plano anual
+                    {annualDiscountText}
                   </p>
                 )}
               </div>
@@ -324,7 +325,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                     "mb-6",
                     isLandingPage ? "space-y-2" : "space-y-3"
                   )}>
-                    {plan.features.map((feature, idx) => (
+                    {plan.features.map((feature: any, idx: number) => (
                       <div key={idx} className="flex items-start gap-2">
                         <img 
                           src={editIcon} 
@@ -346,7 +347,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 )}
 
                 {/* PRO e PREMIUM - Card visual do plano anterior + recursos extras */}
-                {plan.previousPlanIncluded && (
+                {plan.previous_plan && (
                   <>
                     {/* Box visual simulando recursos do plano anterior */}
                     <div 
@@ -363,7 +364,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                         )}
                         style={{ color: VM_PRIMARY }}
                       >
-                        {plan.previousPlanIncluded.planName}
+                        {plan.previous_plan.name}
                       </p>
                       
                       <div className={cn(
@@ -417,18 +418,18 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                       "text-gray-700 mb-4",
                       isLandingPage ? "text-xs md:text-sm" : "text-sm"
                     )}>
-                      {plan.previousPlanIncluded.description.split(plan.previousPlanIncluded.planLabel)[0]}
-                      <span className="font-bold">{plan.previousPlanIncluded.planLabel}</span>
-                      {plan.previousPlanIncluded.description.split(plan.previousPlanIncluded.planLabel)[1]}
+                      {plan.previous_plan.description.split(plan.previous_plan.label)[0]}
+                      <span className="font-bold">{plan.previous_plan.label}</span>
+                      {plan.previous_plan.description.split(plan.previous_plan.label)[1]}
                     </p>
 
                     {/* Recursos extras */}
-                    {plan.extraFeatures && plan.extraFeatures.length > 0 && (
+                    {plan.features && plan.features.length > 0 && (
                       <div className={cn(
                         "mb-6",
                         isLandingPage ? "space-y-2" : "space-y-3"
                       )}>
-                        {plan.extraFeatures.map((feature, idx) => (
+                        {plan.features.map((feature: any, idx: number) => (
                           <div key={idx} className="flex items-start gap-2">
                             <img 
                               src={editIcon} 
@@ -457,27 +458,30 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                     "mt-auto mb-5",
                     isLandingPage ? "space-y-2" : "space-y-3"
                   )}>
-                    {PLAN_GUARANTEES.map((guarantee, idx) => (
-                      <div key={idx} className="flex items-start gap-2.5">
-                        <guarantee.icon 
-                          className={cn(
-                            "flex-shrink-0 mt-0.5",
-                            isLandingPage ? "w-4 h-4 md:w-5 md:h-5" : "w-5 h-5"
-                          )}
-                          style={{ color: VM_GREEN }}
-                          strokeWidth={2}
-                        />
-                        <span 
-                          className={cn(
-                            "font-semibold",
-                            isLandingPage ? "text-xs md:text-sm" : "text-sm"
-                          )}
-                          style={{ color: VM_GREEN }}
-                        >
-                          {guarantee.text}
-                        </span>
-                      </div>
-                    ))}
+                    {guarantees.map((guarantee: any, idx: number) => {
+                      const IconComponent = getIconComponent(guarantee.icon);
+                      return (
+                        <div key={idx} className="flex items-start gap-2.5">
+                          <IconComponent 
+                            className={cn(
+                              "flex-shrink-0 mt-0.5",
+                              isLandingPage ? "w-4 h-4 md:w-5 md:h-5" : "w-5 h-5"
+                            )}
+                            style={{ color: VM_GREEN }}
+                            strokeWidth={2}
+                          />
+                          <span 
+                            className={cn(
+                              "font-semibold",
+                              isLandingPage ? "text-xs md:text-sm" : "text-sm"
+                            )}
+                            style={{ color: VM_GREEN }}
+                          >
+                            {guarantee.text}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -500,12 +504,12 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                       e.currentTarget.style.backgroundColor = VM_ORANGE;
                     }}
                   >
-                    {plan.buttonText}
+                    {plan.button_text}
                   </Button>
                 </Link>
               ) : (
                 <Button
-                  onClick={() => onPlanAction?.(plan.id, plan.buttonAction)}
+                  onClick={() => onPlanAction?.(plan.id, getButtonAction(plan.id))}
                   disabled={isCurrent}
                   className={cn(
                     "w-full py-3 font-semibold text-white transition-all duration-300 mt-auto",
@@ -526,7 +530,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                     }
                   }}
                 >
-                  {isCurrent ? "Meu plano atual" : plan.buttonText}
+                  {isCurrent ? "Meu plano atual" : plan.button_text}
                 </Button>
               )}
             </div>

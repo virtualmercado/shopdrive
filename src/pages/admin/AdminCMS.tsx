@@ -16,6 +16,7 @@ import {
   CreditCard,
   Box,
   Grid3X3,
+  Crown,
   Users,
   ListOrdered,
   Edit
@@ -39,6 +40,7 @@ import CMSResourcesModal from "@/components/admin/cms/CMSResourcesModal";
 import CMSResourceCardsModal from "@/components/admin/cms/CMSResourceCardsModal";
 import CMSTestimonialsModal from "@/components/admin/cms/CMSTestimonialsModal";
 import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
+import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -85,6 +87,7 @@ const contentSections = [
   { key: "resource_cards", name: "Cards de Recursos", icon: Grid3X3, description: "8 cards com ícones e textos" },
   { key: "testimonials", name: "Prova Social (Depoimentos)", icon: Users, description: "Depoimentos de clientes" },
   { key: "how_it_works", name: "Como Funciona", icon: ListOrdered, description: "3 passos e CTA final" },
+  { key: "plans", name: "Planos da Plataforma", icon: Crown, description: "Textos, preços e recursos dos planos" },
 ];
 
 const AdminCMS = () => {
@@ -487,6 +490,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["how_it_works"]}
         onSave={(content) => handleSaveContent("how_it_works", content)}
+      />
+      <CMSPlansModal
+        isOpen={activeModal === "plans"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["plans"]}
+        onSave={(content) => handleSaveContent("plans", content)}
       />
     </AdminLayout>
   );
