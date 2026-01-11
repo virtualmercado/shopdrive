@@ -31,6 +31,7 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import CustomerAuth from "./pages/CustomerAuth";
 import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./pages/ComingSoon";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -108,6 +109,16 @@ function App() {
             {/* Customer Account Routes */}
             <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
             <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
+            
+            {/* Landing Page Internal Routes (Coming Soon) */}
+            <Route path="/sobre-nos" element={<ComingSoon />} />
+            <Route path="/blog" element={<ComingSoon />} />
+            <Route path="/programa-de-afiliados" element={<ComingSoon />} />
+            <Route path="/central-de-ajuda" element={<ComingSoon />} />
+            <Route path="/fale-conosco" element={<ComingSoon />} />
+            <Route path="/termos-de-uso" element={<ComingSoon />} />
+            <Route path="/politica-de-privacidade" element={<ComingSoon />} />
+            <Route path="/politica-de-cookies" element={<ComingSoon />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
