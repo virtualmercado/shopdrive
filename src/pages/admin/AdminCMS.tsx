@@ -41,6 +41,7 @@ import CMSResourceCardsModal from "@/components/admin/cms/CMSResourceCardsModal"
 import CMSTestimonialsModal from "@/components/admin/cms/CMSTestimonialsModal";
 import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
 import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
+import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -88,6 +89,7 @@ const contentSections = [
   { key: "testimonials", name: "Prova Social (Depoimentos)", icon: Users, description: "Depoimentos de clientes" },
   { key: "how_it_works", name: "Como Funciona", icon: ListOrdered, description: "3 passos e CTA final" },
   { key: "plans", name: "Planos da Plataforma", icon: Crown, description: "Textos, preços e recursos dos planos" },
+  { key: "faq", name: "Dúvidas Frequentes", icon: MessageSquare, description: "Perguntas e respostas do FAQ" },
 ];
 
 const AdminCMS = () => {
@@ -496,6 +498,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["plans"]}
         onSave={(content) => handleSaveContent("plans", content)}
+      />
+      <CMSFaqModal
+        isOpen={activeModal === "faq"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["faq"]}
+        onSave={(content) => handleSaveContent("faq", content)}
       />
     </AdminLayout>
   );
