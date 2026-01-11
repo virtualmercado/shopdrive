@@ -607,6 +607,51 @@ export type Database = {
           },
         ]
       }
+      media_files: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_type: string
+          height: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          size: number
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_type: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          size: number
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_type?: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          size?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       melhor_envio_settings: {
         Row: {
           api_key: string
