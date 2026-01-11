@@ -7,7 +7,18 @@ import {
   Image as ImageIcon,
   RefreshCw,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Type,
+  Layout,
+  Layers,
+  MessageSquare,
+  TrendingUp,
+  CreditCard,
+  Box,
+  Grid3X3,
+  Users,
+  ListOrdered,
+  Edit
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -17,6 +28,18 @@ import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
 import heroImage from "@/assets/hero-banner.jpg";
 import benefitsImage from "@/assets/benefits-handshake.jpg";
 import benefitsMobile from "@/assets/benefits-mobile.jpg";
+
+// CMS Content Modals
+import CMSHeaderModal from "@/components/admin/cms/CMSHeaderModal";
+import CMSHeroModal from "@/components/admin/cms/CMSHeroModal";
+import CMSProductsModal from "@/components/admin/cms/CMSProductsModal";
+import CMSSocialProofModal from "@/components/admin/cms/CMSSocialProofModal";
+import CMSSalesPaymentsModal from "@/components/admin/cms/CMSSalesPaymentsModal";
+import CMSResourcesModal from "@/components/admin/cms/CMSResourcesModal";
+import CMSResourceCardsModal from "@/components/admin/cms/CMSResourceCardsModal";
+import CMSTestimonialsModal from "@/components/admin/cms/CMSTestimonialsModal";
+import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
+import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
   id: string;
@@ -51,12 +74,38 @@ const defaultImages: Record<string, string> = {
   'banner_03': benefitsMobile,
 };
 
+// Content sections configuration
+const contentSections = [
+  { key: "header", name: "Header da Landing Page", icon: Layout, description: "Menu de navegação e botões" },
+  { key: "hero", name: "Hero da Landing Page", icon: Type, description: "Título, subtítulo e CTAs principais" },
+  { key: "products", name: "Bloco Seus Produtos", icon: Box, description: "Seção de produtos disponíveis" },
+  { key: "social_proof_1", name: "Prova Social 01", icon: TrendingUp, description: "Destaque de credibilidade" },
+  { key: "sales_payments", name: "Bloco Vendas e Pagamentos", icon: CreditCard, description: "WhatsApp e métodos de pagamento" },
+  { key: "resources", name: "Bloco Recursos", icon: Layers, description: "Título e subtítulo da seção" },
+  { key: "resource_cards", name: "Cards de Recursos", icon: Grid3X3, description: "8 cards com ícones e textos" },
+  { key: "testimonials", name: "Prova Social (Depoimentos)", icon: Users, description: "Depoimentos de clientes" },
+  { key: "how_it_works", name: "Como Funciona", icon: ListOrdered, description: "3 passos e CTA final" },
+];
+
 const AdminCMS = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectedBannerId, setSelectedBannerId] = useState<string | null>(null);
   const [bannerDimensions, setBannerDimensions] = useState<Record<string, { width: number; height: number; format: string; aspectRatio: string }>>({});
   
+  // Content modal states
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  
   const queryClient = useQueryClient();
+
+  // Fetch CMS content
+  const { data: cmsContentList } = useCMSContentAdmin();
+  const updateContentMutation = useUpdateCMSContent();
+
+  // Convert list to map for easy access
+  const cmsContent: Record<string, Record<string, any>> = {};
+  cmsContentList?.forEach((item) => {
+    cmsContent[item.section_key] = item.content;
+  });
 
   // Fetch CMS banners from database
   const { data: cmsBanners, isLoading, error } = useQuery({
@@ -199,6 +248,10 @@ const AdminCMS = () => {
     });
   };
 
+  const handleSaveContent = async (sectionKey: string, content: Record<string, any>) => {
+    await updateContentMutation.mutateAsync({ sectionKey, content });
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -223,7 +276,7 @@ const AdminCMS = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Main CMS Card */}
+        {/* Main CMS Card - Banners */}
         <Card>
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-3">
@@ -319,6 +372,51 @@ const AdminCMS = () => {
               ))}
             </div>
 
+            {/* Divider */}
+            <div className="border-t my-8" />
+
+            {/* Content Sections */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-[#6a1b9a]" />
+                Conteúdo Textual da Landing Page
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Edite os textos, títulos, subtítulos e CTAs de cada seção da landing page. As alterações são refletidas automaticamente.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {contentSections.map((section) => {
+                  const IconComponent = section.icon;
+                  return (
+                    <div
+                      key={section.key}
+                      className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                          <IconComponent className="h-5 w-5 text-[#6a1b9a]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm mb-1">{section.name}</h4>
+                          <p className="text-xs text-muted-foreground mb-3">{section.description}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                            onClick={() => setActiveModal(section.key)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
           </CardContent>
         </Card>
       </div>
@@ -333,6 +431,62 @@ const AdminCMS = () => {
         onSelect={handleSelectMedia}
         allowedTypes={["image"]}
         title="Selecionar Imagem da Biblioteca"
+      />
+
+      {/* Content Modals */}
+      <CMSHeaderModal
+        isOpen={activeModal === "header"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["header"]}
+        onSave={(content) => handleSaveContent("header", content)}
+      />
+      <CMSHeroModal
+        isOpen={activeModal === "hero"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["hero"]}
+        onSave={(content) => handleSaveContent("hero", content)}
+      />
+      <CMSProductsModal
+        isOpen={activeModal === "products"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["products"]}
+        onSave={(content) => handleSaveContent("products", content)}
+      />
+      <CMSSocialProofModal
+        isOpen={activeModal === "social_proof_1"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["social_proof_1"]}
+        onSave={(content) => handleSaveContent("social_proof_1", content)}
+      />
+      <CMSSalesPaymentsModal
+        isOpen={activeModal === "sales_payments"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["sales_payments"]}
+        onSave={(content) => handleSaveContent("sales_payments", content)}
+      />
+      <CMSResourcesModal
+        isOpen={activeModal === "resources"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["resources"]}
+        onSave={(content) => handleSaveContent("resources", content)}
+      />
+      <CMSResourceCardsModal
+        isOpen={activeModal === "resource_cards"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["resource_cards"]}
+        onSave={(content) => handleSaveContent("resource_cards", content)}
+      />
+      <CMSTestimonialsModal
+        isOpen={activeModal === "testimonials"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["testimonials"]}
+        onSave={(content) => handleSaveContent("testimonials", content)}
+      />
+      <CMSHowItWorksModal
+        isOpen={activeModal === "how_it_works"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["how_it_works"]}
+        onSave={(content) => handleSaveContent("how_it_works", content)}
       />
     </AdminLayout>
   );

@@ -171,6 +171,33 @@ export type Database = {
           },
         ]
       }
+      cms_landing_content: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          is_active: boolean | null
+          section_key: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          section_key: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          section_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       correios_settings: {
         Row: {
           contract_code: string | null
