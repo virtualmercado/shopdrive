@@ -319,14 +319,6 @@ const AdminCMS = () => {
               ))}
             </div>
 
-            {/* Info Note */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Como funciona:</strong> Ao clicar em "Substituir Banner", a Biblioteca de Mídia será aberta. 
-                Selecione uma imagem existente ou faça upload de uma nova. A alteração será aplicada automaticamente 
-                na landing page da VirtualMercado.
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
