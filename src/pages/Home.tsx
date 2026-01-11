@@ -8,15 +8,23 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-footer.png";
-import heroImage from "@/assets/hero-banner.jpg";
-import benefitsImage from "@/assets/benefits-handshake.jpg";
-import benefitsMobile from "@/assets/benefits-mobile.jpg";
+import heroImageDefault from "@/assets/hero-banner.jpg";
+import benefitsImageDefault from "@/assets/benefits-handshake.jpg";
+import benefitsMobileDefault from "@/assets/benefits-mobile.jpg";
 import snapchatIcon from "@/assets/snapchat-icon.png";
 import editIcon from "@/assets/edit-icon.png";
 import testimonialJuliana from "@/assets/testimonial-juliana.jpg";
 import testimonialMarcos from "@/assets/testimonial-marcos.jpg";
 import testimonialCarla from "@/assets/testimonial-carla.jpg";
+import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
+
 const Home = () => {
+  const { data: cmsBanners } = useCMSBanners();
+  
+  // Get banner URLs from CMS or use defaults
+  const heroImage = getBannerUrl(cmsBanners, 'banner_01', heroImageDefault);
+  const benefitsImage = getBannerUrl(cmsBanners, 'banner_02', benefitsImageDefault);
+  const benefitsMobile = getBannerUrl(cmsBanners, 'banner_03', benefitsMobileDefault);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const handleNavClick = (id: string) => {

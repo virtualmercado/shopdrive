@@ -1,21 +1,38 @@
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
   FileText,
   Image as ImageIcon,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
 import heroImage from "@/assets/hero-banner.jpg";
 import benefitsImage from "@/assets/benefits-handshake.jpg";
 import benefitsMobile from "@/assets/benefits-mobile.jpg";
 
-interface BannerInfo {
+interface CMSBanner {
   id: string;
+  banner_key: string;
+  name: string;
+  description: string | null;
+  media_id: string | null;
+  media_url: string | null;
+  media_type: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+interface BannerDisplay {
+  id: string;
+  banner_key: string;
   name: string;
   description: string;
   currentImage: string;
@@ -23,52 +40,74 @@ interface BannerInfo {
   height: number;
   format: string;
   aspectRatio: string;
+  media_id: string | null;
+  hasCustomImage: boolean;
 }
 
-const AdminCMS = () => {
-  const [banners, setBanners] = useState<BannerInfo[]>([
-    {
-      id: 'banner_01',
-      name: 'Banner 01',
-      description: 'Banner principal da seção Hero (topo da landing page)',
-      currentImage: heroImage,
-      width: 0,
-      height: 0,
-      format: '',
-      aspectRatio: ''
-    },
-    {
-      id: 'banner_02',
-      name: 'Banner 02',
-      description: 'Imagem da seção "Seus produtos disponíveis em todos os lugares"',
-      currentImage: benefitsImage,
-      width: 0,
-      height: 0,
-      format: '',
-      aspectRatio: ''
-    },
-    {
-      id: 'banner_03',
-      name: 'Banner 03',
-      description: 'Imagem da seção "Venda através do WhatsApp ou aceite pagamentos"',
-      currentImage: benefitsMobile,
-      width: 0,
-      height: 0,
-      format: '',
-      aspectRatio: ''
-    }
-  ]);
+// Default images mapping
+const defaultImages: Record<string, string> = {
+  'banner_01': heroImage,
+  'banner_02': benefitsImage,
+  'banner_03': benefitsMobile,
+};
 
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+const AdminCMS = () => {
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectedBannerId, setSelectedBannerId] = useState<string | null>(null);
+  const [bannerDimensions, setBannerDimensions] = useState<Record<string, { width: number; height: number; format: string; aspectRatio: string }>>({});
+  
+  const queryClient = useQueryClient();
+
+  // Fetch CMS banners from database
+  const { data: cmsBanners, isLoading, error } = useQuery({
+    queryKey: ["cms-banners"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cms_banners")
+        .select("*")
+        .order("display_order", { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching CMS banners:", error);
+        throw error;
+      }
+      
+      return data as CMSBanner[];
+    },
+  });
+
+  // Update banner mutation
+  const updateBannerMutation = useMutation({
+    mutationFn: async ({ bannerId, mediaId, mediaUrl, mediaType }: { 
+      bannerId: string; 
+      mediaId: string; 
+      mediaUrl: string;
+      mediaType: string;
+    }) => {
+      const { error } = await supabase
+        .from("cms_banners")
+        .update({
+          media_id: mediaId,
+          media_url: mediaUrl,
+          media_type: mediaType,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", bannerId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cms-banners"] });
+      toast.success("Banner atualizado com sucesso! A alteração será refletida na landing page.");
+    },
+    onError: (error) => {
+      console.error("Error updating banner:", error);
+      toast.error("Erro ao atualizar banner.");
+    },
+  });
 
   // Calculate aspect ratio
   const calculateAspectRatio = (width: number, height: number): string => {
-    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-    const divisor = gcd(width, height);
-    const w = width / divisor;
-    const h = height / divisor;
-    
-    // Common aspect ratios
     const ratio = width / height;
     if (Math.abs(ratio - 16/9) < 0.1) return '16:9';
     if (Math.abs(ratio - 4/3) < 0.1) return '4:3';
@@ -78,12 +117,14 @@ const AdminCMS = () => {
     if (Math.abs(ratio - 3/4) < 0.1) return '3:4';
     if (Math.abs(ratio - 2/3) < 0.1) return '2:3';
     
-    return `${w}:${h}`;
+    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+    const divisor = gcd(width, height);
+    return `${width / divisor}:${height / divisor}`;
   };
 
   // Get format from URL
   const getFormat = (url: string): string => {
-    const extension = url.split('.').pop()?.toLowerCase() || '';
+    const extension = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
     switch (extension) {
       case 'jpg':
       case 'jpeg':
@@ -94,66 +135,90 @@ const AdminCMS = () => {
         return 'WebP';
       case 'gif':
         return 'GIF';
+      case 'svg':
+        return 'SVG';
       default:
         return 'JPG ou PNG';
     }
   };
 
-  // Load image dimensions
-  useEffect(() => {
-    banners.forEach((banner, index) => {
-      const img = new Image();
-      img.onload = () => {
-        setBanners(prev => prev.map((b, i) => 
-          i === index ? {
-            ...b,
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-            format: getFormat(b.currentImage),
-            aspectRatio: calculateAspectRatio(img.naturalWidth, img.naturalHeight)
-          } : b
-        ));
-      };
-      img.src = banner.currentImage;
-    });
-  }, []);
-
-  const handleUploadClick = (bannerId: string) => {
-    fileInputRefs.current[bannerId]?.click();
-  };
-
-  const handleFileChange = (bannerId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Formato inválido. Use JPG, PNG ou WebP.');
-      return;
-    }
-
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
+  // Transform CMS banners to display format
+  const banners: BannerDisplay[] = (cmsBanners || []).map(banner => {
+    const currentImage = banner.media_url || defaultImages[banner.banner_key] || heroImage;
+    const dims = bannerDimensions[banner.id] || { width: 0, height: 0, format: '', aspectRatio: '' };
     
-    // Get dimensions of new image
-    const img = new Image();
-    img.onload = () => {
-      setBanners(prev => prev.map(b => 
-        b.id === bannerId ? {
-          ...b,
-          currentImage: previewUrl,
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-          format: file.type.split('/')[1].toUpperCase(),
-          aspectRatio: calculateAspectRatio(img.naturalWidth, img.naturalHeight)
-        } : b
-      ));
-      toast.success(`Imagem do ${banners.find(b => b.id === bannerId)?.name} atualizada com sucesso!`);
-      toast.info('Para aplicar na landing page, implemente a integração com o banco de dados.');
+    return {
+      id: banner.id,
+      banner_key: banner.banner_key,
+      name: banner.name,
+      description: banner.description || '',
+      currentImage,
+      width: dims.width,
+      height: dims.height,
+      format: dims.format,
+      aspectRatio: dims.aspectRatio,
+      media_id: banner.media_id,
+      hasCustomImage: !!banner.media_url,
     };
-    img.src = previewUrl;
+  });
+
+  // Load image dimensions when banners change
+  useEffect(() => {
+    banners.forEach((banner) => {
+      if (!bannerDimensions[banner.id] || bannerDimensions[banner.id].width === 0) {
+        const img = new Image();
+        img.onload = () => {
+          setBannerDimensions(prev => ({
+            ...prev,
+            [banner.id]: {
+              width: img.naturalWidth,
+              height: img.naturalHeight,
+              format: getFormat(banner.currentImage),
+              aspectRatio: calculateAspectRatio(img.naturalWidth, img.naturalHeight),
+            }
+          }));
+        };
+        img.src = banner.currentImage;
+      }
+    });
+  }, [cmsBanners]);
+
+  const handleOpenSelector = (bannerId: string) => {
+    setSelectedBannerId(bannerId);
+    setSelectorOpen(true);
   };
+
+  const handleSelectMedia = (file: { id: string; url: string; file_type: string; mime_type?: string | null }) => {
+    if (!selectedBannerId) return;
+
+    updateBannerMutation.mutate({
+      bannerId: selectedBannerId,
+      mediaId: file.id,
+      mediaUrl: file.url,
+      mediaType: file.mime_type || file.file_type,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-[#6a1b9a]" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <p className="text-muted-foreground">Erro ao carregar banners do CMS.</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -170,7 +235,7 @@ const AdminCMS = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-6">
-              Gerencie os banners e imagens da página inicial da VirtualMercado. As alterações serão refletidas na landing page após a implementação do vínculo com o banco de dados.
+              Gerencie os banners da página inicial. Selecione imagens da Biblioteca de Mídia para atualizar cada banner. As alterações são refletidas automaticamente na landing page.
             </p>
 
             {/* Banners Grid */}
@@ -192,6 +257,11 @@ const AdminCMS = () => {
                           alt={banner.name}
                           className="w-full h-full object-cover"
                         />
+                        {banner.hasCustomImage && (
+                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                            Personalizado
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -228,20 +298,18 @@ const AdminCMS = () => {
                         </p>
                       </div>
 
-                      {/* Upload Controls */}
+                      {/* Media Selector Button */}
                       <div>
-                        <Input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          ref={(el) => fileInputRefs.current[banner.id] = el}
-                          onChange={(e) => handleFileChange(banner.id, e)}
-                        />
                         <Button
                           className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full sm:w-auto"
-                          onClick={() => handleUploadClick(banner.id)}
+                          onClick={() => handleOpenSelector(banner.id)}
+                          disabled={updateBannerMutation.isPending}
                         >
-                          <RefreshCw className="h-4 w-4 mr-2" />
+                          {updateBannerMutation.isPending && selectedBannerId === banner.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
                           Substituir Banner
                         </Button>
                       </div>
@@ -254,14 +322,26 @@ const AdminCMS = () => {
             {/* Info Note */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>Nota:</strong> Este CMS está preparado para gerenciamento futuro dos banners. 
-                Para ativar a funcionalidade completa de substituição de imagens na landing page, 
-                será necessário implementar a integração com o armazenamento de arquivos no banco de dados.
+                <strong>Como funciona:</strong> Ao clicar em "Substituir Banner", a Biblioteca de Mídia será aberta. 
+                Selecione uma imagem existente ou faça upload de uma nova. A alteração será aplicada automaticamente 
+                na landing page da VirtualMercado.
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Media Selector Modal */}
+      <MediaSelectorModal
+        isOpen={selectorOpen}
+        onClose={() => {
+          setSelectorOpen(false);
+          setSelectedBannerId(null);
+        }}
+        onSelect={handleSelectMedia}
+        allowedTypes={["image"]}
+        title="Selecionar Imagem da Biblioteca"
+      />
     </AdminLayout>
   );
 };

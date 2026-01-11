@@ -121,6 +121,56 @@ export type Database = {
           },
         ]
       }
+      cms_banners: {
+        Row: {
+          banner_key: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          media_id: string | null
+          media_type: string | null
+          media_url: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          banner_key: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_id?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          banner_key?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_id?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_banners_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       correios_settings: {
         Row: {
           contract_code: string | null
@@ -620,6 +670,7 @@ export type Database = {
           updated_at: string
           uploaded_by: string | null
           url: string
+          usage_count: number
           width: number | null
         }
         Insert: {
@@ -634,6 +685,7 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           url: string
+          usage_count?: number
           width?: number | null
         }
         Update: {
@@ -648,6 +700,7 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           url?: string
+          usage_count?: number
           width?: number | null
         }
         Relationships: []
@@ -1973,6 +2026,7 @@ export type Database = {
       }
     }
     Functions: {
+      check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
