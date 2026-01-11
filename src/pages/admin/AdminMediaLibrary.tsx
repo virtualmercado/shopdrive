@@ -256,9 +256,14 @@ const AdminMediaLibrary = () => {
     try {
       await deleteMutation.mutateAsync({ id: file.id, file_path: file.file_path });
       toast.success(`"${file.name}" excluído com sucesso!`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Delete error:", error);
-      toast.error(`Erro ao excluir "${file.name}"`);
+      // Check if it's the "file in use" error from trigger
+      if (error?.message?.includes("sendo usado em conteúdos ativos")) {
+        toast.error("Este arquivo está sendo usado em conteúdos ativos da plataforma e não pode ser excluído.");
+      } else {
+        toast.error(`Erro ao excluir "${file.name}"`);
+      }
     }
   };
 
