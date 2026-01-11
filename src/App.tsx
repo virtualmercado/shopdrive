@@ -71,7 +71,7 @@ function App() {
             <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
             <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
             <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
-            <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
+            <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} /> {/* CMS Route */}
             <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
