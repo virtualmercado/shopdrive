@@ -91,19 +91,46 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
   const [formData, setFormData] = useState<FooterContent>(defaultContent);
   const [isSaving, setIsSaving] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
+  // Carregar conteúdo APENAS quando o modal abre (não a cada mudança de referência)
   useEffect(() => {
-    if (content) {
+    if (isOpen && !hasLoaded && content) {
+      const socialLinks = content.social_links || [];
+      
+      // Garantir que YouTube exista na lista
+      const hasYoutube = socialLinks.some((link: SocialLink) => 
+        link.icon === "Youtube" || link.name?.toLowerCase().includes("youtube")
+      );
+      
+      const finalSocialLinks = hasYoutube ? socialLinks : [
+        ...socialLinks,
+        {
+          id: crypto.randomUUID(),
+          name: "YouTube",
+          icon: "Youtube",
+          url: "https://youtube.com",
+          open_new_tab: true,
+          is_active: true,
+        }
+      ];
+
       setFormData({
         logo_url: content.logo_url || "",
         logo_alt: content.logo_alt || "VirtualMercado",
         subtitle: content.subtitle || "Sua loja virtual em minutos.",
-        social_links: content.social_links || [],
+        social_links: finalSocialLinks,
         columns: content.columns || defaultContent.columns,
         copyright: content.copyright || "© 2025 VirtualMercado. Todos os direitos reservados.",
       });
+      setHasLoaded(true);
     }
-  }, [content, isOpen]);
+    
+    // Resetar flag quando o modal fecha
+    if (!isOpen) {
+      setHasLoaded(false);
+    }
+  }, [isOpen, content, hasLoaded]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -135,7 +162,11 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
       open_new_tab: true,
       is_active: true,
     };
-    setFormData(prev => ({ ...prev, social_links: [...prev.social_links, newLink] }));
+    setFormData(prev => {
+      const updated = { ...prev, social_links: [...prev.social_links, newLink] };
+      console.log("Nova rede adicionada:", updated.social_links);
+      return updated;
+    });
   };
 
   const updateSocialLink = (id: string, field: keyof SocialLink, value: any) => {
