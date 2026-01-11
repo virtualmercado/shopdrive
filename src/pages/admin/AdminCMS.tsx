@@ -42,6 +42,7 @@ import CMSTestimonialsModal from "@/components/admin/cms/CMSTestimonialsModal";
 import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
 import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
 import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
+import CMSFooterModal from "@/components/admin/cms/CMSFooterModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -422,6 +423,43 @@ const AdminCMS = () => {
               </div>
             </div>
 
+            {/* Divider */}
+            <div className="border-t my-8" />
+
+            {/* Footer Content Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Layout className="h-5 w-5 text-[#6a1b9a]" />
+                Conteúdo do Rodapé da Landing Page
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
+              </p>
+
+              <div
+                className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors max-w-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                    <Layout className="h-5 w-5 text-[#6a1b9a]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm mb-1">CMS – Rodapé</h4>
+                    <p className="text-xs text-muted-foreground mb-3">Logo, slogan, redes sociais e colunas de links</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                      onClick={() => setActiveModal("footer")}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Editar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </CardContent>
         </Card>
       </div>
@@ -504,6 +542,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["faq"]}
         onSave={(content) => handleSaveContent("faq", content)}
+      />
+      <CMSFooterModal
+        isOpen={activeModal === "footer"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["footer"]}
+        onSave={(content) => handleSaveContent("footer", content)}
       />
     </AdminLayout>
   );

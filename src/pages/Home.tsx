@@ -25,6 +25,11 @@ const iconMap: Record<string, any> = {
   Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe
 };
 
+// Social icon mapping for footer
+const socialIconMap: Record<string, any> = {
+  Instagram, Facebook, Youtube, Twitter, Linkedin
+};
+
 const Home = () => {
   const { data: cmsBanners } = useCMSBanners();
   const { data: cmsContent } = useCMSContent();
@@ -129,6 +134,70 @@ const Home = () => {
       { question: "Posso usar meu site na plataforma como catálogo de produtos?", answer: "Sim! Você pode usar sua loja como um catálogo digital em PDF, exibindo fotos, descrições e preços dos produtos mesmo sem ativar o sistema de vendas online." },
       { question: "Como faço o pagamento da minha assinatura aqui na VirtualMercado?", answer: "Você paga uma mensalidade ou anuidade diretamente pela plataforma. Aceitamos PIX, cartão de crédito, cartão de débito e boleto bancário." },
     ]),
+  };
+
+  // Footer Content
+  const footerContent = {
+    logo_url: getContent(cmsContent, "footer", "logo_url", ""),
+    logo_alt: getContent(cmsContent, "footer", "logo_alt", "VirtualMercado"),
+    subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja virtual em minutos."),
+    social_links: getContentArray(cmsContent, "footer", "social_links", [
+      { id: "1", name: "Instagram", icon: "Instagram", url: "https://instagram.com", open_new_tab: true, is_active: true },
+      { id: "2", name: "Facebook", icon: "Facebook", url: "https://facebook.com", open_new_tab: true, is_active: true },
+      { id: "3", name: "YouTube", icon: "Youtube", url: "https://youtube.com", open_new_tab: true, is_active: true },
+    ]),
+    columns: getContentArray(cmsContent, "footer", "columns", [
+      { id: "1", title: "Institucional", links: [
+        { id: "1", text: "Sobre Nós", type: "internal", route: "/sobre-nos", is_active: true },
+        { id: "2", text: "Blog", type: "internal", route: "/blog", is_active: true },
+        { id: "3", text: "Programa de Afiliados", type: "internal", route: "/programa-de-afiliados", is_active: true },
+      ]},
+      { id: "2", title: "Suporte", links: [
+        { id: "1", text: "Central de Ajuda", type: "internal", route: "/central-de-ajuda", is_active: true },
+        { id: "2", text: "Fale Conosco", type: "internal", route: "/fale-conosco", is_active: true },
+      ]},
+      { id: "3", title: "Legal", links: [
+        { id: "1", text: "Termos de Uso", type: "internal", route: "/termos-de-uso", is_active: true },
+        { id: "2", text: "Política de Privacidade", type: "internal", route: "/politica-de-privacidade", is_active: true },
+        { id: "3", text: "Política de Cookies", type: "internal", route: "/politica-de-cookies", is_active: true },
+      ]},
+    ]),
+    copyright: getContent(cmsContent, "footer", "copyright", "© 2025 VirtualMercado. Todos os direitos reservados."),
+  };
+
+  // Helper to render footer link
+  const renderFooterLink = (link: any) => {
+    if (!link.is_active) return null;
+    const href = link.type === "internal" ? link.route : link.url;
+    const isExternal = link.type === "external";
+    
+    if (isExternal) {
+      return (
+        <li key={link.id}>
+          <a 
+            href={href} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="transition-colors hover:opacity-80" 
+            style={{ color: '#6A1B9A' }}
+          >
+            {link.text}
+          </a>
+        </li>
+      );
+    }
+    
+    return (
+      <li key={link.id}>
+        <Link 
+          to={href || "#"} 
+          className="transition-colors hover:opacity-80" 
+          style={{ color: '#6A1B9A' }}
+        >
+          {link.text}
+        </Link>
+      </li>
+    );
   };
 
   return <div className="min-h-screen bg-background">
@@ -414,19 +483,47 @@ const Home = () => {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             <div>
-              <div className="flex items-center gap-2 mb-4"><img src={logoRodape} alt="VirtualMercado" className="h-8" /></div>
-              <p className="mb-6" style={{ color: '#6A1B9A' }}>Sua loja virtual em minutos.</p>
+              <div className="flex items-center gap-2 mb-4">
+                <img 
+                  src={footerContent.logo_url || logoRodape} 
+                  alt={footerContent.logo_alt} 
+                  className="h-8" 
+                />
+              </div>
+              <p className="mb-6" style={{ color: '#6A1B9A' }}>{footerContent.subtitle}</p>
               <div className="flex gap-4">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="transition-all duration-300 hover:scale-110 hover:opacity-80" style={{ color: '#6A1B9A' }}><Instagram size={24} strokeWidth={1.5} /></a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="transition-all duration-300 hover:scale-110 hover:opacity-80" style={{ color: '#6A1B9A' }}><Facebook size={24} strokeWidth={1.5} /></a>
-                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="transition-all duration-300 hover:scale-110 hover:opacity-80" style={{ color: '#6A1B9A' }}><Youtube size={24} strokeWidth={1.5} /></a>
+                {footerContent.social_links
+                  .filter((link: any) => link.is_active && link.url)
+                  .map((link: any) => {
+                    const IconComponent = socialIconMap[link.icon];
+                    if (!IconComponent) return null;
+                    return (
+                      <a 
+                        key={link.id}
+                        href={link.url} 
+                        target={link.open_new_tab ? "_blank" : "_self"}
+                        rel="noopener noreferrer" 
+                        className="transition-all duration-300 hover:scale-110 hover:opacity-80" 
+                        style={{ color: '#6A1B9A' }}
+                      >
+                        <IconComponent size={24} strokeWidth={1.5} />
+                      </a>
+                    );
+                  })}
               </div>
             </div>
-            <div><h3 className="font-bold text-lg mb-4" style={{ color: '#6A1B9A' }}>Institucional</h3><ul className="space-y-3"><li><a href="#sobre" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Sobre Nós</a></li><li><a href="#blog" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Blog</a></li><li><a href="#afiliados" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Programa de Afiliados</a></li></ul></div>
-            <div><h3 className="font-bold text-lg mb-4" style={{ color: '#6A1B9A' }}>Suporte</h3><ul className="space-y-3"><li><a href="#ajuda" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Central de Ajuda</a></li><li><a href="#contato" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Fale Conosco</a></li></ul></div>
-            <div><h3 className="font-bold text-lg mb-4" style={{ color: '#6A1B9A' }}>Legal</h3><ul className="space-y-3"><li><a href="#termos" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Termos de Uso</a></li><li><a href="#privacidade" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Política de Privacidade</a></li><li><a href="#cookies" className="transition-colors hover:opacity-80" style={{ color: '#6A1B9A' }}>Política de Cookies</a></li></ul></div>
+            {footerContent.columns.map((column: any) => (
+              <div key={column.id}>
+                <h3 className="font-bold text-lg mb-4" style={{ color: '#6A1B9A' }}>{column.title}</h3>
+                <ul className="space-y-3">
+                  {column.links.map((link: any) => renderFooterLink(link))}
+                </ul>
+              </div>
+            ))}
           </div>
-          <div className="mt-12 pt-8 border-t text-center" style={{ borderColor: '#D1C4E9', color: '#6A1B9A' }}><p className="text-sm">© 2025 VirtualMercado. Todos os direitos reservados.</p></div>
+          <div className="mt-12 pt-8 border-t text-center" style={{ borderColor: '#D1C4E9', color: '#6A1B9A' }}>
+            <p className="text-sm">{footerContent.copyright}</p>
+          </div>
         </div>
       </footer>
     </div>;
