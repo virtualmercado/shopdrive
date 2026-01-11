@@ -46,6 +46,7 @@ import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSupport from "./pages/admin/AdminSupport";
 import AdminSecurity from "./pages/admin/AdminSecurity";
+import AdminCMS from "./pages/admin/AdminCMS";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ function App() {
             <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
             <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
             <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
+            <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
