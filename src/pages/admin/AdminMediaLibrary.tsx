@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,14 +205,14 @@ const AdminMediaLibrary = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#6a1b9a]">Biblioteca de Mídia</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie todas as imagens, arquivos e mídias utilizadas pela plataforma VirtualMercado.
-        </p>
-      </div>
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div>
+          <p className="text-muted-foreground">
+            Gerencie todas as imagens, arquivos e mídias utilizadas pela plataforma VirtualMercado.
+          </p>
+        </div>
 
       {/* Main Card */}
       <Card className="shadow-sm border">
@@ -434,7 +435,8 @@ const AdminMediaLibrary = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 
