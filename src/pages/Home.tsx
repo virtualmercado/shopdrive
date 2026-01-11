@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag, Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe } from "lucide-react";
+import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag, Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe, MessageCircle } from "lucide-react";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { Link } from "react-router-dom";
 import { useState } from "react";
@@ -27,7 +27,22 @@ const iconMap: Record<string, any> = {
 
 // Social icon mapping for footer
 const socialIconMap: Record<string, any> = {
-  Instagram, Facebook, Youtube, Twitter, Linkedin
+  Instagram, 
+  Facebook, 
+  Youtube, 
+  Twitter, 
+  Linkedin,
+  TikTok: () => (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+    </svg>
+  ),
+  Pinterest: () => (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+      <path d="M12 0a12 12 0 00-4.37 23.17c-.1-.94-.2-2.4.04-3.43l1.43-6.04s-.36-.73-.36-1.81c0-1.7.98-2.96 2.2-2.96 1.04 0 1.54.78 1.54 1.71 0 1.04-.66 2.6-1 4.04-.29 1.2.6 2.18 1.78 2.18 2.14 0 3.78-2.26 3.78-5.52 0-2.88-2.07-4.9-5.03-4.9-3.43 0-5.44 2.57-5.44 5.22 0 1.03.4 2.14.9 2.75a.36.36 0 01.08.35l-.33 1.36c-.05.22-.18.27-.41.16-1.54-.72-2.5-2.96-2.5-4.77 0-3.88 2.82-7.44 8.14-7.44 4.27 0 7.59 3.04 7.59 7.12 0 4.25-2.68 7.67-6.4 7.67-1.25 0-2.43-.65-2.83-1.42l-.77 2.94c-.28 1.07-1.03 2.4-1.53 3.22A12 12 0 1012 0z"/>
+    </svg>
+  ),
+  WhatsApp: MessageCircle,
 };
 
 const Home = () => {

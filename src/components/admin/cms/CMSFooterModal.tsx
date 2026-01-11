@@ -124,7 +124,9 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
   };
 
   // Social Links handlers
-  const addSocialLink = () => {
+  const addSocialLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     const newLink: SocialLink = {
       id: crypto.randomUUID(),
       name: "Nova Rede",
@@ -336,7 +338,12 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
                     <LinkIcon className="h-4 w-4 text-[#6a1b9a]" />
                     Redes Sociais (Rodapé)
                   </h4>
-                  <Button type="button" size="sm" onClick={addSocialLink}>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={(e) => addSocialLink(e)}
+                    className="relative z-10"
+                  >
                     <Plus className="h-4 w-4 mr-1" />
                     Adicionar
                   </Button>
