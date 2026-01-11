@@ -13,7 +13,7 @@ import {
   Shield,
   Brain,
   Cpu,
-  AlertTriangle
+  Layers
 } from "lucide-react";
 import logoVmMaster from "@/assets/logo-vm-master.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -40,6 +40,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: FileText, label: "Faturas e Pagamentos", path: "/gestor/faturas" },
     { icon: Zap, label: "Automações", path: "/gestor/automacoes" },
     { icon: LinkIcon, label: "Integrações", path: "/gestor/integracoes" },
+    { icon: Layers, label: "Gerenciador de Conteúdo", path: "/gestor/cms" },
     { icon: BarChart3, label: "Relatórios", path: "/gestor/relatorios" },
     { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/gestor/suporte" },
     { icon: Shield, label: "Logs e Segurança", path: "/gestor/seguranca" },
