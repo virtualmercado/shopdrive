@@ -283,7 +283,7 @@ const AdminCMS = () => {
               <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
                 <FileText className="h-6 w-6 text-[#6a1b9a]" />
               </div>
-              CMS da Landing Page
+              Banners da Landing Page
             </CardTitle>
           </CardHeader>
           <CardContent>
