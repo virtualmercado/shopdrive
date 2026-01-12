@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Link as LinkIcon, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
 
 interface SocialLink {
@@ -282,23 +281,20 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-          {/* Header fixo */}
-          <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-[#6a1b9a]" />
-                Conteúdo do Rodapé da Landing Page
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
-              </p>
-            </DialogHeader>
-          </div>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-[#6a1b9a]" />
+              Conteúdo do Rodapé da Landing Page
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
+            </p>
+          </DialogHeader>
 
-          {/* Área de conteúdo scrollável com estilo VM */}
-          <ScrollArea className="flex-1 cms-footer-scroll" style={{ maxHeight: 'calc(90vh - 180px)' }}>
-            <div className="space-y-6 px-6 py-4">
+          {/* Área de conteúdo scrollável (apenas o miolo do modal) */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-4 cms-footer-scroll overscroll-contain max-h-[calc(90vh-180px)]">
+            <div className="space-y-6 pb-4">
               {/* Logo Section */}
               <div className="p-4 border rounded-lg bg-muted/30">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
@@ -654,33 +650,30 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
                 />
               </div>
             </div>
-          </ScrollArea>
-
-          {/* Footer fixo */}
-          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t">
-            <DialogFooter className="sm:justify-end">
-              <Button variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Alterações
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
           </div>
+
+          <DialogFooter className="pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
