@@ -60,6 +60,13 @@ export type Database = {
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       boleto_payments: {
@@ -676,6 +683,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
@@ -1258,6 +1272,13 @@ export type Database = {
             columns: ["subscriber_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_events_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1867,6 +1888,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "support_tickets_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -1878,6 +1906,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1923,6 +1958,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1990,6 +2032,13 @@ export type Database = {
             columns: ["store_owner_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2173,6 +2222,171 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_store_profiles: {
+        Row: {
+          about_us_text: string | null
+          banner_desktop_url: string | null
+          banner_desktop_urls: Json | null
+          banner_mobile_url: string | null
+          banner_mobile_urls: Json | null
+          banner_rect_1_url: string | null
+          banner_rect_2_url: string | null
+          button_bg_color: string | null
+          button_border_style: string | null
+          button_text_color: string | null
+          checkout_require_address: boolean | null
+          checkout_require_cpf: boolean | null
+          checkout_require_email: boolean | null
+          checkout_require_payment_method: boolean | null
+          checkout_require_personal_info: boolean | null
+          delivery_option: string | null
+          display_name: string | null
+          facebook_url: string | null
+          font_family: string | null
+          font_weight: number | null
+          footer_bg_color: string | null
+          footer_text_color: string | null
+          free_shipping_minimum: number | null
+          free_shipping_scope: string | null
+          id: string | null
+          instagram_url: string | null
+          is_maintenance_mode: boolean | null
+          merchant_city: string | null
+          merchant_reference_cep: string | null
+          merchant_state: string | null
+          minimum_order_value: number | null
+          pickup_address: string | null
+          pickup_hours_saturday_end: string | null
+          pickup_hours_saturday_start: string | null
+          pickup_hours_weekday_end: string | null
+          pickup_hours_weekday_start: string | null
+          primary_color: string | null
+          product_border_style: string | null
+          product_button_display: string | null
+          product_image_format: string | null
+          product_text_alignment: string | null
+          return_policy_text: string | null
+          secondary_color: string | null
+          shipping_fixed_fee: number | null
+          store_description: string | null
+          store_logo_url: string | null
+          store_name: string | null
+          store_slug: string | null
+          use_account_address_for_pickup: boolean | null
+          whatsapp_number: string | null
+          x_url: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          about_us_text?: string | null
+          banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
+          banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
+          button_bg_color?: string | null
+          button_border_style?: string | null
+          button_text_color?: string | null
+          checkout_require_address?: boolean | null
+          checkout_require_cpf?: boolean | null
+          checkout_require_email?: boolean | null
+          checkout_require_payment_method?: boolean | null
+          checkout_require_personal_info?: boolean | null
+          delivery_option?: string | null
+          display_name?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
+          free_shipping_minimum?: number | null
+          free_shipping_scope?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
+          merchant_city?: string | null
+          merchant_reference_cep?: string | null
+          merchant_state?: string | null
+          minimum_order_value?: number | null
+          pickup_address?: never
+          pickup_hours_saturday_end?: never
+          pickup_hours_saturday_start?: never
+          pickup_hours_weekday_end?: never
+          pickup_hours_weekday_start?: never
+          primary_color?: string | null
+          product_border_style?: string | null
+          product_button_display?: string | null
+          product_image_format?: string | null
+          product_text_alignment?: string | null
+          return_policy_text?: string | null
+          secondary_color?: string | null
+          shipping_fixed_fee?: number | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          use_account_address_for_pickup?: never
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          about_us_text?: string | null
+          banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
+          banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
+          button_bg_color?: string | null
+          button_border_style?: string | null
+          button_text_color?: string | null
+          checkout_require_address?: boolean | null
+          checkout_require_cpf?: boolean | null
+          checkout_require_email?: boolean | null
+          checkout_require_payment_method?: boolean | null
+          checkout_require_personal_info?: boolean | null
+          delivery_option?: string | null
+          display_name?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
+          free_shipping_minimum?: number | null
+          free_shipping_scope?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
+          merchant_city?: string | null
+          merchant_reference_cep?: string | null
+          merchant_state?: string | null
+          minimum_order_value?: number | null
+          pickup_address?: never
+          pickup_hours_saturday_end?: never
+          pickup_hours_saturday_start?: never
+          pickup_hours_weekday_end?: never
+          pickup_hours_weekday_start?: never
+          primary_color?: string | null
+          product_border_style?: string | null
+          product_button_display?: string | null
+          product_image_format?: string | null
+          product_text_alignment?: string | null
+          return_policy_text?: string | null
+          secondary_color?: string | null
+          shipping_fixed_fee?: number | null
+          store_description?: string | null
+          store_logo_url?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          use_account_address_for_pickup?: never
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
