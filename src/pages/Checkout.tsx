@@ -161,8 +161,9 @@ const CheckoutContent = () => {
           setShippingRules(rules);
         }
 
+        // Use the public view that doesn't expose sensitive credentials
         const { data: paySettings } = await supabase
-          .from("payment_settings")
+          .from("payment_settings_public")
           .select("*")
           .eq("user_id", data.id)
           .single();
