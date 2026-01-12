@@ -1013,11 +1013,13 @@ export type Database = {
           mercadopago_installments_free: number | null
           mercadopago_pix_discount: number | null
           mercadopago_public_key: string | null
+          mercadopago_webhook_secret: string | null
           pagbank_accepts_credit: boolean | null
           pagbank_accepts_pix: boolean | null
           pagbank_email: string | null
           pagbank_enabled: boolean
           pagbank_token: string | null
+          pagbank_webhook_secret: string | null
           pix_discount_percent: number | null
           pix_enabled: boolean | null
           pix_provider: string | null
@@ -1046,11 +1048,13 @@ export type Database = {
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
           mercadopago_public_key?: string | null
+          mercadopago_webhook_secret?: string | null
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pagbank_webhook_secret?: string | null
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
@@ -1079,11 +1083,13 @@ export type Database = {
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
           mercadopago_public_key?: string | null
+          mercadopago_webhook_secret?: string | null
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pagbank_webhook_secret?: string | null
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
