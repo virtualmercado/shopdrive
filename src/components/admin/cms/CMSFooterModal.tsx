@@ -282,19 +282,23 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-[#6a1b9a]" />
-              Conteúdo do Rodapé da Landing Page
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
-            </p>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          {/* Header fixo */}
+          <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-[#6a1b9a]" />
+                Conteúdo do Rodapé da Landing Page
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
+              </p>
+            </DialogHeader>
+          </div>
 
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-6 pb-4">
+          {/* Área de conteúdo scrollável com estilo VM */}
+          <ScrollArea className="flex-1 cms-footer-scroll" style={{ maxHeight: 'calc(90vh - 180px)' }}>
+            <div className="space-y-6 px-6 py-4">
               {/* Logo Section */}
               <div className="p-4 border rounded-lg bg-muted/30">
                 <h4 className="font-medium mb-4 flex items-center gap-2">
@@ -652,28 +656,31 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
             </div>
           </ScrollArea>
 
-          <DialogFooter className="pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Alterações
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+          {/* Footer fixo */}
+          <div className="sticky bottom-0 z-10 bg-background px-6 py-4 border-t">
+            <DialogFooter className="sm:justify-end">
+              <Button variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar Alterações
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

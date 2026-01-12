@@ -391,4 +391,59 @@ All colors MUST be HSL.
   [data-merchant-styled="icon-hover"]:hover {
     color: var(--merchant-primary) !important;
   }
+
+  /* ==========================================
+     CMS FOOTER MODAL - Custom Scrollbar VM Style
+     ========================================== */
+  .cms-footer-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(276 76% 35%) transparent;
+  }
+  
+  .cms-footer-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .cms-footer-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+  
+  .cms-footer-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(276 76% 35%);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background-color 0.2s ease;
+  }
+  
+  .cms-footer-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(32 100% 49%);
+  }
+  
+  /* Apply to ScrollArea viewport */
+  .cms-footer-scroll [data-radix-scroll-area-viewport] {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(276 76% 35%) transparent;
+  }
+  
+  .cms-footer-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .cms-footer-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+  
+  .cms-footer-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+    background-color: hsl(276 76% 35%);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  
+  .cms-footer-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(32 100% 49%);
+  }
 }
