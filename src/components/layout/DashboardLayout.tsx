@@ -113,18 +113,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo" 
-                  className="h-8 w-auto object-contain max-w-[50px] md:max-w-[70px]"
-                />
-              ) : (
-                <Store className="h-6 w-6" />
-              )}
-              {sidebarOpen && !logoUrl && <span className="font-bold">VirtualMercado</span>}
-            </Link>
+            {sidebarOpen && (
+              <Link to="/" className="flex items-center gap-2">
+                {logoUrl ? (
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo" 
+                    className="h-8 w-auto object-contain max-w-[50px] md:max-w-[70px]"
+                  />
+                ) : (
+                  <>
+                    <Store className="h-6 w-6" />
+                    <span className="font-bold">VirtualMercado</span>
+                  </>
+                )}
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
