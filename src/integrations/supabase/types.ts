@@ -1990,6 +1990,42 @@ export type Database = {
       }
     }
     Views: {
+      correios_settings_public: {
+        Row: {
+          is_active: boolean | null
+          origin_zipcode: string | null
+          user_id: string | null
+        }
+        Insert: {
+          is_active?: boolean | null
+          origin_zipcode?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          is_active?: boolean | null
+          origin_zipcode?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      melhor_envio_settings_public: {
+        Row: {
+          environment: string | null
+          is_active: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          environment?: string | null
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          environment?: string | null
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_settings_public: {
         Row: {
           boleto_enabled: boolean | null

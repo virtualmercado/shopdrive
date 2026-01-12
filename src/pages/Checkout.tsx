@@ -180,11 +180,11 @@ const CheckoutContent = () => {
         }
 
         // Check if Melhor Envio is enabled for this store
+        // Use the secure public view that doesn't expose API keys
         const { data: melhorEnvioSettings } = await supabase
-          .from("melhor_envio_settings")
+          .from("melhor_envio_settings_public")
           .select("is_active")
           .eq("user_id", data.id)
-          .eq("is_active", true)
           .single();
 
         if (melhorEnvioSettings) {
