@@ -64,6 +64,9 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
       ]},
       { id: "3", title: "Legal", links: [
         { id: "1", text: "Termos de Uso", type: "internal", route: "/termos-de-uso", is_active: true },
+        { id: "2", text: "Política de Privacidade", type: "internal", route: "/politica-de-privacidade", is_active: true },
+        { id: "3", text: "Política de Cookies", type: "internal", route: "/politica-de-cookies", is_active: true },
+        { id: "4", text: "Gerenciar Cookies", type: "action", action: "open_cookie_settings", is_active: true },
       ]},
     ]),
     copyright: getContent(cmsContent, "footer", "copyright", "© 2025 VirtualMercado. Todos os direitos reservados."),
@@ -127,6 +130,21 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
     if (!link.is_active) return null;
     const href = link.type === "internal" ? link.route : link.url;
     const isExternal = link.type === "external";
+    const isCookieSettings = link.type === "action" && link.action === "open_cookie_settings";
+    
+    if (isCookieSettings) {
+      return (
+        <li key={link.id}>
+          <button 
+            onClick={() => (window as any).openCookieSettings?.()}
+            className="transition-colors hover:opacity-80 cursor-pointer text-left" 
+            style={{ color: '#6A1B9A' }}
+          >
+            {link.text}
+          </button>
+        </li>
+      );
+    }
     
     if (isExternal) {
       return (

@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,6 +29,7 @@ import AboutUsPage from "./pages/AboutUsPage";
 import LandingAboutUs from "./pages/LandingAboutUs";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import CookiePolicyPage from "./pages/CookiePolicyPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -61,6 +63,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <CookieConsentBanner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -121,7 +124,7 @@ function App() {
             <Route path="/fale-conosco" element={<ComingSoon />} />
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
-            <Route path="/politica-de-cookies" element={<ComingSoon />} />
+            <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
