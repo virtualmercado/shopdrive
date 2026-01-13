@@ -26,6 +26,7 @@ import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ReturnPolicyPage from "./pages/ReturnPolicyPage";
 import AboutUsPage from "./pages/AboutUsPage";
 import LandingAboutUs from "./pages/LandingAboutUs";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -117,7 +118,7 @@ function App() {
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
             <Route path="/central-de-ajuda" element={<ComingSoon />} />
             <Route path="/fale-conosco" element={<ComingSoon />} />
-            <Route path="/termos-de-uso" element={<ComingSoon />} />
+            <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/politica-de-privacidade" element={<ComingSoon />} />
             <Route path="/politica-de-cookies" element={<ComingSoon />} />
             
