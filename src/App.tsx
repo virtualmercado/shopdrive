@@ -31,6 +31,7 @@ import TermsOfUsePage from "./pages/TermsOfUsePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
+import ContactPage from "./pages/ContactPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -122,7 +123,7 @@ function App() {
             <Route path="/blog" element={<ComingSoon />} />
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
             <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
-            <Route path="/fale-conosco" element={<ComingSoon />} />
+            <Route path="/fale-conosco" element={<ContactPage />} />
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
             <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />

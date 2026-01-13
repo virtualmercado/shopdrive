@@ -205,6 +205,54 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_submissions: {
+        Row: {
+          company: string | null
+          contact_type: string
+          cpf_cnpj: string | null
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          message: string
+          name: string
+          problem_type: string | null
+          status: string
+          store_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          contact_type: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          message: string
+          name: string
+          problem_type?: string | null
+          status?: string
+          store_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          contact_type?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          message?: string
+          name?: string
+          problem_type?: string | null
+          status?: string
+          store_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       correios_settings: {
         Row: {
           contract_code: string | null
