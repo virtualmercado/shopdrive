@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { User } from '@supabase/supabase-js';
 
 interface ThemeColors {
   primaryColor: string;
@@ -40,7 +40,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
   const [colors, setColors] = useState<ThemeColors>({
     primaryColor: '#6a1b9a',
     secondaryColor: '#FB8C00',
@@ -78,6 +78,22 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     root.style.setProperty('--user-font-family', merchantColors.fontFamily);
     root.style.setProperty('--user-font-weight', String(merchantColors.fontWeight));
   };
+
+  // Set up auth state listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchColors = async () => {
