@@ -45,6 +45,7 @@ import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
 import CMSFooterModal from "@/components/admin/cms/CMSFooterModal";
 import CMSAboutUsModal from "@/components/admin/cms/CMSAboutUsModal";
 import CMSTermsOfUseModal from "@/components/admin/cms/CMSTermsOfUseModal";
+import CMSPrivacyPolicyModal from "@/components/admin/cms/CMSPrivacyPolicyModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -475,7 +476,7 @@ const AdminCMS = () => {
                 Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Sobre Nós Page */}
                 <div
                   className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
@@ -516,6 +517,30 @@ const AdminCMS = () => {
                         variant="outline"
                         className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
                         onClick={() => setActiveModal("terms_of_use")}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Política de Privacidade Page */}
+                <div
+                  className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                      <FileText className="h-5 w-5 text-[#6a1b9a]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm mb-1">Política de Privacidade</h4>
+                      <p className="text-xs text-muted-foreground mb-3">Conformidade com a LGPD</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                        onClick={() => setActiveModal("privacy_policy")}
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Editar
@@ -626,6 +651,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["terms_of_use"]}
         onSave={(content) => handleSaveContent("terms_of_use", content)}
+      />
+      <CMSPrivacyPolicyModal
+        isOpen={activeModal === "privacy_policy"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["privacy_policy"]}
+        onSave={(content) => handleSaveContent("privacy_policy", content)}
       />
     </AdminLayout>
   );
