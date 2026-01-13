@@ -63,8 +63,8 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <CookieConsentBanner />
         <BrowserRouter>
+          <CookieConsentBanner />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
