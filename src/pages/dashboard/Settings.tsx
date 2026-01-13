@@ -252,6 +252,9 @@ const Settings = () => {
                   value={formData.whatsappNumber}
                   onChange={(e) => handleInputChange("whatsappNumber", e.target.value)}
                 />
+                <p className="text-xs" style={{ color: '#515151' }}>
+                  O número será usado para receber os pedidos no checkout da loja online
+                </p>
               </div>
             </div>
             
