@@ -447,3 +447,52 @@ All colors MUST be HSL.
     background-color: hsl(var(--secondary));
   }
 }
+
+/* ============================================
+   PAGE TRANSITION ANIMATIONS
+   SPA smooth navigation for Landing pages
+   ============================================ */
+
+/* Page enter animation - fade in with slide up */
+.page-enter {
+  animation: pageEnter 300ms ease-out forwards;
+}
+
+/* Page exit animation - fade out */
+.page-exit {
+  animation: pageExit 250ms ease-in-out forwards;
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageExit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+/* Prevent layout shift during transition */
+.page-exit,
+.page-enter {
+  will-change: opacity, transform;
+}
+
+/* Ensure no flash during navigation */
+[data-page-content] {
+  min-height: calc(100vh - 300px);
+  background-color: inherit;
+}
