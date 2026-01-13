@@ -25,6 +25,7 @@ import OnlineStore from "./pages/OnlineStore";
 import StoreCategoryPage from "./pages/StoreCategoryPage";
 import ReturnPolicyPage from "./pages/ReturnPolicyPage";
 import AboutUsPage from "./pages/AboutUsPage";
+import LandingAboutUs from "./pages/LandingAboutUs";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -111,7 +112,7 @@ function App() {
             <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
             
             {/* Landing Page Internal Routes (Coming Soon) */}
-            <Route path="/sobre-nos" element={<ComingSoon />} />
+            <Route path="/sobre-nos" element={<LandingAboutUs />} />
             <Route path="/blog" element={<ComingSoon />} />
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
             <Route path="/central-de-ajuda" element={<ComingSoon />} />
