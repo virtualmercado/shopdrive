@@ -477,7 +477,7 @@ const AdminCMS = () => {
                 Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Sobre Nós Page */}
                 <div
                   className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
