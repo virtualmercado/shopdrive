@@ -43,6 +43,7 @@ import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
 import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
 import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
 import CMSFooterModal from "@/components/admin/cms/CMSFooterModal";
+import CMSAboutUsModal from "@/components/admin/cms/CMSAboutUsModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -460,6 +461,46 @@ const AdminCMS = () => {
               </div>
             </div>
 
+            {/* Divider */}
+            <div className="border-t my-8" />
+
+            {/* Institutional Pages Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#6a1b9a]" />
+                Páginas Institucionais
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {/* Sobre Nós Page */}
+                <div
+                  className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                      <FileText className="h-5 w-5 text-[#6a1b9a]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm mb-1">Sobre Nós</h4>
+                      <p className="text-xs text-muted-foreground mb-3">Página institucional com texto e imagem</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                        onClick={() => setActiveModal("about_us")}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </CardContent>
         </Card>
       </div>
@@ -548,6 +589,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["footer"]}
         onSave={(content) => handleSaveContent("footer", content)}
+      />
+      <CMSAboutUsModal
+        isOpen={activeModal === "about_us"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["about_us"]}
+        onSave={(content) => handleSaveContent("about_us", content)}
       />
     </AdminLayout>
   );
