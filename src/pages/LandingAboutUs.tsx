@@ -35,7 +35,7 @@ const LandingAboutUs = () => {
   return (
     <LandingLayout>
       {/* Main Content - Two Column Layout */}
-      <div className="py-16 px-4 bg-background">
+      <div className="py-24 md:py-32 px-4 bg-background">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Left Column - Text Content (60%) */}
