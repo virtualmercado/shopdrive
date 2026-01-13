@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Link as LinkIcon, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
 
 interface SocialLink {
@@ -19,28 +18,11 @@ interface SocialLink {
   is_active: boolean;
 }
 
-interface FooterLink {
-  id: string;
-  text: string;
-  type: "internal" | "external";
-  route?: string;
-  url?: string;
-  open_new_tab: boolean;
-  is_active: boolean;
-}
-
-interface FooterColumn {
-  id: string;
-  title: string;
-  links: FooterLink[];
-}
-
 interface FooterContent {
   logo_url: string;
   logo_alt: string;
   subtitle: string;
   social_links: SocialLink[];
-  columns: FooterColumn[];
   copyright: string;
 }
 
@@ -62,27 +44,11 @@ const socialIcons = [
   { value: "WhatsApp", label: "WhatsApp" },
 ];
 
-const internalRoutes = [
-  { value: "/sobre-nos", label: "Sobre Nós" },
-  { value: "/blog", label: "Blog" },
-  { value: "/programa-de-afiliados", label: "Programa de Afiliados" },
-  { value: "/central-de-ajuda", label: "Central de Ajuda" },
-  { value: "/fale-conosco", label: "Fale Conosco" },
-  { value: "/termos-de-uso", label: "Termos de Uso" },
-  { value: "/politica-de-privacidade", label: "Política de Privacidade" },
-  { value: "/politica-de-cookies", label: "Política de Cookies" },
-];
-
 const defaultContent: FooterContent = {
   logo_url: "",
   logo_alt: "VirtualMercado",
   subtitle: "Sua loja virtual em minutos.",
   social_links: [],
-  columns: [
-    { id: "1", title: "Institucional", links: [] },
-    { id: "2", title: "Suporte", links: [] },
-    { id: "3", title: "Legal", links: [] },
-  ],
   copyright: "© 2025 VirtualMercado. Todos os direitos reservados.",
 };
 
@@ -119,7 +85,6 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
         logo_alt: content.logo_alt || "VirtualMercado",
         subtitle: content.subtitle || "Sua loja virtual em minutos.",
         social_links: finalSocialLinks,
-        columns: content.columns || defaultContent.columns,
         copyright: content.copyright || "© 2025 VirtualMercado. Todos os direitos reservados.",
       });
       setHasLoaded(true);
@@ -195,78 +160,6 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newLinks[index], newLinks[swapIndex]] = [newLinks[swapIndex], newLinks[index]];
     setFormData(prev => ({ ...prev, social_links: newLinks }));
-  };
-
-  // Column Link handlers
-  const addLink = (columnId: string) => {
-    const newLink: FooterLink = {
-      id: crypto.randomUUID(),
-      text: "Novo Link",
-      type: "internal",
-      route: "/sobre-nos",
-      open_new_tab: false,
-      is_active: true,
-    };
-    setFormData(prev => ({
-      ...prev,
-      columns: prev.columns.map(col =>
-        col.id === columnId ? { ...col, links: [...col.links, newLink] } : col
-      ),
-    }));
-  };
-
-  const updateLink = (columnId: string, linkId: string, field: keyof FooterLink, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      columns: prev.columns.map(col =>
-        col.id === columnId
-          ? {
-              ...col,
-              links: col.links.map(link =>
-                link.id === linkId ? { ...link, [field]: value } : link
-              ),
-            }
-          : col
-      ),
-    }));
-  };
-
-  const removeLink = (columnId: string, linkId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      columns: prev.columns.map(col =>
-        col.id === columnId
-          ? { ...col, links: col.links.filter(link => link.id !== linkId) }
-          : col
-      ),
-    }));
-  };
-
-  const moveLink = (columnId: string, linkId: string, direction: "up" | "down") => {
-    setFormData(prev => ({
-      ...prev,
-      columns: prev.columns.map(col => {
-        if (col.id !== columnId) return col;
-        const index = col.links.findIndex(link => link.id === linkId);
-        if (
-          (direction === "up" && index === 0) ||
-          (direction === "down" && index === col.links.length - 1)
-        ) return col;
-        const newLinks = [...col.links];
-        const swapIndex = direction === "up" ? index - 1 : index + 1;
-        [newLinks[index], newLinks[swapIndex]] = [newLinks[swapIndex], newLinks[index]];
-        return { ...col, links: newLinks };
-      }),
-    }));
-  };
-
-  const updateColumnTitle = (columnId: string, title: string) => {
-    setFormData(prev => ({
-      ...prev,
-      columns: prev.columns.map(col =>
-        col.id === columnId ? { ...col, title } : col
-      ),
-    }));
   };
 
   const isValidUrl = (url: string) => {
@@ -473,170 +366,6 @@ const CMSFooterModal = ({ isOpen, onClose, content, onSave }: CMSFooterModalProp
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* Columns Section */}
-              <div className="p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-[#6a1b9a]" />
-                  Colunas de Links (Rodapé)
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  O rodapé possui 3 colunas fixas. Edite o título e os links de cada coluna.
-                </p>
-
-                <Accordion type="multiple" className="space-y-2">
-                  {formData.columns.map((column) => (
-                    <AccordionItem key={column.id} value={column.id} className="border rounded-lg bg-background px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <span className="font-medium">{column.title || "Coluna sem título"}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({column.links.length} links)
-                        </span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4">
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-sm">Título da Coluna</Label>
-                            <Input
-                              value={column.title}
-                              onChange={(e) => updateColumnTitle(column.id, e.target.value)}
-                              className="mt-1"
-                              placeholder="Ex: Institucional"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-sm">Links</Label>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => addLink(column.id)}
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Adicionar Link
-                              </Button>
-                            </div>
-
-                            {column.links.length === 0 ? (
-                              <p className="text-sm text-muted-foreground text-center py-3">
-                                Nenhum link nesta coluna
-                              </p>
-                            ) : (
-                              <div className="space-y-2">
-                                {column.links.map((link, linkIndex) => (
-                                  <div key={link.id} className="p-3 border rounded bg-muted/50">
-                                    <div className="flex items-start gap-2">
-                                      <div className="flex flex-col gap-0.5">
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-5 w-5"
-                                          onClick={() => moveLink(column.id, link.id, "up")}
-                                          disabled={linkIndex === 0}
-                                        >
-                                          <ArrowUp className="h-3 w-3" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-5 w-5"
-                                          onClick={() => moveLink(column.id, link.id, "down")}
-                                          disabled={linkIndex === column.links.length - 1}
-                                        >
-                                          <ArrowDown className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-
-                                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                        <div>
-                                          <Label className="text-xs">Texto do Link</Label>
-                                          <Input
-                                            value={link.text}
-                                            onChange={(e) => updateLink(column.id, link.id, "text", e.target.value)}
-                                            className="mt-1 h-8"
-                                            placeholder="Sobre Nós"
-                                          />
-                                        </div>
-                                        <div>
-                                          <Label className="text-xs">Tipo</Label>
-                                          <Select
-                                            value={link.type}
-                                            onValueChange={(v: "internal" | "external") => {
-                                              updateLink(column.id, link.id, "type", v);
-                                              updateLink(column.id, link.id, "open_new_tab", v === "external");
-                                            }}
-                                          >
-                                            <SelectTrigger className="mt-1 h-8">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="internal">Página Interna</SelectItem>
-                                              <SelectItem value="external">URL Externa</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div>
-                                          <Label className="text-xs">
-                                            {link.type === "internal" ? "Rota" : "URL"}
-                                          </Label>
-                                          {link.type === "internal" ? (
-                                            <Select
-                                              value={link.route || ""}
-                                              onValueChange={(v) => updateLink(column.id, link.id, "route", v)}
-                                            >
-                                              <SelectTrigger className="mt-1 h-8">
-                                                <SelectValue placeholder="Selecione..." />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {internalRoutes.map((route) => (
-                                                  <SelectItem key={route.value} value={route.value}>
-                                                    {route.label}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          ) : (
-                                            <Input
-                                              value={link.url || ""}
-                                              onChange={(e) => updateLink(column.id, link.id, "url", e.target.value)}
-                                              className="mt-1 h-8"
-                                              placeholder="https://..."
-                                            />
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center gap-1">
-                                        <Switch
-                                          checked={link.is_active}
-                                          onCheckedChange={(v) => updateLink(column.id, link.id, "is_active", v)}
-                                        />
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-6 w-6"
-                                          onClick={() => removeLink(column.id, link.id)}
-                                        >
-                                          <Trash2 className="h-3 w-3 text-destructive" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
               </div>
 
               {/* Copyright Section */}
