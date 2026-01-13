@@ -59,13 +59,17 @@ export const useUpdateCMSContent = () => {
   
   return useMutation({
     mutationFn: async ({ sectionKey, content }: { sectionKey: string; content: Record<string, any> }) => {
+      // Use upsert to create if not exists, or update if exists
       const { error } = await supabase
         .from("cms_landing_content")
-        .update({ 
+        .upsert({ 
+          section_key: sectionKey,
           content,
+          is_active: true,
           updated_at: new Date().toISOString()
-        })
-        .eq("section_key", sectionKey);
+        }, {
+          onConflict: 'section_key'
+        });
       
       if (error) throw error;
     },
