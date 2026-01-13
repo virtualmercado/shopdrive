@@ -30,6 +30,7 @@ import LandingAboutUs from "./pages/LandingAboutUs";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
@@ -120,7 +121,7 @@ function App() {
             <Route path="/sobre-nos" element={<LandingAboutUs />} />
             <Route path="/blog" element={<ComingSoon />} />
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
-            <Route path="/central-de-ajuda" element={<ComingSoon />} />
+            <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
             <Route path="/fale-conosco" element={<ComingSoon />} />
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />

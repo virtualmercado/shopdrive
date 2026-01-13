@@ -585,6 +585,83 @@ export type Database = {
         }
         Relationships: []
       }
+      help_articles: {
+        Row: {
+          category_id: string
+          content: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          content: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          content?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_categories: {
+        Row: {
+          created_at: string
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json | null
