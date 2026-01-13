@@ -423,9 +423,6 @@ const StorePreviewEnhanced = () => {
                   }
                   placeholder="(00) 00000-0000"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Será usado no botão flutuante de WhatsApp
-                </p>
               </div>
             </div>
 
