@@ -19,7 +19,8 @@ import {
   Crown,
   Users,
   ListOrdered,
-  Edit
+  Edit,
+  HelpCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ import CMSAboutUsModal from "@/components/admin/cms/CMSAboutUsModal";
 import CMSTermsOfUseModal from "@/components/admin/cms/CMSTermsOfUseModal";
 import CMSPrivacyPolicyModal from "@/components/admin/cms/CMSPrivacyPolicyModal";
 import CMSCookiePolicyModal from "@/components/admin/cms/CMSCookiePolicyModal";
+import CMSHelpCenterModal from "@/components/admin/cms/CMSHelpCenterModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -573,6 +575,30 @@ const AdminCMS = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Central de Ajuda Page */}
+                <div
+                  className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                      <HelpCircle className="h-5 w-5 text-[#6a1b9a]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm mb-1">Central de Ajuda</h4>
+                      <p className="text-xs text-muted-foreground mb-3">Categorias e artigos de suporte</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                        onClick={() => setActiveModal("help_center")}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -688,6 +714,10 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["cookie_policy"]}
         onSave={(content) => handleSaveContent("cookie_policy", content)}
+      />
+      <CMSHelpCenterModal
+        isOpen={activeModal === "help_center"}
+        onClose={() => setActiveModal(null)}
       />
     </AdminLayout>
   );
