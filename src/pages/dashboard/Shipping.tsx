@@ -408,9 +408,6 @@ const Shipping = () => {
             {/* Pickup Hours Section */}
             <div className="space-y-4 pt-4 border-t">
               <h3 className="font-semibold text-foreground">Horário de Entrega</h3>
-              <p className="text-xs" style={{ color: '#515151' }}>
-                Os horários serão exibidos no checkout da sua loja virtual quando o cliente escolher a opção "Retirada".
-              </p>
               
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span>De segunda a sexta, das</span>
@@ -465,7 +462,7 @@ const Shipping = () => {
               </div>
               
               <p className="text-sm text-muted-foreground">
-                Os horários serão vinculados no checkout da sua loja virtual quando o cliente escolher a opção "Retirada".
+                Os horários serão exibidos no checkout da sua loja virtual quando o cliente escolher a opção "Retirada".
               </p>
             </div>
           </div>
