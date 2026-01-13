@@ -44,6 +44,7 @@ import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
 import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
 import CMSFooterModal from "@/components/admin/cms/CMSFooterModal";
 import CMSAboutUsModal from "@/components/admin/cms/CMSAboutUsModal";
+import CMSTermsOfUseModal from "@/components/admin/cms/CMSTermsOfUseModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -498,6 +499,30 @@ const AdminCMS = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Termos de Uso Page */}
+                <div
+                  className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                      <FileText className="h-5 w-5 text-[#6a1b9a]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm mb-1">Termos de Uso</h4>
+                      <p className="text-xs text-muted-foreground mb-3">Termos legais e condições de uso</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                        onClick={() => setActiveModal("terms_of_use")}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -595,6 +620,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["about_us"]}
         onSave={(content) => handleSaveContent("about_us", content)}
+      />
+      <CMSTermsOfUseModal
+        isOpen={activeModal === "terms_of_use"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["terms_of_use"]}
+        onSave={(content) => handleSaveContent("terms_of_use", content)}
       />
     </AdminLayout>
   );
