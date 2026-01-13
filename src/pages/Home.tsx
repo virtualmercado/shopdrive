@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag, Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe, MessageCircle } from "lucide-react";
 import { PlansSection } from "@/components/plans/PlansSection";
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-footer.png";
 import heroImageDefault from "@/assets/hero-banner.jpg";
@@ -48,6 +48,7 @@ const socialIconMap: Record<string, any> = {
 const Home = () => {
   const { data: cmsBanners } = useCMSBanners();
   const { data: cmsContent } = useCMSContent();
+  const navigate = useNavigate();
   
   // Get banner URLs from CMS or use defaults
   const heroImage = getBannerUrl(cmsBanners, 'banner_01', heroImageDefault);
@@ -59,6 +60,35 @@ const Home = () => {
     setIsMobileMenuOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  // Preload route on hover for smooth navigation
+  const handleLinkHover = useCallback((route: string) => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = route;
+    document.head.appendChild(link);
+  }, []);
+
+  // Smooth navigation with animation for footer links
+  const handleSmoothNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement>, route: string) => {
+    e.preventDefault();
+    
+    // Apply exit animation to main content
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+      mainContent.style.transition = 'opacity 250ms ease-in-out, transform 250ms ease-in-out';
+      mainContent.style.opacity = '0';
+      mainContent.style.transform = 'translateY(-5px)';
+      
+      setTimeout(() => {
+        navigate(route);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, 250);
+    } else {
+      navigate(route);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [navigate]);
 
   // Get CMS content with fallbacks
   const headerContent = {
@@ -180,7 +210,7 @@ const Home = () => {
     copyright: getContent(cmsContent, "footer", "copyright", "© 2025 VirtualMercado. Todos os direitos reservados."),
   };
 
-  // Helper to render footer link
+  // Helper to render footer link with smooth navigation
   const renderFooterLink = (link: any) => {
     if (!link.is_active) return null;
     const href = link.type === "internal" ? link.route : link.url;
@@ -204,13 +234,15 @@ const Home = () => {
     
     return (
       <li key={link.id}>
-        <Link 
-          to={href || "#"} 
-          className="transition-colors hover:opacity-80" 
+        <a 
+          href={href || "#"}
+          onClick={(e) => handleSmoothNavigation(e, href || "/")}
+          onMouseEnter={() => handleLinkHover(href || "/")}
+          className="transition-colors hover:opacity-80 cursor-pointer" 
           style={{ color: '#6A1B9A' }}
         >
           {link.text}
-        </Link>
+        </a>
       </li>
     );
   };
@@ -291,6 +323,8 @@ const Home = () => {
         </div>
       </header>
 
+      {/* Main Content - Animated Container */}
+      <main className="page-enter">
       {/* Hero Section */}
       <section className="relative py-24 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         <div className="container mx-auto text-center max-w-4xl">
@@ -492,6 +526,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-[#EDE5F8] py-16 px-4">
