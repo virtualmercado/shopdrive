@@ -823,6 +823,33 @@ export type Database = {
           },
         ]
       }
+      landing_response_templates: {
+        Row: {
+          assunto: string
+          categoria: string
+          created_at: string
+          id: string
+          mensagem: string
+          updated_at: string
+        }
+        Insert: {
+          assunto: string
+          categoria: string
+          created_at?: string
+          id?: string
+          mensagem: string
+          updated_at?: string
+        }
+        Update: {
+          assunto?: string
+          categoria?: string
+          created_at?: string
+          id?: string
+          mensagem?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media_files: {
         Row: {
           created_at: string
@@ -2100,6 +2127,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tickets_landing_page: {
+        Row: {
+          canal_origem: string
+          categoria: string
+          cpf_cnpj: string | null
+          created_at: string
+          email: string
+          empresa: string | null
+          id: string
+          ip_address: string | null
+          loja_url_ou_nome: string | null
+          mensagem: string
+          nome: string
+          notas_internas: string | null
+          prioridade: string
+          protocolo: string
+          responsavel: string | null
+          status: string
+          tipo_problema: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          canal_origem?: string
+          categoria: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email: string
+          empresa?: string | null
+          id?: string
+          ip_address?: string | null
+          loja_url_ou_nome?: string | null
+          mensagem: string
+          nome: string
+          notas_internas?: string | null
+          prioridade?: string
+          protocolo: string
+          responsavel?: string | null
+          status?: string
+          tipo_problema?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          canal_origem?: string
+          categoria?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string
+          empresa?: string | null
+          id?: string
+          ip_address?: string | null
+          loja_url_ou_nome?: string | null
+          mensagem?: string
+          nome?: string
+          notas_internas?: string | null
+          prioridade?: string
+          protocolo?: string
+          responsavel?: string | null
+          status?: string
+          tipo_problema?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
