@@ -145,14 +145,14 @@ const MiniCart = ({
             {/* Action Buttons */}
             <div className="grid grid-cols-1 gap-3">
               <Button
-                onClick={handleCheckout}
+                onClick={handleContinueShopping}
                 className={`w-full ${buttonRadius} transition-all hover:opacity-90`}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
-                Finalizar Compra
+                Continuar Comprando
               </Button>
               <Button
-                onClick={handleContinueShopping}
+                onClick={handleCheckout}
                 variant="outline"
                 className={`w-full ${buttonRadius} transition-all`}
                 style={{ 
@@ -160,7 +160,7 @@ const MiniCart = ({
                   color: buttonBgColor,
                 }}
               >
-                Continuar Comprando
+                Finalizar Compra
               </Button>
             </div>
           </div>
