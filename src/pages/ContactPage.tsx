@@ -105,25 +105,43 @@ const ContactPage = () => {
     },
   });
 
+  const getCategoryFromType = (type: FormType): string => {
+    switch (type) {
+      case "support": return "suporte_lojista";
+      case "financial": return "financeiro_cobrancas";
+      case "commercial": return "comercial_parcerias";
+      default: return "suporte_lojista";
+    }
+  };
+
   const submitForm = async (type: FormType, data: Record<string, unknown>) => {
     if (!type) return;
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("contact_submissions").insert({
-        contact_type: type,
-        name: data.name as string,
+      // Insert into tickets_landing_page (new table with protocol generation)
+      const { data: ticketData, error } = await supabase.from("tickets_landing_page" as any).insert({
+        categoria: getCategoryFromType(type),
+        nome: data.name as string,
         email: data.email as string,
-        store_url: (data.store_url as string) || null,
-        problem_type: (data.problem_type as string) || null,
+        loja_url_ou_nome: (data.store_url as string) || null,
+        tipo_problema: (data.problem_type as string) || null,
         cpf_cnpj: (data.cpf_cnpj as string) || null,
-        company: (data.company as string) || null,
-        message: data.message as string,
-      });
+        empresa: (data.company as string) || null,
+        mensagem: data.message as string,
+      } as any).select('protocolo').single();
 
       if (error) throw error;
 
-      toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+      const protocolo = (ticketData as any)?.protocolo || 'Gerado';
+      toast.success(
+        <div className="space-y-1">
+          <p className="font-medium">Mensagem enviada com sucesso!</p>
+          <p className="text-sm">Seu protocolo: <span className="font-mono font-bold">{protocolo}</span></p>
+          <p className="text-xs text-muted-foreground">Guarde este número para acompanhamento.</p>
+        </div>,
+        { duration: 10000 }
+      );
       setOpenForm(null);
       
       // Reset forms

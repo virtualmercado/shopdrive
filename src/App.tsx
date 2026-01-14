@@ -56,6 +56,7 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminCMS from "./pages/admin/AdminCMS";
 import AdminMediaLibrary from "./pages/admin/AdminMediaLibrary";
+import AdminLandingSupport from "./pages/admin/AdminLandingSupport";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ function App() {
             <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />
             <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
+            <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
             
             {/* Merchant Routes */}
