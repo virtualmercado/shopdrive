@@ -44,7 +44,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: Layers, label: "Gerenciador CMS", path: "/gestor/cms" },
     { icon: Image, label: "Biblioteca de Mídia", path: "/gestor/biblioteca-midia" },
     { icon: BarChart3, label: "Relatórios", path: "/gestor/relatorios" },
-    { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/gestor/suporte" },
+    { icon: HeadphonesIcon, label: "Suporte / Tickets\nPainel Lojista", path: "/gestor/suporte" },
     { icon: Shield, label: "Logs e Segurança", path: "/gestor/seguranca" },
   ];
 
@@ -89,9 +89,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
         </div>
 
-        <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-180px)]">
+        <nav className="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const hasLineBreak = item.label.includes('\n');
             
             return (
               <Link
@@ -105,7 +106,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                {sidebarOpen && (
+                  hasLineBreak ? (
+                    <span className="text-sm whitespace-pre-line leading-tight">{item.label}</span>
+                  ) : (
+                    <span className="text-sm">{item.label}</span>
+                  )
+                )}
               </Link>
             );
           })}
