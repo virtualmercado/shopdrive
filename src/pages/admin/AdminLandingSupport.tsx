@@ -61,7 +61,9 @@ import {
   User,
   Calendar,
   Tag,
-  ExternalLink
+  ExternalLink,
+  Send,
+  History
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +104,18 @@ interface ResponseTemplate {
   mensagem: string;
 }
 
+interface TicketResponse {
+  id: string;
+  ticket_id: string;
+  tipo: string;
+  assunto: string;
+  mensagem: string;
+  enviado_por: string | null;
+  email_destinatario: string | null;
+  status_envio: string;
+  created_at: string;
+}
+
 const categoryMap: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   suporte_lojista: { label: "Suporte ao Lojista", icon: Headset, color: "bg-blue-100 text-blue-800" },
   financeiro_cobrancas: { label: "Financeiro e Cobranças", icon: CreditCard, color: "bg-green-100 text-green-800" },
@@ -134,9 +148,12 @@ const AdminLandingSupport = () => {
   const [notasInternas, setNotasInternas] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [generatedResponse, setGeneratedResponse] = useState("");
+  const [editableResponse, setEditableResponse] = useState("");
   const [activeTab, setActiveTab] = useState("tickets");
   const [editingTemplate, setEditingTemplate] = useState<ResponseTemplate | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Fetch tickets
   const { data: tickets, isLoading: loadingTickets, refetch } = useQuery({
@@ -193,6 +210,22 @@ const AdminLandingSupport = () => {
       if (error) throw error;
       return data as unknown as ResponseTemplate[];
     }
+  });
+
+  // Fetch ticket responses history
+  const { data: ticketResponses, refetch: refetchResponses } = useQuery({
+    queryKey: ['ticket-responses', selectedTicket?.id],
+    queryFn: async () => {
+      if (!selectedTicket) return [];
+      const { data, error } = await supabase
+        .from('ticket_landing_responses' as any)
+        .select('*')
+        .eq('ticket_id', selectedTicket.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as unknown as TicketResponse[];
+    },
+    enabled: !!selectedTicket
   });
 
   // Update ticket mutation
@@ -257,6 +290,8 @@ const AdminLandingSupport = () => {
     setNotasInternas(ticket.notas_internas || "");
     setResponsavel(ticket.responsavel || "");
     setGeneratedResponse("");
+    setEditableResponse("");
+    setShowHistory(false);
     setSheetOpen(true);
   };
 
@@ -301,7 +336,8 @@ const AdminLandingSupport = () => {
       .replace(/{nome}/g, selectedTicket.nome);
 
     setGeneratedResponse(response);
-    toast.success("Resposta gerada! Copie e envie por e-mail.");
+    setEditableResponse(response);
+    toast.success("Resposta gerada! Edite se necessário e clique em 'Enviar por E-mail'.");
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -309,15 +345,60 @@ const AdminLandingSupport = () => {
     toast.success(`${label} copiado!`);
   };
 
-  const openEmailClient = () => {
-    if (!selectedTicket) return;
+  const sendEmailResponse = async () => {
+    if (!selectedTicket || !editableResponse) {
+      toast.error("Gere uma resposta antes de enviar");
+      return;
+    }
+
     const template = templates?.find(t => t.categoria === selectedTicket.categoria);
     const subject = template?.assunto
       .replace(/{protocolo}/g, selectedTicket.protocolo)
       .replace(/{nome}/g, selectedTicket.nome) || `Resposta - ${selectedTicket.protocolo}`;
-    
-    const body = encodeURIComponent(generatedResponse || "");
-    window.open(`mailto:${selectedTicket.email}?subject=${encodeURIComponent(subject)}&body=${body}`);
+
+    setIsSendingEmail(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('send-landing-ticket-response', {
+        body: {
+          ticketId: selectedTicket.id,
+          to: selectedTicket.email,
+          subject: subject,
+          message: editableResponse,
+          ticketProtocolo: selectedTicket.protocolo,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Erro ao enviar e-mail");
+      }
+
+      const data = response.data;
+      
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao enviar e-mail");
+      }
+
+      toast.success("E-mail enviado com sucesso!");
+      
+      // Update local state
+      setSelectedTicket({ ...selectedTicket, status: "aguardando_cliente" });
+      setGeneratedResponse("");
+      setEditableResponse("");
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['landing-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['landing-tickets-stats'] });
+      refetchResponses();
+      
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error(error.message || "Erro ao enviar e-mail. Tente novamente.");
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const getCategoryBadge = (categoria: string) => {
@@ -527,7 +608,7 @@ const AdminLandingSupport = () => {
                   Respostas Padrão – Landing Page
                 </CardTitle>
                 <CardDescription>
-                  Esses textos servem como base para copiar/colar. Nenhuma resposta é enviada automaticamente.
+                  Esses textos servem como base para as respostas automáticas enviadas por e-mail.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -762,27 +843,100 @@ const AdminLandingSupport = () => {
                         <FileText className="h-4 w-4 mr-2" />
                         Gerar Resposta
                       </Button>
-                      {generatedResponse && (
-                        <Button variant="outline" onClick={openEmailClient}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Responder por E-mail
-                        </Button>
-                      )}
                     </div>
+                    
                     {generatedResponse && (
-                      <div className="relative">
-                        <pre className="text-sm whitespace-pre-wrap bg-muted/50 p-4 rounded-lg font-sans">
-                          {generatedResponse}
-                        </pre>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          className="absolute top-2 right-2"
-                          onClick={() => copyToClipboard(generatedResponse, "Resposta")}
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copiar
-                        </Button>
+                      <div className="space-y-3">
+                        <Label>Editar Resposta (opcional)</Label>
+                        <Textarea
+                          value={editableResponse}
+                          onChange={(e) => setEditableResponse(e.target.value)}
+                          className="min-h-[200px] font-sans text-sm"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            onClick={sendEmailResponse}
+                            disabled={isSendingEmail || !editableResponse}
+                            className="flex-1"
+                          >
+                            {isSendingEmail ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4 mr-2" />
+                            )}
+                            Enviar por E-mail
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => copyToClipboard(editableResponse, "Resposta")}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copiar
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          O e-mail será enviado para: <strong>{selectedTicket.email}</strong>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Response History */}
+                  <div className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowHistory(!showHistory)}
+                      className="w-full justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        Histórico de Respostas ({ticketResponses?.length || 0})
+                      </span>
+                      {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                    
+                    {showHistory && (
+                      <div className="space-y-3">
+                        {ticketResponses?.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Nenhuma resposta enviada ainda
+                          </p>
+                        ) : (
+                          ticketResponses?.map((response) => (
+                            <div key={response.id} className="border rounded-lg p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Badge variant={response.status_envio === 'enviado' ? 'default' : 'destructive'}>
+                                  {response.status_envio === 'enviado' ? (
+                                    <><CheckCircle className="h-3 w-3 mr-1" /> Enviado</>
+                                  ) : (
+                                    <><AlertCircle className="h-3 w-3 mr-1" /> Falha</>
+                                  )}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(response.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Assunto:</p>
+                                <p className="text-sm font-medium">{response.assunto}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Para:</p>
+                                <p className="text-sm">{response.email_destinatario}</p>
+                              </div>
+                              <details className="text-sm">
+                                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                  Ver mensagem
+                                </summary>
+                                <pre className="mt-2 whitespace-pre-wrap bg-muted/50 p-2 rounded text-xs font-sans">
+                                  {response.mensagem}
+                                </pre>
+                              </details>
+                            </div>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>
