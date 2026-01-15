@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.calculate-melhor-envio]
 verify_jwt = false
+
+[functions.send-landing-ticket-response]
+verify_jwt = false

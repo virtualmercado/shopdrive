@@ -2069,6 +2069,50 @@ export type Database = {
           },
         ]
       }
+      ticket_landing_responses: {
+        Row: {
+          assunto: string
+          created_at: string
+          email_destinatario: string | null
+          enviado_por: string | null
+          id: string
+          mensagem: string
+          status_envio: string | null
+          ticket_id: string
+          tipo: string
+        }
+        Insert: {
+          assunto: string
+          created_at?: string
+          email_destinatario?: string | null
+          enviado_por?: string | null
+          id?: string
+          mensagem: string
+          status_envio?: string | null
+          ticket_id: string
+          tipo?: string
+        }
+        Update: {
+          assunto?: string
+          created_at?: string
+          email_destinatario?: string | null
+          enviado_por?: string | null
+          id?: string
+          mensagem?: string
+          status_envio?: string | null
+          ticket_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_landing_responses_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets_landing_page"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_messages: {
         Row: {
           attachments: Json | null
