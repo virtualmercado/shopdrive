@@ -1,18 +1,12 @@
 import { useState } from "react";
-import { Pencil, CreditCard } from "lucide-react";
+import { Pencil, CreditCard, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useTheme } from "@/contexts/ThemeContext";
-import creditCardIllustration from "@/assets/credit-card-illustration.png";
+import { CardForm } from "./CardForm";
+import { CardValidationStatus, ValidationStatus } from "./CardValidationStatus";
+import { AutomaticPaymentToggle } from "./AutomaticPaymentToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // VirtualMercado default colors
 const VM_PRIMARY = "#6a1b9a";
@@ -22,78 +16,147 @@ interface SavedCard {
   lastFourDigits: string;
   expirationMonth: string;
   expirationYear: string;
+  brand?: string;
+}
+
+interface SubscriptionInfo {
+  id: string;
+  status: string;
+  billingCycle: "monthly" | "annual";
+  planId: string;
+  cardToken?: string;
+  paymentMethod?: string;
 }
 
 interface PaymentDataSectionProps {
   savedCard?: SavedCard | null;
-  onCardSave?: (cardData: {
+  subscription?: SubscriptionInfo | null;
+  onCardValidated?: (cardData: {
+    lastFourDigits: string;
+    brand: string;
+    holderName: string;
+    expiry: string;
+  }) => void;
+}
+
+export const PaymentDataSection = ({
+  savedCard = null,
+  subscription = null,
+  onCardValidated,
+}: PaymentDataSectionProps) => {
+  const { primaryColor } = useTheme();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationStatus, setValidationStatus] = useState<ValidationStatus>("idle");
+  const [validationMessage, setValidationMessage] = useState<string>("");
+  const [currentCard, setCurrentCard] = useState<SavedCard | null>(savedCard);
+
+  const activeColor = primaryColor || VM_PRIMARY;
+
+  // Determine if automatic payment is active
+  // Active when: monthly plan + card validated + subscription active
+  const isAutomaticPaymentActive = 
+    subscription?.billingCycle === "monthly" &&
+    subscription?.status === "active" &&
+    !!subscription?.cardToken;
+
+  // Should show payment section?
+  // Only for monthly plans OR annual plans paid via card
+  const shouldShowPaymentSection = 
+    subscription?.billingCycle === "monthly" ||
+    (subscription?.billingCycle === "annual" && subscription?.paymentMethod === "credit_card");
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setValidationStatus("idle");
+    setValidationMessage("");
+  };
+
+  const handleValidateCard = async (cardData: {
     cardNumber: string;
     holderName: string;
     expirationMonth: string;
     expirationYear: string;
     cvv: string;
-  }) => void;
-  onPaymentMethodChange?: (method: "card" | "boleto") => void;
-}
+    cardToken?: string;
+    paymentMethodId?: string;
+  }) => {
+    if (!cardData.cardToken) {
+      setValidationStatus("error");
+      setValidationMessage("Não foi possível processar os dados do cartão. Tente novamente.");
+      return;
+    }
 
-export const PaymentDataSection = ({
-  savedCard = null,
-  onCardSave,
-  onPaymentMethodChange,
-}: PaymentDataSectionProps) => {
-  const { primaryColor } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "boleto">("card");
-  
-  // Card form state
-  const [cardNumber, setCardNumber] = useState("");
-  const [holderName, setHolderName] = useState(savedCard?.holderName || "");
-  const [expirationMonth, setExpirationMonth] = useState(savedCard?.expirationMonth || "");
-  const [expirationYear, setExpirationYear] = useState(savedCard?.expirationYear || "");
-  const [cvv, setCvv] = useState("");
+    setIsValidating(true);
+    setValidationStatus("idle");
 
-  // Use merchant's primary color or fallback to VM default
-  const activeColor = primaryColor || VM_PRIMARY;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Sessão expirada");
+      }
 
-  const handlePaymentMethodChange = (value: string) => {
-    const method = value as "card" | "boleto";
-    setPaymentMethod(method);
-    onPaymentMethodChange?.(method);
+      const response = await supabase.functions.invoke("validate-card", {
+        body: {
+          cardToken: cardData.cardToken,
+          paymentMethodId: cardData.paymentMethodId,
+          holderName: cardData.holderName,
+          expirationMonth: cardData.expirationMonth,
+          expirationYear: cardData.expirationYear,
+          lastFourDigits: cardData.cardNumber.slice(-4),
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const result = response.data;
+
+      if (result.success) {
+        setValidationStatus("success");
+        setValidationMessage(result.message);
+        setIsEditing(false);
+        
+        // Update local card state
+        setCurrentCard({
+          holderName: cardData.holderName,
+          lastFourDigits: cardData.cardNumber.slice(-4),
+          expirationMonth: cardData.expirationMonth,
+          expirationYear: cardData.expirationYear,
+          brand: cardData.paymentMethodId,
+        });
+
+        // Notify parent
+        onCardValidated?.({
+          lastFourDigits: cardData.cardNumber.slice(-4),
+          brand: cardData.paymentMethodId || "unknown",
+          holderName: cardData.holderName,
+          expiry: `${cardData.expirationMonth}/${cardData.expirationYear}`,
+        });
+
+        toast.success("Cartão validado com sucesso!");
+      } else if (result.status === "rejected") {
+        setValidationStatus("rejected");
+        setValidationMessage(result.error);
+      } else {
+        setValidationStatus("error");
+        setValidationMessage(result.error || "Erro na validação");
+      }
+    } catch (error: any) {
+      console.error("Card validation error:", error);
+      setValidationStatus("error");
+      setValidationMessage(error.message || "Erro ao validar cartão");
+    } finally {
+      setIsValidating(false);
+    }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setCardNumber("");
-    setHolderName(savedCard?.holderName || "");
-    setExpirationMonth(savedCard?.expirationMonth || "");
-    setExpirationYear(savedCard?.expirationYear || "");
-    setCvv("");
-  };
-
-  const handleValidateCard = () => {
-    onCardSave?.({
-      cardNumber,
-      holderName,
-      expirationMonth,
-      expirationYear,
-      cvv,
-    });
-    setIsEditing(false);
-  };
-
-  const formatCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 16);
-    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-  };
-
-  const months = Array.from({ length: 12 }, (_, i) => 
-    String(i + 1).padStart(2, "0")
-  );
-  
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 15 }, (_, i) => 
-    String(currentYear + i)
-  );
+  // Don't render if section shouldn't be shown
+  if (!shouldShowPaymentSection && subscription) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -108,12 +171,27 @@ export const PaymentDataSection = ({
           </h2>
         </div>
         <p className="text-sm text-muted-foreground ml-10">
-          Escolha a forma de pagamento do seu plano
+          Gerencie o cartão de crédito vinculado à sua assinatura
         </p>
       </div>
 
+      {/* Automatic Payment Toggle - Only for monthly */}
+      {subscription?.billingCycle === "monthly" && (
+        <AutomaticPaymentToggle
+          isActive={isAutomaticPaymentActive}
+          billingCycle={subscription.billingCycle}
+          primaryColor={activeColor}
+        />
+      )}
+
+      {/* Validation Status Messages */}
+      <CardValidationStatus 
+        status={validationStatus} 
+        message={validationMessage}
+      />
+
       {/* Card Summary or Edit Form */}
-      {savedCard && !isEditing ? (
+      {currentCard && !isEditing ? (
         // Saved card summary view
         <div className="border border-border rounded-lg p-4 bg-muted/30">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -121,19 +199,26 @@ export const PaymentDataSection = ({
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Nome impresso</p>
                 <p className="text-sm font-medium text-foreground">
-                  {savedCard.holderName}
+                  {currentCard.holderName}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Número do cartão</p>
-                <p className="text-sm font-medium text-foreground">
-                  **** **** **** {savedCard.lastFourDigits}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">
+                    **** **** **** {currentCard.lastFourDigits}
+                  </p>
+                  {currentCard.brand && (
+                    <span className="text-xs text-muted-foreground uppercase">
+                      {currentCard.brand}
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Data de expiração</p>
                 <p className="text-sm font-medium text-foreground">
-                  {savedCard.expirationMonth}/{savedCard.expirationYear}
+                  {currentCard.expirationMonth}/{currentCard.expirationYear}
                 </p>
               </div>
             </div>
@@ -151,198 +236,32 @@ export const PaymentDataSection = ({
             </Button>
           </div>
         </div>
-      ) : isEditing || !savedCard ? (
+      ) : isEditing || !currentCard ? (
         // Card edit form
-        <div className="border border-border rounded-lg p-4 md:p-6 bg-background space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Card Number */}
-            <div className="md:col-span-2">
-              <Label htmlFor="cardNumber" className="text-sm font-medium">
-                Número do cartão
-              </Label>
-              <Input
-                id="cardNumber"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                placeholder="0000 0000 0000 0000"
-                className="mt-1.5"
-                maxLength={19}
-              />
-            </div>
-
-            {/* Holder Name */}
-            <div className="md:col-span-2">
-              <Label htmlFor="holderName" className="text-sm font-medium">
-                Nome impresso
-              </Label>
-              <Input
-                id="holderName"
-                value={holderName}
-                onChange={(e) => setHolderName(e.target.value.toUpperCase())}
-                placeholder="NOME COMO ESTÁ NO CARTÃO"
-                className="mt-1.5"
-              />
-            </div>
-
-            {/* Expiration */}
-            <div>
-              <Label className="text-sm font-medium">Vencimento</Label>
-              <div className="flex gap-2 mt-1.5">
-                <Select value={expirationMonth} onValueChange={setExpirationMonth}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Mês" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month} value={month}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={expirationYear} onValueChange={setExpirationYear}>
-                  <SelectTrigger 
-                    className="flex-1"
-                    style={{
-                      backgroundColor: expirationYear ? `${activeColor}10` : undefined,
-                      borderColor: expirationYear ? activeColor : undefined,
-                    }}
-                  >
-                    <SelectValue placeholder="Ano" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* CVV */}
-            <div>
-              <Label htmlFor="cvv" className="text-sm font-medium">
-                Código de segurança
-              </Label>
-              <div className="flex items-start gap-3 mt-1.5">
-                <Input
-                  id="cvv"
-                  value={cvv}
-                  onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="CVV"
-                  maxLength={4}
-                  className="w-24"
-                />
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <img 
-                    src={creditCardIllustration} 
-                    alt="CVV" 
-                    className="w-10 h-6 object-contain"
-                  />
-                  <span>
-                    Sequência de três últimos<br />
-                    dígitos no verso do cartão.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Verification notice */}
-          <p className="text-xs text-muted-foreground">
-            Será realizada uma transação de verificação com a operadora do seu cartão.
-          </p>
-
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            {savedCard && (
-              <Button
-                variant="secondary"
-                onClick={handleCancelEdit}
-                className="sm:order-1"
-              >
-                Cancelar edição
-              </Button>
-            )}
-            <Button
-              onClick={handleValidateCard}
-              className="sm:order-2 text-white"
-              style={{ backgroundColor: activeColor }}
-            >
-              Validar dados do cartão
-            </Button>
-          </div>
+        <div className="border border-border rounded-lg p-4 md:p-6 bg-background">
+          <CardForm
+            onValidate={handleValidateCard}
+            onCancel={currentCard ? handleCancelEdit : undefined}
+            showCancelButton={!!currentCard}
+            isLoading={isValidating}
+            primaryColor={activeColor}
+            initialData={currentCard ? {
+              holderName: currentCard.holderName,
+              expirationMonth: currentCard.expirationMonth,
+              expirationYear: currentCard.expirationYear,
+            } : undefined}
+          />
         </div>
       ) : null}
 
-      {/* Payment Method Selection */}
-      <RadioGroup
-        value={paymentMethod}
-        onValueChange={handlePaymentMethodChange}
-        className="space-y-3"
-      >
-        <label
-          htmlFor="payment-card"
-          className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-            paymentMethod === "card" 
-              ? "bg-muted/50" 
-              : "bg-background hover:bg-muted/20"
-          }`}
-          style={{
-            borderColor: paymentMethod === "card" ? activeColor : undefined,
-          }}
-        >
-          <RadioGroupItem
-            value="card"
-            id="payment-card"
-            className="mt-0.5"
-            style={{
-              borderColor: activeColor,
-              color: paymentMethod === "card" ? activeColor : undefined,
-            }}
-          />
-          <div className="flex-1">
-            <p className="font-medium text-foreground">
-              Pagamento Automático no Cartão
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Use as bandeiras de cartão de crédito mais populares do mercado.
-            </p>
-          </div>
-        </label>
-
-        <label
-          htmlFor="payment-boleto"
-          className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-            paymentMethod === "boleto" 
-              ? "bg-muted/50" 
-              : "bg-background hover:bg-muted/20"
-          }`}
-          style={{
-            borderColor: paymentMethod === "boleto" ? activeColor : undefined,
-          }}
-        >
-          <RadioGroupItem
-            value="boleto"
-            id="payment-boleto"
-            className="mt-0.5"
-            style={{
-              borderColor: activeColor,
-              color: paymentMethod === "boleto" ? activeColor : undefined,
-            }}
-          />
-          <div className="flex-1">
-            <p className="font-medium text-foreground">
-              Boleto Bancário
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Um boleto será gerado de forma automática dias antes do vencimento de sua mensalidade.
-            </p>
-          </div>
-        </label>
-      </RadioGroup>
+      {/* Security notice */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Lock className="h-3.5 w-3.5" />
+        <span>
+          Seus dados são protegidos com criptografia de ponta a ponta. 
+          Não armazenamos os dados do seu cartão.
+        </span>
+      </div>
     </div>
   );
 };
