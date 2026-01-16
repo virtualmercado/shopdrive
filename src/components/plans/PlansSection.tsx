@@ -488,7 +488,13 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
 
               {/* Action Button */}
               {isLandingPage ? (
-                <Link to="/register" className="mt-auto">
+                <Link 
+                  to={plan.id === "gratis" 
+                    ? "/register" 
+                    : `/gestor/checkout-assinatura?plano=${plan.id}&ciclo=${billingPeriod === "monthly" ? "mensal" : "anual"}&origem=landing`
+                  } 
+                  className="mt-auto"
+                >
                   <Button
                     className={cn(
                       "w-full font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg",
