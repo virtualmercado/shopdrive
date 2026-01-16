@@ -26,3 +26,15 @@ verify_jwt = false
 
 [functions.send-landing-ticket-response]
 verify_jwt = false
+
+[functions.create-master-subscription]
+verify_jwt = false
+
+[functions.master-subscription-webhook]
+verify_jwt = false
+
+[functions.check-master-subscription-status]
+verify_jwt = false
+
+[functions.retry-master-payments]
+verify_jwt = false
