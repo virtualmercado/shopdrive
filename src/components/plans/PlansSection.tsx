@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { CircleDollarSign, Coins, LockOpen, Trophy, Check, Star, Zap, Shield, Gift, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import editIcon from "@/assets/edit-icon.png";
 import { useCMSContent } from "@/hooks/useCMSContent";
 
@@ -120,6 +120,7 @@ interface PlansSectionProps {
 export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction }: PlansSectionProps) => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
   const { data: cmsContent } = useCMSContent();
+  const navigate = useNavigate();
 
   // Get plans content from CMS or use defaults
   const plansContent = cmsContent?.plans || {};
@@ -129,6 +130,19 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
   const toggleAnnual = plansContent.toggle_annual || "Anual";
   const discountBadge = plansContent.discount_badge || "-30% DESC.";
   const annualDiscountText = plansContent.annual_discount_text || "- 30% de desconto no plano anual";
+
+  // Smooth navigation with page transition animation
+  const handleSmoothNavigation = useCallback((path: string) => {
+    const pageContent = document.querySelector('[data-page-content]');
+    if (pageContent) {
+      pageContent.classList.add('page-exit');
+      setTimeout(() => {
+        navigate(path);
+      }, 300);
+    } else {
+      navigate(path);
+    }
+  }, [navigate]);
 
   const calculateAnnualPrice = (monthlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
@@ -488,31 +502,29 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
 
               {/* Action Button */}
               {isLandingPage ? (
-                <Link 
-                  to={plan.id === "gratis" 
-                    ? "/register" 
-                    : `/gestor/checkout-assinatura?plano=${plan.id}&ciclo=${billingPeriod === "monthly" ? "mensal" : "anual"}&origem=landing`
-                  } 
-                  className="mt-auto"
+                <Button
+                  onClick={() => {
+                    const path = plan.id === "gratis" 
+                      ? "/register" 
+                      : `/gestor/checkout-assinatura?plano=${plan.id}&ciclo=${billingPeriod === "monthly" ? "mensal" : "anual"}&origem=landing`;
+                    handleSmoothNavigation(path);
+                  }}
+                  className={cn(
+                    "w-full font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg mt-auto",
+                    isLandingPage ? "py-2.5" : "py-3"
+                  )}
+                  style={{
+                    backgroundColor: VM_ORANGE,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ea580c";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = VM_ORANGE;
+                  }}
                 >
-                  <Button
-                    className={cn(
-                      "w-full font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg",
-                      isLandingPage ? "py-2.5" : "py-3"
-                    )}
-                    style={{
-                      backgroundColor: VM_ORANGE,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#ea580c";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = VM_ORANGE;
-                    }}
-                  >
-                    {plan.button_text}
-                  </Button>
-                </Link>
+                  {plan.button_text}
+                </Button>
               ) : (
                 <Button
                   onClick={() => onPlanAction?.(plan.id, getButtonAction(plan.id))}

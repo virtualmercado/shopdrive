@@ -241,7 +241,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-6 page-enter" data-page-content>
           {children}
         </main>
       </div>
