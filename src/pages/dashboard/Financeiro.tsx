@@ -40,7 +40,7 @@ const Financeiro = () => {
       pageContent.classList.add('page-exit');
       setTimeout(() => {
         navigate(path);
-      }, 450); // Match the exit animation duration
+      }, 700); // Slower transition to checkout
     } else {
       navigate(path);
     }
