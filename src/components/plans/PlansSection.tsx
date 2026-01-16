@@ -138,7 +138,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
       pageContent.classList.add('page-exit');
       setTimeout(() => {
         navigate(path);
-      }, 300);
+      }, 450); // Match the exit animation duration
     } else {
       navigate(path);
     }
