@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,11 @@ import {
   Crown,
   Zap,
   RefreshCw,
-  Calendar
+  Calendar,
+  Copy,
+  ExternalLink,
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +59,7 @@ const PLAN_FEATURES = {
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type BillingCycle = "monthly" | "annual";
 type PlanId = "pro" | "premium";
+type CheckoutStep = "form" | "pix" | "boleto" | "success";
 
 interface CardFormData {
   cardNumber: string;
@@ -64,15 +69,37 @@ interface CardFormData {
   cvv: string;
 }
 
+interface PixData {
+  qrCode: string;
+  qrCodeBase64: string;
+  expiresAt: string;
+  amount: number;
+}
+
+interface BoletoData {
+  url: string;
+  barcode: string;
+  digitableLine: string;
+  expiresAt: string;
+  amount: number;
+}
+
+declare global {
+  interface Window {
+    MercadoPago: any;
+  }
+}
+
 const AdminSubscriptionCheckout = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const mpRef = useRef<any>(null);
 
   // Parâmetros da URL
   const planParam = (searchParams.get("plano") as PlanId) || "pro";
   const cycleParam = (searchParams.get("ciclo") as BillingCycle) || "monthly";
-  const originParam = searchParams.get("origem") || "painel_lojista";
+  const originParam = searchParams.get("origem") || "checkout";
 
   // Estados
   const [plan, setPlan] = useState<PlanId>(planParam);
@@ -82,6 +109,14 @@ const AdminSubscriptionCheckout = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [step, setStep] = useState<CheckoutStep>("form");
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
+  const [mpLoaded, setMpLoaded] = useState(false);
+
+  // Dados de pagamento
+  const [pixData, setPixData] = useState<PixData | null>(null);
+  const [boletoData, setBoletoData] = useState<BoletoData | null>(null);
 
   // Form do cartão
   const [cardForm, setCardForm] = useState<CardFormData>({
@@ -91,6 +126,45 @@ const AdminSubscriptionCheckout = () => {
     expirationYear: "",
     cvv: ""
   });
+
+  // Carregar SDK do Mercado Pago
+  useEffect(() => {
+    const loadMercadoPagoSDK = async () => {
+      // Buscar public key do gateway master
+      const { data: gateway } = await supabase
+        .from("master_payment_gateways")
+        .select("mercadopago_public_key")
+        .eq("is_active", true)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      if (gateway?.mercadopago_public_key) {
+        setMpPublicKey(gateway.mercadopago_public_key);
+
+        // Carregar SDK se ainda não carregado
+        if (!window.MercadoPago) {
+          const script = document.createElement("script");
+          script.src = "https://sdk.mercadopago.com/js/v2";
+          script.async = true;
+          script.onload = () => {
+            mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
+              locale: "pt-BR"
+            });
+            setMpLoaded(true);
+            console.log("MercadoPago SDK loaded");
+          };
+          document.body.appendChild(script);
+        } else {
+          mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
+            locale: "pt-BR"
+          });
+          setMpLoaded(true);
+        }
+      }
+    };
+
+    loadMercadoPagoSDK();
+  }, []);
 
   // Buscar perfil do usuário
   useEffect(() => {
@@ -112,17 +186,35 @@ const AdminSubscriptionCheckout = () => {
   const totalAmount = billingCycle === "monthly" ? monthlyPrice : annualPrice;
   const savings = billingCycle === "annual" ? monthlyPrice * 12 - annualPrice : 0;
 
-  // Métodos de pagamento disponíveis com base no ciclo
-  const availablePaymentMethods = billingCycle === "monthly" 
-    ? ["credit_card"] 
-    : ["credit_card", "pix", "boleto"];
-
   // Reset payment method quando mudar ciclo
   useEffect(() => {
     if (billingCycle === "monthly" && paymentMethod !== "credit_card") {
       setPaymentMethod("credit_card");
     }
   }, [billingCycle]);
+
+  // Polling para verificar status do pagamento (PIX/Boleto)
+  useEffect(() => {
+    if ((step === "pix" || step === "boleto") && subscriptionId) {
+      const interval = setInterval(async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("check-master-subscription-status", {
+            body: { subscriptionId }
+          });
+
+          if (data?.subscription?.status === "active") {
+            setStep("success");
+            toast.success("Pagamento confirmado! Sua assinatura está ativa.");
+            clearInterval(interval);
+          }
+        } catch (error) {
+          console.error("Error checking status:", error);
+        }
+      }, 5000); // Check every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [step, subscriptionId]);
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "");
@@ -137,6 +229,19 @@ const AdminSubscriptionCheckout = () => {
     setCardForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const detectCardBrand = (cardNumber: string): string => {
+    const cleaned = cardNumber.replace(/\D/g, "");
+    if (/^4/.test(cleaned)) return "visa";
+    if (/^5[1-5]/.test(cleaned)) return "master";
+    if (/^3[47]/.test(cleaned)) return "amex";
+    if (/^6(?:011|5)/.test(cleaned)) return "discover";
+    if (/^(?:2131|1800|35)/.test(cleaned)) return "jcb";
+    if (/^3(?:0[0-5]|[68])/.test(cleaned)) return "diners";
+    if (/^(636368|636369|438935|504175|451416|636297|5067|4576|4011)/.test(cleaned)) return "elo";
+    if (/^(50|6[04-9])/.test(cleaned)) return "hipercard";
+    return "visa";
+  };
+
   const canProceed = () => {
     if (!termsAccepted) return false;
     if (billingCycle === "monthly" && !recurringConsent) return false;
@@ -149,8 +254,48 @@ const AdminSubscriptionCheckout = () => {
     return true;
   };
 
+  const tokenizeCard = async (): Promise<{ token: string; paymentMethodId: string } | null> => {
+    if (!mpRef.current || !mpLoaded) {
+      console.error("MercadoPago SDK not loaded");
+      toast.error("SDK de pagamento não carregado. Aguarde ou recarregue a página.");
+      return null;
+    }
+
+    try {
+      const cardNumber = cardForm.cardNumber.replace(/\s/g, "");
+      const cardBrand = detectCardBrand(cardNumber);
+
+      // Criar token usando SDK
+      const cardTokenData = {
+        cardNumber: cardNumber,
+        cardholderName: cardForm.holderName,
+        cardExpirationMonth: cardForm.expirationMonth,
+        cardExpirationYear: `20${cardForm.expirationYear}`,
+        securityCode: cardForm.cvv,
+        identificationType: "CPF",
+        identificationNumber: userProfile?.cpf_cnpj?.replace(/\D/g, "") || "00000000000",
+      };
+
+      const response = await mpRef.current.createCardToken(cardTokenData);
+      
+      if (response.id) {
+        console.log("Card tokenized successfully:", response.id);
+        return {
+          token: response.id,
+          paymentMethodId: cardBrand
+        };
+      } else {
+        throw new Error("Failed to tokenize card");
+      }
+    } catch (error: any) {
+      console.error("Card tokenization error:", error);
+      toast.error("Erro ao processar dados do cartão. Verifique os dados informados.");
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!user) {
+    if (!user || !session) {
       toast.error("Você precisa estar logado para assinar um plano");
       navigate("/login");
       return;
@@ -164,13 +309,81 @@ const AdminSubscriptionCheckout = () => {
     setIsProcessing(true);
 
     try {
-      // Aqui será implementada a lógica de pagamento real na Fase 2
-      toast.info("Processando pagamento... (Fase 2 - em desenvolvimento)");
-      
-      // Simular delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      let cardToken: string | undefined;
+      let paymentMethodId: string | undefined;
+      let cardBrand: string | undefined;
+      let cardLastFour: string | undefined;
 
-      toast.success("Estrutura do checkout pronta! Integração com gateway será implementada na Fase 2.");
+      // Tokenizar cartão se necessário
+      if (paymentMethod === "credit_card") {
+        const tokenResult = await tokenizeCard();
+        if (!tokenResult) {
+          setIsProcessing(false);
+          return;
+        }
+        cardToken = tokenResult.token;
+        paymentMethodId = tokenResult.paymentMethodId;
+        cardBrand = detectCardBrand(cardForm.cardNumber);
+        cardLastFour = cardForm.cardNumber.replace(/\s/g, "").slice(-4);
+      }
+
+      // Chamar edge function para criar assinatura
+      const { data, error } = await supabase.functions.invoke("create-master-subscription", {
+        body: {
+          userId: user.id,
+          planId: plan,
+          billingCycle,
+          paymentMethod,
+          cardToken,
+          paymentMethodId,
+          cardBrand,
+          cardLastFour,
+          installments: 1,
+          recurringConsent,
+          origin: originParam
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || "Erro ao processar assinatura");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      console.log("Subscription response:", data);
+
+      setSubscriptionId(data.subscription?.id);
+
+      // Tratar resposta baseado no método de pagamento
+      if (data.payment?.status === "approved" || data.subscription?.status === "active") {
+        setStep("success");
+        toast.success("Assinatura ativada com sucesso!");
+      } else if (data.payment?.paymentMethod === "pix") {
+        setPixData({
+          qrCode: data.payment.pixQrCode,
+          qrCodeBase64: data.payment.pixQrCodeBase64,
+          expiresAt: data.payment.pixExpiresAt,
+          amount: data.payment.amount
+        });
+        setStep("pix");
+        toast.success("PIX gerado! Escaneie o QR Code para pagar.");
+      } else if (data.payment?.paymentMethod === "boleto") {
+        setBoletoData({
+          url: data.payment.boletoUrl,
+          barcode: data.payment.boletoBarcode,
+          digitableLine: data.payment.boletoDigitableLine,
+          expiresAt: data.payment.boletoExpiresAt,
+          amount: data.payment.amount
+        });
+        setStep("boleto");
+        toast.success("Boleto gerado! Pague até a data de vencimento.");
+      } else if (data.payment?.status === "pending") {
+        toast.info("Pagamento pendente de confirmação.");
+      } else {
+        toast.error(data.message || "Erro ao processar pagamento");
+      }
     } catch (error: any) {
       console.error("Error processing subscription:", error);
       toast.error(error.message || "Erro ao processar assinatura");
@@ -179,6 +392,228 @@ const AdminSubscriptionCheckout = () => {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado para a área de transferência!");
+  };
+
+  const formatExpirationTime = (expiresAt: string) => {
+    const expires = new Date(expiresAt);
+    const now = new Date();
+    const diff = expires.getTime() - now.getTime();
+    
+    if (diff <= 0) return "Expirado";
+    
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  // Render PIX Step
+  if (step === "pix" && pixData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <QrCode className="h-12 w-12 mx-auto mb-2" style={{ color: VM_PRIMARY }} />
+            <CardTitle>Pague com Pix</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Escaneie o QR Code ou copie o código para pagar
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* QR Code */}
+            <div className="flex justify-center">
+              {pixData.qrCodeBase64 ? (
+                <img 
+                  src={`data:image/png;base64,${pixData.qrCodeBase64}`} 
+                  alt="QR Code Pix" 
+                  className="w-48 h-48"
+                />
+              ) : (
+                <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg">
+                  <QrCode className="h-24 w-24 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Código Copia e Cola */}
+            <div className="space-y-2">
+              <Label className="text-sm">Código Pix (Copia e Cola)</Label>
+              <div className="flex gap-2">
+                <Input 
+                  value={pixData.qrCode} 
+                  readOnly 
+                  className="text-xs"
+                />
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => copyToClipboard(pixData.qrCode)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Timer e Valor */}
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4" />
+                <span>Expira em: {formatExpirationTime(pixData.expiresAt)}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-bold" style={{ color: VM_PRIMARY }}>
+                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+            </div>
+
+            {/* Aguardando pagamento */}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>Aguardando confirmação do pagamento...</span>
+            </div>
+
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setStep("form")}
+            >
+              Voltar e escolher outro método
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Render Boleto Step
+  if (step === "boleto" && boletoData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <FileText className="h-12 w-12 mx-auto mb-2" style={{ color: VM_PRIMARY }} />
+            <CardTitle>Boleto Gerado</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Pague o boleto até a data de vencimento
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Linha Digitável */}
+            <div className="space-y-2">
+              <Label className="text-sm">Linha Digitável</Label>
+              <div className="flex gap-2">
+                <Input 
+                  value={boletoData.digitableLine || boletoData.barcode} 
+                  readOnly 
+                  className="text-xs"
+                />
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => copyToClipboard(boletoData.digitableLine || boletoData.barcode)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Vencimento e Valor */}
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Vencimento:</span>
+                <br />
+                <span className="font-medium">
+                  {new Date(boletoData.expiresAt).toLocaleDateString("pt-BR")}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-bold" style={{ color: VM_PRIMARY }}>
+                  R$ {boletoData.amount.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+            </div>
+
+            {/* Botão abrir boleto */}
+            {boletoData.url && (
+              <Button 
+                className="w-full"
+                style={{ backgroundColor: VM_PRIMARY }}
+                onClick={() => window.open(boletoData.url, "_blank")}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Abrir Boleto
+              </Button>
+            )}
+
+            {/* Aguardando pagamento */}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>Aguardando confirmação do pagamento...</span>
+            </div>
+
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setStep("form")}
+            >
+              Voltar e escolher outro método
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Render Success Step
+  if (step === "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-8 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Assinatura Ativada!</h2>
+              <p className="text-muted-foreground">
+                Bem-vindo ao plano {plan.toUpperCase()}! Sua assinatura está ativa.
+              </p>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg text-left space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Plano</span>
+                <span className="font-medium">{plan.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Ciclo</span>
+                <span className="font-medium">{billingCycle === "monthly" ? "Mensal" : "Anual"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-medium">R$ {totalAmount.toFixed(2).replace(".", ",")}</span>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full"
+              style={{ backgroundColor: VM_PRIMARY }}
+              onClick={() => navigate("/lojista")}
+            >
+              Ir para o Painel
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Render Form Step (default)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -449,6 +884,13 @@ const AdminSubscriptionCheckout = () => {
                       />
                     </div>
                   </div>
+
+                  {!mpLoaded && mpPublicKey && (
+                    <div className="flex items-center gap-2 text-sm text-amber-600">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Carregando SDK de pagamento...
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -582,7 +1024,7 @@ const AdminSubscriptionCheckout = () => {
               {/* Botão Assinar */}
               <Button
                 onClick={handleSubmit}
-                disabled={!canProceed() || isProcessing}
+                disabled={!canProceed() || isProcessing || (paymentMethod === "credit_card" && !mpLoaded && !!mpPublicKey)}
                 className="w-full h-12 text-lg"
                 style={{ 
                   backgroundColor: canProceed() ? VM_PRIMARY : undefined,

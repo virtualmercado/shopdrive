@@ -895,6 +895,42 @@ export type Database = {
         }
         Relationships: []
       }
+      master_plans: {
+        Row: {
+          annual_discount_percent: number | null
+          created_at: string | null
+          display_name: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          monthly_price: number
+          plan_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          annual_discount_percent?: number | null
+          created_at?: string | null
+          display_name: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price: number
+          plan_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          annual_discount_percent?: number | null
+          created_at?: string | null
+          display_name?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          plan_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       master_subscription_logs: {
         Row: {
           created_at: string
