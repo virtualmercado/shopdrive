@@ -22,7 +22,8 @@ import {
   Copy,
   ExternalLink,
   CheckCircle2,
-  Clock
+  Clock,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -613,6 +614,17 @@ const AdminSubscriptionCheckout = () => {
     );
   }
 
+  // Função para voltar baseado na origem
+  const handleGoBack = () => {
+    if (originParam === "landing") {
+      navigate("/");
+    } else if (originParam === "painel_lojista") {
+      navigate("/lojista/financeiro");
+    } else {
+      navigate(-1);
+    }
+  };
+
   // Render Form Step (default)
   return (
     <div className="min-h-screen bg-gray-50">
@@ -621,6 +633,14 @@ const AdminSubscriptionCheckout = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleGoBack}
+                className="mr-2 hover:bg-gray-100"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
               <Crown className="h-8 w-8" style={{ color: VM_PRIMARY }} />
               <div>
                 <h1 className="text-xl font-bold" style={{ color: VM_PRIMARY }}>
