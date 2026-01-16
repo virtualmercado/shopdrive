@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import AdminSubscriptionCheckout from "./pages/admin/AdminSubscriptionCheckout";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -88,6 +89,7 @@ function App() {
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
+            <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
             
             {/* Merchant Routes */}
             <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />

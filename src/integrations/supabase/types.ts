@@ -850,6 +850,275 @@ export type Database = {
         }
         Relationships: []
       }
+      master_payment_gateways: {
+        Row: {
+          created_at: string
+          display_name: string
+          environment: string
+          gateway_name: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          mercadopago_access_token: string | null
+          mercadopago_public_key: string | null
+          pagbank_email: string | null
+          pagbank_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          environment?: string
+          gateway_name: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          mercadopago_access_token?: string | null
+          mercadopago_public_key?: string | null
+          pagbank_email?: string | null
+          pagbank_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          environment?: string
+          gateway_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          mercadopago_access_token?: string | null
+          mercadopago_public_key?: string | null
+          pagbank_email?: string | null
+          pagbank_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      master_subscription_logs: {
+        Row: {
+          created_at: string
+          event_description: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          payment_id: string | null
+          subscription_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_description?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          payment_id?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_description?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          payment_id?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_subscription_logs_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscription_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_subscription_payments: {
+        Row: {
+          amount: number
+          boleto_barcode: string | null
+          boleto_digitable_line: string | null
+          boleto_expires_at: string | null
+          boleto_url: string | null
+          created_at: string
+          gateway: string
+          gateway_payment_id: string | null
+          gateway_response: Json | null
+          gateway_status: string | null
+          id: string
+          idempotency_key: string | null
+          paid_at: string | null
+          payment_method: string
+          pix_expires_at: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          refunded_at: string | null
+          status: string
+          subscription_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          boleto_barcode?: string | null
+          boleto_digitable_line?: string | null
+          boleto_expires_at?: string | null
+          boleto_url?: string | null
+          created_at?: string
+          gateway: string
+          gateway_payment_id?: string | null
+          gateway_response?: Json | null
+          gateway_status?: string | null
+          id?: string
+          idempotency_key?: string | null
+          paid_at?: string | null
+          payment_method: string
+          pix_expires_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          refunded_at?: string | null
+          status?: string
+          subscription_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          boleto_barcode?: string | null
+          boleto_digitable_line?: string | null
+          boleto_expires_at?: string | null
+          boleto_url?: string | null
+          created_at?: string
+          gateway?: string
+          gateway_payment_id?: string | null
+          gateway_response?: Json | null
+          gateway_status?: string | null
+          id?: string
+          idempotency_key?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          pix_expires_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          refunded_at?: string | null
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancelled_at: string | null
+          card_brand: string | null
+          card_last_four: string | null
+          card_token: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          discount_percent: number | null
+          gateway: string
+          gateway_customer_id: string | null
+          gateway_subscription_id: string | null
+          grace_period_ends_at: string | null
+          id: string
+          last_retry_at: string | null
+          monthly_price: number
+          origin: string | null
+          plan_id: string
+          recurring_consent_accepted: boolean | null
+          recurring_consent_accepted_at: string | null
+          recurring_consent_ip: string | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle: string
+          cancelled_at?: string | null
+          card_brand?: string | null
+          card_last_four?: string | null
+          card_token?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          discount_percent?: number | null
+          gateway: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          last_retry_at?: string | null
+          monthly_price: number
+          origin?: string | null
+          plan_id: string
+          recurring_consent_accepted?: boolean | null
+          recurring_consent_accepted_at?: string | null
+          recurring_consent_ip?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancelled_at?: string | null
+          card_brand?: string | null
+          card_last_four?: string | null
+          card_token?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          discount_percent?: number | null
+          gateway?: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          last_retry_at?: string | null
+          monthly_price?: number
+          origin?: string | null
+          plan_id?: string
+          recurring_consent_accepted?: boolean | null
+          recurring_consent_accepted_at?: string | null
+          recurring_consent_ip?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       media_files: {
         Row: {
           created_at: string
