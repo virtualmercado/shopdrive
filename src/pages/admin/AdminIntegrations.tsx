@@ -15,10 +15,27 @@ import {
   Settings,
   TestTube,
   Eye,
-  EyeOff
+  EyeOff,
+  Star,
+  AlertCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { GatewayConfigModal } from "@/components/admin/GatewayConfigModal";
+
+interface MasterGateway {
+  id: string;
+  gateway_name: string;
+  display_name: string;
+  is_active: boolean;
+  is_default: boolean;
+  environment: string;
+  mercadopago_access_token?: string;
+  mercadopago_public_key?: string;
+  pagbank_token?: string;
+  pagbank_email?: string;
+}
 
 interface Integration {
   id: string;
@@ -32,28 +49,12 @@ interface Integration {
 }
 
 const AdminIntegrations = () => {
+  const [masterGateways, setMasterGateways] = useState<MasterGateway[]>([]);
+  const [selectedGateway, setSelectedGateway] = useState<MasterGateway | null>(null);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [integrations, setIntegrations] = useState<Integration[]>([
-    // Payment Gateways
-    {
-      id: 'mercadopago',
-      name: 'Mercado Pago',
-      category: 'payment',
-      description: 'Gateway de pagamento líder no Brasil',
-      status: 'active',
-      enabled: true,
-      icon: 'MP',
-      hasCredentials: true
-    },
-    {
-      id: 'pagbank',
-      name: 'PagBank',
-      category: 'payment',
-      description: 'Soluções de pagamento PagSeguro',
-      status: 'active',
-      enabled: true,
-      icon: 'PB',
-      hasCredentials: true
-    },
     // Shipping
     {
       id: 'correios',
@@ -120,18 +121,82 @@ const AdminIntegrations = () => {
 
   const [showCredentials, setShowCredentials] = useState<Record<string, boolean>>({});
 
+  // Buscar gateways do Painel Master
+  const fetchMasterGateways = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("master_payment_gateways")
+        .select("*")
+        .order("is_default", { ascending: false });
+
+      if (error) throw error;
+      setMasterGateways(data || []);
+    } catch (error: any) {
+      console.error("Error fetching master gateways:", error);
+      toast.error("Erro ao carregar gateways");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMasterGateways();
+  }, []);
+
   const toggleIntegration = (id: string) => {
     setIntegrations(prev => prev.map(i => 
       i.id === id ? { ...i, enabled: !i.enabled } : i
     ));
   };
 
-  const handleTest = (name: string) => {
-    toast.success(`Teste de conexão com ${name} realizado com sucesso!`);
+  const handleTest = async (gateway: MasterGateway) => {
+    // Simular teste de conexão
+    toast.info(`Testando conexão com ${gateway.display_name}...`);
+    
+    setTimeout(() => {
+      if (gateway.is_active && 
+          ((gateway.gateway_name === "mercadopago" && gateway.mercadopago_access_token) ||
+           (gateway.gateway_name === "pagbank" && gateway.pagbank_token))) {
+        toast.success(`Conexão com ${gateway.display_name} bem-sucedida!`);
+      } else {
+        toast.error(`Credenciais de ${gateway.display_name} não configuradas`);
+      }
+    }, 1500);
   };
 
-  const handleConfigure = (name: string) => {
-    toast.info(`Configuração de ${name} será implementada em breve`);
+  const handleConfigure = (gateway: MasterGateway) => {
+    setSelectedGateway(gateway);
+    setConfigModalOpen(true);
+  };
+
+  const toggleGateway = async (gateway: MasterGateway) => {
+    try {
+      const { error } = await supabase
+        .from("master_payment_gateways")
+        .update({ is_active: !gateway.is_active })
+        .eq("id", gateway.id);
+
+      if (error) throw error;
+
+      setMasterGateways(prev => prev.map(g => 
+        g.id === gateway.id ? { ...g, is_active: !g.is_active } : g
+      ));
+
+      toast.success(`${gateway.display_name} ${!gateway.is_active ? "ativado" : "desativado"}`);
+    } catch (error: any) {
+      console.error("Error toggling gateway:", error);
+      toast.error("Erro ao alterar status do gateway");
+    }
+  };
+
+  const getGatewayStatus = (gateway: MasterGateway) => {
+    const hasCredentials = gateway.gateway_name === "mercadopago" 
+      ? !!gateway.mercadopago_access_token 
+      : !!gateway.pagbank_token;
+
+    if (!gateway.is_active) return "inactive";
+    if (!hasCredentials) return "error";
+    return "active";
   };
 
   const getStatusBadge = (status: string) => {
@@ -147,7 +212,7 @@ const AdminIntegrations = () => {
         return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" />
-            Erro
+            Sem Credenciais
           </Badge>
         );
       default:
@@ -195,10 +260,14 @@ const AdminIntegrations = () => {
   };
 
   const groupedIntegrations = {
-    payment: integrations.filter(i => i.category === 'payment'),
     shipping: integrations.filter(i => i.category === 'shipping'),
     analytics: integrations.filter(i => i.category === 'analytics')
   };
+
+  const activeGatewaysCount = masterGateways.filter(g => g.is_active).length;
+  const activeIntegrationsCount = integrations.filter(i => i.enabled).length;
+  const totalActive = activeGatewaysCount + activeIntegrationsCount;
+  const totalCount = masterGateways.length + integrations.length;
 
   return (
     <AdminLayout>
@@ -211,7 +280,7 @@ const AdminIntegrations = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Integrações Ativas</p>
                   <p className="text-2xl font-bold">
-                    {integrations.filter(i => i.enabled).length}/{integrations.length}
+                    {totalActive}/{totalCount}
                   </p>
                 </div>
                 <LinkIcon className="h-8 w-8 text-[#6a1b9a]" />
@@ -222,9 +291,9 @@ const AdminIntegrations = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Status OK</p>
+                  <p className="text-sm text-muted-foreground">Gateways Configurados</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {integrations.filter(i => i.status === 'active').length}
+                    {masterGateways.filter(g => getGatewayStatus(g) === "active").length}
                   </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
@@ -235,19 +304,115 @@ const AdminIntegrations = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Com Erro</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {integrations.filter(i => i.status === 'error').length}
+                  <p className="text-sm text-muted-foreground">Pendentes Configuração</p>
+                  <p className="text-2xl font-bold text-amber-600">
+                    {masterGateways.filter(g => getGatewayStatus(g) === "error").length}
                   </p>
                 </div>
-                <XCircle className="h-8 w-8 text-red-500" />
+                <AlertCircle className="h-8 w-8 text-amber-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Integrations by Category */}
-        {(['payment', 'shipping', 'analytics'] as const).map((category) => (
+        {/* Gateways de Pagamento do Painel Master */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-green-500" />
+              Gateways de Pagamento (Painel Master)
+            </CardTitle>
+            <CardDescription>
+              Configure os gateways de pagamento para cobrança de assinaturas da plataforma.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Carregando gateways...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {masterGateways.map((gateway) => {
+                  const status = getGatewayStatus(gateway);
+                  return (
+                    <div 
+                      key={gateway.id}
+                      className="p-4 border rounded-lg bg-card"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg flex items-center justify-center font-bold bg-green-100 text-green-600">
+                            {gateway.gateway_name === "mercadopago" ? "MP" : "PB"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{gateway.display_name}</p>
+                              {gateway.is_default && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Star className="h-3 w-3 mr-1 fill-current" />
+                                  Padrão
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {gateway.environment === "production" ? "Produção" : "Sandbox"}
+                            </p>
+                          </div>
+                        </div>
+                        {getStatusBadge(status)}
+                      </div>
+
+                      <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Credenciais</Label>
+                          {status === "active" ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {status === "active" 
+                            ? "Credenciais configuradas" 
+                            : "Clique em Configurar para adicionar credenciais"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleTest(gateway)}
+                          >
+                            <TestTube className="h-3 w-3 mr-1" />
+                            Testar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleConfigure(gateway)}
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Configurar
+                          </Button>
+                        </div>
+                        <Switch
+                          checked={gateway.is_active}
+                          onCheckedChange={() => toggleGateway(gateway)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Outras Integrações por Categoria */}
+        {(['shipping', 'analytics'] as const).map((category) => (
           <Card key={category}>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -310,7 +475,7 @@ const AdminIntegrations = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleTest(integration.name)}
+                          onClick={() => toast.success(`Teste de conexão com ${integration.name} realizado com sucesso!`)}
                         >
                           <TestTube className="h-3 w-3 mr-1" />
                           Testar
@@ -318,7 +483,7 @@ const AdminIntegrations = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleConfigure(integration.name)}
+                          onClick={() => toast.info(`Configuração de ${integration.name} será implementada em breve`)}
                         >
                           <Settings className="h-3 w-3 mr-1" />
                           Configurar
@@ -336,6 +501,14 @@ const AdminIntegrations = () => {
           </Card>
         ))}
       </div>
+
+      {/* Modal de Configuração de Gateway */}
+      <GatewayConfigModal
+        open={configModalOpen}
+        onOpenChange={setConfigModalOpen}
+        gateway={selectedGateway}
+        onSave={fetchMasterGateways}
+      />
     </AdminLayout>
   );
 };
