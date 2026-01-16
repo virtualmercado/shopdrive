@@ -57,8 +57,8 @@ const Financeiro = () => {
     if (action === "free") {
       window.location.href = "/register";
     } else {
-      // Will redirect to master panel checkout in the future
-      console.log("Redirect to checkout for plan:", planId);
+      // Redirect to VM checkout for PRO/PREMIUM plans
+      window.location.href = `/gestor/checkout-assinatura?plano=${planId}&ciclo=mensal&origem=painel_lojista`;
     }
   };
 
