@@ -8,47 +8,87 @@ import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
 import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySection";
 import { Crown } from "lucide-react";
 
-// Mock saved card for demonstration - in production this would come from the database
-const mockSavedCard = {
-  holderName: "GENILSON R DE OLIVEIRA",
-  lastFourDigits: "0104",
-  expirationMonth: "12",
-  expirationYear: "2023",
-};
+interface SubscriptionInfo {
+  id: string;
+  status: string;
+  billingCycle: "monthly" | "annual";
+  planId: string;
+  cardToken?: string;
+  paymentMethod?: string;
+}
+
+interface SavedCard {
+  holderName: string;
+  lastFourDigits: string;
+  expirationMonth: string;
+  expirationYear: string;
+  brand?: string;
+}
 
 const Financeiro = () => {
   const [currentPlan, setCurrentPlan] = useState<string>("gratis");
-  const [savedCard, setSavedCard] = useState<typeof mockSavedCard | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    const fetchCurrentPlan = async () => {
+    const fetchSubscriptionData = async () => {
       if (!user) return;
 
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select("plan_id, subscription_plans(name)")
+      // Fetch master subscription
+      const { data: masterSub, error: masterSubError } = await supabase
+        .from("master_subscriptions")
+        .select("*")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "pending", "payment_failed", "grace_period"])
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (subscription?.subscription_plans) {
-        const planName = (subscription.subscription_plans as { name: string }).name?.toLowerCase();
-        if (planName?.includes("pro")) {
-          setCurrentPlan("pro");
-        } else if (planName?.includes("premium")) {
-          setCurrentPlan("premium");
-        } else {
-          setCurrentPlan("gratis");
+      if (masterSub && !masterSubError) {
+        setCurrentPlan(masterSub.plan_id);
+        setSubscription({
+          id: masterSub.id,
+          status: masterSub.status,
+          billingCycle: masterSub.billing_cycle as "monthly" | "annual",
+          planId: masterSub.plan_id,
+          cardToken: masterSub.card_token || undefined,
+          paymentMethod: masterSub.card_token ? "credit_card" : undefined,
+        });
+
+        // Set saved card info if exists
+        if (masterSub.card_last_four) {
+          setSavedCard({
+            holderName: "TITULAR DO CARTÃO", // Not stored for security
+            lastFourDigits: masterSub.card_last_four,
+            expirationMonth: "**",
+            expirationYear: "****",
+            brand: masterSub.card_brand || undefined,
+          });
+        }
+      } else {
+        // Fallback to old subscriptions table
+        const { data: oldSub } = await supabase
+          .from("subscriptions")
+          .select("plan_id, subscription_plans(name)")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .single();
+
+        if (oldSub?.subscription_plans) {
+          const planName = (oldSub.subscription_plans as { name: string }).name?.toLowerCase();
+          if (planName?.includes("pro")) {
+            setCurrentPlan("pro");
+          } else if (planName?.includes("premium")) {
+            setCurrentPlan("premium");
+          } else {
+            setCurrentPlan("gratis");
+          }
         }
       }
     };
 
-    fetchCurrentPlan();
-    
-    // For demonstration, simulate having a saved card
-    // In production, this would fetch from the database
-    setSavedCard(mockSavedCard);
+    fetchSubscriptionData();
   }, [user]);
 
   const handlePlanAction = (planId: string, action: "free" | "current" | "upgrade") => {
@@ -62,26 +102,29 @@ const Financeiro = () => {
     }
   };
 
-  const handleCardSave = (cardData: {
-    cardNumber: string;
+  const handleCardValidated = (cardData: {
+    lastFourDigits: string;
+    brand: string;
     holderName: string;
-    expirationMonth: string;
-    expirationYear: string;
-    cvv: string;
+    expiry: string;
   }) => {
-    // In production, this would save to the database and validate with payment gateway
-    console.log("Card data to save:", cardData);
+    const [month, year] = cardData.expiry.split("/");
     setSavedCard({
       holderName: cardData.holderName,
-      lastFourDigits: cardData.cardNumber.replace(/\s/g, "").slice(-4),
-      expirationMonth: cardData.expirationMonth,
-      expirationYear: cardData.expirationYear,
+      lastFourDigits: cardData.lastFourDigits,
+      expirationMonth: month,
+      expirationYear: year,
+      brand: cardData.brand,
     });
-  };
 
-  const handlePaymentMethodChange = (method: "card" | "boleto") => {
-    console.log("Payment method changed to:", method);
-    // In production, this would update the user's preferred payment method
+    // Update subscription state to reflect card is now active
+    if (subscription) {
+      setSubscription({
+        ...subscription,
+        cardToken: "validated",
+        paymentMethod: "credit_card",
+      });
+    }
   };
 
   return (
@@ -109,14 +152,16 @@ const Financeiro = () => {
           />
         </Card>
 
-        {/* Payment Data Card Container */}
-        <Card className="p-6">
-          <PaymentDataSection
-            savedCard={savedCard}
-            onCardSave={handleCardSave}
-            onPaymentMethodChange={handlePaymentMethodChange}
-          />
-        </Card>
+        {/* Payment Data Card Container - Only show if has subscription */}
+        {subscription && (
+          <Card className="p-6">
+            <PaymentDataSection
+              savedCard={savedCard}
+              subscription={subscription}
+              onCardValidated={handleCardValidated}
+            />
+          </Card>
+        )}
 
         {/* Invoice History Card Container */}
         <Card className="p-6">
