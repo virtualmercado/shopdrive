@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
@@ -30,6 +31,20 @@ const Financeiro = () => {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Smooth navigation with page transition animation
+  const handleSmoothNavigation = useCallback((path: string) => {
+    const pageContent = document.querySelector('[data-page-content]');
+    if (pageContent) {
+      pageContent.classList.add('page-exit');
+      setTimeout(() => {
+        navigate(path);
+      }, 300);
+    } else {
+      navigate(path);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
@@ -95,10 +110,10 @@ const Financeiro = () => {
     if (planId === currentPlan) return;
     
     if (action === "free") {
-      window.location.href = "/register";
+      handleSmoothNavigation("/register");
     } else {
-      // Redirect to VM checkout for PRO/PREMIUM plans
-      window.location.href = `/gestor/checkout-assinatura?plano=${planId}&ciclo=mensal&origem=painel_lojista`;
+      // Redirect to VM checkout for PRO/PREMIUM plans with smooth transition
+      handleSmoothNavigation(`/gestor/checkout-assinatura?plano=${planId}&ciclo=mensal&origem=painel_lojista`);
     }
   };
 
