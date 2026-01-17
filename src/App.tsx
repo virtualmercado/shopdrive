@@ -17,6 +17,8 @@ import StorePreviewEnhanced from "./pages/dashboard/StorePreviewEnhanced";
 import Messages from "./pages/dashboard/Messages";
 import Financeiro from "./pages/dashboard/Financeiro";
 import Support from "./pages/dashboard/Support";
+import Marketing from "./pages/dashboard/Marketing";
+import MarketingTutorial from "./pages/dashboard/MarketingTutorial";
 import Coupons from "./pages/dashboard/Coupons";
 import Shipping from "./pages/dashboard/Shipping";
 import PaymentMethods from "./pages/dashboard/PaymentMethods";
@@ -107,6 +109,8 @@ function App() {
             <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
             <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
             <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
+            <Route path="/lojista/marketing" element={<MerchantRoute><Marketing /></MerchantRoute>} />
+            <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
             
             {/* Public Store Routes */}
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
