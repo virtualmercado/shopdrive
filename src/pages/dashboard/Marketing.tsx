@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Instagram, 
   ShoppingBag, 
@@ -38,6 +40,8 @@ interface MarketingSettings {
   google_ads_enabled: boolean;
   gtm_id: string;
   gtm_enabled: boolean;
+  domain_verification_code: string;
+  domain_verified: boolean;
 }
 
 const Marketing = () => {
@@ -56,8 +60,13 @@ const Marketing = () => {
     google_ads_id: '',
     google_ads_enabled: false,
     gtm_id: '',
-    gtm_enabled: false
+    gtm_enabled: false,
+    domain_verification_code: '',
+    domain_verified: false
   });
+  
+  const [showHtmlCodeModal, setShowHtmlCodeModal] = useState(false);
+  const [htmlCodeInput, setHtmlCodeInput] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -82,7 +91,9 @@ const Marketing = () => {
             google_ads_id: data.google_ads_id || '',
             google_ads_enabled: data.google_ads_enabled || false,
             gtm_id: data.gtm_id || '',
-            gtm_enabled: data.gtm_enabled || false
+            gtm_enabled: data.gtm_enabled || false,
+            domain_verification_code: data.domain_verification_code || '',
+            domain_verified: data.domain_verified || false
           });
         }
       } catch (error) {
@@ -158,8 +169,15 @@ const Marketing = () => {
     }
   };
 
-  const handleInstagramConnect = async () => {
-    if (!user) return;
+  const handleInstagramConnect = () => {
+    setShowHtmlCodeModal(true);
+  };
+
+  const handleSubmitHtmlCode = async () => {
+    if (!user || !htmlCodeInput.trim()) {
+      toast.error('Por favor, insira o código HTML do Facebook');
+      return;
+    }
     
     setSaving('instagram');
     try {
@@ -171,6 +189,7 @@ const Marketing = () => {
       
       const updateData = {
         instagram_shopping_status: 'pending',
+        domain_verification_code: htmlCodeInput.trim(),
         updated_at: new Date().toISOString()
       };
       
@@ -194,13 +213,16 @@ const Marketing = () => {
       
       setSettings(prev => ({
         ...prev,
-        instagram_shopping_status: 'pending'
+        instagram_shopping_status: 'pending',
+        domain_verification_code: htmlCodeInput.trim()
       }));
       
-      toast.success('Solicitação de conexão enviada! Aguarde a análise.');
+      setShowHtmlCodeModal(false);
+      setHtmlCodeInput('');
+      toast.success('Código HTML salvo! Aguarde a verificação da Meta.');
     } catch (error) {
-      console.error('Error connecting Instagram:', error);
-      toast.error('Erro ao solicitar conexão');
+      console.error('Error saving HTML code:', error);
+      toast.error('Erro ao salvar código HTML');
     } finally {
       setSaving(null);
     }
@@ -605,6 +627,39 @@ const Marketing = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Modal de Código HTML do Facebook */}
+          <Dialog open={showHtmlCodeModal} onOpenChange={setShowHtmlCodeModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Adicionar código HTML</DialogTitle>
+                <DialogDescription>
+                  Cole abaixo o código HTML do Facebook para fazer a verificação do domínio
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Textarea
+                  placeholder="Insira o código HTML aqui"
+                  value={htmlCodeInput}
+                  onChange={(e) => setHtmlCodeInput(e.target.value)}
+                  className="min-h-[100px] font-mono text-sm"
+                />
+                <div className="text-xs text-muted-foreground">
+                  <p>📌 Você encontra esse código no Gerenciador de Negócios da Meta, em Configurações → Segurança da marca → Domínios.</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleSubmitHtmlCode}
+                  disabled={saving === 'instagram' || !htmlCodeInput.trim()}
+                  className="w-full"
+                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                >
+                  {saving === 'instagram' ? 'Salvando...' : 'Continuar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </TooltipProvider>
     </DashboardLayout>
