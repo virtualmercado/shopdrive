@@ -527,14 +527,19 @@ const CheckoutContent = () => {
     }
 
     // Check Melhor Envio quotes for SEDEX, PAC, Mini Envios
+    // Use same matching logic as DeliveryColumn: ID 1 = PAC, ID 2 = SEDEX, ID 17 = Mini Envios
+    // Also match by name to handle variations
     if (["sedex", "pac", "mini_envios"].includes(formData.delivery_method)) {
-      const serviceMap: Record<string, number[]> = {
-        sedex: [1, 3], // SEDEX codes
-        pac: [2, 4],   // PAC codes
-        mini_envios: [17], // Mini Envios code
-      };
-      const serviceCodes = serviceMap[formData.delivery_method] || [];
-      const quote = melhorEnvioQuotes.find(q => serviceCodes.includes(q.id));
+      let quote: typeof melhorEnvioQuotes[0] | undefined;
+      
+      if (formData.delivery_method === "sedex") {
+        quote = melhorEnvioQuotes.find(q => q.id === 2 || q.name?.toUpperCase().includes('SEDEX'));
+      } else if (formData.delivery_method === "pac") {
+        quote = melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
+      } else if (formData.delivery_method === "mini_envios") {
+        quote = melhorEnvioQuotes.find(q => q.id === 17 || q.name?.toUpperCase().includes('MINI'));
+      }
+      
       if (quote) {
         setDeliveryFee(quote.custom_price || quote.price);
         return;
