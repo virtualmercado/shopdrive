@@ -850,6 +850,63 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_settings: {
+        Row: {
+          created_at: string
+          domain_verification_code: string | null
+          domain_verified: boolean
+          google_ads_enabled: boolean
+          google_ads_id: string | null
+          gtm_enabled: boolean
+          gtm_id: string | null
+          id: string
+          instagram_shopping_connected_at: string | null
+          instagram_shopping_status: string
+          meta_pixel_enabled: boolean
+          meta_pixel_id: string | null
+          tiktok_pixel_enabled: boolean
+          tiktok_pixel_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain_verification_code?: string | null
+          domain_verified?: boolean
+          google_ads_enabled?: boolean
+          google_ads_id?: string | null
+          gtm_enabled?: boolean
+          gtm_id?: string | null
+          id?: string
+          instagram_shopping_connected_at?: string | null
+          instagram_shopping_status?: string
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
+          tiktok_pixel_enabled?: boolean
+          tiktok_pixel_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain_verification_code?: string | null
+          domain_verified?: boolean
+          google_ads_enabled?: boolean
+          google_ads_id?: string | null
+          gtm_enabled?: boolean
+          gtm_id?: string | null
+          id?: string
+          instagram_shopping_connected_at?: string | null
+          instagram_shopping_status?: string
+          meta_pixel_enabled?: boolean
+          meta_pixel_id?: string | null
+          tiktok_pixel_enabled?: boolean
+          tiktok_pixel_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       master_payment_gateways: {
         Row: {
           created_at: string
