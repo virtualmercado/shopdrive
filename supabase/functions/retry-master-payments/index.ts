@@ -52,6 +52,7 @@ serve(async (req) => {
       `)
       .eq("status", "inadimplent")
       .eq("billing_cycle", "monthly")
+      .neq("no_charge", true) // Skip subscriptions with no_charge enabled
       .lt("retry_count", MAX_RETRY_COUNT);
 
     if (subError) {
