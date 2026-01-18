@@ -13,7 +13,6 @@ import {
   Copy,
   Check,
   MessageCircle,
-  Ticket,
   Truck,
   Users,
   CreditCard,
@@ -83,7 +82,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/lojista" },
     { icon: Package, label: "Produtos", path: "/lojista/products" },
-    { icon: Ticket, label: "Cupons", path: "/lojista/coupons" },
     { icon: ShoppingCart, label: "Pedidos", path: "/lojista/orders" },
     { icon: Users, label: "Clientes", path: "/lojista/customers" },
     { icon: Truck, label: "Editar Frete", path: "/lojista/shipping" },

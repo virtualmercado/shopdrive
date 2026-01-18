@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
+import CouponsSection from "@/components/marketing/CouponsSection";
 
 interface MarketingSettings {
   instagram_shopping_status: 'connected' | 'disconnected' | 'pending';
@@ -297,6 +298,9 @@ const Marketing = () => {
               </p>
             </div>
           </div>
+
+          {/* Coupons Section */}
+          <CouponsSection />
 
           {/* Instagram Shopping Section */}
           <Card>
