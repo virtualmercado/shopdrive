@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CreditCard, AlertCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Subscriber {
   id: string;
@@ -53,7 +54,8 @@ export const ChangePlanModal = ({
         .order('price', { ascending: true });
       
       if (error) throw error;
-      return data;
+      // Filter out free/grátis plans since we have a hardcoded option for it
+      return data?.filter(plan => plan.price > 0 && plan.name?.toLowerCase() !== 'free') || [];
     },
     enabled: open,
   });
@@ -171,118 +173,120 @@ export const ChangePlanModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Current Plan */}
-          <div className="p-3 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground">Plano atual</p>
-            <p className="font-medium">{subscriber.planName}</p>
-          </div>
+        <ScrollArea className="max-h-[60vh] pr-4">
+          <div className="space-y-6 py-4">
+            {/* Current Plan */}
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">Plano atual</p>
+              <p className="font-medium">{subscriber.planName}</p>
+            </div>
 
-          {/* Plan Selection */}
-          <div className="space-y-3">
-            <Label>Selecionar novo plano</Label>
-            {plansLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <RadioGroup
-                value={selectedPlanId}
-                onValueChange={setSelectedPlanId}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                  <RadioGroupItem value="" id="plan-free" />
-                  <Label htmlFor="plan-free" className="flex-1 cursor-pointer">
-                    <div className="flex justify-between items-center">
-                      <span>Grátis</span>
-                      <Badge variant="secondary">R$ 0,00</Badge>
-                    </div>
-                  </Label>
+            {/* Plan Selection */}
+            <div className="space-y-3">
+              <Label>Selecionar novo plano</Label>
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-                {plans?.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                  >
-                    <RadioGroupItem value={plan.id} id={`plan-${plan.id}`} />
-                    <Label htmlFor={`plan-${plan.id}`} className="flex-1 cursor-pointer">
+              ) : (
+                <RadioGroup
+                  value={selectedPlanId}
+                  onValueChange={setSelectedPlanId}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                    <RadioGroupItem value="" id="plan-free" />
+                    <Label htmlFor="plan-free" className="flex-1 cursor-pointer">
                       <div className="flex justify-between items-center">
-                        <span>{plan.name}</span>
-                        <Badge variant="outline">
-                          R$ {Number(plan.price).toFixed(2).replace('.', ',')}
-                        </Badge>
+                        <span>Grátis</span>
+                        <Badge variant="secondary">R$ 0,00</Badge>
                       </div>
-                      {plan.description && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {plan.description}
-                        </p>
-                      )}
                     </Label>
                   </div>
-                ))}
-              </RadioGroup>
-            )}
-          </div>
-
-          {/* Billing Cycle */}
-          {selectedPlanId && (
-            <div className="space-y-3">
-              <Label>Ciclo de cobrança</Label>
-              <RadioGroup
-                value={billingCycle}
-                onValueChange={(v) => setBillingCycle(v as "monthly" | "annual")}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="monthly" id="monthly" />
-                  <Label htmlFor="monthly">Mensal</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="annual" id="annual" />
-                  <Label htmlFor="annual">Anual</Label>
-                </div>
-              </RadioGroup>
+                  {plans?.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    >
+                      <RadioGroupItem value={plan.id} id={`plan-${plan.id}`} />
+                      <Label htmlFor={`plan-${plan.id}`} className="flex-1 cursor-pointer">
+                        <div className="flex justify-between items-center">
+                          <span>{plan.name}</span>
+                          <Badge variant="outline">
+                            R$ {Number(plan.price).toFixed(2).replace('.', ',')}
+                          </Badge>
+                        </div>
+                        {plan.description && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {plan.description}
+                          </p>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
             </div>
-          )}
 
-          {/* No Charge Option */}
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <Label htmlFor="no-charge">Sem cobrança</Label>
-              <p className="text-xs text-muted-foreground">
-                Ativar plano sem gerar cobrança
+            {/* Billing Cycle */}
+            {selectedPlanId && (
+              <div className="space-y-3">
+                <Label>Ciclo de cobrança</Label>
+                <RadioGroup
+                  value={billingCycle}
+                  onValueChange={(v) => setBillingCycle(v as "monthly" | "annual")}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="monthly" id="monthly" />
+                    <Label htmlFor="monthly">Mensal</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="annual" id="annual" />
+                    <Label htmlFor="annual">Anual</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {/* No Charge Option */}
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <Label htmlFor="no-charge">Sem cobrança</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ativar plano sem gerar cobrança
+                </p>
+              </div>
+              <Switch
+                id="no-charge"
+                checked={noCharge}
+                onCheckedChange={setNoCharge}
+              />
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label htmlFor="reason">
+                Motivo da alteração <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Ex: Retenção de cliente, bonificação, ajuste administrativo..."
+                rows={3}
+              />
+            </div>
+
+            {/* Warning */}
+            <div className="flex items-start gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg text-sm">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Esta ação não enviará e-mail automático ao lojista. O controle é manual.
               </p>
             </div>
-            <Switch
-              id="no-charge"
-              checked={noCharge}
-              onCheckedChange={setNoCharge}
-            />
           </div>
-
-          {/* Reason */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">
-              Motivo da alteração <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex: Retenção de cliente, bonificação, ajuste administrativo..."
-              rows={3}
-            />
-          </div>
-
-          {/* Warning */}
-          <div className="flex items-start gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg text-sm">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <p>
-              Esta ação não enviará e-mail automático ao lojista. O controle é manual.
-            </p>
-          </div>
-        </div>
+        </ScrollArea>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
