@@ -67,7 +67,7 @@ export const StoresList = () => {
   const getPlanName = (store: any) => {
     const subscription = store.subscriptions?.[0];
     const planName = subscription?.subscription_plans?.name;
-    return planName || "Free";
+    return planName || "Grátis";
   };
 
   if (isLoading) {

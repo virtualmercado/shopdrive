@@ -132,7 +132,7 @@ export const StoreDetailsDialog = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Plano Atual</p>
-                <p className="text-lg font-semibold">{plan?.name || "Free"}</p>
+                <p className="text-lg font-semibold">{plan?.name || "Grátis"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Status da Assinatura</p>
