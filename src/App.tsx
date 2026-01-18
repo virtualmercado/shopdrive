@@ -19,7 +19,7 @@ import Financeiro from "./pages/dashboard/Financeiro";
 import Support from "./pages/dashboard/Support";
 import Marketing from "./pages/dashboard/Marketing";
 import MarketingTutorial from "./pages/dashboard/MarketingTutorial";
-import Coupons from "./pages/dashboard/Coupons";
+
 import Shipping from "./pages/dashboard/Shipping";
 import PaymentMethods from "./pages/dashboard/PaymentMethods";
 import Customers from "./pages/dashboard/Customers";
@@ -96,7 +96,7 @@ function App() {
             {/* Merchant Routes */}
             <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
             <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
-            <Route path="/lojista/coupons" element={<MerchantRoute><Coupons /></MerchantRoute>} />
+            
             <Route path="/lojista/orders" element={<MerchantRoute><Orders /></MerchantRoute>} />
             <Route path="/lojista/customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
             <Route path="/lojista/customers/:customerId" element={<MerchantRoute><CustomerDetail /></MerchantRoute>} />

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -35,7 +35,7 @@ interface Coupon {
   created_at: string;
 }
 
-const Coupons = () => {
+const CouponsSection = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -132,7 +132,7 @@ const Coupons = () => {
   };
 
   return (
-    <DashboardLayout>
+    <Card>
       {/* CSS for dialog close button - merchant color binding */}
       <style>{`
         [data-radix-dialog-content] > button[type="button"] {
@@ -150,16 +150,18 @@ const Coupons = () => {
           opacity: 1 !important;
         }
       `}</style>
-      <div className="space-y-6">
+      <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-                <Tag className="h-4 w-4 text-gray-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">Cupons</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Tag className="h-5 w-5 text-green-600" />
             </div>
-            <p className="text-sm text-muted-foreground ml-10">Gerencie os cupons da sua loja</p>
+            <div>
+              <CardTitle className="text-lg">Cupons de Desconto</CardTitle>
+              <CardDescription className="text-[#515151]">
+                Crie e gerencie cupons de desconto para sua loja
+              </CardDescription>
+            </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
@@ -184,17 +186,18 @@ const Coupons = () => {
             </DialogContent>
           </Dialog>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border">
-          {loading ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Carregando cupons...
-            </div>
-          ) : coupons.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Nenhum cupom cadastrado. Clique em "Adicionar Cupom" para criar o primeiro.
-            </div>
-          ) : (
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Carregando cupons...
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Nenhum cupom cadastrado. Clique em "Adicionar Cupom" para criar o primeiro.
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -256,11 +259,11 @@ const Coupons = () => {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </div>
-      </div>
-    </DashboardLayout>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-export default Coupons;
+export default CouponsSection;
