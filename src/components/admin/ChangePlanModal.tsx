@@ -102,8 +102,9 @@ export const ChangePlanModal = ({
           .from('subscriptions')
           .update({
             plan_id: isFreePlan ? null : selectedPlanId,
-            status: noCharge ? 'active' : 'active',
-            internal_notes: `Alterado por admin em ${new Date().toLocaleString('pt-BR')}. Motivo: ${reason}. ${noCharge ? 'Sem cobrança.' : ''}`,
+            status: 'active',
+            no_charge: noCharge, // When true, billing is bypassed
+            internal_notes: `Alterado por admin em ${new Date().toLocaleString('pt-BR')}. Motivo: ${reason}. ${noCharge ? 'Sem cobrança - billing desativado.' : 'Cobrança ativa.'}`,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', subscriber.id);
@@ -121,9 +122,10 @@ export const ChangePlanModal = ({
             user_id: subscriber.id,
             plan_id: selectedPlanId,
             status: 'active',
+            no_charge: noCharge, // When true, billing is bypassed
             current_period_start: now.toISOString(),
             current_period_end: periodEnd.toISOString(),
-            internal_notes: `Criado por admin em ${new Date().toLocaleString('pt-BR')}. Motivo: ${reason}. ${noCharge ? 'Sem cobrança.' : ''}`,
+            internal_notes: `Criado por admin em ${new Date().toLocaleString('pt-BR')}. Motivo: ${reason}. ${noCharge ? 'Sem cobrança - billing desativado.' : 'Cobrança ativa.'}`,
           });
 
         if (insertError) throw insertError;

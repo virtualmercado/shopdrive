@@ -1326,6 +1326,7 @@ export type Database = {
           id: string
           last_retry_at: string | null
           monthly_price: number
+          no_charge: boolean | null
           origin: string | null
           plan_id: string
           recurring_consent_accepted: boolean | null
@@ -1355,6 +1356,7 @@ export type Database = {
           id?: string
           last_retry_at?: string | null
           monthly_price: number
+          no_charge?: boolean | null
           origin?: string | null
           plan_id: string
           recurring_consent_accepted?: boolean | null
@@ -1384,6 +1386,7 @@ export type Database = {
           id?: string
           last_retry_at?: string | null
           monthly_price?: number
+          no_charge?: boolean | null
           origin?: string | null
           plan_id?: string
           recurring_consent_accepted?: boolean | null
@@ -2505,6 +2508,7 @@ export type Database = {
           current_period_start: string
           id: string
           internal_notes: string | null
+          no_charge: boolean | null
           plan_id: string | null
           status: string
           updated_at: string
@@ -2517,6 +2521,7 @@ export type Database = {
           current_period_start?: string
           id?: string
           internal_notes?: string | null
+          no_charge?: boolean | null
           plan_id?: string | null
           status?: string
           updated_at?: string
@@ -2529,6 +2534,7 @@ export type Database = {
           current_period_start?: string
           id?: string
           internal_notes?: string | null
+          no_charge?: boolean | null
           plan_id?: string | null
           status?: string
           updated_at?: string
