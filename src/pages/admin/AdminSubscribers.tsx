@@ -103,7 +103,7 @@ const AdminSubscribers = () => {
 
           return {
             ...profile,
-            planName: (subscription?.subscription_plans as any)?.name || 'Sem plano',
+            planName: (subscription?.subscription_plans as any)?.name || 'Grátis',
             subscriptionStatus: subscription?.status || 'inactive',
             productCount: productCount || 0
           };

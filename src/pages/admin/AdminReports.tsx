@@ -98,7 +98,7 @@ const AdminReports = () => {
 
       const planCounts: Record<string, number> = {};
       subscriptions?.forEach((sub) => {
-        const planName = (sub.subscription_plans as any)?.name || 'Sem plano';
+        const planName = (sub.subscription_plans as any)?.name || 'Grátis';
         planCounts[planName] = (planCounts[planName] || 0) + 1;
       });
 
