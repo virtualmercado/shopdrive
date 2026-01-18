@@ -11,6 +11,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { User, ShoppingBag, Lock } from "lucide-react";
+import { AccountClosureSection } from "@/components/settings/AccountClosureSection";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -436,6 +437,9 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+
+        {/* Account Closure */}
+        <AccountClosureSection />
 
         {/* Save Button */}
         <div className="flex justify-end">

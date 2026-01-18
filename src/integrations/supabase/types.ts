@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          details: string | null
+          id: string
+          ip_address: string | null
+          merchant_id: string
+          reason: string
+          rejection_reason: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          ticket_id: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          merchant_id: string
+          reason: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          merchant_id?: string
+          reason?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -573,6 +630,66 @@ export type Database = {
         }
         Relationships: []
       }
+      data_exports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          download_count: number
+          error_message: string | null
+          expires_at: string | null
+          file_path: string | null
+          file_size: number | null
+          format: string
+          id: string
+          include_audit: boolean
+          include_cadastral: boolean
+          include_consents: boolean
+          include_financial: boolean
+          last_downloaded_at: string | null
+          merchant_id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          download_count?: number
+          error_message?: string | null
+          expires_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          format?: string
+          id?: string
+          include_audit?: boolean
+          include_cadastral?: boolean
+          include_consents?: boolean
+          include_financial?: boolean
+          last_downloaded_at?: string | null
+          merchant_id: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          download_count?: number
+          error_message?: string | null
+          expires_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          format?: string
+          id?: string
+          include_audit?: boolean
+          include_cadastral?: boolean
+          include_consents?: boolean
+          include_financial?: boolean
+          last_downloaded_at?: string | null
+          merchant_id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: []
+      }
       dunning_settings: {
         Row: {
           auto_block_enabled: boolean
@@ -847,6 +964,75 @@ export type Database = {
           id?: string
           mensagem?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      legal_archive_accounts: {
+        Row: {
+          billing_history: Json | null
+          cpf_cnpj_hash: string | null
+          created_at: string
+          deleted_at: string
+          deletion_audit: Json
+          deletion_details: string | null
+          deletion_reason: string | null
+          export_available: boolean
+          export_file_path: string | null
+          id: string
+          last_export_at: string | null
+          merchant_id: string
+          plan_history: Json | null
+          primary_email: string | null
+          privacy_acceptance_logs: Json | null
+          retention_policy_version: string
+          retention_until: string
+          store_name: string | null
+          terms_acceptance_logs: Json | null
+          ticket_id: string | null
+        }
+        Insert: {
+          billing_history?: Json | null
+          cpf_cnpj_hash?: string | null
+          created_at: string
+          deleted_at?: string
+          deletion_audit?: Json
+          deletion_details?: string | null
+          deletion_reason?: string | null
+          export_available?: boolean
+          export_file_path?: string | null
+          id?: string
+          last_export_at?: string | null
+          merchant_id: string
+          plan_history?: Json | null
+          primary_email?: string | null
+          privacy_acceptance_logs?: Json | null
+          retention_policy_version?: string
+          retention_until: string
+          store_name?: string | null
+          terms_acceptance_logs?: Json | null
+          ticket_id?: string | null
+        }
+        Update: {
+          billing_history?: Json | null
+          cpf_cnpj_hash?: string | null
+          created_at?: string
+          deleted_at?: string
+          deletion_audit?: Json
+          deletion_details?: string | null
+          deletion_reason?: string | null
+          export_available?: boolean
+          export_file_path?: string | null
+          id?: string
+          last_export_at?: string | null
+          merchant_id?: string
+          plan_history?: Json | null
+          primary_email?: string | null
+          privacy_acceptance_logs?: Json | null
+          retention_policy_version?: string
+          retention_until?: string
+          store_name?: string | null
+          terms_acceptance_logs?: Json | null
+          ticket_id?: string | null
         }
         Relationships: []
       }
@@ -1296,6 +1482,7 @@ export type Database = {
       merchant_support_tickets: {
         Row: {
           answered_at: string | null
+          category: string | null
           created_at: string
           deleted_by_admin: boolean
           deleted_by_merchant: boolean
@@ -1309,6 +1496,7 @@ export type Database = {
         }
         Insert: {
           answered_at?: string | null
+          category?: string | null
           created_at?: string
           deleted_by_admin?: boolean
           deleted_by_merchant?: boolean
@@ -1322,6 +1510,7 @@ export type Database = {
         }
         Update: {
           answered_at?: string | null
+          category?: string | null
           created_at?: string
           deleted_by_admin?: boolean
           deleted_by_merchant?: boolean
@@ -1970,6 +2159,8 @@ export type Database = {
       profiles: {
         Row: {
           about_us_text: string | null
+          account_status: string
+          account_status_updated_at: string | null
           address: string | null
           address_city: string | null
           address_complement: string | null
@@ -1993,6 +2184,8 @@ export type Database = {
           checkout_require_personal_info: boolean | null
           cpf_cnpj: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           delivery_option: string | null
           display_name: string | null
           email: string | null
@@ -2039,6 +2232,8 @@ export type Database = {
         }
         Insert: {
           about_us_text?: string | null
+          account_status?: string
+          account_status_updated_at?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -2062,6 +2257,8 @@ export type Database = {
           checkout_require_personal_info?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_option?: string | null
           display_name?: string | null
           email?: string | null
@@ -2108,6 +2305,8 @@ export type Database = {
         }
         Update: {
           about_us_text?: string | null
+          account_status?: string
+          account_status_updated_at?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -2131,6 +2330,8 @@ export type Database = {
           checkout_require_personal_info?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_option?: string | null
           display_name?: string | null
           email?: string | null
@@ -3028,6 +3229,16 @@ export type Database = {
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_type: string
+          p_ip_address?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "financeiro" | "suporte" | "tecnico"

@@ -15,8 +15,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Users,
   Search,
@@ -26,7 +34,10 @@ import {
   RefreshCw,
   ArrowUpCircle,
   History,
-  Package
+  Package,
+  Trash2,
+  Download,
+  AlertTriangle
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,12 +46,18 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AccountDeletionModal } from "@/components/admin/AccountDeletionModal";
+import { DataExportModal } from "@/components/admin/DataExportModal";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null);
+  const [deletionModalOpen, setDeletionModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const { data: subscribers, isLoading, refetch } = useQuery({
-    queryKey: ['admin-subscribers', searchTerm],
+    queryKey: ['admin-subscribers', searchTerm, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
@@ -49,7 +66,8 @@ const AdminSubscribers = () => {
           store_name,
           email,
           created_at,
-          store_slug
+          store_slug,
+          account_status
         `)
         .not('store_slug', 'is', null)
         .order('created_at', { ascending: false });
@@ -58,11 +76,18 @@ const AdminSubscribers = () => {
         query = query.or(`store_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
+      if (statusFilter === "active") {
+        query = query.eq('account_status', 'active');
+      } else if (statusFilter === "exclusao_solicitada") {
+        query = query.eq('account_status', 'exclusao_solicitada');
+      } else if (statusFilter === "excluida") {
+        query = query.eq('account_status', 'excluida');
+      }
+
       const { data: profiles, error } = await query.limit(50);
 
       if (error) throw error;
 
-      // Get subscription info for each profile
       const subscriberData = await Promise.all(
         (profiles || []).map(async (profile) => {
           const { data: subscription } = await supabase
@@ -102,8 +127,29 @@ const AdminSubscribers = () => {
     }
   };
 
+  const getAccountStatusBadge = (status: string) => {
+    switch (status) {
+      case 'exclusao_solicitada':
+        return <Badge className="bg-orange-100 text-orange-800">Exclusão solicitada</Badge>;
+      case 'excluida':
+        return <Badge variant="secondary">Excluída</Badge>;
+      default:
+        return null;
+    }
+  };
+
   const handleAction = (action: string, subscriberId: string, storeName: string) => {
     toast.info(`Ação "${action}" para ${storeName} será implementada em breve`);
+  };
+
+  const handleOpenDeletion = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setDeletionModalOpen(true);
+  };
+
+  const handleOpenExport = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setExportModalOpen(true);
   };
 
   return (
@@ -127,6 +173,17 @@ const AdminSubscribers = () => {
                 className="pl-9 w-64"
               />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filtrar status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="exclusao_solicitada">Exclusão solicitada</SelectItem>
+                <SelectItem value="excluida">Excluídos</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
@@ -146,6 +203,7 @@ const AdminSubscribers = () => {
                   <TableHead>Produtos</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Conta</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -195,6 +253,9 @@ const AdminSubscribers = () => {
                       <TableCell>
                         {getStatusBadge(subscriber.subscriptionStatus)}
                       </TableCell>
+                      <TableCell>
+                        {getAccountStatusBadge(subscriber.account_status)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -222,6 +283,13 @@ const AdminSubscribers = () => {
                               Histórico Financeiro
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              onClick={() => handleOpenExport(subscriber)}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Exportar dados
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
                               onClick={() => handleAction('suspend', subscriber.id, subscriber.store_name || '')}
                               className="text-amber-600"
                             >
@@ -230,11 +298,23 @@ const AdminSubscribers = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleAction('block', subscriber.id, subscriber.store_name || '')}
-                              className="text-destructive"
+                              className="text-amber-600"
                             >
                               <Ban className="h-4 w-4 mr-2" />
                               Bloquear Acesso
                             </DropdownMenuItem>
+                            {subscriber.account_status === 'exclusao_solicitada' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenDeletion(subscriber)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir conta definitivamente
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -245,6 +325,18 @@ const AdminSubscribers = () => {
             </Table>
           </CardContent>
         </Card>
+
+        <AccountDeletionModal
+          subscriber={selectedSubscriber}
+          open={deletionModalOpen}
+          onOpenChange={setDeletionModalOpen}
+        />
+
+        <DataExportModal
+          subscriber={selectedSubscriber}
+          open={exportModalOpen}
+          onOpenChange={setExportModalOpen}
+        />
       </div>
     </AdminLayout>
   );
