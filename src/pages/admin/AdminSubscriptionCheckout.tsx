@@ -426,10 +426,26 @@ const AdminSubscriptionCheckout = () => {
       });
 
       if (error) {
+        // Handle 409 conflict - existing subscription
+        if (error.message?.includes("409")) {
+          toast.error("Você já possui uma assinatura ativa ou pendente. Acesse o painel para gerenciá-la.");
+          setTimeout(() => {
+            navigate("/lojista/financeiro");
+          }, 2000);
+          return;
+        }
         throw new Error(error.message || "Erro ao processar assinatura");
       }
 
-      if (data.error) {
+      if (data?.error) {
+        // Handle existing subscription error from response body
+        if (data.existingSubscriptionId) {
+          toast.error("Você já possui uma assinatura. Redirecionando para gerenciamento...");
+          setTimeout(() => {
+            navigate("/lojista/financeiro");
+          }, 2000);
+          return;
+        }
         throw new Error(data.error);
       }
 
