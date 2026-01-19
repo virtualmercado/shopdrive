@@ -14,7 +14,8 @@ import {
   Loader2,
   KeyRound,
   Lock,
-  Send
+  Send,
+  CheckCircle2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -486,6 +487,16 @@ const CheckoutIdentificationCard = ({
               )}
             </div>
           </div>
+
+          {/* Visual feedback when all fields are valid */}
+          {cardState === "not_logged_in" && 
+           !errors.fullName && !errors.email && !errors.storeName && 
+           fullName && email && storeName && !emailExists && (
+            <div className="mt-4 flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              <span>Dados de identificação válidos. Prossiga com a escolha do plano e pagamento.</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
