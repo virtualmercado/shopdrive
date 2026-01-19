@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag, Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe, MessageCircle } from "lucide-react";
@@ -8,16 +7,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useCallback } from "react";
 import logoMenu from "@/assets/logo-menu.png";
 import logoRodape from "@/assets/logo-footer.png";
-import heroImageDefault from "@/assets/hero-banner.jpg";
 import benefitsImageDefault from "@/assets/benefits-handshake.jpg";
 import benefitsMobileDefault from "@/assets/benefits-mobile.jpg";
-import snapchatIcon from "@/assets/snapchat-icon.png";
 import editIcon from "@/assets/edit-icon.png";
 import testimonialJuliana from "@/assets/testimonial-juliana.jpg";
 import testimonialMarcos from "@/assets/testimonial-marcos.jpg";
 import testimonialCarla from "@/assets/testimonial-carla.jpg";
 import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
 import { useCMSContent, getContent, getContentArray } from "@/hooks/useCMSContent";
+import { HeroSection } from "@/components/landing";
 
 // Icon mapping for dynamic icons
 const iconMap: Record<string, any> = {
@@ -50,8 +48,7 @@ const Home = () => {
   const { data: cmsContent } = useCMSContent();
   const navigate = useNavigate();
   
-  // Get banner URLs from CMS or use defaults
-  const heroImage = getBannerUrl(cmsBanners, 'banner_01', heroImageDefault);
+  // Get banner URLs from CMS or use defaults (for non-hero sections)
   const benefitsImage = getBannerUrl(cmsBanners, 'banner_02', benefitsImageDefault);
   const benefitsMobile = getBannerUrl(cmsBanners, 'banner_03', benefitsMobileDefault);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -325,22 +322,8 @@ const Home = () => {
 
       {/* Main Content - Animated Container */}
       <main className="page-enter">
-      {/* Hero Section */}
-      <section className="relative py-24 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
-        <div className="container mx-auto text-center max-w-4xl">
-          <Badge variant="secondary" className="mb-6">{heroContent.badge}</Badge>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-black leading-tight">{heroContent.title}</h1>
-          <p className="text-xl mb-8 max-w-2xl mx-auto" style={{ color: '#5A5A5A' }}>{heroContent.subtitle}</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
-            <Button asChild size="lg" className="text-lg px-8"><Link to="/register">{heroContent.buttonPrimary}</Link></Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8"><Link to="/login">{heroContent.buttonSecondary}</Link></Button>
-          </div>
-          <p className="text-base md:text-lg mb-8" style={{ color: '#5A5A5A' }}>{heroContent.infoText}</p>
-          <div className="flex justify-center">
-            <img src={heroImage} alt="VirtualMercado Preview" className="max-w-full w-full md:max-w-[600px] h-auto shadow-lg" />
-          </div>
-        </div>
-      </section>
+      {/* Hero Section - New Bling-style layout */}
+      <HeroSection heroContent={heroContent} />
 
       {/* Products Section */}
       <section className="py-20 px-4 bg-background">
