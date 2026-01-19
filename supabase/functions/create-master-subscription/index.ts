@@ -37,6 +37,29 @@ interface MercadoPagoPreapproval {
   };
 }
 
+function getUserFriendlyMessage(statusDetail: string | null): string {
+  switch (statusDetail) {
+    case "cc_rejected_card_disabled":
+      return "Cartão bloqueado ou desativado. Verifique os dados do cartão.";
+    case "cc_rejected_insufficient_amount":
+      return "Saldo insuficiente. Tente novamente ou use outro cartão.";
+    case "cc_rejected_bad_filled_card_number":
+      return "Número do cartão incorreto. Verifique os dados.";
+    case "cc_rejected_bad_filled_date":
+      return "Data de validade incorreta. Verifique os dados.";
+    case "cc_rejected_bad_filled_security_code":
+      return "Código de segurança incorreto. Tente novamente.";
+    case "cc_rejected_high_risk":
+      return "Pagamento recusado por segurança. Contate seu banco.";
+    case "cc_rejected_call_for_authorize":
+      return "Autorização necessária. Contate seu banco.";
+    case "expired_token":
+      return "Sessão expirada. Tente novamente.";
+    default:
+      return "Pagamento recusado pelo emissor. Verifique os dados do cartão.";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -313,24 +336,45 @@ serve(async (req) => {
       console.log("Mercado Pago payment response:", mpData.status, mpData.status_detail);
 
       if (!mpResponse.ok || mpData.status === "rejected") {
-        // Update subscription as failed
+        const statusDetail = mpData.status_detail || "unknown_error";
+        const isHardDecline = [
+          "cc_rejected_card_disabled",
+          "cc_rejected_bad_filled_card_number",
+          "cc_rejected_bad_filled_date",
+          "cc_rejected_bad_filled_security_code",
+          "expired_token",
+        ].includes(statusDetail);
+        
+        const userMessage = getUserFriendlyMessage(statusDetail);
+        
+        // For first-time subscription, cancel on rejection (no retry logic yet)
         await supabase
           .from("master_subscriptions")
-          .update({ status: "cancelled" })
+          .update({ 
+            status: "cancelled",
+            decline_type: isHardDecline ? "hard" : "soft",
+            last_decline_code: statusDetail,
+            last_decline_message: userMessage,
+          })
           .eq("id", subscription.id);
 
         await supabase.from("master_subscription_logs").insert({
           subscription_id: subscription.id,
           user_id: userId,
           event_type: "payment_failed",
-          event_description: `Pagamento rejeitado: ${mpData.status_detail || "erro desconhecido"}`,
-          metadata: { mpData }
+          event_description: `Pagamento rejeitado: ${statusDetail}`,
+          metadata: { 
+            mpData, 
+            declineType: isHardDecline ? "hard" : "soft",
+            userMessage 
+          }
         });
 
         return new Response(
           JSON.stringify({ 
-            error: "Pagamento rejeitado", 
-            statusDetail: mpData.status_detail,
+            error: userMessage, 
+            statusDetail: statusDetail,
+            declineType: isHardDecline ? "hard" : "soft",
             details: mpData
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1228,11 +1228,14 @@ export type Database = {
       master_subscription_payments: {
         Row: {
           amount: number
+          attempt_number: number | null
           boleto_barcode: string | null
           boleto_digitable_line: string | null
           boleto_expires_at: string | null
           boleto_url: string | null
           created_at: string
+          decline_code: string | null
+          decline_type: string | null
           gateway: string
           gateway_payment_id: string | null
           gateway_response: Json | null
@@ -1249,14 +1252,18 @@ export type Database = {
           subscription_id: string
           updated_at: string
           user_id: string
+          user_message: string | null
         }
         Insert: {
           amount: number
+          attempt_number?: number | null
           boleto_barcode?: string | null
           boleto_digitable_line?: string | null
           boleto_expires_at?: string | null
           boleto_url?: string | null
           created_at?: string
+          decline_code?: string | null
+          decline_type?: string | null
           gateway: string
           gateway_payment_id?: string | null
           gateway_response?: Json | null
@@ -1273,14 +1280,18 @@ export type Database = {
           subscription_id: string
           updated_at?: string
           user_id: string
+          user_message?: string | null
         }
         Update: {
           amount?: number
+          attempt_number?: number | null
           boleto_barcode?: string | null
           boleto_digitable_line?: string | null
           boleto_expires_at?: string | null
           boleto_url?: string | null
           created_at?: string
+          decline_code?: string | null
+          decline_type?: string | null
           gateway?: string
           gateway_payment_id?: string | null
           gateway_response?: Json | null
@@ -1297,6 +1308,7 @@ export type Database = {
           subscription_id?: string
           updated_at?: string
           user_id?: string
+          user_message?: string | null
         }
         Relationships: [
           {
@@ -1318,20 +1330,25 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
+          decline_type: string | null
           discount_percent: number | null
           gateway: string
           gateway_customer_id: string | null
           gateway_subscription_id: string | null
           grace_period_ends_at: string | null
           id: string
+          last_decline_code: string | null
+          last_decline_message: string | null
           last_retry_at: string | null
           monthly_price: number
+          next_retry_at: string | null
           no_charge: boolean | null
           origin: string | null
           plan_id: string
           recurring_consent_accepted: boolean | null
           recurring_consent_accepted_at: string | null
           recurring_consent_ip: string | null
+          requires_card_update: boolean | null
           retry_count: number | null
           started_at: string | null
           status: string
@@ -1348,20 +1365,25 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          decline_type?: string | null
           discount_percent?: number | null
           gateway: string
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
           grace_period_ends_at?: string | null
           id?: string
+          last_decline_code?: string | null
+          last_decline_message?: string | null
           last_retry_at?: string | null
           monthly_price: number
+          next_retry_at?: string | null
           no_charge?: boolean | null
           origin?: string | null
           plan_id: string
           recurring_consent_accepted?: boolean | null
           recurring_consent_accepted_at?: string | null
           recurring_consent_ip?: string | null
+          requires_card_update?: boolean | null
           retry_count?: number | null
           started_at?: string | null
           status?: string
@@ -1378,20 +1400,25 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          decline_type?: string | null
           discount_percent?: number | null
           gateway?: string
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
           grace_period_ends_at?: string | null
           id?: string
+          last_decline_code?: string | null
+          last_decline_message?: string | null
           last_retry_at?: string | null
           monthly_price?: number
+          next_retry_at?: string | null
           no_charge?: boolean | null
           origin?: string | null
           plan_id?: string
           recurring_consent_accepted?: boolean | null
           recurring_consent_accepted_at?: string | null
           recurring_consent_ip?: string | null
+          requires_card_update?: boolean | null
           retry_count?: number | null
           started_at?: string | null
           status?: string

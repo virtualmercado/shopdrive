@@ -6,6 +6,60 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Hard decline codes - these should NOT be retried automatically
+const HARD_DECLINE_CODES = [
+  "cc_rejected_card_disabled",
+  "cc_rejected_card_type_not_allowed",
+  "cc_rejected_duplicated_payment",
+  "cc_rejected_high_risk",
+  "cc_rejected_max_attempts",
+  "cc_rejected_other_reason",
+  "cc_rejected_blacklist",
+  "cc_rejected_bad_filled_card_number",
+  "cc_rejected_bad_filled_date",
+  "cc_rejected_bad_filled_security_code",
+  "cc_rejected_bad_filled_other",
+  "cc_amount_rate_limit_exceeded",
+  "expired_token",
+  "invalid_installments",
+  "invalid_payment_type",
+];
+
+function isHardDecline(statusDetail: string | null): boolean {
+  if (!statusDetail) return false;
+  return HARD_DECLINE_CODES.includes(statusDetail);
+}
+
+function getUserFriendlyMessage(statusDetail: string | null): string {
+  switch (statusDetail) {
+    case "cc_rejected_card_disabled":
+      return "Cartão bloqueado ou desativado. Atualize os dados do cartão.";
+    case "cc_rejected_insufficient_amount":
+      return "Saldo insuficiente. Tente novamente ou atualize o cartão.";
+    case "cc_rejected_bad_filled_card_number":
+      return "Número do cartão incorreto. Atualize os dados do cartão.";
+    case "cc_rejected_bad_filled_date":
+      return "Data de validade incorreta. Atualize os dados do cartão.";
+    case "cc_rejected_bad_filled_security_code":
+      return "Código de segurança incorreto. Tente novamente.";
+    case "cc_rejected_high_risk":
+      return "Pagamento recusado por segurança. Contate seu banco.";
+    case "cc_rejected_call_for_authorize":
+      return "Autorização necessária. Contate seu banco.";
+    case "cc_rejected_max_attempts":
+      return "Limite de tentativas excedido. Aguarde ou use outro cartão.";
+    case "cc_rejected_duplicated_payment":
+      return "Pagamento duplicado detectado.";
+    case "expired_token":
+      return "Sessão expirada. Atualize os dados do cartão.";
+    default:
+      return "Pagamento recusado pelo emissor. Atualize seu cartão para evitar a suspensão do plano.";
+  }
+}
+
+const GRACE_PERIOD_DAYS_MONTHLY = 7;
+const GRACE_PERIOD_DAYS_ANNUAL = 14;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,9 +77,6 @@ serve(async (req) => {
     const { type, data, action } = body;
 
     // Mercado Pago sends different formats
-    // IPN: { topic: 'payment', id: '123' }
-    // Webhook: { type: 'payment', data: { id: '123' } }
-    
     let paymentId: string | null = null;
     let topic = type || body.topic;
 
@@ -34,7 +85,6 @@ serve(async (req) => {
     } else if (body.id && body.topic === "payment") {
       paymentId = body.id.toString();
     } else if (body.resource) {
-      // Extract ID from resource URL
       const resourceParts = body.resource.split("/");
       paymentId = resourceParts[resourceParts.length - 1];
     }
@@ -124,6 +174,12 @@ serve(async (req) => {
     const previousStatus = payment.status;
     let newPaymentStatus = payment.status;
     let newSubscriptionStatus = payment.master_subscriptions?.status;
+    
+    const statusDetail = mpPayment.status_detail || null;
+    const hardDecline = isHardDecline(statusDetail);
+    const userMessage = getUserFriendlyMessage(statusDetail);
+    const isMonthly = payment.master_subscriptions?.billing_cycle === "monthly";
+    const gracePeriodDays = isMonthly ? GRACE_PERIOD_DAYS_MONTHLY : GRACE_PERIOD_DAYS_ANNUAL;
 
     // Map MP status to our status
     switch (mpPayment.status) {
@@ -137,11 +193,8 @@ serve(async (req) => {
         break;
       case "rejected":
         newPaymentStatus = "failed";
-        if (payment.master_subscriptions?.billing_cycle === "monthly") {
-          newSubscriptionStatus = "inadimplent";
-        } else {
-          newSubscriptionStatus = "cancelled";
-        }
+        // Use past_due for both monthly and annual (not cancelled immediately)
+        newSubscriptionStatus = "past_due";
         break;
       case "cancelled":
         newPaymentStatus = "cancelled";
@@ -152,14 +205,18 @@ serve(async (req) => {
         break;
     }
 
-    console.log("Status update:", { previousStatus, newPaymentStatus, newSubscriptionStatus });
+    console.log("Status update:", { previousStatus, newPaymentStatus, newSubscriptionStatus, hardDecline });
 
-    // Update payment record
+    // Update payment record with detailed info
     const paymentUpdate: any = {
       status: newPaymentStatus,
       gateway_status: mpPayment.status,
       gateway_response: mpPayment,
       updated_at: new Date().toISOString(),
+      decline_code: statusDetail,
+      decline_type: newPaymentStatus === "failed" ? (hardDecline ? "hard" : "soft") : null,
+      user_message: newPaymentStatus === "failed" ? userMessage : null,
+      attempt_number: (payment.attempt_number || 0) + 1,
     };
 
     if (mpPayment.status === "approved" && !payment.paid_at) {
@@ -177,17 +234,52 @@ serve(async (req) => {
 
     // Update subscription if status changed
     if (newSubscriptionStatus && newSubscriptionStatus !== payment.master_subscriptions?.status) {
+      const now = new Date();
       const subscriptionUpdate: any = {
         status: newSubscriptionStatus,
-        updated_at: new Date().toISOString(),
+        updated_at: now.toISOString(),
       };
 
-      if (newSubscriptionStatus === "active" && !payment.master_subscriptions?.started_at) {
-        subscriptionUpdate.started_at = new Date().toISOString();
+      if (newSubscriptionStatus === "active") {
+        subscriptionUpdate.started_at = payment.master_subscriptions?.started_at || now.toISOString();
+        // Clear decline fields on success
+        subscriptionUpdate.decline_type = null;
+        subscriptionUpdate.last_decline_code = null;
+        subscriptionUpdate.last_decline_message = null;
+        subscriptionUpdate.next_retry_at = null;
+        subscriptionUpdate.requires_card_update = false;
+        subscriptionUpdate.retry_count = 0;
+      }
+
+      if (newSubscriptionStatus === "past_due") {
+        subscriptionUpdate.decline_type = hardDecline ? "hard" : "soft";
+        subscriptionUpdate.last_decline_code = statusDetail;
+        subscriptionUpdate.last_decline_message = userMessage;
+        subscriptionUpdate.requires_card_update = hardDecline;
+        
+        // Set grace period if not already set
+        if (!payment.master_subscriptions?.grace_period_ends_at) {
+          const gracePeriodEnd = new Date(now.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
+          subscriptionUpdate.grace_period_ends_at = gracePeriodEnd.toISOString();
+        }
+        
+        // Calculate next retry for soft decline
+        if (!hardDecline) {
+          const retryCount = payment.master_subscriptions?.retry_count || 0;
+          const retrySchedule = isMonthly ? [0, 1, 3, 6] : [0, 2, 5, 9, 12, 14];
+          const nextRetryDay = retrySchedule[retryCount + 1] ?? null;
+          
+          if (nextRetryDay !== null) {
+            const graceStart = payment.master_subscriptions?.grace_period_ends_at 
+              ? new Date(new Date(payment.master_subscriptions.grace_period_ends_at).getTime() - gracePeriodDays * 24 * 60 * 60 * 1000)
+              : now;
+            subscriptionUpdate.next_retry_at = new Date(graceStart.getTime() + nextRetryDay * 24 * 60 * 60 * 1000).toISOString();
+          }
+        }
       }
 
       if (newSubscriptionStatus === "cancelled" && !payment.master_subscriptions?.cancelled_at) {
-        subscriptionUpdate.cancelled_at = new Date().toISOString();
+        subscriptionUpdate.cancelled_at = now.toISOString();
       }
 
       await supabase
@@ -206,7 +298,9 @@ serve(async (req) => {
           previousStatus: payment.master_subscriptions?.status,
           newStatus: newSubscriptionStatus,
           mpStatus: mpPayment.status,
-          mpStatusDetail: mpPayment.status_detail,
+          mpStatusDetail: statusDetail,
+          declineType: hardDecline ? "hard" : "soft",
+          userMessage,
         }
       });
     }
@@ -224,6 +318,8 @@ serve(async (req) => {
           newStatus: newPaymentStatus,
           mpPaymentId: paymentId,
           mpStatus: mpPayment.status,
+          mpStatusDetail: statusDetail,
+          userMessage: newPaymentStatus === "failed" ? userMessage : null,
         }
       });
     }
@@ -236,6 +332,7 @@ serve(async (req) => {
         paymentId: payment.id,
         subscriptionId: payment.subscription_id,
         newStatus: newPaymentStatus,
+        declineType: hardDecline ? "hard" : "soft",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

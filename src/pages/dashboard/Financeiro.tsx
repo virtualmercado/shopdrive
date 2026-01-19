@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
 import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySection";
+import { SubscriptionStatusAlert } from "@/components/financeiro/SubscriptionStatusAlert";
 import { Crown } from "lucide-react";
 
 interface SubscriptionInfo {
@@ -16,6 +17,14 @@ interface SubscriptionInfo {
   planId: string;
   cardToken?: string;
   paymentMethod?: string;
+  // New fields for status tracking
+  declineType?: string | null;
+  lastDeclineCode?: string | null;
+  lastDeclineMessage?: string | null;
+  gracePeriodEndsAt?: string | null;
+  nextRetryAt?: string | null;
+  retryCount?: number | null;
+  requiresCardUpdate?: boolean;
 }
 
 interface SavedCard {
@@ -32,6 +41,7 @@ const Financeiro = () => {
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   // Smooth navigation with page transition animation
   const handleSmoothNavigation = useCallback((path: string) => {
@@ -50,12 +60,12 @@ const Financeiro = () => {
     const fetchSubscriptionData = async () => {
       if (!user) return;
 
-      // Fetch master subscription
+      // Fetch master subscription with all new status fields
       const { data: masterSub, error: masterSubError } = await supabase
         .from("master_subscriptions")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["active", "pending", "payment_failed", "grace_period"])
+        .in("status", ["active", "pending", "past_due", "suspended", "payment_failed", "grace_period"])
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
@@ -69,6 +79,14 @@ const Financeiro = () => {
           planId: masterSub.plan_id,
           cardToken: masterSub.card_token || undefined,
           paymentMethod: masterSub.card_token ? "credit_card" : undefined,
+          // New status tracking fields
+          declineType: masterSub.decline_type,
+          lastDeclineCode: masterSub.last_decline_code,
+          lastDeclineMessage: masterSub.last_decline_message,
+          gracePeriodEndsAt: masterSub.grace_period_ends_at,
+          nextRetryAt: masterSub.next_retry_at,
+          retryCount: masterSub.retry_count,
+          requiresCardUpdate: masterSub.requires_card_update || false,
         });
 
         // Set saved card info if exists
@@ -132,19 +150,41 @@ const Financeiro = () => {
       brand: cardData.brand,
     });
 
-    // Update subscription state to reflect card is now active
+    // Update subscription state to reflect card is now active and clear error states
     if (subscription) {
       setSubscription({
         ...subscription,
         cardToken: "validated",
         paymentMethod: "credit_card",
+        status: "active", // Optimistic update - will be confirmed by backend
+        requiresCardUpdate: false,
+        declineType: null,
+        lastDeclineMessage: null,
       });
     }
+  };
+
+  const scrollToPaymentSection = () => {
+    paymentSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Status Alert - Show at the top if there's an issue */}
+        {subscription && (
+          <SubscriptionStatusAlert
+            status={subscription.status}
+            declineType={subscription.declineType}
+            lastDeclineMessage={subscription.lastDeclineMessage}
+            gracePeriodEndsAt={subscription.gracePeriodEndsAt}
+            nextRetryAt={subscription.nextRetryAt}
+            retryCount={subscription.retryCount}
+            requiresCardUpdate={subscription.requiresCardUpdate}
+            onUpdateCard={scrollToPaymentSection}
+          />
+        )}
+
         {/* Plans Card Container */}
         <Card className="p-6">
           {/* Header for Plans Section */}
@@ -169,7 +209,7 @@ const Financeiro = () => {
 
         {/* Payment Data Card Container - Only show if has subscription */}
         {subscription && (
-          <Card className="p-6">
+          <Card className="p-6" ref={paymentSectionRef}>
             <PaymentDataSection
               savedCard={savedCard}
               subscription={subscription}
