@@ -24,7 +24,7 @@ const HeroContentLeft = ({
       {/* Badge */}
       <Badge 
         variant="secondary" 
-        className="text-sm px-4 py-2 bg-secondary/20 text-secondary border border-secondary/30"
+        className="text-sm px-4 py-2 bg-primary text-white border-none rounded-md"
       >
         {badge}
       </Badge>
