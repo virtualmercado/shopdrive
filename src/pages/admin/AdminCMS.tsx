@@ -84,6 +84,9 @@ const defaultImages: Record<string, string> = {
   'banner_01': heroImage,
   'banner_02': benefitsImage,
   'banner_03': benefitsMobile,
+  'hero_01': heroImage,
+  'hero_02': '',
+  'hero_03': '',
 };
 
 // Content sections configuration
@@ -290,116 +293,197 @@ const AdminCMS = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Main CMS Card - Banners */}
+        {/* Hero Carousel Banners Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-3">
+              <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
+                <ImageIcon className="h-6 w-6 text-[#6a1b9a]" />
+              </div>
+              Carrossel do Hero (Topo da Landing Page)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Gerencie as 3 imagens do carrossel exibido no topo da landing page. As imagens alternam automaticamente a cada 3 segundos.
+            </p>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+              <p className="text-sm text-amber-800">
+                <strong>Dica:</strong> Proporção recomendada: 1:1 ou 4:5 (quadrada ou retrato). Formato: JPG ou PNG.
+              </p>
+            </div>
+
+            {/* Hero Banners Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {banners
+                .filter((banner) => banner.banner_key.startsWith('hero_'))
+                .sort((a, b) => a.banner_key.localeCompare(b.banner_key))
+                .map((banner) => (
+                  <div 
+                    key={banner.id}
+                    className="p-4 border rounded-xl bg-card"
+                  >
+                    {/* Preview */}
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium mb-2 block">
+                        {banner.name}
+                      </Label>
+                      <div className="relative aspect-[4/5] bg-muted rounded-lg overflow-hidden border">
+                        {banner.currentImage ? (
+                          <img 
+                            src={banner.currentImage}
+                            alt={banner.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                            Nenhuma imagem
+                          </div>
+                        )}
+                        {banner.hasCustomImage && (
+                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Media Selector Button */}
+                    <Button
+                      className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full"
+                      onClick={() => handleOpenSelector(banner.id)}
+                      disabled={updateBannerMutation.isPending}
+                      size="sm"
+                    >
+                      {updateBannerMutation.isPending && selectedBannerId === banner.id ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      Substituir
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Other Banners Section */}
         <Card>
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-3">
               <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
                 <FileText className="h-6 w-6 text-[#6a1b9a]" />
               </div>
-              Banners da Landing Page
+              Banners das Seções da Landing Page
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-6">
-              Gerencie os banners da página inicial. Selecione imagens da Biblioteca de Mídia para atualizar cada banner. As alterações são refletidas automaticamente na landing page.
+              Gerencie os banners das demais seções. As alterações são refletidas automaticamente na landing page.
             </p>
 
-            {/* Banners Grid */}
+            {/* Other Banners Grid */}
             <div className="space-y-6">
-              {banners.map((banner) => (
-                <div 
-                  key={banner.id}
-                  className="p-6 border rounded-xl bg-card"
-                >
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    {/* Preview */}
-                    <div className="lg:w-1/3">
-                      <Label className="text-sm font-medium mb-2 block">
-                        Preview Atual
-                      </Label>
-                      <div className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
-                        <img 
-                          src={banner.currentImage}
-                          alt={banner.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {banner.hasCustomImage && (
-                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                            Personalizado
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Info and Controls */}
-                    <div className="lg:w-2/3 space-y-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <ImageIcon className="h-5 w-5 text-[#6a1b9a]" />
-                          <h3 className="text-lg font-semibold">{banner.name}</h3>
+              {banners
+                .filter((banner) => banner.banner_key.startsWith('banner_'))
+                .map((banner) => (
+                  <div 
+                    key={banner.id}
+                    className="p-6 border rounded-xl bg-card"
+                  >
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Preview */}
+                      <div className="lg:w-1/3">
+                        <Label className="text-sm font-medium mb-2 block">
+                          Preview Atual
+                        </Label>
+                        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
+                          <img 
+                            src={banner.currentImage}
+                            alt={banner.name}
+                            className="w-full h-full object-cover"
+                          />
+                          {banner.hasCustomImage && (
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                              Personalizado
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {banner.description}
-                        </p>
                       </div>
 
-                      {/* Technical Info */}
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Tamanho recomendado: {banner.width > 0 ? (
-                            <>
-                              <span className="text-foreground font-semibold">
-                                {banner.width} × {banner.height} px
-                              </span>
-                              {' · '}Formato: <span className="text-foreground font-semibold">
-                                {banner.format}
-                              </span>
-                              {' · '}Proporção: <span className="text-foreground font-semibold">
-                                {banner.aspectRatio}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">Carregando...</span>
-                          )}
-                        </p>
-                      </div>
+                      {/* Info and Controls */}
+                      <div className="lg:w-2/3 space-y-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <ImageIcon className="h-5 w-5 text-[#6a1b9a]" />
+                            <h3 className="text-lg font-semibold">{banner.name}</h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {banner.description}
+                          </p>
+                        </div>
 
-                      {/* Media Selector Button */}
-                      <div>
-                        <Button
-                          className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full sm:w-auto"
-                          onClick={() => handleOpenSelector(banner.id)}
-                          disabled={updateBannerMutation.isPending}
-                        >
-                          {updateBannerMutation.isPending && selectedBannerId === banner.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                          )}
-                          Substituir Banner
-                        </Button>
+                        {/* Technical Info */}
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Tamanho recomendado: {banner.width > 0 ? (
+                              <>
+                                <span className="text-foreground font-semibold">
+                                  {banner.width} × {banner.height} px
+                                </span>
+                                {' · '}Formato: <span className="text-foreground font-semibold">
+                                  {banner.format}
+                                </span>
+                                {' · '}Proporção: <span className="text-foreground font-semibold">
+                                  {banner.aspectRatio}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">Carregando...</span>
+                            )}
+                          </p>
+                        </div>
+
+                        {/* Media Selector Button */}
+                        <div>
+                          <Button
+                            className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full sm:w-auto"
+                            onClick={() => handleOpenSelector(banner.id)}
+                            disabled={updateBannerMutation.isPending}
+                          >
+                            {updateBannerMutation.isPending && selectedBannerId === banner.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                            )}
+                            Substituir Banner
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Divider */}
-            <div className="border-t my-8" />
+        {/* Content Sections Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-3">
+              <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
+                <MessageSquare className="h-6 w-6 text-[#6a1b9a]" />
+              </div>
+              Conteúdo Textual da Landing Page
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6">
+              Edite os textos, títulos, subtítulos e CTAs de cada seção da landing page. As alterações são refletidas automaticamente.
+            </p>
 
-            {/* Content Sections */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-[#6a1b9a]" />
-                Conteúdo Textual da Landing Page
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Edite os textos, títulos, subtítulos e CTAs de cada seção da landing page. As alterações são refletidas automaticamente.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {contentSections.map((section) => {
                   const IconComponent = section.icon;
                   return (
@@ -428,51 +512,66 @@ const AdminCMS = () => {
                     </div>
                   );
                 })}
-              </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Divider */}
-            <div className="border-t my-8" />
+        {/* Footer Content Section Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-3">
+              <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
+                <Layout className="h-6 w-6 text-[#6a1b9a]" />
+              </div>
+              Conteúdo do Rodapé da Landing Page
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6">
+              Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
+            </p>
 
-            {/* Footer Content Section */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Layout className="h-5 w-5 text-[#6a1b9a]" />
-                Conteúdo do Rodapé da Landing Page
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Gerencie logo, subtítulo, redes sociais e links exibidos no rodapé da Landing Page.
-              </p>
-
-              <div
-                className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors max-w-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
-                    <Layout className="h-5 w-5 text-[#6a1b9a]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm mb-1">CMS – Rodapé</h4>
-                    <p className="text-xs text-muted-foreground mb-3">Logo, slogan, redes sociais e colunas de links</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
-                      onClick={() => setActiveModal("footer")}
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Editar
-                    </Button>
-                  </div>
+            <div
+              className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors max-w-sm"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                  <Layout className="h-5 w-5 text-[#6a1b9a]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm mb-1">CMS – Rodapé</h4>
+                  <p className="text-xs text-muted-foreground mb-3">Logo, slogan, redes sociais e colunas de links</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                    onClick={() => setActiveModal("footer")}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Divider */}
-            <div className="border-t my-8" />
+        {/* Institutional Pages Section Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-3">
+              <div className="p-2 bg-[#6a1b9a]/10 rounded-lg">
+                <FileText className="h-6 w-6 text-[#6a1b9a]" />
+              </div>
+              Páginas Institucionais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6">
+              Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
+            </p>
 
-            {/* Institutional Pages Section */}
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#6a1b9a]" />
                 Páginas Institucionais
