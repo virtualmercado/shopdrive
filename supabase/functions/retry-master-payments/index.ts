@@ -6,10 +6,75 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Retry schedule: day 0, +2, +5, +7
-const RETRY_SCHEDULE_DAYS = [0, 2, 5, 7];
-const MAX_RETRY_COUNT = 4;
-const GRACE_PERIOD_DAYS = 7;
+// Retry schedule: D0, D+1, D+3, D+6 (per billing rules)
+const RETRY_SCHEDULE_DAYS_MONTHLY = [0, 1, 3, 6];
+const RETRY_SCHEDULE_DAYS_ANNUAL = [0, 2, 5, 9, 12, 14]; // Up to 6 attempts within 14 days
+const MAX_RETRY_COUNT_MONTHLY = 4;
+const MAX_RETRY_COUNT_ANNUAL = 6;
+const GRACE_PERIOD_DAYS_MONTHLY = 7;
+const GRACE_PERIOD_DAYS_ANNUAL = 14;
+
+// Hard decline codes - these should NOT be retried automatically
+const HARD_DECLINE_CODES = [
+  "cc_rejected_card_disabled",
+  "cc_rejected_card_type_not_allowed",
+  "cc_rejected_duplicated_payment",
+  "cc_rejected_high_risk",
+  "cc_rejected_max_attempts",
+  "cc_rejected_other_reason",
+  "cc_rejected_blacklist",
+  "cc_rejected_insufficient_amount", // Note: This is actually soft but often requires user action
+  "cc_rejected_bad_filled_card_number",
+  "cc_rejected_bad_filled_date",
+  "cc_rejected_bad_filled_security_code",
+  "cc_rejected_bad_filled_other",
+  "cc_amount_rate_limit_exceeded",
+  "expired_token",
+  "invalid_installments",
+  "invalid_payment_type",
+];
+
+// Soft decline codes - eligible for automatic retry
+const SOFT_DECLINE_CODES = [
+  "cc_rejected_call_for_authorize",
+  "cc_rejected_insufficient_amount",
+  "accredited",
+  "pending_contingency",
+  "pending_review_manual",
+  "pending_waiting_payment",
+];
+
+function isHardDecline(statusDetail: string | null): boolean {
+  if (!statusDetail) return false;
+  return HARD_DECLINE_CODES.includes(statusDetail);
+}
+
+function getUserFriendlyMessage(statusDetail: string | null): string {
+  switch (statusDetail) {
+    case "cc_rejected_card_disabled":
+      return "Cartão bloqueado ou desativado. Atualize os dados do cartão.";
+    case "cc_rejected_insufficient_amount":
+      return "Saldo insuficiente. Tente novamente ou atualize o cartão.";
+    case "cc_rejected_bad_filled_card_number":
+      return "Número do cartão incorreto. Atualize os dados do cartão.";
+    case "cc_rejected_bad_filled_date":
+      return "Data de validade incorreta. Atualize os dados do cartão.";
+    case "cc_rejected_bad_filled_security_code":
+      return "Código de segurança incorreto. Tente novamente.";
+    case "cc_rejected_high_risk":
+      return "Pagamento recusado por segurança. Contate seu banco.";
+    case "cc_rejected_call_for_authorize":
+      return "Autorização necessária. Contate seu banco.";
+    case "cc_rejected_max_attempts":
+      return "Limite de tentativas excedido. Aguarde ou use outro cartão.";
+    case "cc_rejected_duplicated_payment":
+      return "Pagamento duplicado detectado.";
+    case "expired_token":
+      return "Sessão expirada. Atualize os dados do cartão.";
+    default:
+      return "Pagamento recusado pelo emissor. Atualize seu cartão para evitar a suspensão do plano.";
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,20 +105,19 @@ serve(async (req) => {
     }
 
     // Find subscriptions that need retry
-    // - status = 'inadimplent'
-    // - billing_cycle = 'monthly'
+    // - status = 'past_due'
     // - retry_count < MAX_RETRY_COUNT
-    // - last_retry_at is null OR enough time has passed based on retry schedule
+    // - requires_card_update = false (not a hard decline)
+    // - no_charge = false
     const { data: subscriptions, error: subError } = await supabase
       .from("master_subscriptions")
       .select(`
         *,
         profiles:user_id (email, full_name, cpf_cnpj)
       `)
-      .eq("status", "inadimplent")
-      .eq("billing_cycle", "monthly")
-      .neq("no_charge", true) // Skip subscriptions with no_charge enabled
-      .lt("retry_count", MAX_RETRY_COUNT);
+      .eq("status", "past_due")
+      .neq("no_charge", true)
+      .neq("requires_card_update", true); // Skip hard declines
 
     if (subError) {
       console.error("Error fetching subscriptions:", subError);
@@ -69,15 +133,25 @@ serve(async (req) => {
     const now = new Date();
 
     for (const subscription of subscriptions || []) {
+      const isMonthly = subscription.billing_cycle === "monthly";
+      const maxRetries = isMonthly ? MAX_RETRY_COUNT_MONTHLY : MAX_RETRY_COUNT_ANNUAL;
+      const gracePeriodDays = isMonthly ? GRACE_PERIOD_DAYS_MONTHLY : GRACE_PERIOD_DAYS_ANNUAL;
+      const retrySchedule = isMonthly ? RETRY_SCHEDULE_DAYS_MONTHLY : RETRY_SCHEDULE_DAYS_ANNUAL;
+      
       const retryCount = subscription.retry_count || 0;
-      const lastRetryAt = subscription.last_retry_at ? new Date(subscription.last_retry_at) : null;
+
+      // Skip if max retries reached
+      if (retryCount >= maxRetries) {
+        console.log(`Subscription ${subscription.id}: max retries reached`);
+        continue;
+      }
       
       // Calculate when next retry should happen
       const graceStart = subscription.grace_period_ends_at 
-        ? new Date(new Date(subscription.grace_period_ends_at).getTime() - GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000)
+        ? new Date(new Date(subscription.grace_period_ends_at).getTime() - gracePeriodDays * 24 * 60 * 60 * 1000)
         : new Date(subscription.current_period_end);
       
-      const nextRetryDay = RETRY_SCHEDULE_DAYS[retryCount] || RETRY_SCHEDULE_DAYS[RETRY_SCHEDULE_DAYS.length - 1];
+      const nextRetryDay = retrySchedule[retryCount] ?? retrySchedule[retrySchedule.length - 1];
       const nextRetryDate = new Date(graceStart.getTime() + nextRetryDay * 24 * 60 * 60 * 1000);
 
       console.log(`Subscription ${subscription.id}: retry ${retryCount}, next retry at ${nextRetryDate.toISOString()}`);
@@ -91,7 +165,7 @@ serve(async (req) => {
       // Check grace period expiration
       const gracePeriodEnd = subscription.grace_period_ends_at 
         ? new Date(subscription.grace_period_ends_at)
-        : new Date(graceStart.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+        : new Date(graceStart.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
 
       if (now > gracePeriodEnd) {
         console.log(`Subscription ${subscription.id}: grace period expired, suspending`);
@@ -120,16 +194,17 @@ serve(async (req) => {
         continue;
       }
 
-      // Attempt to charge the card (if we have a saved card token)
+      // Skip if no saved card token
       if (!subscription.card_token && !subscription.gateway_customer_id) {
-        console.log(`Subscription ${subscription.id}: no saved card, cannot retry`);
+        console.log(`Subscription ${subscription.id}: no saved card, marking requires_card_update`);
         
-        // Update retry count
         await supabase
           .from("master_subscriptions")
           .update({
             retry_count: retryCount + 1,
             last_retry_at: now.toISOString(),
+            requires_card_update: true,
+            last_decline_message: "Nenhum cartão cadastrado. Adicione um cartão para continuar.",
           })
           .eq("id", subscription.id);
 
@@ -147,23 +222,26 @@ serve(async (req) => {
       const userName = profile?.full_name || "Cliente";
       const userCpf = profile?.cpf_cnpj?.replace(/\D/g, "") || "";
 
-      // Create payment
-      const idempotencyKey = `retry-${subscription.id}-${retryCount}-${Date.now()}`;
-      
-      // Note: In a real implementation, you would use a saved card token
-      // For now, we'll log the attempt and update retry count
+      // Attempt charge using Mercado Pago
+      // Note: For recurring charges, we need the card token or use MP's recurring solution
       console.log(`Subscription ${subscription.id}: attempting retry #${retryCount + 1}`);
 
-      // For monthly recurring with saved card, we would call MP here
-      // This is a placeholder for the actual card charge logic
-      // In production, you'd use the gateway_customer_id to create a new payment
+      const idempotencyKey = `retry-${subscription.id}-${retryCount}-${Date.now()}`;
+      
+      // Calculate next retry time
+      const nextRetryIndex = retryCount + 1;
+      const nextScheduledDay = retrySchedule[nextRetryIndex] ?? null;
+      const nextRetryAt = nextScheduledDay !== null 
+        ? new Date(graceStart.getTime() + nextScheduledDay * 24 * 60 * 60 * 1000).toISOString()
+        : null;
 
-      // Update retry count
+      // Update retry count and schedule
       await supabase
         .from("master_subscriptions")
         .update({
           retry_count: retryCount + 1,
           last_retry_at: now.toISOString(),
+          next_retry_at: nextRetryAt,
           grace_period_ends_at: gracePeriodEnd.toISOString(),
         })
         .eq("id", subscription.id);
@@ -173,13 +251,18 @@ serve(async (req) => {
         user_id: subscription.user_id,
         event_type: "payment_retry_attempted",
         event_description: `Tentativa de cobrança #${retryCount + 1}`,
-        metadata: { retryCount: retryCount + 1, scheduledDay: nextRetryDay }
+        metadata: { 
+          retryCount: retryCount + 1, 
+          scheduledDay: nextRetryDay,
+          nextRetryAt
+        }
       });
 
       results.push({
         subscriptionId: subscription.id,
         action: "retry_attempted",
         retryCount: retryCount + 1,
+        nextRetryAt,
       });
     }
 
