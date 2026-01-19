@@ -37,7 +37,7 @@ const HeroCarousel = ({ images, interval = 3000 }: HeroCarouselProps) => {
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Image Container */}
-      <div className="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-2xl">
+      <div className="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full overflow-hidden">
         {images.map((image, index) => (
           <div
             key={index}
