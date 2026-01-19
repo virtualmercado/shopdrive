@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,14 @@ import {
   ExternalLink,
   CheckCircle2,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import CheckoutIdentificationCard, { GuestData } from "@/components/checkout/CheckoutIdentificationCard";
 
 // Cores da VirtualMercado
 const VM_PRIMARY = "#6a1b9a";
@@ -60,7 +62,7 @@ const PLAN_FEATURES = {
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type BillingCycle = "monthly" | "annual";
 type PlanId = "pro" | "premium";
-type CheckoutStep = "form" | "pix" | "boleto" | "success";
+type CheckoutStep = "form" | "pix" | "boleto" | "success" | "success_new_account";
 
 interface CardFormData {
   cardNumber: string;
@@ -127,6 +129,14 @@ const AdminSubscriptionCheckout = () => {
     expirationYear: "",
     cvv: ""
   });
+
+  // Guest checkout states
+  const [isIdentificationValid, setIsIdentificationValid] = useState(false);
+  const [guestData, setGuestData] = useState<GuestData | null>(null);
+  const [createdUserEmail, setCreatedUserEmail] = useState<string | null>(null);
+
+  // Check if user is logged in for identification validation
+  const isUserLoggedIn = !!(user && session);
 
   // Carregar SDK do Mercado Pago
   useEffect(() => {
@@ -244,6 +254,9 @@ const AdminSubscriptionCheckout = () => {
   };
 
   const canProceed = () => {
+    // Check identification - must be logged in OR have valid guest data
+    if (!isUserLoggedIn && !isIdentificationValid) return false;
+    
     if (!termsAccepted) return false;
     if (billingCycle === "monthly" && !recurringConsent) return false;
     if (paymentMethod === "credit_card") {
@@ -296,9 +309,11 @@ const AdminSubscriptionCheckout = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user || !session) {
-      toast.error("Você precisa estar logado para assinar um plano");
-      navigate("/login");
+    // Check if user is logged in or has valid guest data
+    const isGuest = !isUserLoggedIn && guestData;
+    
+    if (!isUserLoggedIn && !guestData) {
+      toast.error("Preencha seus dados de identificação para continuar");
       return;
     }
 
@@ -314,6 +329,7 @@ const AdminSubscriptionCheckout = () => {
       let paymentMethodId: string | undefined;
       let cardBrand: string | undefined;
       let cardLastFour: string | undefined;
+      let userId = user?.id;
 
       // Tokenizar cartão se necessário
       if (paymentMethod === "credit_card") {
@@ -328,10 +344,59 @@ const AdminSubscriptionCheckout = () => {
         cardLastFour = cardForm.cardNumber.replace(/\s/g, "").slice(-4);
       }
 
+      // If guest checkout, create account first (without password)
+      if (isGuest && guestData) {
+        try {
+          // Create user with temporary password (will be reset via email)
+          const tempPassword = crypto.randomUUID();
+          
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: guestData.email,
+            password: tempPassword,
+            options: {
+              data: {
+                full_name: guestData.fullName,
+                store_name: guestData.storeName,
+              },
+              emailRedirectTo: `${window.location.origin}/lojista`,
+            },
+          });
+
+          if (signUpError) {
+            throw new Error(signUpError.message);
+          }
+
+          if (!signUpData.user) {
+            throw new Error("Erro ao criar conta. Tente novamente.");
+          }
+
+          userId = signUpData.user.id;
+          setCreatedUserEmail(guestData.email);
+
+          // Send password reset email so user can set their own password
+          await supabase.auth.resetPasswordForEmail(guestData.email, {
+            redirectTo: `${window.location.origin}/login?mode=recovery`,
+          });
+
+          console.log("checkout_account_auto_created", { email: guestData.email });
+        } catch (error: any) {
+          console.error("Error creating account:", error);
+          toast.error(error.message || "Erro ao criar conta");
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      if (!userId) {
+        toast.error("Erro: usuário não identificado");
+        setIsProcessing(false);
+        return;
+      }
+
       // Chamar edge function para criar assinatura
       const { data, error } = await supabase.functions.invoke("create-master-subscription", {
         body: {
-          userId: user.id,
+          userId,
           planId: plan,
           billingCycle,
           paymentMethod,
@@ -341,7 +406,8 @@ const AdminSubscriptionCheckout = () => {
           cardLastFour,
           installments: 1,
           recurringConsent,
-          origin: originParam
+          origin: originParam,
+          guestCheckout: isGuest,
         }
       });
 
@@ -354,12 +420,17 @@ const AdminSubscriptionCheckout = () => {
       }
 
       console.log("Subscription response:", data);
+      console.log("checkout_payment_success", { plan, billingCycle, paymentMethod });
 
       setSubscriptionId(data.subscription?.id);
 
       // Tratar resposta baseado no método de pagamento
       if (data.payment?.status === "approved" || data.subscription?.status === "active") {
-        setStep("success");
+        if (isGuest) {
+          setStep("success_new_account");
+        } else {
+          setStep("success");
+        }
         toast.success("Assinatura ativada com sucesso!");
       } else if (data.payment?.paymentMethod === "pix") {
         setPixData({
@@ -569,7 +640,7 @@ const AdminSubscriptionCheckout = () => {
     );
   }
 
-  // Render Success Step
+  // Render Success Step (for logged in users)
   if (step === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -608,6 +679,84 @@ const AdminSubscriptionCheckout = () => {
             >
               Ir para o Painel
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Render Success Step for New Account (guest checkout)
+  if (step === "success_new_account") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-8 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Pagamento Confirmado!</h2>
+              <p className="text-muted-foreground">
+                Sua assinatura do plano {plan.toUpperCase()} está ativa.
+              </p>
+            </div>
+
+            {/* Email notification */}
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg text-left">
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-purple-800">
+                    Enviamos um link para definir sua senha
+                  </p>
+                  <p className="text-sm text-purple-700 mt-1">
+                    Verifique sua caixa de entrada em <strong>{createdUserEmail}</strong> para acessar seu painel.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg text-left space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Plano</span>
+                <span className="font-medium">{plan.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Ciclo</span>
+                <span className="font-medium">{billingCycle === "monthly" ? "Mensal" : "Anual"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-medium">R$ {totalAmount.toFixed(2).replace(".", ",")}</span>
+              </div>
+              {guestData && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Loja</span>
+                    <span className="font-medium">{guestData.storeName}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                className="w-full"
+                style={{ backgroundColor: VM_PRIMARY }}
+                onClick={() => navigate("/login")}
+              >
+                Fazer login
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/")}
+              >
+                Voltar para a página inicial
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -658,6 +807,16 @@ const AdminSubscriptionCheckout = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Identification Card - Above the 3 columns */}
+        <CheckoutIdentificationCard
+          user={user}
+          session={session}
+          userProfile={userProfile}
+          onProfileUpdate={setUserProfile}
+          onValidationChange={setIsIdentificationValid}
+          onGuestDataChange={setGuestData}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Coluna 1 - Plano */}
           <Card>
