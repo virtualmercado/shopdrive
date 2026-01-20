@@ -5,7 +5,7 @@ interface HeroCarouselProps {
   interval?: number;
 }
 
-const HeroCarousel = ({ images, interval = 4000 }: HeroCarouselProps) => {
+const HeroCarousel = ({ images, interval = 5000 }: HeroCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
