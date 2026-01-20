@@ -571,16 +571,7 @@ const AdminCMS = () => {
               Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#6a1b9a]" />
-                Páginas Institucionais
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Sobre Nós Page */}
                 <div
                   className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
@@ -723,7 +714,6 @@ const AdminCMS = () => {
                       </Button>
                     </div>
                   </div>
-                </div>
               </div>
             </div>
 
