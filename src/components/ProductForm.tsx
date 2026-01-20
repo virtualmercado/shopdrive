@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus } from "lucide-react";
+import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus, Sparkles, Bot } from "lucide-react";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor } from "@/components/ImageEditor";
+import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -95,6 +96,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  
+  // AI Assistant state
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [aiGenerateTitle, setAiGenerateTitle] = useState(false);
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -647,7 +652,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Nome do Produto</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="name">Nome do Produto</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
+                onClick={() => {
+                  setAiGenerateTitle(true);
+                  setAiAssistantOpen(true);
+                }}
+              >
+                <Sparkles className="h-3 w-3" />
+                Gerar título com IA
+              </Button>
+            </div>
             <Input
               id="name"
               value={name}
@@ -658,7 +678,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="description">Descrição</Label>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={`w-full mb-2 gap-2 ${buttonRadius} border-primary text-primary hover:bg-primary hover:text-primary-foreground`}
+              onClick={() => {
+                setAiGenerateTitle(false);
+                setAiAssistantOpen(true);
+              }}
+            >
+              <Bot className="h-4 w-4" />
+              Criar descrição profissional com IA
+            </Button>
             <Textarea
               id="description"
               value={description}
@@ -1146,6 +1181,24 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         onSave={handleSaveEditedImage}
       />
     )}
+
+    {/* AI Product Assistant Modal */}
+    <AIProductAssistantModal
+      open={aiAssistantOpen}
+      onOpenChange={setAiAssistantOpen}
+      currentCategory={categories.find(c => c.id === categoryId)?.name || ""}
+      currentProductName={name}
+      productId={product?.id}
+      generateTitle={aiGenerateTitle}
+      onApply={(result) => {
+        if (result.title && aiGenerateTitle) {
+          setName(result.title);
+        }
+        if (result.description) {
+          setDescription(result.description);
+        }
+      }}
+    />
     </>
   );
 };
