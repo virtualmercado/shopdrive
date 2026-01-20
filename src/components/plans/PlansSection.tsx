@@ -229,9 +229,9 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
 
       {/* Plans Grid */}
       <div className={cn(
-        "grid gap-4 md:gap-6",
+        "grid gap-6 md:gap-8 lg:gap-10",
         isLandingPage 
-          ? "grid-cols-1 md:grid-cols-3 max-w-5xl mx-auto" 
+          ? "grid-cols-1 md:grid-cols-3 max-w-6xl mx-auto" 
           : "grid-cols-1 md:grid-cols-3"
       )}>
         {plans.map((plan: any) => {
