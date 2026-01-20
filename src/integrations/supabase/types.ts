@@ -71,6 +71,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_product_logs: {
+        Row: {
+          benefits: string | null
+          category: string | null
+          channel: string
+          channel_variants: Json | null
+          created_at: string
+          description_generated: string | null
+          differentiators: string | null
+          error_message: string | null
+          id: string
+          materials: string | null
+          product_id: string | null
+          product_type: string | null
+          status: string
+          store_id: string
+          target_audience: string | null
+          title_generated: string | null
+          tone: string
+          usage_instructions: string | null
+          user_id: string
+          variations_info: string | null
+          warranty_info: string | null
+        }
+        Insert: {
+          benefits?: string | null
+          category?: string | null
+          channel: string
+          channel_variants?: Json | null
+          created_at?: string
+          description_generated?: string | null
+          differentiators?: string | null
+          error_message?: string | null
+          id?: string
+          materials?: string | null
+          product_id?: string | null
+          product_type?: string | null
+          status?: string
+          store_id: string
+          target_audience?: string | null
+          title_generated?: string | null
+          tone: string
+          usage_instructions?: string | null
+          user_id: string
+          variations_info?: string | null
+          warranty_info?: string | null
+        }
+        Update: {
+          benefits?: string | null
+          category?: string | null
+          channel?: string
+          channel_variants?: Json | null
+          created_at?: string
+          description_generated?: string | null
+          differentiators?: string | null
+          error_message?: string | null
+          id?: string
+          materials?: string | null
+          product_id?: string | null
+          product_type?: string | null
+          status?: string
+          store_id?: string
+          target_audience?: string | null
+          title_generated?: string | null
+          tone?: string
+          usage_instructions?: string | null
+          user_id?: string
+          variations_info?: string | null
+          warranty_info?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string

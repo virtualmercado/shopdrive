@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.validate-card]
 verify_jwt = false
+
+[functions.ai-product-writer]
+verify_jwt = false
