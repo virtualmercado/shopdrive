@@ -46,7 +46,7 @@ const HeroSection = ({ heroContent }: HeroSectionProps) => {
           {/* Right Column - Carousel */}
           <div className="order-2 flex justify-center lg:justify-end">
             <div className="w-full max-w-md lg:max-w-lg">
-              <HeroCarousel images={carouselImages} interval={3000} />
+              <HeroCarousel images={carouselImages} interval={7000} />
             </div>
           </div>
         </div>
