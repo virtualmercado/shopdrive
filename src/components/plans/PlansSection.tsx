@@ -124,8 +124,9 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
 
   // Get plans content from CMS or use defaults
   const plansContent = cmsContent?.plans || {};
-  const plans = plansContent.plans || DEFAULT_PLANS;
-  const guarantees = plansContent.guarantees || DEFAULT_GUARANTEES;
+  // Use defaults if arrays are empty or undefined
+  const plans = (plansContent.plans && plansContent.plans.length > 0) ? plansContent.plans : DEFAULT_PLANS;
+  const guarantees = (plansContent.guarantees && plansContent.guarantees.length > 0) ? plansContent.guarantees : DEFAULT_GUARANTEES;
   const toggleMonthly = plansContent.toggle_monthly || "Mensal";
   const toggleAnnual = plansContent.toggle_annual || "Anual";
   const discountBadge = plansContent.discount_badge || "-30% DESC.";
