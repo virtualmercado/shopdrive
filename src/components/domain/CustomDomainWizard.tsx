@@ -34,20 +34,36 @@ import { toast } from "sonner";
 interface CustomDomainWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialStep?: 'domain' | 'provider' | 'manage';
 }
 
 type WizardStep = 'domain' | 'provider' | 'tutorial' | 'verify' | 'activate' | 'manage';
 
-export const CustomDomainWizard = ({ open, onOpenChange }: CustomDomainWizardProps) => {
+export const CustomDomainWizard = ({ open, onOpenChange, initialStep }: CustomDomainWizardProps) => {
   const { buttonBgColor, buttonTextColor } = useTheme();
   const { domain, tutorials, addDomain, verifyDns, activateDomain, deactivateDomain, removeDomain } = useMerchantDomain();
   
-  const [step, setStep] = useState<WizardStep>(domain ? 'manage' : 'domain');
+  // Determine starting step based on prop or domain existence
+  const getInitialStep = (): WizardStep => {
+    if (initialStep) return initialStep;
+    if (domain) return 'manage';
+    return 'domain';
+  };
+  
+  const [step, setStep] = useState<WizardStep>(getInitialStep());
   const [domainInput, setDomainInput] = useState(domain?.domain || '');
   const [domainType, setDomainType] = useState<'subdomain' | 'root'>(domain?.domain_type || 'subdomain');
   const [selectedProvider, setSelectedProvider] = useState<DomainProviderTutorial | null>(null);
   const [redirectOldLink, setRedirectOldLink] = useState(domain?.redirect_old_link ?? true);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Reset step when modal opens with a specific initialStep
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && initialStep) {
+      setStep(initialStep);
+    }
+    onOpenChange(isOpen);
+  };
 
   const validateDomain = (value: string): boolean => {
     // Remove http:// or https://
@@ -523,7 +539,7 @@ export const CustomDomainWizard = ({ open, onOpenChange }: CustomDomainWizardPro
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
