@@ -105,14 +105,99 @@ interface CMSPlansModalProps {
   onSave: (content: PlansContent) => Promise<void>;
 }
 
+// Default guarantees (must match PlansSection defaults)
+const DEFAULT_GUARANTEES: Guarantee[] = [
+  { icon: "CircleDollarSign", text: "Garantia de 7 dias" },
+  { icon: "Coins", text: "Sem comissão sobre as vendas" },
+  { icon: "LockOpen", text: "Cancele a qualquer momento, sem multas ou taxas" },
+  { icon: "Trophy", text: "Plano escolhido por milhares de assinantes" },
+];
+
+// Default plans (must match PlansSection defaults)
+const DEFAULT_PLANS: Plan[] = [
+  {
+    id: "gratis",
+    name: "GRÁTIS",
+    display_name: "Plano GRÁTIS",
+    subtitle: "Comece a vender agora, sem custos.",
+    monthly_price: 0,
+    button_text: "Começar grátis",
+    badge_text: "",
+    badge_active: false,
+    badge_color: "#f97316",
+    features: [
+      { icon: "Check", text: "Até 20 produtos cadastrados" },
+      { icon: "Check", text: "Até 40 clientes ativos" },
+      { icon: "Check", text: "Pedidos ilimitados" },
+      { icon: "Check", text: "ERP (Gestor Virtual) integrado" },
+      { icon: "Check", text: "Frete personalizado" },
+      { icon: "Check", text: "Gerador de catálogo PDF ilimitado" },
+      { icon: "Check", text: "Controle de estoque" },
+      { icon: "Check", text: "Sem anúncios" },
+      { icon: "Check", text: "Agente de mensagens" },
+      { icon: "Check", text: "Calculadora de frete" },
+      { icon: "Check", text: "Versão mobile responsiva" },
+      { icon: "Check", text: "Categorias e subcategorias ilimitadas" },
+      { icon: "Check", text: "Dashboard e relatórios avançados" },
+      { icon: "Check", text: "Compartilhamento com suas redes sociais" },
+      { icon: "Check", text: "Gateway e checkout de pagamentos" },
+    ],
+  },
+  {
+    id: "pro",
+    name: "PRO",
+    display_name: "Plano PRO",
+    subtitle: "O melhor custo benefício do mercado online.",
+    monthly_price: 29.97,
+    button_text: "Escolher PRO",
+    badge_text: "Recomendado",
+    badge_active: true,
+    badge_color: "#f97316",
+    previous_plan: {
+      name: "Plano GRÁTIS",
+      label: "GRÁTIS",
+      description: "Tudo o que o plano GRÁTIS oferece, e mais:",
+    },
+    features: [
+      { icon: "Check", text: "Até 150 produtos cadastrados" },
+      { icon: "Check", text: "Até 300 clientes ativos" },
+      { icon: "Check", text: "Personalização total do seu site (sua logo e cores)" },
+      { icon: "Check", text: "Cupons de desconto ilimitado" },
+    ],
+  },
+  {
+    id: "premium",
+    name: "PREMIUM",
+    display_name: "Plano PREMIUM",
+    subtitle: "A solução ideal para quem quer escalar mais rápido as vendas.",
+    monthly_price: 49.97,
+    button_text: "Escolher PREMIUM",
+    badge_text: "",
+    badge_active: false,
+    badge_color: "#f97316",
+    previous_plan: {
+      name: "Plano PRO",
+      label: "PRO",
+      description: "Tudo o que o plano PRO oferece, e mais:",
+    },
+    features: [
+      { icon: "Check", text: "Produtos ilimitados" },
+      { icon: "Check", text: "Clientes ilimitados" },
+      { icon: "Check", text: "Editor de imagens com IA" },
+      { icon: "Check", text: "Vínculo de domínio próprio" },
+      { icon: "Check", text: "Suporte dedicado via e-mail e WhatsApp" },
+    ],
+  },
+];
+
 const defaultContent: PlansContent = {
   modal_title: "Escolha o plano ideal para você",
   modal_subtitle: "Comece grátis e faça upgrade quando quiser",
   toggle_monthly: "Mensal",
   toggle_annual: "Anual",
   discount_badge: "-30% DESC.",
-  plans: [],
-  guarantees: [],
+  plans: DEFAULT_PLANS,
+  guarantees: DEFAULT_GUARANTEES,
   annual_discount_text: "- 30% de desconto no plano anual",
   annual_savings_text: "Economize 30%",
 };
@@ -123,8 +208,21 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
   const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => {
-    if (content && content.modal_title) {
-      setFormData(content as PlansContent);
+    if (content) {
+      // Merge content with defaults - use defaults for empty arrays
+      const mergedContent: PlansContent = {
+        modal_title: content.modal_title || defaultContent.modal_title,
+        modal_subtitle: content.modal_subtitle || defaultContent.modal_subtitle,
+        toggle_monthly: content.toggle_monthly || defaultContent.toggle_monthly,
+        toggle_annual: content.toggle_annual || defaultContent.toggle_annual,
+        discount_badge: content.discount_badge || defaultContent.discount_badge,
+        annual_discount_text: content.annual_discount_text || defaultContent.annual_discount_text,
+        annual_savings_text: content.annual_savings_text || defaultContent.annual_savings_text,
+        // Use defaults if arrays are empty or undefined
+        plans: (content.plans && content.plans.length > 0) ? content.plans : DEFAULT_PLANS,
+        guarantees: (content.guarantees && content.guarantees.length > 0) ? content.guarantees : DEFAULT_GUARANTEES,
+      };
+      setFormData(mergedContent);
     } else {
       setFormData(defaultContent);
     }
