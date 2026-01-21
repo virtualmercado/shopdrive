@@ -130,6 +130,8 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
   const toggleAnnual = plansContent.toggle_annual || "Anual";
   const discountBadge = plansContent.discount_badge || "-30% DESC.";
   const annualDiscountText = plansContent.annual_discount_text || "- 30% de desconto no plano anual";
+  const sectionTitle = plansContent.modal_title || "Escolha o plano ideal para você";
+  const sectionSubtitle = plansContent.modal_subtitle || "Comece grátis e faça upgrade quando quiser";
 
   // Smooth navigation with page transition animation
   const handleSmoothNavigation = useCallback((path: string) => {
@@ -182,6 +184,18 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
 
   return (
     <div className="w-full">
+      {/* Section Header - from CMS */}
+      {isLandingPage && (
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3">
+            {sectionTitle}
+          </h2>
+          <p className="text-base md:text-lg text-muted-foreground">
+            {sectionSubtitle}
+          </p>
+        </div>
+      )}
+
       {/* Toggle Mensal/Anual */}
       <div className="flex justify-center pb-6">
         <div className="inline-flex items-center rounded-lg bg-gray-100 p-1 gap-1">

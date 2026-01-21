@@ -424,10 +424,6 @@ const Home = () => {
       {/* Pricing Section */}
       <section id="planos" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-4xl font-bold mb-4">Planos para todos os tamanhos</h2>
-            <p className="text-xl" style={{ color: '#5A5A5A' }}>Comece grátis e escale seu negócio</p>
-          </div>
           <PlansSection isLandingPage={true} />
         </div>
       </section>
