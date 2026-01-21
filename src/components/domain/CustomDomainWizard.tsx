@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -39,29 +39,25 @@ interface CustomDomainWizardProps {
 
 type WizardStep = 'domain' | 'provider' | 'tutorial' | 'verify' | 'activate' | 'manage';
 
-export const CustomDomainWizard = ({ open, onOpenChange, initialStep }: CustomDomainWizardProps) => {
+export const CustomDomainWizard = ({ open, onOpenChange, initialStep = 'domain' }: CustomDomainWizardProps) => {
   const { buttonBgColor, buttonTextColor } = useTheme();
   const { domain, tutorials, addDomain, verifyDns, activateDomain, deactivateDomain, removeDomain } = useMerchantDomain();
   
-  // Determine starting step based on prop or domain existence
-  const getInitialStep = (): WizardStep => {
-    if (initialStep) return initialStep;
-    if (domain) return 'manage';
-    return 'domain';
-  };
-  
-  const [step, setStep] = useState<WizardStep>(getInitialStep());
+  const [step, setStep] = useState<WizardStep>(initialStep);
   const [domainInput, setDomainInput] = useState(domain?.domain || '');
   const [domainType, setDomainType] = useState<'subdomain' | 'root'>(domain?.domain_type || 'subdomain');
   const [selectedProvider, setSelectedProvider] = useState<DomainProviderTutorial | null>(null);
   const [redirectOldLink, setRedirectOldLink] = useState(domain?.redirect_old_link ?? true);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Reset step when modal opens with a specific initialStep
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && initialStep) {
+  // CRITICAL: Sync step with initialStep whenever modal opens
+  useEffect(() => {
+    if (open) {
       setStep(initialStep);
     }
+  }, [open, initialStep]);
+
+  const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
   };
 
