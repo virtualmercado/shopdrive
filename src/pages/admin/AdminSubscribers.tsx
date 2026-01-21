@@ -37,7 +37,8 @@ import {
   Trash2,
   Download,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Globe
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,7 @@ import { ChangePlanModal } from "@/components/admin/ChangePlanModal";
 import { FinancialHistoryModal } from "@/components/admin/FinancialHistoryModal";
 import { SuspendAccountModal } from "@/components/admin/SuspendAccountModal";
 import { BlockAccountModal } from "@/components/admin/BlockAccountModal";
+import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,6 +65,7 @@ const AdminSubscribers = () => {
   const [financialHistoryModalOpen, setFinancialHistoryModalOpen] = useState(false);
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   const { data: subscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm, statusFilter],
@@ -204,6 +207,11 @@ const AdminSubscribers = () => {
     setExportModalOpen(true);
   };
 
+  const handleOpenDetails = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setDetailsDialogOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -319,10 +327,15 @@ const AdminSubscribers = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem onClick={() => handleOpenDetails(subscriber)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleViewStore(subscriber)}>
                               <ExternalLink className="h-4 w-4 mr-2" />
                               Visualizar Loja
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleChangePlan(subscriber)}>
                               <ArrowUpCircle className="h-4 w-4 mr-2" />
                               Alterar Plano
@@ -335,7 +348,6 @@ const AdminSubscribers = () => {
                               <Download className="h-4 w-4 mr-2" />
                               Exportar dados
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleSuspend(subscriber)}
                               className="text-amber-600"
@@ -408,6 +420,12 @@ const AdminSubscribers = () => {
           subscriber={selectedSubscriber}
           open={blockModalOpen}
           onOpenChange={setBlockModalOpen}
+        />
+
+        <StoreDetailsDialog
+          store={selectedSubscriber}
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
         />
       </div>
     </AdminLayout>
