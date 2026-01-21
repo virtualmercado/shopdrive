@@ -47,7 +47,11 @@ const HeroSection = ({ heroContent }: HeroSectionProps) => {
           {/* Right Column - Carousel */}
           <div className="order-2 flex justify-center lg:justify-end">
             <div className="w-full max-w-md lg:max-w-lg">
-              <HeroCarousel images={carouselImages} interval={7000} />
+              {isLoading ? (
+                <div className="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full" />
+              ) : (
+                <HeroCarousel images={carouselImages} interval={7000} />
+              )}
             </div>
           </div>
         </div>
