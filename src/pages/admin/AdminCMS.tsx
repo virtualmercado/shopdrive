@@ -21,7 +21,8 @@ import {
   ListOrdered,
   Edit,
   HelpCircle,
-  Phone
+  Phone,
+  Globe
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ import CMSPrivacyPolicyModal from "@/components/admin/cms/CMSPrivacyPolicyModal"
 import CMSCookiePolicyModal from "@/components/admin/cms/CMSCookiePolicyModal";
 import CMSHelpCenterModal from "@/components/admin/cms/CMSHelpCenterModal";
 import CMSContactModal from "@/components/admin/cms/CMSContactModal";
+import { CMSDomainTutorialsModal } from "@/components/admin/cms/CMSDomainTutorialsModal";
 import { useCMSContentAdmin, useUpdateCMSContent } from "@/hooks/useCMSContent";
 
 interface CMSBanner {
@@ -713,7 +715,31 @@ const AdminCMS = () => {
                       </Button>
                     </div>
                   </div>
-              </div>
+                </div>
+
+                {/* Tutoriais de Domínio Próprio */}
+                <div
+                  className="p-4 border rounded-lg bg-card hover:border-[#6a1b9a]/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-[#6a1b9a]/10 rounded-lg shrink-0">
+                      <Globe className="h-5 w-5 text-[#6a1b9a]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm mb-1">Tutoriais – Domínio Próprio</h4>
+                      <p className="text-xs text-muted-foreground mb-3">Passo a passo por provedor (Hostgator, GoDaddy, etc.)</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-[#FB8C00] text-[#FB8C00] hover:bg-[#FB8C00] hover:text-white"
+                        onClick={() => setActiveModal("domain_tutorials")}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
             </div>
 
           </CardContent>
@@ -836,6 +862,10 @@ const AdminCMS = () => {
       <CMSContactModal
         open={activeModal === "contact"}
         onOpenChange={(open) => !open && setActiveModal(null)}
+      />
+      <CMSDomainTutorialsModal
+        isOpen={activeModal === "domain_tutorials"}
+        onClose={() => setActiveModal(null)}
       />
     </AdminLayout>
   );
