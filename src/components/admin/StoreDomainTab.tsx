@@ -19,8 +19,20 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Clock,
+  RotateCcw,
+  Power,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAdminDomains } from "@/hooks/useMerchantDomain";
 
 interface StoreDomainTabProps {
@@ -36,6 +48,7 @@ export const StoreDomainTab = ({ storeId }: StoreDomainTabProps) => {
     reprocessSsl,
     adminDeactivateDomain,
     adminRemoveDomain,
+    toggleRedirect,
   } = useAdminDomains(storeId);
 
   const getStatusBadge = (status: string) => {
@@ -200,17 +213,43 @@ export const StoreDomainTab = ({ storeId }: StoreDomainTabProps) => {
         <Button
           variant="outline"
           size="sm"
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={() => {
-            if (confirm('Tem certeza que deseja remover o domínio deste lojista?')) {
-              adminRemoveDomain.mutate();
-            }
-          }}
-          disabled={adminRemoveDomain.isPending}
+          onClick={() => toggleRedirect.mutate()}
+          disabled={toggleRedirect.isPending}
         >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Remover Domínio
+          <RotateCcw className="h-4 w-4 mr-2" />
+          {domain.redirect_old_link ? 'Desativar Redirecionamento' : 'Ativar Redirecionamento'}
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              disabled={adminRemoveDomain.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remover Domínio
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover domínio</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover o domínio <strong>{domain.domain}</strong> deste lojista?
+                Esta ação invalidará o SSL e a loja voltará para o domínio padrão da VM.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => adminRemoveDomain.mutate()}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Verification Logs */}

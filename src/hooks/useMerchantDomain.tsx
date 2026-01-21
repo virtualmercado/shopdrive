@@ -385,6 +385,25 @@ export const useAdminDomains = (storeId?: string) => {
     },
   });
 
+  const toggleRedirect = useMutation({
+    mutationFn: async () => {
+      if (!domain) throw new Error('Nenhum domínio configurado');
+
+      const { error } = await supabase
+        .from('merchant_domains')
+        .update({
+          redirect_old_link: !domain.redirect_old_link,
+        })
+        .eq('id', domain.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
+      toast.success('Redirecionamento atualizado');
+    },
+  });
+
   return {
     domain,
     logs,
@@ -394,5 +413,6 @@ export const useAdminDomains = (storeId?: string) => {
     reprocessSsl,
     adminDeactivateDomain,
     adminRemoveDomain,
+    toggleRedirect,
   };
 };
