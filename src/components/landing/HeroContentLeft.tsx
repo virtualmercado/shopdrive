@@ -55,7 +55,7 @@ const HeroContentLeft = ({
       </div>
 
       {/* Info Text */}
-      <p className="text-sm text-muted-foreground pt-2">
+      <p className="text-base text-primary pt-2">
         {infoText}
       </p>
     </div>
