@@ -61,7 +61,7 @@ export const CMSDomainTutorialsModal = ({ isOpen, onClose }: CMSDomainTutorialsM
       if (error) throw error;
       return data.map(item => ({
         ...item,
-        tutorial_content: item.tutorial_content as Tutorial['tutorial_content'],
+        tutorial_content: (item.tutorial_content as unknown as Tutorial['tutorial_content']) || { steps: [] },
       })) as Tutorial[];
     },
     enabled: isOpen,
@@ -82,7 +82,7 @@ export const CMSDomainTutorialsModal = ({ isOpen, onClose }: CMSDomainTutorialsM
           provider_slug: tutorial.provider_slug,
           display_order: tutorial.display_order,
           is_active: tutorial.is_active,
-          tutorial_content: tutorial.tutorial_content,
+          tutorial_content: JSON.parse(JSON.stringify(tutorial.tutorial_content)),
         })
         .eq('id', tutorial.id);
 
@@ -102,13 +102,13 @@ export const CMSDomainTutorialsModal = ({ isOpen, onClose }: CMSDomainTutorialsM
     mutationFn: async (tutorial: Omit<Tutorial, 'id'>) => {
       const { error } = await supabase
         .from('domain_provider_tutorials')
-        .insert({
+        .insert([{
           provider_name: tutorial.provider_name,
           provider_slug: tutorial.provider_slug,
           display_order: tutorial.display_order,
           is_active: tutorial.is_active,
-          tutorial_content: tutorial.tutorial_content,
-        });
+          tutorial_content: JSON.parse(JSON.stringify(tutorial.tutorial_content)),
+        }]);
 
       if (error) throw error;
     },
