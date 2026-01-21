@@ -81,7 +81,6 @@ interface BannerDisplay {
 
 // Default images mapping
 const defaultImages: Record<string, string> = {
-  'banner_01': heroImage,
   'banner_02': benefitsImage,
   'banner_03': benefitsMobile,
   'hero_01': heroImage,
@@ -383,10 +382,10 @@ const AdminCMS = () => {
               Gerencie os banners das demais seções. As alterações são refletidas automaticamente na landing page.
             </p>
 
-            {/* Other Banners Grid */}
+            {/* Other Banners Grid - Excludes banner_01 to avoid duplication with hero carousel */}
             <div className="space-y-6">
               {banners
-                .filter((banner) => banner.banner_key.startsWith('banner_'))
+                .filter((banner) => banner.banner_key.startsWith('banner_') && banner.banner_key !== 'banner_01')
                 .map((banner) => (
                   <div 
                     key={banner.id}
