@@ -15,12 +15,13 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ heroContent }: HeroSectionProps) => {
-  const { data: cmsBanners } = useCMSBanners();
+  const { data: cmsBanners, isLoading } = useCMSBanners();
 
-  // Get hero carousel images from CMS
-  const heroImage1 = getBannerUrl(cmsBanners, "hero_01", heroImageDefault);
-  const heroImage2 = getBannerUrl(cmsBanners, "hero_02", "");
-  const heroImage3 = getBannerUrl(cmsBanners, "hero_03", "");
+  // Get hero carousel images from CMS - only when data is loaded
+  // Use empty strings while loading to avoid showing fallback image
+  const heroImage1 = isLoading ? "" : getBannerUrl(cmsBanners, "hero_01", heroImageDefault);
+  const heroImage2 = isLoading ? "" : getBannerUrl(cmsBanners, "hero_02", "");
+  const heroImage3 = isLoading ? "" : getBannerUrl(cmsBanners, "hero_03", "");
 
   // Build images array - only include non-empty URLs
   const carouselImages = [heroImage1, heroImage2, heroImage3].filter(
