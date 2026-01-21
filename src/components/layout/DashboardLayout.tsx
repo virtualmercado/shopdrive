@@ -19,7 +19,8 @@ import {
   FileText,
   Wallet,
   HeadphonesIcon,
-  Megaphone
+  Megaphone,
+  Globe
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
+import { CustomDomainWizard } from "@/components/domain";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -38,6 +40,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [domainWizardOpen, setDomainWizardOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -219,6 +222,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <Copy className="h-4 w-4 text-gray-600" />
                     )}
                   </Button>
+                  <button
+                    onClick={() => setDomainWizardOpen(true)}
+                    className="text-xs flex items-center gap-1 hover:underline"
+                    style={{ color: primaryColor }}
+                  >
+                    <Globe className="h-3 w-3" />
+                    Conectar domínio próprio
+                  </button>
                 </div>
               )}
 
@@ -245,6 +256,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </main>
       </div>
+
+      <CustomDomainWizard open={domainWizardOpen} onOpenChange={setDomainWizardOpen} />
     </div>
   );
 };

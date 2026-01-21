@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { CustomDomainSection } from "@/components/domain";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
@@ -965,6 +966,9 @@ const StorePreviewEnhanced = () => {
                 rows={5}
               />
             </div>
+
+            {/* Custom Domain Section */}
+            <CustomDomainSection />
 
             {/* Maintenance Mode */}
             <div className="space-y-3 pt-4 border-t">

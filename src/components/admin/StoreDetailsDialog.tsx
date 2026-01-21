@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StoreDomainTab } from "./StoreDomainTab";
 
 interface StoreDetailsDialogProps {
   store: any;
@@ -77,11 +78,12 @@ export const StoreDetailsDialog = ({
         </DialogHeader>
 
         <Tabs defaultValue="cadastro" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
             <TabsTrigger value="suporte">Suporte</TabsTrigger>
+            <TabsTrigger value="dominio">Domínio</TabsTrigger>
             <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           </TabsList>
 
@@ -270,6 +272,10 @@ export const StoreDetailsDialog = ({
                 Nenhum ticket de suporte registrado
               </p>
             )}
+          </TabsContent>
+
+          <TabsContent value="dominio" className="space-y-4 mt-4">
+            <StoreDomainTab storeId={store.id} />
           </TabsContent>
 
           <TabsContent value="integracoes" className="space-y-4 mt-4">
