@@ -55,7 +55,7 @@ const HeroContentLeft = ({
       </div>
 
       {/* Info Text */}
-      <p className="text-lg text-primary pt-2">
+      <p className="text-xl text-primary pt-2">
         {infoText}
       </p>
     </div>
