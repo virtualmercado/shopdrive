@@ -762,6 +762,80 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_provider_tutorials: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          provider_name: string
+          provider_slug: string
+          tutorial_content: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          provider_name: string
+          provider_slug: string
+          tutorial_content?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          provider_name?: string
+          provider_slug?: string
+          tutorial_content?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      domain_verification_logs: {
+        Row: {
+          created_at: string
+          domain_id: string
+          error_message: string | null
+          expected_value: string | null
+          found_value: string | null
+          id: string
+          status: string
+          verification_type: string
+        }
+        Insert: {
+          created_at?: string
+          domain_id: string
+          error_message?: string | null
+          expected_value?: string | null
+          found_value?: string | null
+          id?: string
+          status: string
+          verification_type: string
+        }
+        Update: {
+          created_at?: string
+          domain_id?: string
+          error_message?: string | null
+          expected_value?: string | null
+          found_value?: string | null
+          id?: string
+          status?: string
+          verification_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_verification_logs_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dunning_settings: {
         Row: {
           auto_block_enabled: boolean
@@ -1580,6 +1654,91 @@ export type Database = {
           user_id_melhor_envio?: string | null
         }
         Relationships: []
+      }
+      merchant_domains: {
+        Row: {
+          created_at: string
+          dns_a_verified: boolean
+          dns_cname_verified: boolean
+          dns_error_message: string | null
+          domain: string
+          domain_type: string
+          expected_cname: string | null
+          expected_ip: string | null
+          id: string
+          is_active: boolean
+          last_dns_check: string | null
+          last_ssl_check: string | null
+          merchant_id: string
+          redirect_old_link: boolean
+          ssl_error_message: string | null
+          ssl_status: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dns_a_verified?: boolean
+          dns_cname_verified?: boolean
+          dns_error_message?: string | null
+          domain: string
+          domain_type?: string
+          expected_cname?: string | null
+          expected_ip?: string | null
+          id?: string
+          is_active?: boolean
+          last_dns_check?: string | null
+          last_ssl_check?: string | null
+          merchant_id: string
+          redirect_old_link?: boolean
+          ssl_error_message?: string | null
+          ssl_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dns_a_verified?: boolean
+          dns_cname_verified?: boolean
+          dns_error_message?: string | null
+          domain?: string
+          domain_type?: string
+          expected_cname?: string | null
+          expected_ip?: string | null
+          id?: string
+          is_active?: boolean
+          last_dns_check?: string | null
+          last_ssl_check?: string | null
+          merchant_id?: string
+          redirect_old_link?: boolean
+          ssl_error_message?: string | null
+          ssl_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_domains_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_domains_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_domains_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       merchant_support_tickets: {
         Row: {
