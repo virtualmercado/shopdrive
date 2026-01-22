@@ -571,7 +571,7 @@ const AdminCMS = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-6">
-              Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc).
+              Gerencie o conteúdo das páginas institucionais vinculadas ao rodapé da Landing Page (Sobre Nós, Blog, etc), e de páginas de gerenciamento global da VM.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
