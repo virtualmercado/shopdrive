@@ -3155,6 +3155,107 @@ export type Database = {
         }
         Relationships: []
       }
+      vm_dashboard_banner_events: {
+        Row: {
+          banner_id: string
+          created_at: string
+          event_type: Database["public"]["Enums"]["banner_event_type"]
+          id: string
+          merchant_id: string
+          meta: Json | null
+        }
+        Insert: {
+          banner_id: string
+          created_at?: string
+          event_type: Database["public"]["Enums"]["banner_event_type"]
+          id?: string
+          merchant_id: string
+          meta?: Json | null
+        }
+        Update: {
+          banner_id?: string
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["banner_event_type"]
+          id?: string
+          merchant_id?: string
+          meta?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vm_dashboard_banner_events_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "vm_dashboard_banners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vm_dashboard_banners: {
+        Row: {
+          badge_text: string | null
+          badge_type: Database["public"]["Enums"]["banner_badge_type"] | null
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          external_url: string | null
+          id: string
+          image_desktop_url: string
+          image_mobile_url: string | null
+          internal_route: string | null
+          is_sponsored: boolean
+          link_type: Database["public"]["Enums"]["banner_link_type"]
+          open_in_new_tab: boolean
+          priority: number
+          starts_at: string | null
+          status: Database["public"]["Enums"]["banner_status"]
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          badge_text?: string | null
+          badge_type?: Database["public"]["Enums"]["banner_badge_type"] | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          external_url?: string | null
+          id?: string
+          image_desktop_url: string
+          image_mobile_url?: string | null
+          internal_route?: string | null
+          is_sponsored?: boolean
+          link_type?: Database["public"]["Enums"]["banner_link_type"]
+          open_in_new_tab?: boolean
+          priority?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["banner_status"]
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          badge_text?: string | null
+          badge_type?: Database["public"]["Enums"]["banner_badge_type"] | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          external_url?: string | null
+          id?: string
+          image_desktop_url?: string
+          image_mobile_url?: string | null
+          internal_route?: string | null
+          is_sponsored?: boolean
+          link_type?: Database["public"]["Enums"]["banner_link_type"]
+          open_in_new_tab?: boolean
+          priority?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["banner_status"]
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           created_at: string | null
@@ -3556,6 +3657,21 @@ export type Database = {
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
+      get_active_banners_count: {
+        Args: never
+        Returns: {
+          sponsored_active: number
+          total_active: number
+        }[]
+      }
+      get_banner_metrics: {
+        Args: { p_banner_id: string; p_days?: number }
+        Returns: {
+          clicks: number
+          ctr: number
+          impressions: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3578,6 +3694,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "financeiro" | "suporte" | "tecnico"
+      banner_badge_type:
+        | "default"
+        | "info"
+        | "success"
+        | "warning"
+        | "sponsored"
+      banner_event_type: "impression" | "click"
+      banner_link_type: "internal" | "external"
+      banner_status: "draft" | "active" | "paused" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3706,6 +3831,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "financeiro", "suporte", "tecnico"],
+      banner_badge_type: ["default", "info", "success", "warning", "sponsored"],
+      banner_event_type: ["impression", "click"],
+      banner_link_type: ["internal", "external"],
+      banner_status: ["draft", "active", "paused", "archived"],
     },
   },
 } as const
