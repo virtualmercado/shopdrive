@@ -6,6 +6,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useSalesByState, useSalesByGender, useSalesByAgeRange, useRevenueStats, useTopProducts, useTopCustomers } from "@/hooks/useDashboardCharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import DashboardNewsCarousel from "@/components/dashboard/DashboardNewsCarousel";
 
 const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478", "#4472C4"];
 
@@ -94,6 +95,9 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* News Carousel */}
+        <DashboardNewsCarousel />
+        
         {/* Stats Grid - Unchanged */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statsCards.map((stat, index) => (
