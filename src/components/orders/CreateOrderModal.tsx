@@ -504,7 +504,7 @@ export const CreateOrderModal = ({
                           R$ {(product.promotional_price || product.price).toFixed(2)}
                         </p>
                       </div>
-                      <Plus className="h-4 w-4" style={{ color: primaryColor }} />
+                      <Plus className="h-4 w-4 text-primary" />
                     </div>
                   ))}
                 </div>
@@ -569,11 +569,7 @@ export const CreateOrderModal = ({
                 <Label>Forma de Pagamento</Label>
                 <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                   <SelectTrigger 
-                    className="focus:ring-2"
-                    style={{ 
-                      borderColor: selectedPaymentMethod ? primaryColor : undefined,
-                      '--tw-ring-color': primaryColor 
-                    } as React.CSSProperties}
+                    className={`focus:ring-2 focus:ring-primary ${selectedPaymentMethod ? 'border-primary' : ''}`}
                   >
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -582,10 +578,7 @@ export const CreateOrderModal = ({
                       <SelectItem 
                         key={method.value} 
                         value={method.value}
-                        className="focus:bg-opacity-20"
-                        style={{ 
-                          '--select-item-color': primaryColor 
-                        } as React.CSSProperties}
+                        className="focus:bg-primary/20"
                       >
                         {method.label}
                       </SelectItem>
@@ -598,11 +591,7 @@ export const CreateOrderModal = ({
                 <Label>Frete</Label>
                 <Select value={selectedShipping} onValueChange={handleShippingChange}>
                   <SelectTrigger
-                    className="focus:ring-2"
-                    style={{ 
-                      borderColor: selectedShipping && selectedShipping !== "none" ? primaryColor : undefined,
-                      '--tw-ring-color': primaryColor 
-                    } as React.CSSProperties}
+                    className={`focus:ring-2 focus:ring-primary ${selectedShipping && selectedShipping !== "none" ? 'border-primary' : ''}`}
                   >
                     <SelectValue placeholder="Selecione ou sem frete" />
                   </SelectTrigger>
@@ -643,7 +632,7 @@ export const CreateOrderModal = ({
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total:</span>
-                <span style={{ color: primaryColor }}>R$ {total.toFixed(2)}</span>
+                <span className="text-primary">R$ {total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -656,8 +645,7 @@ export const CreateOrderModal = ({
           <Button
             onClick={handleSubmit}
             disabled={saving}
-            className="gap-2"
-            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Save className="h-4 w-4" />
             {saving ? "Salvando..." : editOrder ? "Atualizar Pedido" : "Criar Pedido"}
