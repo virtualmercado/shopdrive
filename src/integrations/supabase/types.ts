@@ -198,6 +198,33 @@ export type Database = {
           },
         ]
       }
+      billing_alert_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       boleto_payments: {
         Row: {
           amount: number
@@ -306,6 +333,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cms_billing_alerts: {
+        Row: {
+          alert_key: string
+          created_at: string
+          cta_text: string
+          cta_url: string
+          id: string
+          is_active: boolean
+          message: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_key: string
+          created_at?: string
+          cta_text: string
+          cta_url?: string
+          id?: string
+          is_active?: boolean
+          message: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_key?: string
+          created_at?: string
+          cta_text?: string
+          cta_url?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       cms_landing_content: {
         Row: {
@@ -1478,6 +1541,8 @@ export type Database = {
           current_period_start: string | null
           decline_type: string | null
           discount_percent: number | null
+          downgrade_reason: string | null
+          downgraded_at: string | null
           gateway: string
           gateway_customer_id: string | null
           gateway_subscription_id: string | null
@@ -1491,6 +1556,7 @@ export type Database = {
           no_charge: boolean | null
           origin: string | null
           plan_id: string
+          previous_plan_id: string | null
           recurring_consent_accepted: boolean | null
           recurring_consent_accepted_at: string | null
           recurring_consent_ip: string | null
@@ -1513,6 +1579,8 @@ export type Database = {
           current_period_start?: string | null
           decline_type?: string | null
           discount_percent?: number | null
+          downgrade_reason?: string | null
+          downgraded_at?: string | null
           gateway: string
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
@@ -1526,6 +1594,7 @@ export type Database = {
           no_charge?: boolean | null
           origin?: string | null
           plan_id: string
+          previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
           recurring_consent_accepted_at?: string | null
           recurring_consent_ip?: string | null
@@ -1548,6 +1617,8 @@ export type Database = {
           current_period_start?: string | null
           decline_type?: string | null
           discount_percent?: number | null
+          downgrade_reason?: string | null
+          downgraded_at?: string | null
           gateway?: string
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
@@ -1561,6 +1632,7 @@ export type Database = {
           no_charge?: boolean | null
           origin?: string | null
           plan_id?: string
+          previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
           recurring_consent_accepted_at?: string | null
           recurring_consent_ip?: string | null

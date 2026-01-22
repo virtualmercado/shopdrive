@@ -168,28 +168,52 @@ serve(async (req) => {
         : new Date(graceStart.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
 
       if (now > gracePeriodEnd) {
-        console.log(`Subscription ${subscription.id}: grace period expired, suspending`);
+        console.log(`Subscription ${subscription.id}: grace period expired, downgrading to FREE`);
         
+        // Store the previous plan for potential recovery
+        const previousPlanId = subscription.plan_id;
+        
+        // Downgrade to FREE plan instead of suspending
         await supabase
           .from("master_subscriptions")
           .update({
-            status: "suspended",
+            status: "active", // Keep active but on FREE plan
+            plan_id: "gratis",
+            previous_plan_id: previousPlanId,
+            downgraded_at: now.toISOString(),
+            downgrade_reason: "nonpayment",
+            monthly_price: 0,
+            total_amount: 0,
             updated_at: now.toISOString(),
+            // Reset retry counters
+            retry_count: 0,
+            next_retry_at: null,
+            grace_period_ends_at: null,
+            last_decline_code: null,
+            last_decline_message: null,
+            decline_type: null,
+            requires_card_update: false,
           })
           .eq("id", subscription.id);
 
         await supabase.from("master_subscription_logs").insert({
           subscription_id: subscription.id,
           user_id: subscription.user_id,
-          event_type: "subscription_suspended",
-          event_description: "Assinatura suspensa após período de tolerância",
-          metadata: { gracePeriodEnd: gracePeriodEnd.toISOString(), retryCount }
+          event_type: "subscription_downgraded",
+          event_description: `Downgrade automático para plano FREE por inadimplência. Plano anterior: ${previousPlanId}`,
+          metadata: { 
+            gracePeriodEnd: gracePeriodEnd.toISOString(), 
+            retryCount,
+            previousPlanId,
+            reason: "nonpayment"
+          }
         });
 
         results.push({
           subscriptionId: subscription.id,
-          action: "suspended",
-          reason: "grace_period_expired"
+          action: "downgraded_to_free",
+          reason: "grace_period_expired",
+          previousPlan: previousPlanId
         });
         continue;
       }
