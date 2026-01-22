@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, CalendarIcon, Filter } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface OrderFiltersProps {
@@ -24,9 +24,6 @@ interface OrderFiltersProps {
   endDate: Date | undefined;
   onStartDateChange: (date: Date | undefined) => void;
   onEndDateChange: (date: Date | undefined) => void;
-  primaryColor: string;
-  buttonBgColor: string;
-  buttonTextColor: string;
 }
 
 const months = [
@@ -63,9 +60,6 @@ export const OrderFilters = ({
   endDate,
   onStartDateChange,
   onEndDateChange,
-  primaryColor,
-  buttonBgColor,
-  buttonTextColor,
 }: OrderFiltersProps) => {
   return (
     <div className="space-y-4 p-6 border-b bg-muted/30">
@@ -82,8 +76,7 @@ export const OrderFilters = ({
         </div>
         <Button
           onClick={onIncludeOrder}
-          className="gap-2 shrink-0"
-          style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+          className="gap-2 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Incluir Pedido

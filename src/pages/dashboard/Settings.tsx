@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/contexts/ThemeContext";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +15,6 @@ import { AccountClosureSection } from "@/components/settings/AccountClosureSecti
 const Settings = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -317,15 +315,12 @@ const Settings = () => {
           
           {/* Minimum Order Section */}
           <div className="mb-8">
-            <h3 className="text-base font-semibold mb-1" style={{ color: primaryColor }}>Pedido mínimo</h3>
+            <h3 className="text-base font-semibold mb-1 text-primary">Pedido mínimo</h3>
             <p className="text-sm text-muted-foreground mb-3">
               Digite abaixo o valor mínimo aceito em um pedido
             </p>
             <div className="flex items-center gap-2 max-w-xs">
-              <span 
-                className="px-3 py-2 rounded-l-md text-sm font-medium"
-                style={{ backgroundColor: primaryColor, color: '#fff' }}
-              >
+              <span className="px-3 py-2 rounded-l-md text-sm font-medium bg-primary text-primary-foreground">
                 R$
               </span>
               <Input 
@@ -345,7 +340,7 @@ const Settings = () => {
           
           {/* Checkout Required Fields Section */}
           <div>
-            <h3 className="text-base font-semibold mb-1" style={{ color: primaryColor }}>
+            <h3 className="text-base font-semibold mb-1 text-primary">
               Informações solicitadas na finalização do pedido
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -358,9 +353,6 @@ const Settings = () => {
                 <Switch 
                   checked={orderConfig.requireAddress}
                   onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireAddress: checked }))}
-                  style={{ 
-                    backgroundColor: orderConfig.requireAddress ? primaryColor : undefined 
-                  }}
                 />
               </div>
               
@@ -369,9 +361,6 @@ const Settings = () => {
                 <Switch 
                   checked={orderConfig.requirePersonalInfo}
                   onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requirePersonalInfo: checked }))}
-                  style={{ 
-                    backgroundColor: orderConfig.requirePersonalInfo ? primaryColor : undefined 
-                  }}
                 />
               </div>
               
@@ -380,9 +369,6 @@ const Settings = () => {
                 <Switch 
                   checked={orderConfig.requireEmail}
                   onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireEmail: checked }))}
-                  style={{ 
-                    backgroundColor: orderConfig.requireEmail ? primaryColor : undefined 
-                  }}
                 />
               </div>
               
@@ -391,9 +377,6 @@ const Settings = () => {
                 <Switch 
                   checked={orderConfig.requirePaymentMethod}
                   onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requirePaymentMethod: checked }))}
-                  style={{ 
-                    backgroundColor: orderConfig.requirePaymentMethod ? primaryColor : undefined 
-                  }}
                 />
               </div>
               
@@ -402,9 +385,6 @@ const Settings = () => {
                 <Switch 
                   checked={orderConfig.requireCpf}
                   onCheckedChange={(checked) => setOrderConfig(prev => ({ ...prev, requireCpf: checked }))}
-                  style={{ 
-                    backgroundColor: orderConfig.requireCpf ? primaryColor : undefined 
-                  }}
                 />
               </div>
             </div>
@@ -446,8 +426,7 @@ const Settings = () => {
           <Button 
             onClick={handleSave}
             disabled={saving}
-            className="px-8 transition-all hover:opacity-90"
-            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+            className="px-8 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? "Salvando..." : "Salvar Alterações"}
           </Button>

@@ -17,7 +17,6 @@ import { ProductForm } from "@/components/ProductForm";
 import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTheme } from "@/contexts/ThemeContext";
 
 interface Product {
   id: string;
@@ -47,9 +46,6 @@ const Products = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const { toast } = useToast();
-  const { buttonBorderStyle, buttonBgColor, buttonTextColor } = useTheme();
-  
-  const buttonRadius = buttonBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
 
   useEffect(() => {
     fetchProducts();
@@ -153,12 +149,11 @@ const Products = () => {
               />
             </div>
             <Button 
-              className="gap-2"
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => {
                 setSelectedProduct(null);
                 setFormOpen(true);
               }}
-              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
             >
               <Plus className="h-4 w-4" />
               Novo Produto
@@ -169,56 +164,20 @@ const Products = () => {
           {categories.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
               <Button
-                variant="outline"
+                variant={selectedCategory === "" ? "default" : "outline"}
                 size="sm"
-                className={`${buttonRadius} transition-all`}
+                className="rounded-lg transition-all"
                 onClick={() => setSelectedCategory("")}
-                style={selectedCategory === "" 
-                  ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
-                  : {}
-                }
-                onMouseEnter={(e) => {
-                  if (selectedCategory !== "" && buttonBgColor) {
-                    e.currentTarget.style.backgroundColor = buttonBgColor;
-                    e.currentTarget.style.borderColor = buttonBgColor;
-                    e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedCategory !== "") {
-                    e.currentTarget.style.backgroundColor = '';
-                    e.currentTarget.style.borderColor = '';
-                    e.currentTarget.style.color = '';
-                  }
-                }}
               >
                 Todas
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
-                  variant="outline"
+                  variant={selectedCategory === category.id ? "default" : "outline"}
                   size="sm"
-                  className={`${buttonRadius} transition-all`}
+                  className="rounded-lg transition-all"
                   onClick={() => setSelectedCategory(category.id)}
-                  style={selectedCategory === category.id 
-                    ? { backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor } 
-                    : {}
-                  }
-                  onMouseEnter={(e) => {
-                    if (selectedCategory !== category.id && buttonBgColor) {
-                      e.currentTarget.style.backgroundColor = buttonBgColor;
-                      e.currentTarget.style.borderColor = buttonBgColor;
-                      e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedCategory !== category.id) {
-                      e.currentTarget.style.backgroundColor = '';
-                      e.currentTarget.style.borderColor = '';
-                      e.currentTarget.style.color = '';
-                    }
-                  }}
                 >
                   {category.name}
                 </Button>
@@ -278,16 +237,15 @@ const Products = () => {
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
-                      className={`flex-1 gap-2 ${buttonRadius}`}
+                      className="flex-1 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
                       onClick={() => handleEdit(product)}
-                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor }}
                     >
                       <Edit className="h-4 w-4" />
                       Editar
                     </Button>
                     <Button 
                       variant="outline" 
-                      className={`gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground ${buttonRadius}`}
+                      className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg"
                       onClick={() => openDeleteDialog(product.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -312,7 +270,7 @@ const Products = () => {
             {!searchTerm && (
               <Button 
                 onClick={() => setFormOpen(true)}
-                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Adicionar Produto
               </Button>

@@ -32,7 +32,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -67,7 +66,6 @@ const Orders = () => {
   const { data: orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
   const { data: stats, isLoading: statsLoading } = useOrderStats();
   const updateStatus = useUpdateOrderStatus();
-  const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
 
   // Fetch store data for printing
   const fetchStoreData = async () => {
@@ -419,11 +417,8 @@ const Orders = () => {
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <Package className="h-6 w-6" style={{ color: primaryColor }} />
+              <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-primary/10">
+                <Package className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total de Pedidos</p>
@@ -437,11 +432,8 @@ const Orders = () => {
           </Card>
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <Package className="h-6 w-6" style={{ color: primaryColor }} />
+              <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-primary/10">
+                <Package className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pedidos Pagos</p>
@@ -455,11 +447,8 @@ const Orders = () => {
           </Card>
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: getLighterShade(primaryColor) }}
-              >
-                <Package className="h-6 w-6" style={{ color: primaryColor }} />
+              <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-primary/10">
+                <Package className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Em Processamento</p>
@@ -492,9 +481,6 @@ const Orders = () => {
             endDate={endDate}
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
-            primaryColor={primaryColor}
-            buttonBgColor={buttonBgColor}
-            buttonTextColor={buttonTextColor}
           />
 
           {/* Header */}
@@ -561,7 +547,7 @@ const Orders = () => {
                               onClick={() => handleEditOrder(order)}
                               title="Editar pedido"
                             >
-                              <Pencil className="h-4 w-4" style={{ color: primaryColor }} />
+                              <Pencil className="h-4 w-4 text-primary" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -570,7 +556,7 @@ const Orders = () => {
                               onClick={() => handlePrintOrder(order)}
                               title="Imprimir pedido"
                             >
-                              <Printer className="h-4 w-4" style={{ color: primaryColor }} />
+                              <Printer className="h-4 w-4 text-primary" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -615,8 +601,7 @@ const Orders = () => {
                           {/* View Details Button */}
                           <Button
                             size="sm"
-                            className="gap-2 transition-all hover:opacity-90"
-                            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                            className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={() => handleViewDetails(order.id)}
                           >
                             <Eye className="h-4 w-4" />
@@ -637,7 +622,7 @@ const Orders = () => {
                     size="sm"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(p => p - 1)}
-                    style={{ borderColor: primaryColor, color: primaryColor }}
+                    className="border-primary text-primary"
                   >
                     Anterior
                   </Button>
@@ -649,12 +634,8 @@ const Orders = () => {
                           key={index}
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
-                          className="min-w-[36px]"
+                          className={`min-w-[36px] ${currentPage === page ? 'bg-primary text-primary-foreground' : 'border-primary text-primary'}`}
                           onClick={() => setCurrentPage(page)}
-                          style={currentPage === page 
-                            ? { backgroundColor: primaryColor, color: '#FFFFFF' }
-                            : { borderColor: primaryColor, color: primaryColor }
-                          }
                         >
                           {page}
                         </Button>
@@ -669,7 +650,7 @@ const Orders = () => {
                     size="sm"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(p => p + 1)}
-                    style={{ borderColor: primaryColor, color: primaryColor }}
+                    className="border-primary text-primary"
                   >
                     Próxima
                   </Button>
@@ -696,9 +677,6 @@ const Orders = () => {
         open={createOrderOpen}
         onOpenChange={setCreateOrderOpen}
         onOrderCreated={handleOrderCreated}
-        primaryColor={primaryColor}
-        buttonBgColor={buttonBgColor}
-        buttonTextColor={buttonTextColor}
         editOrder={editOrder}
       />
 

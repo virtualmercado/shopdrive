@@ -70,9 +70,6 @@ interface CreateOrderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOrderCreated: () => void;
-  primaryColor: string;
-  buttonBgColor: string;
-  buttonTextColor: string;
   editOrder?: any;
 }
 
@@ -80,9 +77,6 @@ export const CreateOrderModal = ({
   open,
   onOpenChange,
   onOrderCreated,
-  primaryColor,
-  buttonBgColor,
-  buttonTextColor,
   editOrder,
 }: CreateOrderModalProps) => {
   const { user } = useAuth();
