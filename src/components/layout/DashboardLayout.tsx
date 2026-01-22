@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainWizard } from "@/components/domain";
+import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -250,6 +251,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
           </div>
         </header>
+
+        {/* Global Billing Alert - Appears below header */}
+        <GlobalBillingAlert />
 
         {/* Page Content */}
         <main className="p-6 page-enter" data-page-content>
