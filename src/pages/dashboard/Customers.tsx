@@ -664,13 +664,8 @@ const Customers = () => {
     }
 
     setFilteredCustomersList(filtered);
-    setIsFilterActive(
-      selectedGroupFilter !== 'all' || 
-      selectedBirthdayMonth !== 'all' || 
-      selectedGenderFilter !== 'all' ||
-      selectedStateFilter !== 'all' ||
-      selectedCityFilter !== 'all'
-    );
+    // Always set filter as active when user clicks "Aplicar filtros" - this enables print/export of the current list
+    setIsFilterActive(true);
   };
 
   const clearFilters = () => {
