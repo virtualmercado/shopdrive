@@ -1357,7 +1357,7 @@ const CatalogPDF = () => {
                         {/* Ver produto button */}
                         <div 
                           className="text-xs text-white rounded-md py-2 px-6"
-                          style={{ backgroundColor: primaryColor }}
+                          style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
                         >
                           Ver produto
                         </div>
@@ -1374,7 +1374,7 @@ const CatalogPDF = () => {
                         {/* List Format Preview - matching PDF layout */}
                         <div 
                           className="rounded-lg p-2 mb-2 flex items-center text-white text-[10px]"
-                          style={{ backgroundColor: primaryColor }}
+                          style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
                         >
                           <span className="font-semibold w-8 text-center">Iten</span>
                           <span className="font-semibold flex-1 pl-7">Produto</span>
@@ -1480,7 +1480,7 @@ const CatalogPDF = () => {
                               </p>
                               <div 
                                 className="text-[8px] text-white rounded py-1"
-                                style={{ backgroundColor: primaryColor }}
+                                style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
                               >
                                 Ver produto
                               </div>
@@ -1499,7 +1499,7 @@ const CatalogPDF = () => {
                     {/* Preview Footer */}
                     <div 
                       className="rounded-lg p-3 text-center text-white text-xs"
-                      style={{ backgroundColor: primaryColor }}
+                      style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
                     >
                       <p className="truncate">
                         {[
