@@ -66,7 +66,8 @@ const Customers = () => {
   const [groups, setGroups] = useState<CustomerGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#6a1b9a');
+  // VM Official Primary Color - Fixed for dashboard
+  const VM_PRIMARY_COLOR = '#6a1b9a';
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<CustomerGroup | null>(null);
@@ -153,7 +154,6 @@ const Customers = () => {
 
   useEffect(() => {
     if (user) {
-      fetchPrimaryColor();
       fetchCustomers();
       fetchGroups();
       fetchCustomerGroupAssignments();
@@ -161,17 +161,6 @@ const Customers = () => {
     }
   }, [user, currentPage]);
 
-  const fetchPrimaryColor = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('button_bg_color')
-      .eq('id', user?.id)
-      .maybeSingle();
-    
-    if (data?.button_bg_color) {
-      setPrimaryColor(data.button_bg_color);
-    }
-  };
 
   const fetchCustomers = async () => {
     if (!user) return;
@@ -828,7 +817,7 @@ const Customers = () => {
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <div className="flex items-center gap-3">
-          <Users className="h-6 w-6" style={{ color: primaryColor }} />
+          <Users className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold text-foreground">Clientes</h1>
         </div>
 
@@ -849,58 +838,33 @@ const Customers = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-10 transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="pl-10 transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <Button 
                   onClick={handleSearch}
-                  style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
-                  className="text-white"
+                  className="bg-primary text-white hover:bg-primary/90"
                 >
                   Buscar
                 </Button>
               </div>
               <Button 
-                className="gap-2 text-white"
+                className="gap-2 text-white bg-primary hover:bg-primary/90"
                 onClick={() => setShowAddCustomerModal(true)}
-                style={{ backgroundColor: primaryColor }}
               >
                 <Plus className="h-4 w-4" />
                 Incluir cadastro
               </Button>
               <Button 
                 variant="outline"
-                className="gap-2 transition-colors relative"
+                className="gap-2 transition-colors relative border-primary text-primary hover:bg-primary hover:text-white"
                 onClick={() => setShowFiltersModal(true)}
-                style={{ 
-                  borderColor: primaryColor, 
-                  color: primaryColor,
-                } as React.CSSProperties}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = primaryColor;
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = '#FFFFFF';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = primaryColor;
-                  e.currentTarget.style.color = primaryColor;
-                }}
               >
                 <Filter className="h-4 w-4" />
                 Filtros
                 {isFilterActive && (
                   <span 
-                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
-                    style={{ backgroundColor: primaryColor }}
+                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary"
                   />
                 )}
               </Button>
@@ -908,16 +872,15 @@ const Customers = () => {
 
             {/* Filter Active Indicator */}
             {isFilterActive && (
-              <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}>
-                <span className="text-sm" style={{ color: primaryColor }}>
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-primary bg-primary/10">
+                <span className="text-sm text-primary">
                   Filtros ativos: {filteredCustomersList.length} cliente(s) encontrado(s)
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearFilters}
-                  className="h-6 px-2"
-                  style={{ color: primaryColor }}
+                  className="h-6 px-2 text-primary"
                 >
                   <X className="h-3 w-3 mr-1" />
                   Limpar
@@ -974,8 +937,7 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => navigate(`/lojista/customers/${customer.id}`)}
-                              className="hover:bg-transparent"
-                              style={{ color: primaryColor }}
+                              className="hover:bg-transparent text-primary"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -983,25 +945,8 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => customerOrigins.get(customer.id) !== 'online_store' && confirmDeleteCustomer(customer)}
-                              className="transition-colors"
+                              className="transition-colors text-primary hover:text-red-500 hover:bg-red-50 disabled:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={customerOrigins.get(customer.id) === 'online_store'}
-                              style={{ 
-                                color: customerOrigins.get(customer.id) === 'online_store' ? '#9ca3af' : primaryColor,
-                                opacity: customerOrigins.get(customer.id) === 'online_store' ? 0.5 : 1,
-                                cursor: customerOrigins.get(customer.id) === 'online_store' ? 'not-allowed' : 'pointer'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (customerOrigins.get(customer.id) !== 'online_store') {
-                                  e.currentTarget.style.color = '#ef4444';
-                                  e.currentTarget.style.backgroundColor = 'rgb(254 242 242)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (customerOrigins.get(customer.id) !== 'online_store') {
-                                  e.currentTarget.style.color = primaryColor;
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                }
-                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1022,7 +967,7 @@ const Customers = () => {
                   size="sm"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => p - 1)}
-                  style={{ borderColor: primaryColor, color: primaryColor }}
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
                 >
                   Anterior
                 </Button>
@@ -1060,12 +1005,8 @@ const Customers = () => {
                         key={index}
                         variant={currentPage === page ? "default" : "outline"}
                         size="sm"
-                        className="min-w-[36px]"
+                        className={`min-w-[36px] ${currentPage === page ? 'bg-primary text-white' : 'border-primary text-primary hover:bg-primary hover:text-white'}`}
                         onClick={() => setCurrentPage(page)}
-                        style={currentPage === page 
-                          ? { backgroundColor: primaryColor, color: '#FFFFFF' }
-                          : { borderColor: primaryColor, color: primaryColor }
-                        }
                       >
                         {page}
                       </Button>
@@ -1080,7 +1021,7 @@ const Customers = () => {
                   size="sm"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => p + 1)}
-                  style={{ borderColor: primaryColor, color: primaryColor }}
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
                 >
                   Próxima
                 </Button>
@@ -1092,9 +1033,8 @@ const Customers = () => {
             {/* Groups Action Buttons */}
             <div className="flex flex-wrap gap-3">
               <Button 
-                className="gap-2 text-white"
+                className="gap-2 text-white bg-primary hover:bg-primary/90"
                 onClick={() => setShowCreateGroupModal(true)}
-                style={{ backgroundColor: primaryColor }}
               >
                 <Plus className="h-4 w-4" />
                 Criar grupo
@@ -1153,40 +1093,20 @@ const Customers = () => {
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="Ex: Clientes VIP"
-              className="mt-2 transition-colors"
-              style={{ borderColor: primaryColor }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
+              className="mt-2 transition-colors focus:border-primary focus:ring-primary"
             />
           </div>
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setShowCreateGroupModal(false)}
-              className="transition-colors"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = primaryColor;
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = primaryColor;
-              }}
+              className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleCreateGroup}
-              className="text-white"
-              style={{ backgroundColor: primaryColor }}
+              className="text-white bg-primary hover:bg-primary/90"
             >
               Criar grupo
             </Button>
@@ -1209,18 +1129,7 @@ const Customers = () => {
             <Button 
               variant="outline" 
               onClick={() => setShowDeleteGroupModal(false)}
-              className="transition-colors"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = primaryColor;
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = primaryColor;
-              }}
+              className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
               Cancelar
             </Button>
@@ -1247,10 +1156,7 @@ const Customers = () => {
               <Select value={selectedGroupFilter} onValueChange={(value) => {
                 setSelectedGroupFilter(value);
               }}>
-                <SelectTrigger 
-                  className="w-full"
-                  style={{ borderColor: primaryColor }}
-                >
+                <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecione um grupo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1269,10 +1175,7 @@ const Customers = () => {
               <Select value={selectedBirthdayMonth} onValueChange={(value) => {
                 setSelectedBirthdayMonth(value);
               }}>
-                <SelectTrigger 
-                  className="w-full"
-                  style={{ borderColor: primaryColor }}
-                >
+                <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecione um mês" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1291,10 +1194,7 @@ const Customers = () => {
               <Select value={selectedGenderFilter} onValueChange={(value) => {
                 setSelectedGenderFilter(value);
               }}>
-                <SelectTrigger 
-                  className="w-full"
-                  style={{ borderColor: primaryColor }}
-                >
+                <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1313,10 +1213,7 @@ const Customers = () => {
               <Select value={selectedStateFilter} onValueChange={(value) => {
                 setSelectedStateFilter(value);
               }}>
-                <SelectTrigger 
-                  className="w-full"
-                  style={{ borderColor: primaryColor }}
-                >
+                <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecione um estado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1335,10 +1232,7 @@ const Customers = () => {
               <Select value={selectedCityFilter} onValueChange={(value) => {
                 setSelectedCityFilter(value);
               }}>
-                <SelectTrigger 
-                  className="w-full"
-                  style={{ borderColor: primaryColor }}
-                >
+                <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecione uma cidade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1358,17 +1252,17 @@ const Customers = () => {
                   <p className="text-sm font-medium text-foreground">
                     Resultados: {filteredCustomersList.length} cliente(s)
                     {selectedBirthdayMonth !== 'all' && (
-                      <span className="ml-1" style={{ color: primaryColor }}>
+                      <span className="ml-1 text-primary">
                         - Aniversariantes de {months.find(m => m.value === selectedBirthdayMonth)?.label}
                       </span>
                     )}
                     {selectedStateFilter !== 'all' && (
-                      <span className="ml-1" style={{ color: primaryColor }}>
+                      <span className="ml-1 text-primary">
                         - Estado: {selectedStateFilter}
                       </span>
                     )}
                     {selectedCityFilter !== 'all' && (
-                      <span className="ml-1" style={{ color: primaryColor }}>
+                      <span className="ml-1 text-primary">
                         - Cidade: {selectedCityFilter}
                       </span>
                     )}
@@ -1424,44 +1318,18 @@ const Customers = () => {
               <div className="flex gap-2">
                 <Button 
                   variant="outline"
-                  className="flex-1 gap-2 transition-colors"
+                  className="flex-1 gap-2 transition-colors border-primary text-primary hover:bg-primary hover:text-white disabled:opacity-50"
                   onClick={handlePrint}
                   disabled={!isFilterActive || filteredCustomersList.length === 0}
-                  style={{ borderColor: primaryColor, color: primaryColor }}
-                  onMouseEnter={(e) => {
-                    if (isFilterActive && filteredCustomersList.length > 0) {
-                      e.currentTarget.style.backgroundColor = primaryColor;
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.color = '#FFFFFF';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = primaryColor;
-                    e.currentTarget.style.color = primaryColor;
-                  }}
                 >
                   <Printer className="h-4 w-4" />
                   Imprimir
                 </Button>
                 <Button 
                   variant="outline"
-                  className="flex-1 gap-2 transition-colors"
+                  className="flex-1 gap-2 transition-colors border-primary text-primary hover:bg-primary hover:text-white disabled:opacity-50"
                   onClick={handleExport}
                   disabled={!isFilterActive || filteredCustomersList.length === 0}
-                  style={{ borderColor: primaryColor, color: primaryColor }}
-                  onMouseEnter={(e) => {
-                    if (isFilterActive && filteredCustomersList.length > 0) {
-                      e.currentTarget.style.backgroundColor = primaryColor;
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.color = '#FFFFFF';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = primaryColor;
-                    e.currentTarget.style.color = primaryColor;
-                  }}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Exportar
@@ -1473,25 +1341,13 @@ const Customers = () => {
             <Button 
               variant="outline" 
               onClick={clearFilters}
-              className="transition-colors"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = primaryColor;
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = primaryColor;
-              }}
+              className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
               Limpar filtros
             </Button>
             <Button 
               onClick={applyFilters}
-              className="text-white"
-              style={{ backgroundColor: primaryColor }}
+              className="text-white bg-primary hover:bg-primary/90"
             >
               Aplicar filtros
             </Button>
@@ -1516,15 +1372,7 @@ const Customers = () => {
                     value={newCustomerData.full_name}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, full_name: e.target.value }))}
                     placeholder="Nome do cliente"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1534,15 +1382,7 @@ const Customers = () => {
                     value={newCustomerData.email}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="email@exemplo.com"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1551,15 +1391,7 @@ const Customers = () => {
                     value={newCustomerData.phone}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(00) 00000-0000"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1568,15 +1400,7 @@ const Customers = () => {
                     value={newCustomerData.cpf}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, cpf: e.target.value }))}
                     placeholder="000.000.000-00"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -1585,10 +1409,7 @@ const Customers = () => {
                     value={newCustomerData.group_id} 
                     onValueChange={(value) => setNewCustomerData(prev => ({ ...prev, group_id: value === 'none' ? '' : value }))}
                   >
-                    <SelectTrigger 
-                      className="w-full"
-                      style={{ borderColor: primaryColor }}
-                    >
+                    <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
                       <SelectValue placeholder="Selecione um grupo (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1613,15 +1434,7 @@ const Customers = () => {
                     value={newCustomerData.recipient_name}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, recipient_name: e.target.value }))}
                     placeholder="Nome para entrega (opcional)"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1636,15 +1449,7 @@ const Customers = () => {
                       }
                     }}
                     placeholder="00000-000"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -1653,15 +1458,7 @@ const Customers = () => {
                     value={newCustomerData.street}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, street: e.target.value }))}
                     placeholder="Rua, Avenida, etc."
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1670,15 +1467,7 @@ const Customers = () => {
                     value={newCustomerData.number}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, number: e.target.value }))}
                     placeholder="123"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1687,15 +1476,7 @@ const Customers = () => {
                     value={newCustomerData.complement}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, complement: e.target.value }))}
                     placeholder="Apto, Bloco, etc. (opcional)"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1704,15 +1485,7 @@ const Customers = () => {
                     value={newCustomerData.neighborhood}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, neighborhood: e.target.value }))}
                     placeholder="Bairro"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1721,15 +1494,7 @@ const Customers = () => {
                     value={newCustomerData.city}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, city: e.target.value }))}
                     placeholder="Cidade"
-                    className="transition-colors"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1739,15 +1504,7 @@ const Customers = () => {
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
                     placeholder="UF"
                     maxLength={2}
-                    className="transition-colors uppercase"
-                    style={{ borderColor: primaryColor }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = primaryColor;
-                      e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="transition-colors uppercase focus:border-primary focus:ring-primary"
                   />
                 </div>
               </div>
@@ -1776,26 +1533,14 @@ const Customers = () => {
                   state: ''
                 });
               }}
-              className="transition-colors"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = primaryColor;
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = primaryColor;
-              }}
+              className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleAddCustomer}
               disabled={addingCustomer}
-              className="text-white"
-              style={{ backgroundColor: primaryColor }}
+              className="text-white bg-primary hover:bg-primary/90"
             >
               {addingCustomer ? 'Cadastrando...' : 'Cadastrar cliente'}
             </Button>
@@ -1822,18 +1567,7 @@ const Customers = () => {
                 setShowDeleteCustomerModal(false);
                 setCustomerToDelete(null);
               }}
-              className="transition-colors"
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = primaryColor;
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = primaryColor;
-                e.currentTarget.style.color = primaryColor;
-              }}
+              className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
               Cancelar
             </Button>
