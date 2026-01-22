@@ -31,8 +31,8 @@ import { toast } from "sonner";
 import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 
-// VM Official Logo
-import vmLogo from "@/assets/logo-virtual-mercado.png";
+// VM Official Logo for Dashboard
+import vmLogo from "@/assets/logo-vm-dashboard.png";
 
 // VM Official Colors - Fixed for the dashboard
 const VM_PRIMARY_COLOR = '#6a1b9a';
@@ -117,11 +117,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             {sidebarOpen && (
-              <Link to="/" className="flex items-center gap-2">
+              <Link to="/" className="flex items-center">
                 <img 
                   src={vmLogo} 
                   alt="VirtualMercado" 
-                  className="h-8 w-auto object-contain max-w-[140px]"
+                  className="h-10 w-auto object-contain max-w-[180px]"
                 />
               </Link>
             )}
