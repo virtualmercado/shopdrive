@@ -912,8 +912,7 @@ const Customize = () => {
         <div className="flex justify-end">
           <Button 
             onClick={handleSave}
-            className="px-8 transition-all hover:opacity-90"
-            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+            className="px-8 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Salvar Alterações
           </Button>
