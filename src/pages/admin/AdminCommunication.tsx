@@ -728,6 +728,39 @@ const AdminCommunication = () => {
                 <Label>Abrir em nova aba</Label>
               </div>
 
+              {/* Image Size Recommendations */}
+              <div className="col-span-2 p-4 bg-muted/50 rounded-lg border border-dashed">
+                <div className="flex items-start gap-3">
+                  <Image className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Recomendações de Tamanho de Imagem</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <Monitor className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-foreground">Desktop</p>
+                          <p>Tamanho ideal: <span className="font-semibold text-primary">400 x 160 px</span></p>
+                          <p>Proporção: 5:2 (horizontal)</p>
+                          <p>Formatos: JPG, PNG ou WebP</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-foreground">Mobile</p>
+                          <p>Tamanho ideal: <span className="font-semibold text-primary">320 x 160 px</span></p>
+                          <p>Proporção: 2:1 (horizontal)</p>
+                          <p>Formatos: JPG, PNG ou WebP</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground/80 mt-2">
+                      💡 O carrossel exibe 3 cards em desktop, 2 em tablet e 1 em mobile. Imagens com altura de 160px garantem melhor visualização.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="col-span-2">
                 <Label htmlFor="image_desktop_url">Imagem Desktop * (URL)</Label>
                 <Input
@@ -736,6 +769,7 @@ const AdminCommunication = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, image_desktop_url: e.target.value }))}
                   placeholder="https://..."
                 />
+                <span className="text-xs text-muted-foreground">Recomendado: 400 x 160 px (proporção 5:2)</span>
               </div>
 
               <div className="col-span-2">
@@ -746,6 +780,7 @@ const AdminCommunication = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, image_mobile_url: e.target.value }))}
                   placeholder="https://... (se vazio, usará a imagem desktop)"
                 />
+                <span className="text-xs text-muted-foreground">Recomendado: 320 x 160 px (proporção 2:1)</span>
               </div>
 
               <div>
