@@ -28,9 +28,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
+
+// VM Official Logo
+import vmLogo from "@/assets/logo-virtual-mercado.png";
+
+// VM Official Colors - Fixed for the dashboard
+const VM_PRIMARY_COLOR = '#6a1b9a';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -40,12 +45,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { primaryColor, buttonBgColor, buttonTextColor, loading: themeLoading } = useTheme();
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
@@ -53,17 +56,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_slug, store_logo_url")
+        .select("store_slug")
         .eq("id", user.id)
         .single();
 
       if (profile?.store_slug) {
         const url = `${window.location.origin}/loja/${profile.store_slug}`;
         setStoreUrl(url);
-      }
-      
-      if (profile?.store_logo_url) {
-        setLogoUrl(profile.store_logo_url);
       }
     };
 
@@ -107,30 +106,23 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Sidebar */}
+      {/* Sidebar - Always uses VM official purple color */}
       <aside 
         className={cn(
           "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300 flex flex-col",
           sidebarOpen ? "w-64" : "w-20"
         )}
-        style={{ backgroundColor: themeLoading ? '#6a1b9a' : primaryColor }}
+        style={{ backgroundColor: VM_PRIMARY_COLOR }}
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             {sidebarOpen && (
               <Link to="/" className="flex items-center gap-2">
-                {logoUrl ? (
-                  <img 
-                    src={logoUrl} 
-                    alt="Logo" 
-                    className="h-8 w-auto object-contain max-w-[50px] md:max-w-[70px]"
-                  />
-                ) : (
-                  <>
-                    <Store className="h-6 w-6" />
-                    <span className="font-bold">VirtualMercado</span>
-                  </>
-                )}
+                <img 
+                  src={vmLogo} 
+                  alt="VirtualMercado" 
+                  className="h-8 w-auto object-contain max-w-[140px]"
+                />
               </Link>
             )}
             <Button
@@ -198,7 +190,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 {menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
               </h1>
               
-              {/* Store Link Badge */}
+              {/* Store Link Badge - Uses VM official colors */}
               {storeUrl && (
                 <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
                   <span className="text-sm font-medium text-black">Seu Link:</span>
@@ -206,8 +198,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     href={storeUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm hover:opacity-70 font-medium transition-opacity"
-                    style={{ color: primaryColor }}
+                    className="text-sm hover:opacity-70 font-medium transition-opacity text-primary"
                   >
                     {storeUrl}
                   </a>
@@ -225,8 +216,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </Button>
                   <button
                     onClick={() => setDomainWizardOpen(true)}
-                    className="text-xs flex items-center gap-1 hover:underline"
-                    style={{ color: primaryColor }}
+                    className="text-xs flex items-center gap-1 hover:underline text-primary"
                   >
                     <Globe className="h-3 w-3" />
                     Conectar domínio próprio
@@ -238,9 +228,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <div className="flex items-center gap-4">
                   <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
                     <Button 
-                      variant="outline" 
-                      className="gap-2 transition-all hover:opacity-90"
-                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderColor: buttonBgColor }}
+                      className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <Store className="h-4 w-4" />
                       Ver Loja
