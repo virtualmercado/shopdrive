@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Package, Image, X, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Package, Image, X, Save, Upload, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AdminLayout from '@/components/layout/AdminLayout';
+import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
 import { useBrandTemplate, useBrandTemplateProducts, useCreateTemplateProduct, useUpdateTemplateProduct, useDeleteTemplateProduct } from '@/hooks/useBrandTemplateProducts';
 import type { BrandTemplateProduct, BrandTemplateProductFormData } from '@/hooks/useBrandTemplateProducts';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const MAX_PRODUCTS = 20;
 
@@ -43,6 +46,9 @@ const AdminBrandTemplateCatalog = () => {
     is_active: true,
   });
   const [imageInput, setImageInput] = useState('');
+  const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLoading = templateLoading || productsLoading;
   const canAddProduct = products.length < MAX_PRODUCTS;
@@ -128,6 +134,84 @@ const AdminBrandTemplateCatalog = () => {
       ...formData,
       images: formData.images?.filter((_, i) => i !== index) || [],
     });
+  };
+
+  const handleMediaSelect = (file: { url: string }) => {
+    if (formData.images && formData.images.length < 5) {
+      setFormData({
+        ...formData,
+        images: [...(formData.images || []), file.url],
+      });
+    }
+    setIsMediaSelectorOpen(false);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentImagesCount = formData.images?.length || 0;
+    const availableSlots = 5 - currentImagesCount;
+    
+    if (availableSlots <= 0) {
+      toast.error('Limite de 5 imagens atingido');
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, availableSlots);
+    setIsUploadingImage(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of filesToUpload) {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`${file.name} não é uma imagem válida`);
+          continue;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`${file.name} excede 5MB`);
+          continue;
+        }
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `brand-templates/${templateId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Erro ao enviar ${file.name}`);
+          continue;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+
+      if (uploadedUrls.length > 0) {
+        setFormData({
+          ...formData,
+          images: [...(formData.images || []), ...uploadedUrls],
+        });
+        toast.success(`${uploadedUrls.length} imagem(ns) enviada(s)`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Erro ao fazer upload das imagens');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   if (isLoading) {
@@ -370,24 +454,66 @@ const AdminBrandTemplateCatalog = () => {
             </div>
 
             {/* Images */}
-            <div className="space-y-2">
-              <Label>Imagens (máx. 5)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={imageInput}
-                  onChange={(e) => setImageInput(e.target.value)}
-                  placeholder="URL da imagem"
-                  disabled={(formData.images?.length || 0) >= 5}
+            <div className="space-y-3">
+              <Label>Imagens do Produto (máx. 5)</Label>
+              
+              {/* Upload Options */}
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={(formData.images?.length || 0) >= 5 || isUploadingImage}
+                >
+                  {isUploadingImage ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Enviar do Dispositivo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMediaSelectorOpen(true)}
+                  disabled={(formData.images?.length || 0) >= 5}
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Biblioteca de Mídia
+                </Button>
+              </div>
+
+              {/* URL Input (alternative) */}
+              <div className="flex gap-2">
+                <Input
+                  value={imageInput}
+                  onChange={(e) => setImageInput(e.target.value)}
+                  placeholder="Ou cole a URL da imagem"
+                  disabled={(formData.images?.length || 0) >= 5}
+                  className="text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={addImage}
                   disabled={(formData.images?.length || 0) >= 5 || !imageInput.trim()}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Image Previews */}
               {formData.images && formData.images.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.images.map((url, index) => (
@@ -408,6 +534,10 @@ const AdminBrandTemplateCatalog = () => {
                   ))}
                 </div>
               )}
+              
+              <p className="text-xs text-muted-foreground">
+                {formData.images?.length || 0}/5 imagens • Formatos: JPG, PNG, WebP • Máx: 5MB cada
+              </p>
             </div>
 
             {/* Active Toggle */}
@@ -469,6 +599,15 @@ const AdminBrandTemplateCatalog = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Media Selector Modal */}
+      <MediaSelectorModal
+        isOpen={isMediaSelectorOpen}
+        onClose={() => setIsMediaSelectorOpen(false)}
+        onSelect={handleMediaSelect}
+        allowedTypes={['image']}
+        title="Selecionar Imagem do Produto"
+      />
     </AdminLayout>
   );
 };
