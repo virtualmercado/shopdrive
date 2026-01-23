@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,9 @@ import {
   ExternalLink,
   Check,
   MousePointerClick,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -91,6 +94,8 @@ import {
 } from '@/hooks/useBrandTemplates';
 import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
+import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const AdminBrandTemplates = () => {
@@ -103,6 +108,9 @@ const AdminBrandTemplates = () => {
   const [detailsTemplate, setDetailsTemplate] = useState<BrandTemplate | null>(null);
   const [qrCodeTemplate, setQrCodeTemplate] = useState<BrandTemplate | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     logo_url: '',
@@ -125,6 +133,54 @@ const AdminBrandTemplates = () => {
       status: 'draft',
       description: '',
     });
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+    
+    if (!validTypes.includes(file.type)) {
+      toast.error('Formato não suportado. Use JPG, PNG, WEBP ou SVG.');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `brand-logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('media-library')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        toast.error(`Erro ao enviar imagem: ${uploadError.message}`);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('media-library')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, logo_url: urlData.publicUrl }));
+      toast.success('Logo enviado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao enviar a imagem');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleLogoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleLogoUpload(file);
+    }
+    e.target.value = '';
   };
 
   const handleCreateTemplate = async () => {
@@ -671,15 +727,85 @@ const AdminBrandTemplates = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="logo_url">Logo da Marca (URL)</Label>
-              <Input
-                id="logo_url"
-                value={formData.logo_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Label htmlFor="logo_url">Logo da Marca</Label>
+              
+              {/* Logo Preview */}
+              {formData.logo_url && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <img 
+                    src={formData.logo_url} 
+                    alt="Preview do logo" 
+                    className="h-12 w-12 object-contain rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{formData.logo_url}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              )}
+              
+              {/* Upload Options */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Hidden file input */}
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,.svg"
+                  className="hidden"
+                  onChange={handleLogoInputChange}
+                  disabled={isUploadingLogo}
+                />
+                
+                {/* Upload from device button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploadingLogo}
+                  className="flex-1"
+                >
+                  {isUploadingLogo ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Enviar do Dispositivo
+                </Button>
+                
+                {/* Select from media library button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMediaSelectorOpen(true)}
+                  className="flex-1"
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Biblioteca de Mídia
+                </Button>
+              </div>
+              
+              {/* URL Input */}
+              <div className="flex gap-2">
+                <Input
+                  id="logo_url"
+                  value={formData.logo_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
+                  placeholder="Ou cole a URL da imagem aqui..."
+                  className="flex-1"
+                />
+              </div>
+              
               <p className="text-xs text-muted-foreground">
-                Cole a URL da imagem ou use a Biblioteca de Mídia
+                Formatos aceitos: JPG, PNG, WEBP, SVG
               </p>
             </div>
 
@@ -765,6 +891,18 @@ const AdminBrandTemplates = () => {
         template={qrCodeTemplate}
         open={!!qrCodeTemplate}
         onOpenChange={(open) => !open && setQrCodeTemplate(null)}
+      />
+
+      {/* Media Selector Modal */}
+      <MediaSelectorModal
+        isOpen={isMediaSelectorOpen}
+        onClose={() => setIsMediaSelectorOpen(false)}
+        onSelect={(file) => {
+          setFormData(prev => ({ ...prev, logo_url: file.url }));
+          setIsMediaSelectorOpen(false);
+        }}
+        allowedTypes={['image']}
+        title="Selecionar Logo da Marca"
       />
     </AdminLayout>
   );
