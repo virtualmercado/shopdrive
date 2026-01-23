@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Store, Tag } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTemplateBySlug, useCopyTemplateProducts } from "@/hooks/useBrandTemplates";
 import { z } from "zod";
+import { toast } from "sonner";
 
 const registerSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -20,6 +23,9 @@ const registerSchema = z.object({
 });
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
+  const templateSlug = searchParams.get('template');
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -30,6 +36,9 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, signUp } = useAuth();
+  
+  const { data: template } = useTemplateBySlug(templateSlug);
+  const copyProductsMutation = useCopyTemplateProducts();
 
   useEffect(() => {
     if (user) {
@@ -51,14 +60,29 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { error } = await signUp(
+      const { data, error } = await signUp(
         formData.email,
         formData.password,
         formData.name,
         formData.storeName
       );
       
-      if (!error) {
+      if (!error && data?.user) {
+        // If registering via template, copy products to the new store
+        if (template && template.id) {
+          try {
+            await copyProductsMutation.mutateAsync({
+              templateId: template.id,
+              userId: data.user.id,
+            });
+            toast.success(`Loja criada com os produtos da marca ${template.name}!`);
+          } catch (copyError) {
+            console.error('Error copying template products:', copyError);
+            // Don't block navigation even if copy fails
+            toast.warning('Loja criada, mas houve um erro ao copiar os produtos do template.');
+          }
+        }
+        
         navigate("/lojista");
       }
     } finally {
@@ -84,6 +108,16 @@ const Register = () => {
           <h1 className="text-3xl font-bold mb-2">Crie sua conta</h1>
           <p className="text-muted-foreground">Comece a vender online hoje mesmo</p>
         </div>
+
+        {/* Template Banner */}
+        {template && template.is_link_active && (
+          <Alert className="mb-6 border-primary/20 bg-primary/5">
+            <Tag className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              Você está criando sua loja da marca: <strong>{template.name}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

@@ -8,6 +8,8 @@ import CookieConsentBanner from "@/components/CookieConsentBanner";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import TemplateSignup from "./pages/TemplateSignup";
+import TemplateUnavailable from "./pages/TemplateUnavailable";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Products from "./pages/dashboard/Products";
 import Orders from "./pages/dashboard/Orders";
@@ -80,6 +82,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/criar-conta" element={<TemplateSignup />} />
+            <Route path="/link-indisponivel" element={<TemplateUnavailable />} />
             
             {/* Admin Master Panel Routes */}
             <Route path="/gestor/login" element={<AdminLogin />} />
