@@ -284,6 +284,59 @@ export type Database = {
           },
         ]
       }
+      brand_template_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          name: string
+          price: number
+          sku: string | null
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          name: string
+          price?: number
+          sku?: string | null
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          sku?: string | null
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_template_products_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_templates: {
         Row: {
           created_at: string

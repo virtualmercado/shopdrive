@@ -62,6 +62,9 @@ import AdminMediaLibrary from "./pages/admin/AdminMediaLibrary";
 import AdminLandingSupport from "./pages/admin/AdminLandingSupport";
 import AdminCommunication from "./pages/admin/AdminCommunication";
 import AdminBrandTemplates from "./pages/admin/AdminBrandTemplates";
+import AdminBrandTemplateEdit from "./pages/admin/AdminBrandTemplateEdit";
+import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
+import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +91,9 @@ function App() {
             <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
             <Route path="/gestor/comunicacao" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
             <Route path="/gestor/templates-marca" element={<AdminRoute><AdminBrandTemplates /></AdminRoute>} />
+            <Route path="/gestor/templates-marca/:templateId/editar" element={<AdminRoute><AdminBrandTemplateEdit /></AdminRoute>} />
+            <Route path="/gestor/templates-marca/:templateId/catalogo" element={<AdminRoute><AdminBrandTemplateCatalog /></AdminRoute>} />
+            <Route path="/gestor/templates-marca/:templateId/preview" element={<AdminBrandTemplatePreview />} />
             <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
             <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />

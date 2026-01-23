@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -81,6 +82,7 @@ import {
 import { toast } from 'sonner';
 
 const AdminBrandTemplates = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BrandTemplateStatus | 'all'>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -340,15 +342,15 @@ const AdminBrandTemplates = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                                <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/editar`)}>
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Editar Template
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                                <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/catalogo`)}>
                                   <FolderOpen className="h-4 w-4 mr-2" />
                                   Gerenciar Catálogo
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                                <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   Visualizar Loja Modelo
                                 </DropdownMenuItem>
@@ -405,15 +407,15 @@ const AdminBrandTemplates = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                              <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/editar`)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Editar Template
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                              <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/catalogo`)}>
                                 <FolderOpen className="h-4 w-4 mr-2" />
                                 Gerenciar Catálogo
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+                              <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Visualizar Loja Modelo
                               </DropdownMenuItem>
