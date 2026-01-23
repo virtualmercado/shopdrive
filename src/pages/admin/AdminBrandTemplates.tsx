@@ -18,6 +18,12 @@ import {
   Trash2,
   ShieldCheck,
   Lock,
+  Link2,
+  QrCode,
+  MessageCircle,
+  ExternalLink,
+  Check,
+  MousePointerClick,
 } from 'lucide-react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -76,17 +82,27 @@ import {
   useDeleteBrandTemplate,
   useDuplicateBrandTemplate,
   useToggleBrandTemplateStatus,
+  useToggleLinkStatus,
   BrandTemplate,
   BrandTemplateStatus,
+  LinkStatusFilter,
+  getTemplateActivationLink,
+  getWhatsAppShareMessage,
 } from '@/hooks/useBrandTemplates';
+import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
+import QRCodeModal from '@/components/admin/QRCodeModal';
 import { toast } from 'sonner';
 
 const AdminBrandTemplates = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BrandTemplateStatus | 'all'>('all');
+  const [linkStatusFilter, setLinkStatusFilter] = useState<LinkStatusFilter>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteTemplate, setDeleteTemplate] = useState<BrandTemplate | null>(null);
+  const [detailsTemplate, setDetailsTemplate] = useState<BrandTemplate | null>(null);
+  const [qrCodeTemplate, setQrCodeTemplate] = useState<BrandTemplate | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     logo_url: '',
@@ -94,12 +110,13 @@ const AdminBrandTemplates = () => {
     description: '',
   });
 
-  const { data: templates, isLoading } = useBrandTemplates(statusFilter, searchTerm);
+  const { data: templates, isLoading } = useBrandTemplates(statusFilter, searchTerm, linkStatusFilter);
   const { data: stats, isLoading: isLoadingStats } = useBrandTemplateStats();
   const createMutation = useCreateBrandTemplate();
   const deleteMutation = useDeleteBrandTemplate();
   const duplicateMutation = useDuplicateBrandTemplate();
   const toggleStatusMutation = useToggleBrandTemplateStatus();
+  const toggleLinkMutation = useToggleLinkStatus();
 
   const resetForm = () => {
     setFormData({
@@ -128,6 +145,44 @@ const AdminBrandTemplates = () => {
     }
   };
 
+  const handleCopyLink = async (template: BrandTemplate) => {
+    const link = getTemplateActivationLink(template.template_slug);
+    if (!link) {
+      toast.error('Link não disponível');
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedLinkId(template.id);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    } catch {
+      toast.error('Erro ao copiar link');
+    }
+  };
+
+  const handleCopyWhatsAppMessage = async (template: BrandTemplate) => {
+    const message = getWhatsAppShareMessage(template.name, template.template_slug);
+    const link = getTemplateActivationLink(template.template_slug);
+    const fullMessage = `Crie sua loja grátis já com os produtos da marca ${template.name}: ${link}`;
+    
+    try {
+      await navigator.clipboard.writeText(fullMessage);
+      toast.success('Mensagem para WhatsApp copiada!');
+    } catch {
+      // Fallback: open WhatsApp with message
+      window.open(`https://wa.me/?text=${message}`, '_blank');
+    }
+  };
+
+  const handleToggleLink = (template: BrandTemplate) => {
+    toggleLinkMutation.mutate({
+      id: template.id,
+      currentLinkStatus: template.is_link_active,
+    });
+  };
+
   const getStatusBadge = (status: BrandTemplateStatus) => {
     switch (status) {
       case 'active':
@@ -137,6 +192,20 @@ const AdminBrandTemplates = () => {
       case 'draft':
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Rascunho</Badge>;
     }
+  };
+
+  const getLinkBadge = (isActive: boolean) => {
+    return isActive ? (
+      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Link2 className="h-3 w-3 mr-1" />
+        Ativo
+      </Badge>
+    ) : (
+      <Badge variant="outline" className="text-muted-foreground">
+        <Link2 className="h-3 w-3 mr-1" />
+        Inativo
+      </Badge>
+    );
   };
 
   const getInitials = (name: string) => {
@@ -236,13 +305,16 @@ const AdminBrandTemplates = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-100">
-                  <Package className="h-5 w-5 text-orange-600" />
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <MousePointerClick className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Limite de Produtos</p>
-                  <p className="text-2xl font-bold">20</p>
-                  <p className="text-xs text-muted-foreground">Plano Grátis por template</p>
+                  <p className="text-sm text-muted-foreground">Cliques em Links</p>
+                  {isLoadingStats ? (
+                    <Skeleton className="h-7 w-12" />
+                  ) : (
+                    <p className="text-2xl font-bold">{stats?.totalLinkClicks || 0}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -281,10 +353,23 @@ const AdminBrandTemplates = () => {
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Todos os Status</SelectItem>
                   <SelectItem value="active">Ativos</SelectItem>
                   <SelectItem value="inactive">Inativos</SelectItem>
                   <SelectItem value="draft">Rascunhos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={linkStatusFilter}
+                onValueChange={(value) => setLinkStatusFilter(value as LinkStatusFilter)}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filtrar por link" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Links</SelectItem>
+                  <SelectItem value="active">Link Ativo</SelectItem>
+                  <SelectItem value="inactive">Link Inativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -305,8 +390,9 @@ const AdminBrandTemplates = () => {
                       <TableRow>
                         <TableHead>Marca</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Produtos no Template</TableHead>
+                        <TableHead>Produtos</TableHead>
                         <TableHead>Lojas Criadas</TableHead>
+                        <TableHead>Link</TableHead>
                         <TableHead>Última Atualização</TableHead>
                         <TableHead className="w-[50px]">Ações</TableHead>
                       </TableRow>
@@ -315,14 +401,17 @@ const AdminBrandTemplates = () => {
                       {templates.map((template) => (
                         <TableRow key={template.id}>
                           <TableCell>
-                            <div className="flex items-center gap-3">
+                            <div 
+                              className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                              onClick={() => setDetailsTemplate(template)}
+                            >
                               <Avatar className="h-10 w-10">
                                 <AvatarImage src={template.logo_url || undefined} alt={template.name} />
                                 <AvatarFallback className="bg-primary/10 text-primary text-sm">
                                   {getInitials(template.name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{template.name}</span>
+                              <span className="font-medium hover:underline">{template.name}</span>
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(template.status)}</TableCell>
@@ -331,6 +420,24 @@ const AdminBrandTemplates = () => {
                             <span className="text-muted-foreground">/{template.max_products}</span>
                           </TableCell>
                           <TableCell>{template.stores_created}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getLinkBadge(template.is_link_active)}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleCopyLink(template)}
+                                disabled={!template.template_slug}
+                              >
+                                {copiedLinkId === template.id ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {format(new Date(template.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                           </TableCell>
@@ -353,6 +460,23 @@ const AdminBrandTemplates = () => {
                                 <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   Visualizar Loja Modelo
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleCopyLink(template)}>
+                                  <Link2 className="h-4 w-4 mr-2" />
+                                  Copiar link de ativação
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCopyWhatsAppMessage(template)}>
+                                  <MessageCircle className="h-4 w-4 mr-2" />
+                                  Copiar mensagem WhatsApp
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setQrCodeTemplate(template)}>
+                                  <QrCode className="h-4 w-4 mr-2" />
+                                  Gerar QR Code
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleLink(template)}>
+                                  <Power className="h-4 w-4 mr-2" />
+                                  {template.is_link_active ? 'Desativar link' : 'Ativar link'}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -388,7 +512,10 @@ const AdminBrandTemplates = () => {
                     <Card key={template.id}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
+                          <div 
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => setDetailsTemplate(template)}
+                          >
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={template.logo_url || undefined} alt={template.name} />
                               <AvatarFallback className="bg-primary/10 text-primary">
@@ -397,7 +524,10 @@ const AdminBrandTemplates = () => {
                             </Avatar>
                             <div>
                               <p className="font-medium">{template.name}</p>
-                              <div className="mt-1">{getStatusBadge(template.status)}</div>
+                              <div className="flex gap-2 mt-1">
+                                {getStatusBadge(template.status)}
+                                {getLinkBadge(template.is_link_active)}
+                              </div>
                             </div>
                           </div>
                           <DropdownMenu>
@@ -418,6 +548,23 @@ const AdminBrandTemplates = () => {
                               <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Visualizar Loja Modelo
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleCopyLink(template)}>
+                                <Link2 className="h-4 w-4 mr-2" />
+                                Copiar link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCopyWhatsAppMessage(template)}>
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Mensagem WhatsApp
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setQrCodeTemplate(template)}>
+                                <QrCode className="h-4 w-4 mr-2" />
+                                QR Code
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleToggleLink(template)}>
+                                <Power className="h-4 w-4 mr-2" />
+                                {template.is_link_active ? 'Desativar link' : 'Ativar link'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -441,7 +588,7 @@ const AdminBrandTemplates = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-muted-foreground">Produtos</p>
                             <p className="font-medium">
@@ -449,13 +596,31 @@ const AdminBrandTemplates = () => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Lojas Criadas</p>
+                            <p className="text-muted-foreground">Lojas</p>
                             <p className="font-medium">{template.stores_created}</p>
                           </div>
+                          <div>
+                            <p className="text-muted-foreground">Cliques</p>
+                            <p className="font-medium">{template.link_clicks}</p>
+                          </div>
                         </div>
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Atualizado em {format(new Date(template.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(template.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopyLink(template)}
+                          >
+                            {copiedLinkId === template.id ? (
+                              <Check className="h-4 w-4 mr-1 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4 mr-1" />
+                            )}
+                            {copiedLinkId === template.id ? 'Copiado!' : 'Copiar link'}
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -583,6 +748,24 @@ const AdminBrandTemplates = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Template Details Modal */}
+      <TemplateDetailsModal
+        template={detailsTemplate}
+        open={!!detailsTemplate}
+        onOpenChange={(open) => !open && setDetailsTemplate(null)}
+        onGenerateQRCode={(template) => {
+          setDetailsTemplate(null);
+          setQrCodeTemplate(template);
+        }}
+      />
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        template={qrCodeTemplate}
+        open={!!qrCodeTemplate}
+        onOpenChange={(open) => !open && setQrCodeTemplate(null)}
+      />
     </AdminLayout>
   );
 };

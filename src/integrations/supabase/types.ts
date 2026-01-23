@@ -342,36 +342,54 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_link_active: boolean
+          link_clicks: number
+          link_created_at: string | null
           logo_url: string | null
           max_products: number
           name: string
+          paid_conversions: number
           products_count: number
+          signups_started: number
           status: Database["public"]["Enums"]["brand_template_status"]
           stores_created: number
+          template_slug: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
+          is_link_active?: boolean
+          link_clicks?: number
+          link_created_at?: string | null
           logo_url?: string | null
           max_products?: number
           name: string
+          paid_conversions?: number
           products_count?: number
+          signups_started?: number
           status?: Database["public"]["Enums"]["brand_template_status"]
           stores_created?: number
+          template_slug?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
+          is_link_active?: boolean
+          link_clicks?: number
+          link_created_at?: string | null
           logo_url?: string | null
           max_products?: number
           name?: string
+          paid_conversions?: number
           products_count?: number
+          signups_started?: number
           status?: Database["public"]["Enums"]["brand_template_status"]
           stores_created?: number
+          template_slug?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3746,8 +3764,16 @@ export type Database = {
     Functions: {
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
+      copy_template_products_to_store: {
+        Args: { p_template_id: string; p_user_id: string }
+        Returns: number
+      }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
+      generate_template_slug: {
+        Args: { template_name: string }
+        Returns: string
+      }
       generate_ticket_number: { Args: never; Returns: string }
       get_active_banners_count: {
         Args: never
@@ -3764,11 +3790,25 @@ export type Database = {
           impressions: number
         }[]
       }
+      get_template_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          id: string
+          is_link_active: boolean
+          logo_url: string
+          name: string
+          status: Database["public"]["Enums"]["brand_template_status"]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      increment_template_link_clicks: {
+        Args: { p_template_slug: string }
         Returns: boolean
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
