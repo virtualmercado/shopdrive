@@ -55,7 +55,9 @@ import {
   Image,
   Monitor,
   Smartphone,
+  FolderOpen,
 } from "lucide-react";
+import { MediaSelectorModal } from "@/components/admin/MediaSelectorModal";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -140,6 +142,8 @@ const AdminCommunication = () => {
   const [formData, setFormData] = useState<BannerFormData>(DEFAULT_FORM_DATA);
   const [metricsFilter, setMetricsFilter] = useState(30);
   const [selectedBannerForMetrics, setSelectedBannerForMetrics] = useState<string | null>(null);
+  const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
+  const [mediaTargetField, setMediaTargetField] = useState<"desktop" | "mobile">("desktop");
 
   const { data: selectedMetrics } = useBannerMetrics(selectedBannerForMetrics || "", metricsFilter);
 
@@ -762,25 +766,73 @@ const AdminCommunication = () => {
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="image_desktop_url">Imagem Desktop * (URL)</Label>
-                <Input
-                  id="image_desktop_url"
-                  value={formData.image_desktop_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image_desktop_url: e.target.value }))}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="image_desktop_url">Imagem Desktop *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="image_desktop_url"
+                    value={formData.image_desktop_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, image_desktop_url: e.target.value }))}
+                    placeholder="https://... ou selecione da biblioteca"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setMediaTargetField("desktop");
+                      setIsMediaSelectorOpen(true);
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Biblioteca
+                  </Button>
+                </div>
+                {formData.image_desktop_url && (
+                  <div className="mt-2 relative h-16 w-32 border rounded overflow-hidden">
+                    <img 
+                      src={formData.image_desktop_url} 
+                      alt="Preview Desktop" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 <span className="text-xs text-muted-foreground">Recomendado: 400 x 160 px (proporção 5:2)</span>
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="image_mobile_url">Imagem Mobile (URL) - opcional</Label>
-                <Input
-                  id="image_mobile_url"
-                  value={formData.image_mobile_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image_mobile_url: e.target.value }))}
-                  placeholder="https://... (se vazio, usará a imagem desktop)"
-                />
-                <span className="text-xs text-muted-foreground">Recomendado: 320 x 160 px (proporção 2:1)</span>
+                <Label htmlFor="image_mobile_url">Imagem Mobile - opcional</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="image_mobile_url"
+                    value={formData.image_mobile_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, image_mobile_url: e.target.value }))}
+                    placeholder="https://... ou selecione da biblioteca"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setMediaTargetField("mobile");
+                      setIsMediaSelectorOpen(true);
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Biblioteca
+                  </Button>
+                </div>
+                {formData.image_mobile_url && (
+                  <div className="mt-2 relative h-16 w-24 border rounded overflow-hidden">
+                    <img 
+                      src={formData.image_mobile_url} 
+                      alt="Preview Mobile" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground">Recomendado: 320 x 160 px (proporção 2:1). Se vazio, usará a imagem desktop.</span>
               </div>
 
               <div>
@@ -912,6 +964,21 @@ const AdminCommunication = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Media Selector Modal */}
+      <MediaSelectorModal
+        isOpen={isMediaSelectorOpen}
+        onClose={() => setIsMediaSelectorOpen(false)}
+        onSelect={(file) => {
+          if (mediaTargetField === "desktop") {
+            setFormData(prev => ({ ...prev, image_desktop_url: file.url }));
+          } else {
+            setFormData(prev => ({ ...prev, image_mobile_url: file.url }));
+          }
+        }}
+        allowedTypes={["image"]}
+        title={mediaTargetField === "desktop" ? "Selecionar Imagem Desktop" : "Selecionar Imagem Mobile"}
+      />
     </AdminLayout>
   );
 };
