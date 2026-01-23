@@ -105,9 +105,9 @@ const Dashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <div 
                   className="h-12 w-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: getLighterShade(primaryColor) }}
+                  style={{ backgroundColor: primaryColor }}
                 >
-                  <stat.icon className="h-6 w-6" style={{ color: primaryColor }} />
+                  <stat.icon className="h-6 w-6 text-white" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
