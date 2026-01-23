@@ -284,6 +284,45 @@ export type Database = {
           },
         ]
       }
+      brand_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          max_products: number
+          name: string
+          products_count: number
+          status: Database["public"]["Enums"]["brand_template_status"]
+          stores_created: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          max_products?: number
+          name: string
+          products_count?: number
+          status?: Database["public"]["Enums"]["brand_template_status"]
+          stores_created?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          max_products?: number
+          name?: string
+          products_count?: number
+          status?: Database["public"]["Enums"]["brand_template_status"]
+          stores_created?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cms_banners: {
         Row: {
           banner_key: string
@@ -3703,6 +3742,7 @@ export type Database = {
       banner_event_type: "impression" | "click"
       banner_link_type: "internal" | "external"
       banner_status: "draft" | "active" | "paused" | "archived"
+      brand_template_status: "draft" | "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3835,6 +3875,7 @@ export const Constants = {
       banner_event_type: ["impression", "click"],
       banner_link_type: ["internal", "external"],
       banner_status: ["draft", "active", "paused", "archived"],
+      brand_template_status: ["draft", "active", "inactive"],
     },
   },
 } as const
