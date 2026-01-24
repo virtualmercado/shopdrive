@@ -20,9 +20,12 @@ import {
   Wallet,
   HeadphonesIcon,
   Megaphone,
-  Globe
+  Globe,
+  Save,
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // VM Official Logo for Dashboard
 import vmLogo from "@/assets/logo-vm-dashboard.png";
@@ -46,9 +50,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  // Template editor mode detection
+  const templateId = searchParams.get('templateId');
+  const mode = searchParams.get('mode');
+  const isTemplateEditorMode = mode === 'template-editor' && !!templateId;
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
@@ -68,6 +80,57 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
     fetchStoreUrl();
   }, [user]);
+
+  // Fetch template name when in editor mode
+  useEffect(() => {
+    const fetchTemplateName = async () => {
+      if (!templateId) return;
+      
+      const { data } = await supabase
+        .from('brand_templates')
+        .select('name')
+        .eq('id', templateId)
+        .single();
+      
+      if (data) {
+        setTemplateName(data.name);
+      }
+    };
+
+    if (isTemplateEditorMode) {
+      fetchTemplateName();
+    }
+  }, [templateId, isTemplateEditorMode]);
+
+  const handleSaveTemplate = async () => {
+    if (!templateId) return;
+    
+    setIsSavingTemplate(true);
+    
+    try {
+      const { error } = await supabase
+        .rpc('sync_template_from_profile', { p_template_id: templateId });
+
+      if (error) throw error;
+      
+      toast.success('Template salvo com sucesso! Snapshot atualizado.');
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      toast.error(`Erro ao salvar template: ${error.message}`);
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleExitTemplateMode = () => {
+    sessionStorage.removeItem('templateEditorContext');
+    
+    if (window.opener) {
+      window.close();
+    } else {
+      navigate('/gestor/templates-marca');
+    }
+  };
 
   const handleCopyLink = async () => {
     if (!storeUrl) return;
@@ -182,16 +245,62 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           sidebarOpen ? "ml-64" : "ml-20"
         )}
       >
+        {/* Template Editor Mode Banner */}
+        {isTemplateEditorMode && (
+          <div className="bg-amber-500 text-white px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5" />
+              <div>
+                <span className="font-medium">Modo Edição de Template:</span>
+                <span className="ml-2">{templateName || 'Carregando...'}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleSaveTemplate}
+                disabled={isSavingTemplate}
+                className="bg-white text-amber-600 hover:bg-amber-50"
+              >
+                {isSavingTemplate ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar Template
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExitTemplateMode}
+                className="text-white hover:bg-amber-600"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Fechar Editor
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b sticky top-0 z-40">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <h1 className="text-2xl font-bold text-foreground">
-                {menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
+                {isTemplateEditorMode 
+                  ? `Editando Template: ${templateName || '...'}` 
+                  : menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
+                }
               </h1>
               
-              {/* Store Link Badge - Uses VM official colors */}
-              {storeUrl && (
+              {/* Store Link Badge - Uses VM official colors (hide in template mode) */}
+              {storeUrl && !isTemplateEditorMode && (
                 <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
                   <span className="text-sm font-medium text-black">Seu Link:</span>
                   <a 
@@ -224,7 +333,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </div>
               )}
 
-              {storeUrl && (
+              {storeUrl && !isTemplateEditorMode && (
                 <div className="flex items-center gap-4">
                   <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
                     <Button 
@@ -240,8 +349,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </header>
 
-        {/* Global Billing Alert - Appears below header */}
-        <GlobalBillingAlert />
+        {/* Global Billing Alert - Appears below header (hide in template mode) */}
+        {!isTemplateEditorMode && <GlobalBillingAlert />}
 
         {/* Page Content */}
         <main className="p-6 page-enter" data-page-content>
