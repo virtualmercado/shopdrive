@@ -13,6 +13,13 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle, Mail } from "lucide-react";
+import { z } from "zod";
+
+const messageSchema = z.object({
+  customer_name: z.string().trim().min(2, "Nome muito curto (mínimo 2 caracteres)").max(100, "Nome muito longo (máximo 100 caracteres)"),
+  customer_phone: z.string().trim().min(10, "Telefone inválido (mínimo 10 dígitos)").max(20, "Telefone inválido (máximo 20 caracteres)"),
+  message: z.string().trim().min(10, "Mensagem muito curta (mínimo 10 caracteres)").max(2000, "Mensagem muito longa (máximo 2000 caracteres)"),
+});
 interface WhatsAppButtonProps {
   phoneNumber: string;
   storeOwnerId: string;
@@ -63,15 +70,28 @@ const WhatsAppButton = ({
       return;
     }
 
+    // Validate inputs with zod schema
+    const validation = messageSchema.safeParse({
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      message: message,
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
     setSending(true);
 
     try {
-      // Salvar mensagem no banco
+      // Save validated message to database
       const { error } = await supabase.from("whatsapp_messages").insert({
         store_owner_id: storeOwnerId,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        message: message,
+        customer_name: validation.data.customer_name,
+        customer_phone: validation.data.customer_phone,
+        message: validation.data.message,
       });
 
       if (error) throw error;
