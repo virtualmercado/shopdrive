@@ -284,6 +284,91 @@ export type Database = {
           },
         ]
       }
+      brand_template_categories: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_template_categories_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_template_pages: {
+        Row: {
+          content: string | null
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          slug: string
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          slug: string
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          slug?: string
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_template_pages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_template_products: {
         Row: {
           category: string | null
@@ -339,9 +424,18 @@ export type Database = {
       }
       brand_templates: {
         Row: {
+          banner_desktop_urls: Json | null
+          banner_mobile_urls: Json | null
+          button_bg_color: string | null
+          button_text_color: string | null
           created_at: string
           description: string | null
+          facebook_url: string | null
+          font_family: string | null
+          footer_bg_color: string | null
+          footer_text_color: string | null
           id: string
+          instagram_url: string | null
           is_link_active: boolean
           link_clicks: number
           link_created_at: string | null
@@ -349,17 +443,32 @@ export type Database = {
           max_products: number
           name: string
           paid_conversions: number
+          primary_color: string | null
           products_count: number
+          secondary_color: string | null
+          show_whatsapp_button: boolean | null
           signups_started: number
+          source_profile_id: string | null
           status: Database["public"]["Enums"]["brand_template_status"]
+          store_name: string | null
           stores_created: number
           template_slug: string | null
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
+          banner_desktop_urls?: Json | null
+          banner_mobile_urls?: Json | null
+          button_bg_color?: string | null
+          button_text_color?: string | null
           created_at?: string
           description?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
           id?: string
+          instagram_url?: string | null
           is_link_active?: boolean
           link_clicks?: number
           link_created_at?: string | null
@@ -367,17 +476,32 @@ export type Database = {
           max_products?: number
           name: string
           paid_conversions?: number
+          primary_color?: string | null
           products_count?: number
+          secondary_color?: string | null
+          show_whatsapp_button?: boolean | null
           signups_started?: number
+          source_profile_id?: string | null
           status?: Database["public"]["Enums"]["brand_template_status"]
+          store_name?: string | null
           stores_created?: number
           template_slug?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
+          banner_desktop_urls?: Json | null
+          banner_mobile_urls?: Json | null
+          button_bg_color?: string | null
+          button_text_color?: string | null
           created_at?: string
           description?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
           id?: string
+          instagram_url?: string | null
           is_link_active?: boolean
           link_clicks?: number
           link_created_at?: string | null
@@ -385,14 +509,42 @@ export type Database = {
           max_products?: number
           name?: string
           paid_conversions?: number
+          primary_color?: string | null
           products_count?: number
+          secondary_color?: string | null
+          show_whatsapp_button?: boolean | null
           signups_started?: number
+          source_profile_id?: string | null
           status?: Database["public"]["Enums"]["brand_template_status"]
+          store_name?: string | null
           stores_created?: number
           template_slug?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "brand_templates_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_templates_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_templates_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cms_banners: {
         Row: {
@@ -2643,6 +2795,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_maintenance_mode: boolean | null
+          is_template_profile: boolean | null
           last_activity: string | null
           merchant_city: string | null
           merchant_reference_cep: string | null
@@ -2663,6 +2816,7 @@ export type Database = {
           secondary_color: string | null
           shipping_fixed_fee: number | null
           shipping_free_minimum: number | null
+          source_template_id: string | null
           store_description: string | null
           store_logo_url: string | null
           store_name: string | null
@@ -2716,6 +2870,7 @@ export type Database = {
           id: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
+          is_template_profile?: boolean | null
           last_activity?: string | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
@@ -2736,6 +2891,7 @@ export type Database = {
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
+          source_template_id?: string | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
@@ -2789,6 +2945,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
+          is_template_profile?: boolean | null
           last_activity?: string | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
@@ -2809,6 +2966,7 @@ export type Database = {
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
+          source_template_id?: string | null
           store_description?: string | null
           store_logo_url?: string | null
           store_name?: string | null
@@ -2819,7 +2977,15 @@ export type Database = {
           x_url?: string | null
           youtube_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shipping_rules: {
         Row: {
@@ -3764,6 +3930,10 @@ export type Database = {
     Functions: {
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
+      clone_template_to_store: {
+        Args: { p_template_id: string; p_user_id: string }
+        Returns: undefined
+      }
       copy_template_products_to_store: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: number
@@ -3822,6 +3992,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      sync_template_from_profile: {
+        Args: { p_template_id: string }
+        Returns: undefined
       }
     }
     Enums: {

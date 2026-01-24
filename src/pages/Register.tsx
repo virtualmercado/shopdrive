@@ -7,7 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Store, Tag } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useTemplateBySlug, useCopyTemplateProducts } from "@/hooks/useBrandTemplates";
+import { useTemplateBySlug } from "@/hooks/useBrandTemplates";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -38,7 +39,6 @@ const Register = () => {
   const { user, signUp } = useAuth();
   
   const { data: template } = useTemplateBySlug(templateSlug);
-  const copyProductsMutation = useCopyTemplateProducts();
 
   useEffect(() => {
     if (user) {
@@ -68,17 +68,24 @@ const Register = () => {
       );
       
       if (!error && data?.user) {
-        // If registering via template, copy products to the new store
+        // If registering via template, clone the complete template to the new store
         if (template && template.id) {
           try {
-            await copyProductsMutation.mutateAsync({
-              templateId: template.id,
-              userId: data.user.id,
-            });
-            toast.success(`Loja criada com os produtos da marca ${template.name}!`);
+            // Use the new clone_template_to_store function that copies everything
+            const { error: cloneError } = await supabase
+              .rpc('clone_template_to_store', { 
+                p_template_id: template.id,
+                p_user_id: data.user.id 
+              });
+
+            if (cloneError) {
+              console.error('Error cloning template:', cloneError);
+              toast.warning('Loja criada, mas houve um erro ao copiar a configuração do template.');
+            } else {
+              toast.success(`Sua loja foi criada com toda a configuração da marca ${template.name}!`);
+            }
           } catch (copyError) {
-            console.error('Error copying template products:', copyError);
-            // Don't block navigation even if copy fails
+            console.error('Error copying template:', copyError);
             toast.warning('Loja criada, mas houve um erro ao copiar os produtos do template.');
           }
         }
@@ -115,6 +122,10 @@ const Register = () => {
             <Tag className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
               Você está criando sua loja da marca: <strong>{template.name}</strong>
+              <br />
+              <span className="text-xs text-muted-foreground">
+                Sua loja será criada com produtos, layout e configurações da marca.
+              </span>
             </AlertDescription>
           </Alert>
         )}

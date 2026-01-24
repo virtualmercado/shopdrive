@@ -81,7 +81,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   useBrandTemplates,
   useBrandTemplateStats,
-  useCreateBrandTemplate,
   useDeleteBrandTemplate,
   useDuplicateBrandTemplate,
   useToggleBrandTemplateStatus,
@@ -92,6 +91,7 @@ import {
   getTemplateActivationLink,
   getWhatsAppShareMessage,
 } from '@/hooks/useBrandTemplates';
+import { useCreateTemplateProfile, useSyncTemplateSnapshot, useOpenTemplateEditor } from '@/hooks/useTemplateEditor';
 import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
@@ -120,7 +120,9 @@ const AdminBrandTemplates = () => {
 
   const { data: templates, isLoading } = useBrandTemplates(statusFilter, searchTerm, linkStatusFilter);
   const { data: stats, isLoading: isLoadingStats } = useBrandTemplateStats();
-  const createMutation = useCreateBrandTemplate();
+  const createTemplateMutation = useCreateTemplateProfile();
+  const syncSnapshotMutation = useSyncTemplateSnapshot();
+  const { openEditor, isOpening: isOpeningEditor } = useOpenTemplateEditor();
   const deleteMutation = useDeleteBrandTemplate();
   const duplicateMutation = useDuplicateBrandTemplate();
   const toggleStatusMutation = useToggleBrandTemplateStatus();
@@ -189,9 +191,46 @@ const AdminBrandTemplates = () => {
       return;
     }
 
-    await createMutation.mutateAsync(formData);
-    setIsCreateModalOpen(false);
-    resetForm();
+    try {
+      const result = await createTemplateMutation.mutateAsync({
+        name: formData.name,
+        logo_url: formData.logo_url,
+        description: formData.description,
+      });
+      
+      setIsCreateModalOpen(false);
+      resetForm();
+      
+      // Open the template editor in a new tab
+      if (result.template && result.profile) {
+        openEditor(result.template.id, result.profile.id);
+      }
+    } catch (error) {
+      console.error('Error creating template:', error);
+    }
+  };
+
+  const handleOpenEditorForTemplate = (template: BrandTemplate) => {
+    // For existing templates, we need to get the source_profile_id
+    const fetchAndOpen = async () => {
+      const { data } = await supabase
+        .from('brand_templates')
+        .select('source_profile_id')
+        .eq('id', template.id)
+        .single();
+      
+      if (data?.source_profile_id) {
+        openEditor(template.id, data.source_profile_id);
+      } else {
+        // Template doesn't have a source profile yet - old template
+        toast.error('Este template foi criado no sistema antigo. Recrie-o para usar o novo editor.');
+      }
+    };
+    fetchAndOpen();
+  };
+
+  const handleSyncTemplate = (template: BrandTemplate) => {
+    syncSnapshotMutation.mutate(template.id);
   };
 
   const handleDeleteTemplate = async () => {
@@ -505,13 +544,17 @@ const AdminBrandTemplates = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/editar`)}>
+                                <DropdownMenuItem onClick={() => handleOpenEditorForTemplate(template)}>
                                   <Pencil className="h-4 w-4 mr-2" />
-                                  Editar Template
+                                  Abrir Painel de Edição
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSyncTemplate(template)}>
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Sincronizar Snapshot
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/catalogo`)}>
                                   <FolderOpen className="h-4 w-4 mr-2" />
-                                  Gerenciar Catálogo
+                                  Gerenciar Catálogo (Antigo)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                   <Eye className="h-4 w-4 mr-2" />
@@ -593,17 +636,17 @@ const AdminBrandTemplates = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/editar`)}>
+                              <DropdownMenuItem onClick={() => handleOpenEditorForTemplate(template)}>
                                 <Pencil className="h-4 w-4 mr-2" />
-                                Editar Template
+                                Abrir Editor
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/catalogo`)}>
-                                <FolderOpen className="h-4 w-4 mr-2" />
-                                Gerenciar Catálogo
+                              <DropdownMenuItem onClick={() => handleSyncTemplate(template)}>
+                                <Package className="h-4 w-4 mr-2" />
+                                Sincronizar
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                 <Eye className="h-4 w-4 mr-2" />
-                                Visualizar Loja Modelo
+                                Visualizar
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCopyLink(template)}>
@@ -612,7 +655,7 @@ const AdminBrandTemplates = () => {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleCopyWhatsAppMessage(template)}>
                                 <MessageCircle className="h-4 w-4 mr-2" />
-                                Mensagem WhatsApp
+                                WhatsApp
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setQrCodeTemplate(template)}>
                                 <QrCode className="h-4 w-4 mr-2" />
@@ -843,10 +886,10 @@ const AdminBrandTemplates = () => {
             </Button>
             <Button
               onClick={handleCreateTemplate}
-              disabled={createMutation.isPending}
+              disabled={createTemplateMutation.isPending || isOpeningEditor}
               className="bg-primary hover:bg-primary/90"
             >
-              {createMutation.isPending ? 'Criando...' : 'Criar Template'}
+              {createTemplateMutation.isPending ? 'Criando...' : isOpeningEditor ? 'Abrindo Editor...' : 'Criar e Configurar Template'}
             </Button>
           </DialogFooter>
         </DialogContent>
