@@ -158,23 +158,29 @@ export const useTemplateWithProfile = (templateId: string | undefined) => {
 
 /**
  * Hook to open template editor in a new tab
+ * This now stores context in localStorage and opens a dedicated template editor page
  */
 export const useOpenTemplateEditor = () => {
   const [isOpening, setIsOpening] = useState(false);
 
-  const openEditor = async (templateId: string, sourceProfileId: string) => {
+  const openEditor = async (
+    templateId: string, 
+    sourceProfileId: string,
+    credentials?: { email: string; password: string }
+  ) => {
     setIsOpening(true);
     
     try {
-      // Store template context in sessionStorage for the new tab
+      // Store template context in localStorage (persists across tabs)
       const editorContext = {
         templateId,
         sourceProfileId,
         mode: 'template-editor',
         timestamp: Date.now(),
+        credentials, // Only for initial login
       };
       
-      sessionStorage.setItem('templateEditorContext', JSON.stringify(editorContext));
+      localStorage.setItem('templateEditorContext', JSON.stringify(editorContext));
       
       // Open the dashboard in a new tab with template mode
       const editorUrl = `/lojista?templateId=${templateId}&mode=template-editor`;
@@ -194,23 +200,23 @@ export const useOpenTemplateEditor = () => {
 
 /**
  * Hook to detect if we're in template editor mode
+ * Uses localStorage instead of sessionStorage for cross-tab persistence
  */
 export const useTemplateEditorMode = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const templateId = urlParams.get('templateId');
-  const mode = urlParams.get('mode');
+  const templateIdFromUrl = urlParams.get('templateId');
+  const modeFromUrl = urlParams.get('mode');
   
-  const isTemplateEditorMode = mode === 'template-editor' && !!templateId;
-  
-  // Also check sessionStorage for additional context
+  // Check localStorage for editor context
   let editorContext: {
     templateId: string;
     sourceProfileId: string;
     mode: string;
+    credentials?: { email: string; password: string };
   } | null = null;
   
   try {
-    const stored = sessionStorage.getItem('templateEditorContext');
+    const stored = localStorage.getItem('templateEditorContext');
     if (stored) {
       editorContext = JSON.parse(stored);
     }
@@ -218,9 +224,21 @@ export const useTemplateEditorMode = () => {
     // Ignore parse errors
   }
 
+  // Use URL params if present, otherwise fall back to localStorage context
+  const templateId = templateIdFromUrl || editorContext?.templateId || null;
+  const isTemplateEditorMode = (modeFromUrl === 'template-editor' && !!templateIdFromUrl) || 
+                               (editorContext?.mode === 'template-editor' && !!editorContext?.templateId);
+
   return {
     isTemplateEditorMode,
     templateId,
     editorContext,
   };
+};
+
+/**
+ * Hook to clear template editor context
+ */
+export const clearTemplateEditorContext = () => {
+  localStorage.removeItem('templateEditorContext');
 };
