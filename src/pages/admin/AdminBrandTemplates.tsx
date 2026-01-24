@@ -708,14 +708,14 @@ const AdminBrandTemplates = () => {
 
       {/* Create Template Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Criar Novo Template de Marca</DialogTitle>
             <DialogDescription>
               Preencha as informações para criar um novo template de loja por marca.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 w-full overflow-hidden">
             <div className="space-y-2">
               <Label htmlFor="name">Nome da Marca *</Label>
               <Input
@@ -726,25 +726,26 @@ const AdminBrandTemplates = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 w-full overflow-hidden">
               <Label htmlFor="logo_url">Logo da Marca</Label>
               
               {/* Logo Preview */}
               {formData.logo_url && (
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg w-full max-w-full overflow-hidden">
                   <img 
                     src={formData.logo_url} 
                     alt="Preview do logo" 
-                    className="h-12 w-12 object-contain rounded"
+                    className="h-12 w-12 min-w-12 object-contain rounded flex-shrink-0"
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{formData.logo_url}</p>
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p className="text-sm truncate max-w-full">{formData.logo_url}</p>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+                    className="flex-shrink-0"
                   >
                     Remover
                   </Button>
@@ -794,13 +795,13 @@ const AdminBrandTemplates = () => {
               </div>
               
               {/* URL Input */}
-              <div className="flex gap-2">
+              <div className="w-full overflow-hidden">
                 <Input
                   id="logo_url"
                   value={formData.logo_url}
                   onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
                   placeholder="Ou cole a URL da imagem aqui..."
-                  className="flex-1"
+                  className="w-full"
                 />
               </div>
               
