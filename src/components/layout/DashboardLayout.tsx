@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
 
 // VM Official Logo for Dashboard
 import vmLogo from "@/assets/logo-vm-dashboard.png";
@@ -45,6 +46,13 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+interface TemplateEditorContext {
+  templateId: string;
+  sourceProfileId: string;
+  mode: string;
+  credentials?: { email: string; password: string };
+}
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [storeUrl, setStoreUrl] = useState<string>("");
@@ -52,19 +60,85 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState<string | null>(null);
+  const [isTemplateEditorMode, setIsTemplateEditorMode] = useState(false);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const [searchParams] = useSearchParams();
 
-  // Template editor mode detection
-  const templateId = searchParams.get('templateId');
-  const mode = searchParams.get('mode');
-  const isTemplateEditorMode = mode === 'template-editor' && !!templateId;
+  // Template editor mode detection from localStorage (persists across navigation)
+  useEffect(() => {
+    const checkTemplateEditorMode = async () => {
+      // Check URL params first
+      const urlTemplateId = searchParams.get('templateId');
+      const urlMode = searchParams.get('mode');
+      
+      // Check localStorage for editor context
+      let editorContext: TemplateEditorContext | null = null;
+      try {
+        const stored = localStorage.getItem('templateEditorContext');
+        if (stored) {
+          editorContext = JSON.parse(stored);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+
+      // Determine if we're in template editor mode
+      const isFromUrl = urlMode === 'template-editor' && !!urlTemplateId;
+      const isFromStorage = editorContext?.mode === 'template-editor' && !!editorContext?.templateId;
+      
+      if (isFromUrl || isFromStorage) {
+        const tId = urlTemplateId || editorContext?.templateId || null;
+        setIsTemplateEditorMode(true);
+        setTemplateId(tId);
+
+        // If we have credentials in context and haven't attempted login yet
+        if (editorContext?.credentials && !hasAttemptedLogin) {
+          setHasAttemptedLogin(true);
+          setIsLoggingIn(true);
+          
+          try {
+            // Sign out current user first
+            await supabase.auth.signOut();
+            
+            // Login as template profile
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+              email: editorContext.credentials.email,
+              password: editorContext.credentials.password,
+            });
+
+            if (loginError) {
+              console.error('Error logging in as template profile:', loginError);
+              toast.error('Erro ao acessar perfil do template');
+              clearTemplateEditorContext();
+              navigate('/gestor/templates-marca');
+            } else {
+              // Clear credentials from storage after successful login (security)
+              const updatedContext = { ...editorContext };
+              delete updatedContext.credentials;
+              localStorage.setItem('templateEditorContext', JSON.stringify(updatedContext));
+              toast.success('Conectado ao perfil do template!');
+            }
+          } finally {
+            setIsLoggingIn(false);
+          }
+        }
+      } else {
+        setIsTemplateEditorMode(false);
+        setTemplateId(null);
+      }
+    };
+
+    checkTemplateEditorMode();
+  }, [searchParams, navigate, hasAttemptedLogin]);
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
-      if (!user) return;
+      if (!user || isTemplateEditorMode) return;
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -79,7 +153,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     };
 
     fetchStoreUrl();
-  }, [user]);
+  }, [user, isTemplateEditorMode]);
 
   // Fetch template name when in editor mode
   useEffect(() => {
@@ -97,7 +171,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       }
     };
 
-    if (isTemplateEditorMode) {
+    if (isTemplateEditorMode && templateId) {
       fetchTemplateName();
     }
   }, [templateId, isTemplateEditorMode]);
@@ -122,13 +196,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   };
 
-  const handleExitTemplateMode = () => {
-    sessionStorage.removeItem('templateEditorContext');
+  const handleExitTemplateMode = async () => {
+    // Clear the template editor context
+    clearTemplateEditorContext();
+    
+    // Sign out from template profile
+    await supabase.auth.signOut();
     
     if (window.opener) {
       window.close();
     } else {
-      navigate('/gestor/templates-marca');
+      navigate('/gestor/login');
     }
   };
 
@@ -162,10 +240,34 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Settings, label: "Configurações", path: "/lojista/settings" },
   ];
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/", { replace: true });
+  // Helper to generate nav link with template params preserved
+  const getNavPath = (basePath: string) => {
+    if (isTemplateEditorMode && templateId) {
+      return `${basePath}?templateId=${templateId}&mode=template-editor`;
+    }
+    return basePath;
   };
+
+  const handleLogout = async () => {
+    if (isTemplateEditorMode) {
+      await handleExitTemplateMode();
+    } else {
+      await signOut();
+      navigate("/", { replace: true });
+    }
+  };
+
+  // Show loading when logging in to template profile
+  if (isLoggingIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Acessando perfil do template...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -207,7 +309,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               return (
                 <Link
                   key={item.path}
-                  to={item.path}
+                  to={getNavPath(item.path)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
                     isActive 

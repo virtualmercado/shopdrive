@@ -76,8 +76,8 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
   };
 
   const exitTemplateMode = () => {
-    // Clear sessionStorage
-    sessionStorage.removeItem('templateEditorContext');
+    // Clear localStorage
+    localStorage.removeItem('templateEditorContext');
     
     // Close this tab or redirect
     if (window.opener) {

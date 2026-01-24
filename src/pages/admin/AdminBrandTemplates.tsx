@@ -201,9 +201,12 @@ const AdminBrandTemplates = () => {
       setIsCreateModalOpen(false);
       resetForm();
       
-      // Open the template editor in a new tab
+      // Open the template editor in a new tab with credentials for auto-login
       if (result.template && result.profile) {
-        openEditor(result.template.id, result.profile.id);
+        openEditor(result.template.id, result.profile.id, {
+          email: result.profile.email,
+          password: result.profile.password,
+        });
       }
     } catch (error) {
       console.error('Error creating template:', error);
