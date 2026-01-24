@@ -3983,6 +3983,10 @@ export type Database = {
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
+      link_template_to_profile: {
+        Args: { p_profile_id: string; p_template_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_action: string

@@ -65,29 +65,24 @@ export const useCreateTemplateProfile = () => {
         throw new Error('Falha ao criar perfil temporário');
       }
 
-      // Mark the profile as template and link to brand_template
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          is_template_profile: true,
-          store_logo_url: templateData.logo_url || null,
-        })
-        .eq('id', authData.user.id);
-
-      if (updateError) {
-        console.error('Error marking profile as template:', updateError);
-      }
-
-      // Link template to source profile
+      // Use secure RPC function to link template to profile (bypasses RLS issues)
       const { error: linkError } = await supabase
-        .from('brand_templates')
-        .update({
-          source_profile_id: authData.user.id,
-        })
-        .eq('id', template.id);
+        .rpc('link_template_to_profile', {
+          p_template_id: template.id,
+          p_profile_id: authData.user.id,
+        });
 
       if (linkError) {
         console.error('Error linking template to profile:', linkError);
+        // Still continue - the template was created
+      }
+
+      // Update logo separately if provided
+      if (templateData.logo_url) {
+        await supabase
+          .from('profiles')
+          .update({ store_logo_url: templateData.logo_url })
+          .eq('id', authData.user.id);
       }
 
       return {
