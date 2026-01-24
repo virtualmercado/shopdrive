@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,21 +10,25 @@ interface AdminRouteProps {
 
 export const AdminRoute = ({ children }: AdminRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { hasAnyRole, loading: roleLoading } = useRoleCheck();
+  const { hasAnyRole, roles, loading: roleLoading } = useRoleCheck();
   const navigate = useNavigate();
+  const [hasChecked, setHasChecked] = useState(false);
 
   const loading = authLoading || roleLoading;
+  const isAdmin = hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico']);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !hasChecked) {
+      setHasChecked(true);
+      
       if (!user) {
         navigate('/gestor/login', { replace: true });
-      } else if (!hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico'])) {
+      } else if (!isAdmin) {
         toast.error('Acesso não autorizado. Esta área é exclusiva para administradores.');
         navigate('/', { replace: true });
       }
     }
-  }, [user, hasAnyRole, loading, navigate]);
+  }, [user, isAdmin, loading, navigate, hasChecked]);
 
   if (loading) {
     return (
@@ -34,7 +38,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
-  if (!user || !hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico'])) {
+  if (!user || !isAdmin) {
     return null;
   }
 
