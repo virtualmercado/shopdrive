@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMerchantCheck } from '@/hooks/useMerchantCheck';
 import { toast } from 'sonner';
@@ -10,9 +10,12 @@ interface MerchantRouteProps {
 export const MerchantRoute = ({ children }: MerchantRouteProps) => {
   const { user, isMerchant, loading } = useMerchantCheck();
   const navigate = useNavigate();
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !hasChecked) {
+      setHasChecked(true);
+      
       if (!user) {
         // Usuário não autenticado - redirecionar para login
         navigate('/login', { replace: true });
@@ -22,7 +25,7 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
         navigate('/', { replace: true });
       }
     }
-  }, [user, isMerchant, loading, navigate]);
+  }, [user, isMerchant, loading, navigate, hasChecked]);
 
   if (loading) {
     return (
