@@ -11,7 +11,6 @@ import {
   Store,
   Package,
   Pencil,
-  FolderOpen,
   Eye,
   Power,
   Copy,
@@ -554,10 +553,6 @@ const AdminBrandTemplates = () => {
                                 <DropdownMenuItem onClick={() => handleSyncTemplate(template)}>
                                   <Package className="h-4 w-4 mr-2" />
                                   Sincronizar Snapshot
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate(`/gestor/templates-marca/${template.id}/catalogo`)}>
-                                  <FolderOpen className="h-4 w-4 mr-2" />
-                                  Gerenciar Catálogo (Antigo)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
                                   <Eye className="h-4 w-4 mr-2" />
