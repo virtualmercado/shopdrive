@@ -221,12 +221,14 @@ const AdminBrandTemplates = () => {
         .eq('id', template.id)
         .single();
       
-      if (data?.source_profile_id) {
-        openEditor(template.id, data.source_profile_id);
-      } else {
+      if (!data?.source_profile_id) {
         // Template doesn't have a source profile yet - old template
         toast.error('Este template foi criado no sistema antigo. Recrie-o para usar o novo editor.');
+        return;
       }
+      
+      // openEditor will handle fetching credentials via edge function
+      openEditor(template.id, data.source_profile_id);
     };
     fetchAndOpen();
   };

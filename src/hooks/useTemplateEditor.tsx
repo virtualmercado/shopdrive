@@ -169,17 +169,28 @@ export const useOpenTemplateEditor = () => {
     try {
       let loginCredentials = credentials;
       
-      // If no credentials provided, try to fetch from database
+      // If no credentials provided, get them from the edge function
       if (!loginCredentials) {
-        const { data: creds, error: credsError } = await supabase
-          .rpc('get_template_credentials', { p_template_id: templateId });
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         
-        if (!credsError && creds && creds.length > 0 && creds[0].password) {
-          loginCredentials = {
-            email: creds[0].email,
-            password: creds[0].password,
-          };
+        const response = await fetch(`${supabaseUrl}/functions/v1/reset-template-auth`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ templateId }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get credentials');
         }
+        
+        const data = await response.json();
+        loginCredentials = {
+          email: data.email,
+          password: data.password,
+        };
       }
       
       if (!loginCredentials) {
