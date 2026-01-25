@@ -19,7 +19,9 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
   const isAdmin = hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico']);
 
   useEffect(() => {
-    if (!loading && !hasChecked) {
+    // CRITICAL: Only perform access check after BOTH auth and roles are fully loaded
+    // This prevents premature redirects when opening preview in new tabs
+    if (!authLoading && !roleLoading && !hasChecked) {
       setHasChecked(true);
       
       if (!user) {
@@ -29,9 +31,10 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
         navigate('/', { replace: true });
       }
     }
-  }, [user, isAdmin, loading, navigate, hasChecked]);
+  }, [user, isAdmin, authLoading, roleLoading, navigate, hasChecked]);
 
-  if (loading) {
+  // Show loading spinner while EITHER auth or roles are loading
+  if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -39,6 +42,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
+  // Don't render children until we've completed the access check
   if (!user || !isAdmin) {
     return null;
   }
