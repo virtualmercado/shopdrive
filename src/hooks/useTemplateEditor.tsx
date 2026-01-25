@@ -65,11 +65,12 @@ export const useCreateTemplateProfile = () => {
         throw new Error('Falha ao criar perfil temporário');
       }
 
-      // Use secure RPC function to link template to profile (bypasses RLS issues)
+      // Use secure RPC function to link template to profile and store password (bypasses RLS issues)
       const { error: linkError } = await supabase
         .rpc('link_template_to_profile', {
           p_template_id: template.id,
           p_profile_id: authData.user.id,
+          p_template_password: templatePassword,
         });
 
       if (linkError) {
@@ -166,13 +167,34 @@ export const useOpenTemplateEditor = () => {
     setIsOpening(true);
     
     try {
+      let loginCredentials = credentials;
+      
+      // If no credentials provided, try to fetch from database
+      if (!loginCredentials) {
+        const { data: creds, error: credsError } = await supabase
+          .rpc('get_template_credentials', { p_template_id: templateId });
+        
+        if (!credsError && creds && creds.length > 0 && creds[0].password) {
+          loginCredentials = {
+            email: creds[0].email,
+            password: creds[0].password,
+          };
+        }
+      }
+      
+      if (!loginCredentials) {
+        toast.error('Não foi possível obter credenciais do template. Recrie o template.');
+        setIsOpening(false);
+        return;
+      }
+      
       // Store template context in localStorage (persists across tabs)
       const editorContext = {
         templateId,
         sourceProfileId,
         mode: 'template-editor',
         timestamp: Date.now(),
-        credentials, // Only for initial login
+        credentials: loginCredentials,
       };
       
       localStorage.setItem('templateEditorContext', JSON.stringify(editorContext));
