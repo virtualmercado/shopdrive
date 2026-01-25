@@ -4016,6 +4016,10 @@ export type Database = {
         }
         Returns: string
       }
+      reset_template_password: {
+        Args: { p_template_id: string }
+        Returns: string
+      }
       sync_template_from_profile: {
         Args: { p_template_id: string }
         Returns: undefined
