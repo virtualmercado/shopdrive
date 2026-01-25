@@ -141,11 +141,17 @@ export const useBrandTemplate = (templateId: string) => {
   return useQuery({
     queryKey: ['brand-template', templateId],
     queryFn: async () => {
+      // Validate UUID format before querying
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(templateId)) {
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('brand_templates')
         .select('*')
         .eq('id', templateId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
