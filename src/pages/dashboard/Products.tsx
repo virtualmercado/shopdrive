@@ -54,9 +54,18 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      // IMPORTANT: Filter by logged-in user's ID to ensure data isolation
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -74,9 +83,16 @@ const Products = () => {
   };
 
   const fetchCategories = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setCategories([]);
+      return;
+    }
+    
     const { data } = await supabase
       .from("product_categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name");
     
     if (data) setCategories(data);
