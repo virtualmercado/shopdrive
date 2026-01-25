@@ -153,8 +153,8 @@ export const useTemplateWithProfile = (templateId: string | undefined) => {
 };
 
 /**
- * Hook to open template editor in a new tab
- * This now stores context in localStorage and opens a dedicated template editor page
+ * Hook to open template editor - switches the current session to the template profile
+ * This replaces the current session instead of opening a new tab
  */
 export const useOpenTemplateEditor = () => {
   const [isOpening, setIsOpening] = useState(false);
@@ -199,7 +199,7 @@ export const useOpenTemplateEditor = () => {
         return;
       }
       
-      // Store template context in localStorage (persists across tabs)
+      // Store template context in localStorage
       const editorContext = {
         templateId,
         sourceProfileId,
@@ -210,17 +210,17 @@ export const useOpenTemplateEditor = () => {
       
       localStorage.setItem('templateEditorContext', JSON.stringify(editorContext));
       
-      // Open the dashboard in a new tab with template mode
+      // Navigate to the dashboard (same tab) - session switch happens in DashboardLayout
       const editorUrl = `/lojista?templateId=${templateId}&mode=template-editor`;
-      window.open(editorUrl, '_blank');
+      window.location.href = editorUrl;
       
-      toast.success('Painel de edição aberto em nova aba!');
+      toast.info('Abrindo painel de edição do template...');
     } catch (error) {
       console.error('Error opening editor:', error);
       toast.error('Erro ao abrir editor');
-    } finally {
       setIsOpening(false);
     }
+    // Note: We don't set isOpening to false here because we're navigating away
   };
 
   return { openEditor, isOpening };

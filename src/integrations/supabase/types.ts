@@ -2819,6 +2819,7 @@ export type Database = {
           secondary_color: string | null
           shipping_fixed_fee: number | null
           shipping_free_minimum: number | null
+          show_whatsapp_button: boolean | null
           source_template_id: string | null
           store_description: string | null
           store_logo_url: string | null
@@ -2894,6 +2895,7 @@ export type Database = {
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
+          show_whatsapp_button?: boolean | null
           source_template_id?: string | null
           store_description?: string | null
           store_logo_url?: string | null
@@ -2969,6 +2971,7 @@ export type Database = {
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
+          show_whatsapp_button?: boolean | null
           source_template_id?: string | null
           store_description?: string | null
           store_logo_url?: string | null
