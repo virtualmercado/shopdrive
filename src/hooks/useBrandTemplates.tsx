@@ -70,16 +70,36 @@ export const useBrandTemplate = (id: string | undefined) => {
   return useQuery({
     queryKey: ['brand-template', id],
     queryFn: async () => {
+      // Validate ID presence
       if (!id) return null;
+      
+      // Validate UUID format before making query
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        console.warn('[useBrandTemplate] Invalid UUID format:', id);
+        return null;
+      }
+
+      // Use .maybeSingle() instead of .single() to avoid throwing exception
       const { data, error } = await supabase
         .from('brand_templates')
         .select('*')
         .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data as BrandTemplate;
+        .maybeSingle();
+      
+      // Log error only in development, return null instead of throwing
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[useBrandTemplate] Error fetching template:', error);
+        }
+        return null;
+      }
+      
+      return data as BrandTemplate | null;
     },
     enabled: !!id,
+    retry: 2, // Retry on temporary session failures
+    retryDelay: 1000, // Wait 1 second between retries
   });
 };
 
