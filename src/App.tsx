@@ -97,7 +97,14 @@ function App() {
             <Route path="/gestor/templates-marca" element={<AdminRoute><AdminBrandTemplates /></AdminRoute>} />
             <Route path="/gestor/templates-marca/:templateId/editar" element={<AdminRoute><AdminBrandTemplateEdit /></AdminRoute>} />
             <Route path="/gestor/templates-marca/:templateId/catalogo" element={<AdminRoute><AdminBrandTemplateCatalog /></AdminRoute>} />
-            <Route path="/gestor/templates-marca/:templateId/preview" element={<AdminBrandTemplatePreview />} />
+            <Route
+              path="/gestor/templates-marca/:templateId/preview"
+              element={
+                <AdminRoute>
+                  <AdminBrandTemplatePreview />
+                </AdminRoute>
+              }
+            />
             <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
             <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />

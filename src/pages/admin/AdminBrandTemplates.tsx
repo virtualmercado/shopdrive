@@ -237,6 +237,19 @@ const AdminBrandTemplates = () => {
     syncSnapshotMutation.mutate(template.id);
   };
 
+  const handleOpenTemplatePreview = (template: BrandTemplate) => {
+    const path = `/gestor/templates-marca/${template.id}/preview`;
+    const url = new URL(path, window.location.origin);
+
+    // Important for the preview environment: preserve query params (e.g. auth token)
+    // so the new tab can load the same app context.
+    if (window.location.search) {
+      url.search = window.location.search;
+    }
+
+    window.open(url.toString(), '_blank');
+  };
+
   const handleDeleteTemplate = async () => {
     if (deleteTemplate) {
       await deleteMutation.mutateAsync(deleteTemplate.id);
@@ -556,7 +569,7 @@ const AdminBrandTemplates = () => {
                                   <Package className="h-4 w-4 mr-2" />
                                   Sincronizar Snapshot
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
+                                <DropdownMenuItem onClick={() => handleOpenTemplatePreview(template)}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   Visualizar Loja Modelo
                                 </DropdownMenuItem>
@@ -644,7 +657,7 @@ const AdminBrandTemplates = () => {
                                 <Package className="h-4 w-4 mr-2" />
                                 Sincronizar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => window.open(`/gestor/templates-marca/${template.id}/preview`, '_blank')}>
+                              <DropdownMenuItem onClick={() => handleOpenTemplatePreview(template)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Visualizar
                               </DropdownMenuItem>
