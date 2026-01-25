@@ -452,6 +452,7 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_template_status"]
           store_name: string | null
           stores_created: number
+          template_password: string | null
           template_slug: string | null
           updated_at: string
           whatsapp_number: string | null
@@ -485,6 +486,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["brand_template_status"]
           store_name?: string | null
           stores_created?: number
+          template_password?: string | null
           template_slug?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -518,6 +520,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["brand_template_status"]
           store_name?: string | null
           stores_created?: number
+          template_password?: string | null
           template_slug?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -3970,6 +3973,13 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_template_status"]
         }[]
       }
+      get_template_credentials: {
+        Args: { p_template_id: string }
+        Returns: {
+          email: string
+          password: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3983,10 +3993,19 @@ export type Database = {
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
-      link_template_to_profile: {
-        Args: { p_profile_id: string; p_template_id: string }
-        Returns: boolean
-      }
+      link_template_to_profile:
+        | {
+            Args: { p_profile_id: string; p_template_id: string }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_profile_id: string
+              p_template_id: string
+              p_template_password?: string
+            }
+            Returns: boolean
+          }
       log_audit_event: {
         Args: {
           p_action: string
