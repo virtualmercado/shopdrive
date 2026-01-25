@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface AdminRouteProps {
@@ -9,8 +8,10 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute = ({ children }: AdminRouteProps) => {
-  const { user, loading: authLoading } = useAuth();
-  const { hasAnyRole, roles, loading: roleLoading } = useRoleCheck();
+  // IMPORTANT: useRoleCheck already tracks auth state internally.
+  // Avoid instantiating a second useAuth() here to prevent transient mismatches
+  // on cold loads/new tabs (which could redirect admins to the landing page).
+  const { user, authLoading, hasAnyRole, loading: roleLoading } = useRoleCheck();
   const navigate = useNavigate();
   const [hasChecked, setHasChecked] = useState(false);
 

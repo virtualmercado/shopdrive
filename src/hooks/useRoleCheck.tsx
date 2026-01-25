@@ -91,5 +91,7 @@ export const useRoleCheck = () => {
     return hasAnyRole(requiredRoles);
   }, [hasAnyRole]);
 
-  return { roles, hasRole, hasAnyRole, canAccess, canPerformAction, loading };
+  // Expose user/authLoading so route guards can avoid instantiating a second
+  // useAuth() instance (which can cause a brief mismatch on cold loads/new tabs).
+  return { user, authLoading, roles, hasRole, hasAnyRole, canAccess, canPerformAction, loading };
 };
