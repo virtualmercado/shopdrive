@@ -151,6 +151,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     const { data } = await supabase
       .from("product_categories")
       .select("*")
+      .eq("user_id", user.id)
       .order("name");
     
     if (data) setCategories(data);
