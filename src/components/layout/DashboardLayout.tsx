@@ -97,42 +97,43 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         setTemplateId(tId);
 
         // If we have credentials in context and haven't attempted login yet
-        // This only runs when the editor is opened in a NEW TAB (isolated session)
+        // This switches the current session to the template profile
         if (editorContext?.credentials && !hasAttemptedLogin) {
           setHasAttemptedLogin(true);
           setIsLoggingIn(true);
           
           try {
-            // Check if we're already logged in as this template profile
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            const expectedEmail = editorContext.credentials.email;
+            // Always sign out first to ensure clean session switch
+            await supabase.auth.signOut();
             
-            // Only login if not already logged as the template user
-            if (currentUser?.email !== expectedEmail) {
-              // Sign out current user first (only in this tab/session)
-              await supabase.auth.signOut();
-              
-              // Login as template profile
-              const { error: loginError } = await supabase.auth.signInWithPassword({
-                email: editorContext.credentials.email,
-                password: editorContext.credentials.password,
-              });
+            // Login as template profile
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+              email: editorContext.credentials.email,
+              password: editorContext.credentials.password,
+            });
 
-              if (loginError) {
-                console.error('Error logging in as template profile:', loginError);
-                toast.error('Erro ao acessar perfil do template');
-                clearTemplateEditorContext();
-                navigate('/gestor/templates-marca');
-                return;
-              }
-              
-              toast.success('Conectado ao perfil do template!');
+            if (loginError) {
+              console.error('Error logging in as template profile:', loginError);
+              toast.error('Erro ao acessar perfil do template. Verifique as credenciais.');
+              clearTemplateEditorContext();
+              navigate('/gestor/login');
+              return;
             }
             
             // Clear credentials from storage after successful login (security)
             const updatedContext = { ...editorContext };
             delete updatedContext.credentials;
             localStorage.setItem('templateEditorContext', JSON.stringify(updatedContext));
+            
+            toast.success('Conectado ao perfil do template!');
+            
+            // Force page reload to ensure all components fetch fresh data
+            window.location.reload();
+          } catch (error) {
+            console.error('Error during session switch:', error);
+            toast.error('Erro ao trocar sessão');
+            clearTemplateEditorContext();
+            navigate('/gestor/login');
           } finally {
             setIsLoggingIn(false);
           }
