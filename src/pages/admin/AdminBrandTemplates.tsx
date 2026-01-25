@@ -241,11 +241,16 @@ const AdminBrandTemplates = () => {
     const path = `/gestor/templates-marca/${template.id}/preview`;
     const url = new URL(path, window.location.origin);
 
-    // Important for the preview environment: preserve query params (e.g. auth token)
-    // so the new tab can load the same app context.
-    if (window.location.search) {
-      url.search = window.location.search;
-    }
+    // IMPORTANT:
+    // In the Lovable preview environment we must preserve the special preview params
+    // (e.g. __lovable_token). But we must NOT copy other params (like mode=template-editor)
+    // because they can trigger session-switching / route guards and redirect the user.
+    const current = new URL(window.location.href);
+    current.searchParams.forEach((value, key) => {
+      if (key.startsWith('__lovable')) {
+        url.searchParams.set(key, value);
+      }
+    });
 
     window.open(url.toString(), '_blank');
   };
