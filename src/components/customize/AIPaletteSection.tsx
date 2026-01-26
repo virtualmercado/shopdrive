@@ -13,7 +13,7 @@ import { StorePreviewMockup } from "./StorePreviewMockup";
 export interface ColorPalette {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  iconType: 'leaf' | 'waves' | 'mountain' | 'moon' | 'circle' | 'heart' | 'flame' | 'tree' | 'sparkles';
   description: string;
   colors: {
     primary: string;
@@ -29,12 +29,28 @@ export interface ColorPalette {
   };
 }
 
+// Helper function to render icon by type
+const PaletteIcon = ({ type }: { type: ColorPalette['iconType'] }) => {
+  switch (type) {
+    case 'leaf': return <Leaf className="h-4 w-4" />;
+    case 'waves': return <Waves className="h-4 w-4" />;
+    case 'mountain': return <Mountain className="h-4 w-4" />;
+    case 'moon': return <Moon className="h-4 w-4" />;
+    case 'circle': return <Circle className="h-4 w-4" />;
+    case 'heart': return <Heart className="h-4 w-4" />;
+    case 'flame': return <Flame className="h-4 w-4" />;
+    case 'tree': return <TreeDeciduous className="h-4 w-4" />;
+    case 'sparkles': return <Sparkles className="h-4 w-4" />;
+    default: return <Circle className="h-4 w-4" />;
+  }
+};
+
 // 12 pre-defined palettes with TopBar colors
 const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "verde-natural",
     name: "Verde Natural",
-    icon: <Leaf className="h-4 w-4" />,
+    iconType: "leaf",
     description: "Natureza, sustentabilidade, bem-estar",
     colors: {
       primary: "#2E7D32",
@@ -52,7 +68,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "azul-profissional",
     name: "Azul Profissional",
-    icon: <Waves className="h-4 w-4" />,
+    iconType: "waves",
     description: "Confiança, tecnologia, serviços",
     colors: {
       primary: "#1565C0",
@@ -70,7 +86,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "terrosa-amazonica",
     name: "Terrosa Amazônica",
-    icon: <Mountain className="h-4 w-4" />,
+    iconType: "mountain",
     description: "Tons quentes, orgânicos, artesanais",
     colors: {
       primary: "#8D6E63",
@@ -88,7 +104,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "elegante-escura",
     name: "Elegante Escura",
-    icon: <Moon className="h-4 w-4" />,
+    iconType: "moon",
     description: "Fundo escuro, alto contraste, premium",
     colors: {
       primary: "#212121",
@@ -106,7 +122,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "neutra-clean",
     name: "Neutra Clean",
-    icon: <Circle className="h-4 w-4" />,
+    iconType: "circle",
     description: "Minimalista, branco, cinza-claro",
     colors: {
       primary: "#424242",
@@ -124,7 +140,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "suave-feminina",
     name: "Suave Feminina",
-    icon: <Heart className="h-4 w-4" />,
+    iconType: "heart",
     description: "Tons rosados, lilás, bege suave",
     colors: {
       primary: "#AD1457",
@@ -142,7 +158,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "vibrante-moderna",
     name: "Vibrante Moderna",
-    icon: <Flame className="h-4 w-4" />,
+    iconType: "flame",
     description: "Cores vivas para CTA e destaque",
     colors: {
       primary: "#FF5722",
@@ -160,7 +176,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "sofisticada-natural",
     name: "Sofisticada Natural",
-    icon: <TreeDeciduous className="h-4 w-4" />,
+    iconType: "tree",
     description: "Verde fechado, marrom, off-white, dourado",
     colors: {
       primary: "#33691E",
@@ -179,7 +195,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "roxo-criativo",
     name: "Roxo Criativo",
-    icon: <Sparkles className="h-4 w-4" />,
+    iconType: "sparkles",
     description: "Criatividade, originalidade, identidade digital",
     colors: {
       primary: "#7B1FA2",
@@ -197,7 +213,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "azul-neon",
     name: "Azul Neon",
-    icon: <Waves className="h-4 w-4" />,
+    iconType: "waves",
     description: "Moderno, digital, alto impacto visual",
     colors: {
       primary: "#00B0FF",
@@ -215,7 +231,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "laranja-urbano",
     name: "Laranja Urbano",
-    icon: <Flame className="h-4 w-4" />,
+    iconType: "flame",
     description: "Energia, atitude, estilo urbano",
     colors: {
       primary: "#FF6D00",
@@ -233,7 +249,7 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "pop-colorida",
     name: "Pop Colorida",
-    icon: <Heart className="h-4 w-4" />,
+    iconType: "heart",
     description: "Divertida, ousada, cheia de personalidade",
     colors: {
       primary: "#F50057",
@@ -625,7 +641,7 @@ export const AIPaletteSection = ({
             </div>
             
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-muted-foreground">{palette.icon}</span>
+              <span className="text-muted-foreground"><PaletteIcon type={palette.iconType} /></span>
               <span className="font-medium text-sm truncate">{palette.name}</span>
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2">{palette.description}</p>
