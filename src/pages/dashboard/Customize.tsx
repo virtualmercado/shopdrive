@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal } from "lucide-react";
+import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
 
 const Customize = () => {
   const { toast } = useToast();
@@ -271,6 +272,23 @@ const Customize = () => {
             </div>
           </div>
         </Card>
+
+        {/* AI Color Palette */}
+        <AIPaletteSection
+          currentColors={colors}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          userId={userId}
+          onApplyPalette={(palette) => {
+            setColors({
+              primary: palette.primary,
+              secondary: palette.secondary,
+              background: palette.background,
+            });
+            setButtonBgColor(palette.buttonBg);
+            setButtonTextColor(palette.buttonText);
+          }}
+        />
 
         {/* Logo */}
         <Card className="p-6">
