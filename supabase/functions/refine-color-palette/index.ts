@@ -14,6 +14,8 @@ interface ColorPalette {
   buttonText: string;
   footerBg: string;
   footerText: string;
+  topBarBg: string;
+  topBarText: string;
 }
 
 interface RefineRequest {
@@ -41,6 +43,7 @@ serve(async (req) => {
 3. Text on dark backgrounds must be light and vice-versa
 4. Maintain harmony between colors
 5. Ensure hover states are slightly lighter or darker than base colors
+6. Top Bar should complement the header while maintaining high visibility
 
 You must respond with a valid JSON object containing the refined color palette. Each color must be a valid hex code.`;
 
@@ -53,6 +56,8 @@ You must respond with a valid JSON object containing the refined color palette. 
 - Button Text: ${basePalette.buttonText}
 - Footer Background: ${basePalette.footerBg}
 - Footer Text: ${basePalette.footerText}
+- Top Bar Background: ${basePalette.topBarBg}
+- Top Bar Text: ${basePalette.topBarText}
 
 User request: "${refinementPrompt}"
 
@@ -118,9 +123,19 @@ Generate a refined palette that applies the user's request while maintaining goo
                     type: "string", 
                     description: "Footer text color - must contrast with footerBg (hex code)",
                     pattern: "^#[0-9A-Fa-f]{6}$"
+                  },
+                  topBarBg: { 
+                    type: "string", 
+                    description: "Top Bar/Announcement Bar background color (hex code)",
+                    pattern: "^#[0-9A-Fa-f]{6}$"
+                  },
+                  topBarText: { 
+                    type: "string", 
+                    description: "Top Bar text color - must contrast with topBarBg (hex code)",
+                    pattern: "^#[0-9A-Fa-f]{6}$"
                   }
                 },
-                required: ["primary", "secondary", "headerBg", "headerText", "buttonBg", "buttonText", "footerBg", "footerText"],
+                required: ["primary", "secondary", "headerBg", "headerText", "buttonBg", "buttonText", "footerBg", "footerText", "topBarBg", "topBarText"],
                 additionalProperties: false
               }
             }
@@ -160,7 +175,7 @@ Generate a refined palette that applies the user's request while maintaining goo
 
     // Validate that all colors are valid hex codes
     const hexPattern = /^#[0-9A-Fa-f]{6}$/;
-    const colorKeys = ["primary", "secondary", "headerBg", "headerText", "buttonBg", "buttonText", "footerBg", "footerText"];
+    const colorKeys = ["primary", "secondary", "headerBg", "headerText", "buttonBg", "buttonText", "footerBg", "footerText", "topBarBg", "topBarText"];
     
     for (const key of colorKeys) {
       if (!refinedColors[key] || !hexPattern.test(refinedColors[key])) {

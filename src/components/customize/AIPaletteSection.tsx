@@ -22,10 +22,12 @@ export interface ColorPalette {
     buttonText: string;
     footerBg: string;
     footerText: string;
+    topBarBg: string;
+    topBarText: string;
   };
 }
 
-// 8 pre-defined palettes
+// 12 pre-defined palettes with TopBar colors
 const PREDEFINED_PALETTES: ColorPalette[] = [
   {
     id: "verde-natural",
@@ -41,6 +43,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#1B5E20",
       footerText: "#FFFFFF",
+      topBarBg: "#1B5E20",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -57,6 +61,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#0D47A1",
       footerText: "#FFFFFF",
+      topBarBg: "#0D47A1",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -73,6 +79,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#4E342E",
       footerText: "#FFFFFF",
+      topBarBg: "#5D4037",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -89,6 +97,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#000000",
       footerBg: "#0D0D0D",
       footerText: "#CCCCCC",
+      topBarBg: "#FFD700",
+      topBarText: "#000000",
     },
   },
   {
@@ -105,6 +115,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#EEEEEE",
       footerText: "#424242",
+      topBarBg: "#424242",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -121,6 +133,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#F3E5F5",
       footerText: "#4A148C",
+      topBarBg: "#AD1457",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -137,6 +151,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#BF360C",
       footerText: "#FFFFFF",
+      topBarBg: "#FF5722",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -153,6 +169,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#2E5A1C",
       footerText: "#F5F5DC",
+      topBarBg: "#C5A572",
+      topBarText: "#1A1A1A",
     },
   },
   // Paletas para Público Jovem
@@ -170,6 +188,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#4A148C",
       footerText: "#FFFFFF",
+      topBarBg: "#E91E63",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -186,6 +206,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#000000",
       footerBg: "#0D0D1A",
       footerText: "#00B0FF",
+      topBarBg: "#00E676",
+      topBarText: "#000000",
     },
   },
   {
@@ -202,6 +224,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#BF360C",
       footerText: "#FFFFFF",
+      topBarBg: "#E65100",
+      topBarText: "#FFFFFF",
     },
   },
   {
@@ -218,6 +242,8 @@ const PREDEFINED_PALETTES: ColorPalette[] = [
       buttonText: "#FFFFFF",
       footerBg: "#00BCD4",
       footerText: "#FFFFFF",
+      topBarBg: "#F50057",
+      topBarText: "#FFFFFF",
     },
   },
 ];
@@ -282,6 +308,9 @@ export const AIPaletteSection = ({
     root.style.setProperty('--merchant-primary-hover', `${colors.primary}dd`);
     root.style.setProperty('--merchant-primary-light', `${colors.primary}15`);
     root.style.setProperty('--merchant-primary-ring', `${colors.primary}33`);
+    root.style.setProperty('--merchant-button-hover', `${colors.buttonBg}dd`);
+    root.style.setProperty('--merchant-topbar-bg', colors.topBarBg);
+    root.style.setProperty('--merchant-topbar-text', colors.topBarText);
     root.style.setProperty('--merchant-button-hover', `${colors.buttonBg}dd`);
   };
 
@@ -361,6 +390,8 @@ export const AIPaletteSection = ({
           footer_text_color: colorsToApply.headerText,
           button_bg_color: colorsToApply.buttonBg,
           button_text_color: colorsToApply.buttonText,
+          topbar_bg_color: colorsToApply.topBarBg,
+          topbar_text_color: colorsToApply.topBarText,
         })
         .eq("id", userId);
 
@@ -479,6 +510,10 @@ export const AIPaletteSection = ({
                 <div className="flex items-center gap-1.5">
                   <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.footerBg }} />
                   <span className="text-xs text-muted-foreground">Rodapé</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.topBarBg }} />
+                  <span className="text-xs text-muted-foreground">Top Bar</span>
                 </div>
               </>
             )}
