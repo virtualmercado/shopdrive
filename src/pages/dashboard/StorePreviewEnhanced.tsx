@@ -5,12 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus } from "lucide-react";
+import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus, Lock, Info } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
+import { useBillingStatus } from "@/hooks/useBillingStatus";
+import { 
+  DEFAULT_DESKTOP_BANNERS, 
+  DEFAULT_MOBILE_BANNERS, 
+  DEFAULT_MINIBANNER_1, 
+  DEFAULT_MINIBANNER_2,
+  isDefaultBanner 
+} from "@/lib/defaultBanners";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
@@ -18,7 +28,10 @@ const StorePreviewEnhanced = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor } = useTheme();
+  const { data: billingInfo } = useBillingStatus();
   
+  // Check if merchant is on free plan (can't delete banners)
+  const isFreePlan = !billingInfo || billingInfo.planId === 'gratis' || billingInfo.planId === 'free';
   const [storeData, setStoreData] = useState({
     store_name: "",
     store_slug: "",
@@ -536,47 +549,85 @@ const StorePreviewEnhanced = () => {
               </div>
               <h2 className="text-lg font-semibold text-foreground">Banners</h2>
             </div>
+            <p className="text-xs text-muted-foreground ml-10">
+              Sua loja já vem com banners padrão ativados. Substitua-os para personalizar.
+            </p>
           </div>
+          
+          {/* Plan restriction notice */}
+          {isFreePlan && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-800">
+                <span className="font-medium">Plano Grátis:</span> Você pode substituir os banners, mas não pode excluí-los. 
+                <a href="/lojista/financeiro" className="underline ml-1">Faça upgrade</a> para ter controle total.
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-6">
             {/* Banner Principal Desktop/Tablet */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
+              <div className="flex items-center gap-2">
+                <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
+                {storeData.banner_desktop_urls.length === 0 && (
+                  <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 1920x600px • Máximo: 3 imagens
+                Tamanho recomendado: 1920x600px • Máximo: 3 imagens • Carrossel automático
               </p>
               
-              {storeData.banner_desktop_urls.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {storeData.banner_desktop_urls.map((url, index) => (
+              {/* Show default or custom banners */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(storeData.banner_desktop_urls.length > 0 ? storeData.banner_desktop_urls : DEFAULT_DESKTOP_BANNERS).map((url, index) => {
+                  const isDefault = storeData.banner_desktop_urls.length === 0;
+                  const canDelete = !isFreePlan && !isDefault;
+                  
+                  return (
                     <div key={index} className="relative group">
                       <img
                         src={url}
                         alt={`Banner Desktop ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage("banner_desktop_urls", index)}
-                        className="absolute top-2 right-2 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                        title="Excluir imagem"
-                        style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                        onMouseEnter={(e) => {
-                          const hex = buttonBgColor.replace('#', '');
-                          const r = parseInt(hex.substr(0, 2), 16);
-                          const g = parseInt(hex.substr(2, 2), 16);
-                          const b = parseInt(hex.substr(4, 2), 16);
-                          e.currentTarget.style.backgroundColor = `rgb(${Math.floor(r * 0.85)}, ${Math.floor(g * 0.85)}, ${Math.floor(b * 0.85)})`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = buttonBgColor;
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isDefault && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
+                        </div>
+                      )}
+                      {!isDefault && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => canDelete && handleRemoveImage("banner_desktop_urls", index)}
+                              disabled={!canDelete}
+                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
+                                canDelete 
+                                  ? 'opacity-0 group-hover:opacity-100' 
+                                  : 'opacity-50 cursor-not-allowed'
+                              }`}
+                              title={canDelete ? "Excluir imagem" : "Exclusão disponível em planos pagos"}
+                              style={{ 
+                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          {!canDelete && (
+                            <TooltipContent>
+                              <p>Exclusão disponível em planos pagos</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
               
               {storeData.banner_desktop_urls.length < 3 && (
                 <div>
@@ -601,7 +652,9 @@ const StorePreviewEnhanced = () => {
                     }`}
                   >
                     <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                    <span className="text-sm font-medium">
+                      {storeData.banner_desktop_urls.length === 0 ? "Substituir Banners" : "Escolher Arquivos"}
+                    </span>
                   </label>
                 </div>
               )}
@@ -609,43 +662,66 @@ const StorePreviewEnhanced = () => {
 
             {/* Banner Mobile */}
             <div className="space-y-3 border-t pt-6">
-              <Label className="text-base font-semibold">Banner Mobile (Formato Exclusivo)</Label>
+              <div className="flex items-center gap-2">
+                <Label className="text-base font-semibold">Banner Mobile (Formato Exclusivo)</Label>
+                {storeData.banner_mobile_urls.length === 0 && (
+                  <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 800x600px • Máximo: 3 imagens
+                Tamanho recomendado: 800x600px • Máximo: 3 imagens • Carrossel automático
               </p>
               
-              {storeData.banner_mobile_urls.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {storeData.banner_mobile_urls.map((url, index) => (
+              {/* Show default or custom banners */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(storeData.banner_mobile_urls.length > 0 ? storeData.banner_mobile_urls : DEFAULT_MOBILE_BANNERS).map((url, index) => {
+                  const isDefault = storeData.banner_mobile_urls.length === 0;
+                  const canDelete = !isFreePlan && !isDefault;
+                  
+                  return (
                     <div key={index} className="relative group">
                       <img
                         src={url}
                         alt={`Banner Mobile ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage("banner_mobile_urls", index)}
-                        className="absolute top-2 right-2 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                        title="Excluir imagem"
-                        style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                        onMouseEnter={(e) => {
-                          const hex = buttonBgColor.replace('#', '');
-                          const r = parseInt(hex.substr(0, 2), 16);
-                          const g = parseInt(hex.substr(2, 2), 16);
-                          const b = parseInt(hex.substr(4, 2), 16);
-                          e.currentTarget.style.backgroundColor = `rgb(${Math.floor(r * 0.85)}, ${Math.floor(g * 0.85)}, ${Math.floor(b * 0.85)})`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = buttonBgColor;
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isDefault && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
+                        </div>
+                      )}
+                      {!isDefault && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => canDelete && handleRemoveImage("banner_mobile_urls", index)}
+                              disabled={!canDelete}
+                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
+                                canDelete 
+                                  ? 'opacity-0 group-hover:opacity-100' 
+                                  : 'opacity-50 cursor-not-allowed'
+                              }`}
+                              title={canDelete ? "Excluir imagem" : "Exclusão disponível em planos pagos"}
+                              style={{ 
+                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          {!canDelete && (
+                            <TooltipContent>
+                              <p>Exclusão disponível em planos pagos</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
               
               {storeData.banner_mobile_urls.length < 3 && (
                 <div>
@@ -670,46 +746,77 @@ const StorePreviewEnhanced = () => {
                     }`}
                   >
                     <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                    <span className="text-sm font-medium">
+                      {storeData.banner_mobile_urls.length === 0 ? "Substituir Banners" : "Escolher Arquivos"}
+                    </span>
                   </label>
                 </div>
               )}
             </div>
 
+            {/* Minibanners */}
             <div className="grid sm:grid-cols-2 gap-4 border-t pt-6">
+              {/* Minibanner 1 */}
               <div className="space-y-2">
-                <Label>Minibanner 1</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Minibanner 1</Label>
+                  {!storeData.banner_rect_1_url && (
+                    <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mb-2">
                   Tamanho recomendado: 600x300px
                 </p>
-                {storeData.banner_rect_1_url && (
-                  <div className="relative group mb-2">
-                    <img
-                      src={storeData.banner_rect_1_url}
-                      alt="Minibanner 1"
-                      className="w-full h-24 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSingleImage("banner_rect_1_url")}
-                      className="absolute top-2 right-2 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                      title="Excluir minibanner"
-                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                      onMouseEnter={(e) => {
-                        const hex = buttonBgColor.replace('#', '');
-                        const r = parseInt(hex.substr(0, 2), 16);
-                        const g = parseInt(hex.substr(2, 2), 16);
-                        const b = parseInt(hex.substr(4, 2), 16);
-                        e.currentTarget.style.backgroundColor = `rgb(${Math.floor(r * 0.85)}, ${Math.floor(g * 0.85)}, ${Math.floor(b * 0.85)})`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = buttonBgColor;
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                
+                {(() => {
+                  const currentUrl = storeData.banner_rect_1_url || DEFAULT_MINIBANNER_1;
+                  const isDefault = !storeData.banner_rect_1_url;
+                  const canDelete = !isFreePlan && !isDefault;
+                  
+                  return (
+                    <div className="relative group mb-2">
+                      <img
+                        src={currentUrl}
+                        alt="Minibanner 1"
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      {isDefault && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
+                        </div>
+                      )}
+                      {!isDefault && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => canDelete && handleRemoveSingleImage("banner_rect_1_url")}
+                              disabled={!canDelete}
+                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
+                                canDelete 
+                                  ? 'opacity-0 group-hover:opacity-100' 
+                                  : 'opacity-50 cursor-not-allowed'
+                              }`}
+                              title={canDelete ? "Excluir minibanner" : "Exclusão disponível em planos pagos"}
+                              style={{ 
+                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          {!canDelete && (
+                            <TooltipContent>
+                              <p>Exclusão disponível em planos pagos</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 <div>
                   <input
                     type="file"
@@ -729,43 +836,74 @@ const StorePreviewEnhanced = () => {
                     }`}
                   >
                     <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                    <span className="text-sm font-medium">
+                      {storeData.banner_rect_1_url ? "Escolher Arquivo" : "Substituir"}
+                    </span>
                   </label>
                 </div>
               </div>
+              
+              {/* Minibanner 2 */}
               <div className="space-y-2">
-                <Label>Minibanner 2</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Minibanner 2</Label>
+                  {!storeData.banner_rect_2_url && (
+                    <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mb-2">
                   Tamanho recomendado: 600x300px
                 </p>
-                {storeData.banner_rect_2_url && (
-                  <div className="relative group mb-2">
-                    <img
-                      src={storeData.banner_rect_2_url}
-                      alt="Minibanner 2"
-                      className="w-full h-24 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSingleImage("banner_rect_2_url")}
-                      className="absolute top-2 right-2 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                      title="Excluir minibanner"
-                      style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                      onMouseEnter={(e) => {
-                        const hex = buttonBgColor.replace('#', '');
-                        const r = parseInt(hex.substr(0, 2), 16);
-                        const g = parseInt(hex.substr(2, 2), 16);
-                        const b = parseInt(hex.substr(4, 2), 16);
-                        e.currentTarget.style.backgroundColor = `rgb(${Math.floor(r * 0.85)}, ${Math.floor(g * 0.85)}, ${Math.floor(b * 0.85)})`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = buttonBgColor;
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                
+                {(() => {
+                  const currentUrl = storeData.banner_rect_2_url || DEFAULT_MINIBANNER_2;
+                  const isDefault = !storeData.banner_rect_2_url;
+                  const canDelete = !isFreePlan && !isDefault;
+                  
+                  return (
+                    <div className="relative group mb-2">
+                      <img
+                        src={currentUrl}
+                        alt="Minibanner 2"
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      {isDefault && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
+                        </div>
+                      )}
+                      {!isDefault && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => canDelete && handleRemoveSingleImage("banner_rect_2_url")}
+                              disabled={!canDelete}
+                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
+                                canDelete 
+                                  ? 'opacity-0 group-hover:opacity-100' 
+                                  : 'opacity-50 cursor-not-allowed'
+                              }`}
+                              title={canDelete ? "Excluir minibanner" : "Exclusão disponível em planos pagos"}
+                              style={{ 
+                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          {!canDelete && (
+                            <TooltipContent>
+                              <p>Exclusão disponível em planos pagos</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 <div>
                   <input
                     type="file"
@@ -785,7 +923,9 @@ const StorePreviewEnhanced = () => {
                     }`}
                   >
                     <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Escolher Arquivos</span>
+                    <span className="text-sm font-medium">
+                      {storeData.banner_rect_2_url ? "Escolher Arquivo" : "Substituir"}
+                    </span>
                   </label>
                 </div>
               </div>

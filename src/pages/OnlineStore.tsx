@@ -11,6 +11,7 @@ import MiniCart from "@/components/store/MiniCart";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getEffectiveBanners } from "@/lib/defaultBanners";
 
 interface StoreData {
   id: string;
@@ -214,22 +215,28 @@ const OnlineStoreContent = () => {
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
       
-      <StoreBanner
-        desktopBannerUrls={
-          storeData.banner_desktop_urls && storeData.banner_desktop_urls.length > 0
-            ? storeData.banner_desktop_urls
-            : storeData.banner_desktop_url
-            ? [storeData.banner_desktop_url]
-            : []
-        }
-        mobileBannerUrls={
-          storeData.banner_mobile_urls && storeData.banner_mobile_urls.length > 0
-            ? storeData.banner_mobile_urls
-            : storeData.banner_mobile_url
-            ? [storeData.banner_mobile_url]
-            : []
-        }
-      />
+      {(() => {
+        const customDesktopUrls = storeData.banner_desktop_urls && storeData.banner_desktop_urls.length > 0
+          ? storeData.banner_desktop_urls
+          : storeData.banner_desktop_url
+          ? [storeData.banner_desktop_url]
+          : [];
+        
+        const customMobileUrls = storeData.banner_mobile_urls && storeData.banner_mobile_urls.length > 0
+          ? storeData.banner_mobile_urls
+          : storeData.banner_mobile_url
+          ? [storeData.banner_mobile_url]
+          : [];
+        
+        const effectiveBanners = getEffectiveBanners(customDesktopUrls, customMobileUrls);
+        
+        return (
+          <StoreBanner
+            desktopBannerUrls={effectiveBanners.desktopBanners}
+            mobileBannerUrls={effectiveBanners.mobileBanners}
+          />
+        );
+      })()}
 
       <main className="container mx-auto px-4 py-8 space-y-12">
         {isSearching ? (
@@ -308,22 +315,29 @@ const OnlineStoreContent = () => {
           </>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {storeData.banner_rect_1_url && (
-            <img
-              src={storeData.banner_rect_1_url}
-              alt="Banner promocional"
-              className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
-            />
-          )}
-          {storeData.banner_rect_2_url && (
-            <img
-              src={storeData.banner_rect_2_url}
-              alt="Banner promocional"
-              className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
-            />
-          )}
-        </div>
+        {(() => {
+          const effectiveMinibanners = getEffectiveBanners(
+            [], 
+            [], 
+            storeData.banner_rect_1_url, 
+            storeData.banner_rect_2_url
+          );
+          
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <img
+                src={effectiveMinibanners.minibanner1}
+                alt="Banner promocional"
+                className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+              />
+              <img
+                src={effectiveMinibanners.minibanner2}
+                alt="Banner promocional"
+                className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+              />
+            </div>
+          );
+        })()}
       </main>
 
       <StoreFooter storeData={storeData} />
