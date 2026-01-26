@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal } from "lucide-react";
 import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
+import { TopBarConfigSection } from "@/components/customize/TopBarConfigSection";
 
 const Customize = () => {
   const { toast } = useToast();
@@ -272,6 +273,12 @@ const Customize = () => {
             </div>
           </div>
         </Card>
+
+        {/* Top Bar Configuration - between Colors and AI Palette */}
+        <TopBarConfigSection
+          userId={userId}
+          primaryColor={colors.primary}
+        />
 
         {/* AI Color Palette */}
         <AIPaletteSection

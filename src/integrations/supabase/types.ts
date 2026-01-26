@@ -2826,6 +2826,12 @@ export type Database = {
           store_logo_url: string | null
           store_name: string | null
           store_slug: string | null
+          topbar_bg_color: string | null
+          topbar_enabled: boolean | null
+          topbar_link_target: string | null
+          topbar_link_type: string | null
+          topbar_text: string | null
+          topbar_text_color: string | null
           updated_at: string
           use_account_address_for_pickup: boolean | null
           whatsapp_number: string | null
@@ -2903,6 +2909,12 @@ export type Database = {
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           updated_at?: string
           use_account_address_for_pickup?: boolean | null
           whatsapp_number?: string | null
@@ -2980,6 +2992,12 @@ export type Database = {
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           updated_at?: string
           use_account_address_for_pickup?: boolean | null
           whatsapp_number?: string | null

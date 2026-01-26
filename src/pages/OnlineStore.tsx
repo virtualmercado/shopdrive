@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
 import StoreBanner from "@/components/store/StoreBanner";
+import StoreTopBar from "@/components/store/StoreTopBar";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
@@ -42,6 +43,13 @@ interface StoreData {
   product_button_display?: string;
   is_maintenance_mode?: boolean;
   header_logo_position?: string;
+  // Top Bar fields
+  topbar_enabled?: boolean;
+  topbar_bg_color?: string;
+  topbar_text_color?: string;
+  topbar_text?: string;
+  topbar_link_type?: "none" | "content_page" | "category" | "sale" | "section" | "external";
+  topbar_link_target?: string;
 }
 
 const OnlineStoreContent = () => {
@@ -83,6 +91,7 @@ const OnlineStoreContent = () => {
         ...data,
         banner_desktop_urls: desktopUrls,
         banner_mobile_urls: mobileUrls,
+        topbar_link_type: (data.topbar_link_type as StoreData["topbar_link_type"]) || "none",
       });
       setLoading(false);
     };
@@ -175,6 +184,18 @@ const OnlineStoreContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Top Bar */}
+      {storeData.topbar_enabled && storeData.topbar_text && (
+        <StoreTopBar
+          text={storeData.topbar_text}
+          bgColor={storeData.topbar_bg_color || "#000000"}
+          textColor={storeData.topbar_text_color || "#FFFFFF"}
+          linkType={storeData.topbar_link_type || "none"}
+          linkTarget={storeData.topbar_link_target || null}
+          storeSlug={storeSlug || ""}
+        />
+      )}
+      
       <StoreHeader 
         storeName={storeData.store_name}
         logoUrl={storeData.store_logo_url}
