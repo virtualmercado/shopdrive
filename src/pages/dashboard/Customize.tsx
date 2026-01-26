@@ -344,7 +344,7 @@ const Customize = () => {
 
             {/* Logo Position Control */}
             <div className="border-t pt-6">
-              <Label className="text-base font-medium mb-3 block">Posição da logo no cabeçalho</Label>
+              <Label className="text-base font-medium mb-3 block">Posição da Logo no Cabeçalho</Label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
