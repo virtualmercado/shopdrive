@@ -1,0 +1,477 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Brain, Sparkles, Check, X, Loader2, Leaf, Waves, Mountain, Moon, Circle, Heart, Flame, TreeDeciduous } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+// Define the color palette type
+export interface ColorPalette {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    headerBg: string;
+    headerText: string;
+    buttonBg: string;
+    buttonText: string;
+    footerBg: string;
+    footerText: string;
+  };
+}
+
+// 8 pre-defined palettes
+const PREDEFINED_PALETTES: ColorPalette[] = [
+  {
+    id: "verde-natural",
+    name: "Verde Natural",
+    icon: <Leaf className="h-4 w-4" />,
+    description: "Natureza, sustentabilidade, bem-estar",
+    colors: {
+      primary: "#2E7D32",
+      secondary: "#81C784",
+      headerBg: "#E8F5E9",
+      headerText: "#1B5E20",
+      buttonBg: "#2E7D32",
+      buttonText: "#FFFFFF",
+      footerBg: "#1B5E20",
+      footerText: "#FFFFFF",
+    },
+  },
+  {
+    id: "azul-profissional",
+    name: "Azul Profissional",
+    icon: <Waves className="h-4 w-4" />,
+    description: "Confiança, tecnologia, serviços",
+    colors: {
+      primary: "#1565C0",
+      secondary: "#64B5F6",
+      headerBg: "#E3F2FD",
+      headerText: "#0D47A1",
+      buttonBg: "#1565C0",
+      buttonText: "#FFFFFF",
+      footerBg: "#0D47A1",
+      footerText: "#FFFFFF",
+    },
+  },
+  {
+    id: "terrosa-amazonica",
+    name: "Terrosa Amazônica",
+    icon: <Mountain className="h-4 w-4" />,
+    description: "Tons quentes, orgânicos, artesanais",
+    colors: {
+      primary: "#8D6E63",
+      secondary: "#D7CCC8",
+      headerBg: "#EFEBE9",
+      headerText: "#5D4037",
+      buttonBg: "#6D4C41",
+      buttonText: "#FFFFFF",
+      footerBg: "#4E342E",
+      footerText: "#FFFFFF",
+    },
+  },
+  {
+    id: "elegante-escura",
+    name: "Elegante Escura",
+    icon: <Moon className="h-4 w-4" />,
+    description: "Fundo escuro, alto contraste, premium",
+    colors: {
+      primary: "#212121",
+      secondary: "#FFD700",
+      headerBg: "#1A1A1A",
+      headerText: "#FFFFFF",
+      buttonBg: "#FFD700",
+      buttonText: "#000000",
+      footerBg: "#0D0D0D",
+      footerText: "#CCCCCC",
+    },
+  },
+  {
+    id: "neutra-clean",
+    name: "Neutra Clean",
+    icon: <Circle className="h-4 w-4" />,
+    description: "Minimalista, branco, cinza-claro",
+    colors: {
+      primary: "#424242",
+      secondary: "#9E9E9E",
+      headerBg: "#FAFAFA",
+      headerText: "#212121",
+      buttonBg: "#424242",
+      buttonText: "#FFFFFF",
+      footerBg: "#EEEEEE",
+      footerText: "#424242",
+    },
+  },
+  {
+    id: "suave-feminina",
+    name: "Suave Feminina",
+    icon: <Heart className="h-4 w-4" />,
+    description: "Tons rosados, lilás, bege suave",
+    colors: {
+      primary: "#AD1457",
+      secondary: "#F8BBD0",
+      headerBg: "#FCE4EC",
+      headerText: "#880E4F",
+      buttonBg: "#AD1457",
+      buttonText: "#FFFFFF",
+      footerBg: "#F3E5F5",
+      footerText: "#4A148C",
+    },
+  },
+  {
+    id: "vibrante-moderna",
+    name: "Vibrante Moderna",
+    icon: <Flame className="h-4 w-4" />,
+    description: "Cores vivas para CTA e destaque",
+    colors: {
+      primary: "#FF5722",
+      secondary: "#FFAB91",
+      headerBg: "#FBE9E7",
+      headerText: "#BF360C",
+      buttonBg: "#FF5722",
+      buttonText: "#FFFFFF",
+      footerBg: "#BF360C",
+      footerText: "#FFFFFF",
+    },
+  },
+  {
+    id: "sofisticada-natural",
+    name: "Sofisticada Natural",
+    icon: <TreeDeciduous className="h-4 w-4" />,
+    description: "Verde fechado, marrom, off-white, dourado",
+    colors: {
+      primary: "#33691E",
+      secondary: "#C5A572",
+      headerBg: "#F5F5DC",
+      headerText: "#33691E",
+      buttonBg: "#33691E",
+      buttonText: "#FFFFFF",
+      footerBg: "#2E5A1C",
+      footerText: "#F5F5DC",
+    },
+  },
+];
+
+interface AIPaletteSectionProps {
+  currentColors: {
+    primary: string;
+    secondary: string;
+    background: string;
+  };
+  buttonBgColor: string;
+  buttonTextColor: string;
+  userId: string | null;
+  onApplyPalette: (palette: {
+    primary: string;
+    secondary: string;
+    background: string;
+    buttonBg: string;
+    buttonText: string;
+  }) => void;
+}
+
+export const AIPaletteSection = ({
+  currentColors,
+  buttonBgColor,
+  buttonTextColor,
+  userId,
+  onApplyPalette,
+}: AIPaletteSectionProps) => {
+  const { toast } = useToast();
+  const [selectedPalette, setSelectedPalette] = useState<ColorPalette | null>(null);
+  const [previewPalette, setPreviewPalette] = useState<ColorPalette | null>(null);
+  const [refinementPrompt, setRefinementPrompt] = useState("");
+  const [isRefining, setIsRefining] = useState(false);
+  const [refinedColors, setRefinedColors] = useState<ColorPalette["colors"] | null>(null);
+
+  // Store original colors to restore on discard
+  const [originalColors] = useState({
+    primary: currentColors.primary,
+    secondary: currentColors.secondary,
+    background: currentColors.background,
+    buttonBg: buttonBgColor,
+    buttonText: buttonTextColor,
+  });
+
+  const handleSelectPalette = (palette: ColorPalette) => {
+    setSelectedPalette(palette);
+    setPreviewPalette(palette);
+    setRefinedColors(null);
+    setRefinementPrompt("");
+    
+    // Apply preview colors immediately
+    applyPreviewColors(palette.colors);
+  };
+
+  const applyPreviewColors = (colors: ColorPalette["colors"]) => {
+    const root = document.documentElement;
+    root.style.setProperty('--merchant-primary', colors.primary);
+    root.style.setProperty('--merchant-secondary', colors.secondary);
+    root.style.setProperty('--merchant-button-bg', colors.buttonBg);
+    root.style.setProperty('--merchant-button-text', colors.buttonText);
+    root.style.setProperty('--merchant-primary-hover', `${colors.primary}dd`);
+    root.style.setProperty('--merchant-primary-light', `${colors.primary}15`);
+    root.style.setProperty('--merchant-primary-ring', `${colors.primary}33`);
+    root.style.setProperty('--merchant-button-hover', `${colors.buttonBg}dd`);
+  };
+
+  const restoreOriginalColors = () => {
+    const root = document.documentElement;
+    root.style.setProperty('--merchant-primary', originalColors.primary);
+    root.style.setProperty('--merchant-secondary', originalColors.secondary);
+    root.style.setProperty('--merchant-button-bg', originalColors.buttonBg);
+    root.style.setProperty('--merchant-button-text', originalColors.buttonText);
+    root.style.setProperty('--merchant-primary-hover', `${originalColors.primary}dd`);
+    root.style.setProperty('--merchant-primary-light', `${originalColors.primary}15`);
+    root.style.setProperty('--merchant-primary-ring', `${originalColors.primary}33`);
+    root.style.setProperty('--merchant-button-hover', `${originalColors.buttonBg}dd`);
+  };
+
+  const handleRefineWithAI = async () => {
+    if (!selectedPalette || !refinementPrompt.trim()) {
+      toast({
+        title: "Atenção",
+        description: "Selecione uma paleta e descreva o refinamento desejado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRefining(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('refine-color-palette', {
+        body: {
+          basePalette: selectedPalette.colors,
+          paletteName: selectedPalette.name,
+          refinementPrompt: refinementPrompt.trim(),
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.colors) {
+        setRefinedColors(data.colors);
+        applyPreviewColors(data.colors);
+        toast({
+          title: "Paleta refinada!",
+          description: "A IA ajustou as cores conforme sua solicitação.",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao refinar paleta:", error);
+      toast({
+        title: "Erro ao refinar",
+        description: "Não foi possível refinar a paleta. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleApply = async () => {
+    const colorsToApply = refinedColors || previewPalette?.colors;
+    
+    if (!colorsToApply || !userId) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma paleta primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          primary_color: colorsToApply.primary,
+          secondary_color: colorsToApply.headerBg,
+          footer_text_color: colorsToApply.headerText,
+          button_bg_color: colorsToApply.buttonBg,
+          button_text_color: colorsToApply.buttonText,
+        })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      // Update parent state
+      onApplyPalette({
+        primary: colorsToApply.primary,
+        secondary: colorsToApply.headerBg,
+        background: colorsToApply.headerText,
+        buttonBg: colorsToApply.buttonBg,
+        buttonText: colorsToApply.buttonText,
+      });
+
+      // Reset preview state
+      setSelectedPalette(null);
+      setPreviewPalette(null);
+      setRefinedColors(null);
+      setRefinementPrompt("");
+
+      toast({
+        title: "Paleta aplicada!",
+        description: "As cores foram salvas na sua loja.",
+      });
+    } catch (error) {
+      console.error("Erro ao aplicar paleta:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as cores. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDiscard = () => {
+    restoreOriginalColors();
+    setSelectedPalette(null);
+    setPreviewPalette(null);
+    setRefinedColors(null);
+    setRefinementPrompt("");
+  };
+
+  const activeColors = refinedColors || previewPalette?.colors;
+
+  return (
+    <Card className="p-6">
+      <div className="space-y-1 mb-6">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded">
+            <Brain className="h-4 w-4 text-white" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">Paleta de Cor com IA</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Escolha uma paleta visual e, opcionalmente, refine com IA
+        </p>
+      </div>
+
+      {/* Palette Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {PREDEFINED_PALETTES.map((palette) => (
+          <button
+            key={palette.id}
+            onClick={() => handleSelectPalette(palette)}
+            className={`border rounded-lg p-3 text-left transition-all hover:shadow-md ${
+              selectedPalette?.id === palette.id
+                ? "ring-2 ring-primary border-transparent"
+                : "border-input hover:border-primary/50"
+            }`}
+          >
+            {/* Color Preview Bar */}
+            <div className="flex gap-0.5 rounded overflow-hidden h-6 mb-2">
+              <div className="flex-1" style={{ backgroundColor: palette.colors.primary }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.secondary }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.headerBg }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.buttonBg }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.footerBg }} />
+            </div>
+            
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-muted-foreground">{palette.icon}</span>
+              <span className="font-medium text-sm truncate">{palette.name}</span>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2">{palette.description}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Preview Indicator */}
+      {previewPalette && (
+        <div className="bg-muted/50 border border-dashed border-primary/30 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-medium">
+              Modo Preview Ativo: {previewPalette.name}
+              {refinedColors && " (Refinada com IA)"}
+            </span>
+          </div>
+          
+          {/* Color swatches */}
+          <div className="flex gap-2 flex-wrap">
+            {activeColors && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.primary }} />
+                  <span className="text-xs text-muted-foreground">Primária</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.headerBg }} />
+                  <span className="text-xs text-muted-foreground">Header</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.buttonBg }} />
+                  <span className="text-xs text-muted-foreground">Botão</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.footerBg }} />
+                  <span className="text-xs text-muted-foreground">Rodapé</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Refinement Section */}
+      {selectedPalette && (
+        <div className="space-y-4 mb-6">
+          <div className="space-y-2">
+            <Label htmlFor="refinement-prompt" className="text-sm font-medium">
+              Deseja ajustar essa paleta com IA? (opcional)
+            </Label>
+            <Textarea
+              id="refinement-prompt"
+              value={refinementPrompt}
+              onChange={(e) => setRefinementPrompt(e.target.value)}
+              placeholder='Ex: "Deixar mais elegante", "Mais contraste nos botões", "Tons mais claros", "Versão noturna"'
+              className="resize-none"
+              rows={2}
+            />
+          </div>
+          
+          <Button
+            onClick={handleRefineWithAI}
+            disabled={isRefining || !refinementPrompt.trim()}
+            variant="outline"
+            className="w-full md:w-auto"
+          >
+            {isRefining ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Refinando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Refinar paleta com IA
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {previewPalette && (
+        <div className="flex gap-3 justify-end pt-4 border-t">
+          <Button variant="outline" onClick={handleDiscard}>
+            <X className="h-4 w-4 mr-2" />
+            Descartar
+          </Button>
+          <Button onClick={handleApply} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Check className="h-4 w-4 mr-2" />
+            Aplicar Paleta
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+};
