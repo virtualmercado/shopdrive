@@ -2795,6 +2795,7 @@ export type Database = {
           free_shipping_minimum: number | null
           free_shipping_scope: string | null
           full_name: string
+          header_logo_position: string | null
           id: string
           instagram_url: string | null
           is_maintenance_mode: boolean | null
@@ -2871,6 +2872,7 @@ export type Database = {
           free_shipping_minimum?: number | null
           free_shipping_scope?: string | null
           full_name: string
+          header_logo_position?: string | null
           id: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
@@ -2947,6 +2949,7 @@ export type Database = {
           free_shipping_minimum?: number | null
           free_shipping_scope?: string | null
           full_name?: string
+          header_logo_position?: string | null
           id?: string
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null

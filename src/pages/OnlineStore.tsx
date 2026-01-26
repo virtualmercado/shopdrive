@@ -41,6 +41,7 @@ interface StoreData {
   product_text_alignment?: string;
   product_button_display?: string;
   is_maintenance_mode?: boolean;
+  header_logo_position?: string;
 }
 
 const OnlineStoreContent = () => {
@@ -189,6 +190,7 @@ const OnlineStoreContent = () => {
         onSearchChange={handleSearchChange}
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
+        logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
       
       <StoreBanner

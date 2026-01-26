@@ -29,6 +29,7 @@ interface StoreData {
   product_border_style?: string;
   product_text_alignment?: string;
   product_button_display?: string;
+  header_logo_position?: string;
 }
 
 interface Category {
@@ -274,6 +275,7 @@ const StoreCategoryPageContent = () => {
         onSearchChange={setSearchTerm}
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryClick}
+        logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
 
       <main className="container mx-auto px-4 py-6">
