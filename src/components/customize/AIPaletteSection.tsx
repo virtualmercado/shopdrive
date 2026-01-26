@@ -500,6 +500,10 @@ export const AIPaletteSection = ({
                   <span className="text-xs text-muted-foreground">Primária</span>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.topBarBg }} />
+                  <span className="text-xs text-muted-foreground">Top Bar</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.headerBg }} />
                   <span className="text-xs text-muted-foreground">Header</span>
                 </div>
@@ -510,10 +514,6 @@ export const AIPaletteSection = ({
                 <div className="flex items-center gap-1.5">
                   <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.footerBg }} />
                   <span className="text-xs text-muted-foreground">Rodapé</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.topBarBg }} />
-                  <span className="text-xs text-muted-foreground">Top Bar</span>
                 </div>
               </>
             )}
