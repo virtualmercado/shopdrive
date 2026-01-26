@@ -462,8 +462,8 @@ export const AIPaletteSection = ({
           </div>
         </div>
 
-        {/* Palette Grid (smaller, scrollable) */}
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 mb-6">
+        {/* Palette Grid (2 rows x 6 columns) */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
           {PREDEFINED_PALETTES.map((palette) => (
             <button
               key={palette.id}
