@@ -3,9 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Brain, Sparkles, Check, X, Loader2, Leaf, Waves, Mountain, Moon, Circle, Heart, Flame, TreeDeciduous } from "lucide-react";
+import { Brain, Sparkles, Check, X, Loader2, Leaf, Waves, Mountain, Moon, Circle, Heart, Flame, TreeDeciduous, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PaletteMoodboard } from "./PaletteMoodboard";
+import { StorePreviewMockup } from "./StorePreviewMockup";
 
 // Define the color palette type
 export interface ColorPalette {
@@ -311,7 +313,6 @@ export const AIPaletteSection = ({
     root.style.setProperty('--merchant-button-hover', `${colors.buttonBg}dd`);
     root.style.setProperty('--merchant-topbar-bg', colors.topBarBg);
     root.style.setProperty('--merchant-topbar-text', colors.topBarText);
-    root.style.setProperty('--merchant-button-hover', `${colors.buttonBg}dd`);
   };
 
   const restoreOriginalColors = () => {
@@ -434,67 +435,79 @@ export const AIPaletteSection = ({
     setRefinementPrompt("");
   };
 
+  const handleBackToGrid = () => {
+    restoreOriginalColors();
+    setSelectedPalette(null);
+    setPreviewPalette(null);
+    setRefinedColors(null);
+    setRefinementPrompt("");
+  };
+
   const activeColors = refinedColors || previewPalette?.colors;
 
-  return (
-    <Card className="p-6">
-      <div className="space-y-1 mb-6">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded">
-            <Brain className="h-4 w-4 text-white" />
+  // Advanced state - 3-column layout
+  if (selectedPalette && activeColors) {
+    return (
+      <Card className="p-6">
+        {/* Header with back button */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="sm" onClick={handleBackToGrid} className="p-1 h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded">
+              <Brain className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Paleta de Cor com IA</h2>
           </div>
-          <h2 className="text-lg font-semibold text-foreground">Paleta de Cor com IA</h2>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Escolha uma paleta visual e, opcionalmente, refine com IA
-        </p>
-      </div>
 
-      {/* Palette Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {PREDEFINED_PALETTES.map((palette) => (
-          <button
-            key={palette.id}
-            onClick={() => handleSelectPalette(palette)}
-            className={`border rounded-lg p-3 text-left transition-all hover:shadow-md ${
-              selectedPalette?.id === palette.id
-                ? "ring-2 ring-primary border-transparent"
-                : "border-input hover:border-primary/50"
-            }`}
-          >
-            {/* Color Preview Bar */}
-            <div className="flex gap-0.5 rounded overflow-hidden h-6 mb-2">
-              <div className="flex-1" style={{ backgroundColor: palette.colors.primary }} />
-              <div className="flex-1" style={{ backgroundColor: palette.colors.secondary }} />
-              <div className="flex-1" style={{ backgroundColor: palette.colors.headerBg }} />
-              <div className="flex-1" style={{ backgroundColor: palette.colors.buttonBg }} />
-              <div className="flex-1" style={{ backgroundColor: palette.colors.footerBg }} />
-            </div>
-            
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-muted-foreground">{palette.icon}</span>
-              <span className="font-medium text-sm truncate">{palette.name}</span>
-            </div>
-            <p className="text-xs text-muted-foreground line-clamp-2">{palette.description}</p>
-          </button>
-        ))}
-      </div>
+        {/* Palette Grid (smaller, scrollable) */}
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 mb-6">
+          {PREDEFINED_PALETTES.map((palette) => (
+            <button
+              key={palette.id}
+              onClick={() => handleSelectPalette(palette)}
+              className={`border rounded-lg p-2 text-left transition-all hover:shadow-md ${
+                selectedPalette?.id === palette.id
+                  ? "ring-2 ring-primary border-transparent"
+                  : "border-input hover:border-primary/50"
+              }`}
+              title={palette.name}
+            >
+              {/* Color Preview Bar */}
+              <div className="flex gap-0.5 rounded overflow-hidden h-4">
+                <div className="flex-1" style={{ backgroundColor: palette.colors.primary }} />
+                <div className="flex-1" style={{ backgroundColor: palette.colors.secondary }} />
+                <div className="flex-1" style={{ backgroundColor: palette.colors.buttonBg }} />
+                <div className="flex-1" style={{ backgroundColor: palette.colors.footerBg }} />
+              </div>
+              <span className="text-[10px] font-medium truncate block mt-1">{palette.name}</span>
+            </button>
+          ))}
+        </div>
 
-      {/* Preview Indicator */}
-      {previewPalette && (
-        <div className="bg-muted/50 border border-dashed border-primary/30 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm font-medium">
-              Modo Preview Ativo: {previewPalette.name}
-              {refinedColors && " (Refinada com IA)"}
-            </span>
+        {/* 3-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Column 1 - Moodboard */}
+          <div className="lg:col-span-1">
+            <PaletteMoodboard colors={activeColors} />
           </div>
-          
-          {/* Color swatches */}
-          <div className="flex gap-2 flex-wrap">
-            {activeColors && (
-              <>
+
+          {/* Column 2 - AI Controls */}
+          <div className="lg:col-span-1 flex flex-col">
+            {/* Preview Indicator */}
+            <div className="bg-muted/50 border border-dashed border-primary/30 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm font-medium">
+                  Modo Preview Ativo: {selectedPalette.name}
+                  {refinedColors && " (Refinada com IA)"}
+                </span>
+              </div>
+              
+              {/* Color swatches - sequence: Primária, Top Bar, Header, Botão, Rodapé */}
+              <div className="flex gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.primary }} />
                   <span className="text-xs text-muted-foreground">Primária</span>
@@ -515,63 +528,110 @@ export const AIPaletteSection = ({
                   <div className="w-5 h-5 rounded border" style={{ backgroundColor: activeColors.footerBg }} />
                   <span className="text-xs text-muted-foreground">Rodapé</span>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
+
+            {/* AI Refinement Section */}
+            <div className="space-y-4 flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="refinement-prompt" className="text-sm font-medium">
+                  Deseja ajustar essa paleta com IA? (opcional)
+                </Label>
+                <Textarea
+                  id="refinement-prompt"
+                  value={refinementPrompt}
+                  onChange={(e) => setRefinementPrompt(e.target.value)}
+                  placeholder='Ex: "Deixar mais elegante", "Mais contraste nos botões", "Tons mais claros"'
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+              
+              <Button
+                onClick={handleRefineWithAI}
+                disabled={isRefining || !refinementPrompt.trim()}
+                variant="outline"
+                className="w-full"
+              >
+                {isRefining ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Refinando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Refinar paleta com IA
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 justify-end pt-4 border-t mt-4">
+              <Button variant="outline" onClick={handleDiscard}>
+                <X className="h-4 w-4 mr-2" />
+                Descartar
+              </Button>
+              <Button onClick={handleApply} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <Check className="h-4 w-4 mr-2" />
+                Aplicar Paleta
+              </Button>
+            </div>
+          </div>
+
+          {/* Column 3 - Store Preview */}
+          <div className="lg:col-span-1">
+            <div className="text-center mb-2">
+              <span className="text-sm font-medium text-muted-foreground">Pré-Visualização</span>
+            </div>
+            <StorePreviewMockup colors={activeColors} storeName="Minha Loja" />
           </div>
         </div>
-      )}
+      </Card>
+    );
+  }
 
-      {/* AI Refinement Section */}
-      {selectedPalette && (
-        <div className="space-y-4 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="refinement-prompt" className="text-sm font-medium">
-              Deseja ajustar essa paleta com IA? (opcional)
-            </Label>
-            <Textarea
-              id="refinement-prompt"
-              value={refinementPrompt}
-              onChange={(e) => setRefinementPrompt(e.target.value)}
-              placeholder='Ex: "Deixar mais elegante", "Mais contraste nos botões", "Tons mais claros", "Versão noturna"'
-              className="resize-none"
-              rows={2}
-            />
+  // Initial state - Palette Grid
+  return (
+    <Card className="p-6">
+      <div className="space-y-1 mb-6">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded">
+            <Brain className="h-4 w-4 text-white" />
           </div>
-          
-          <Button
-            onClick={handleRefineWithAI}
-            disabled={isRefining || !refinementPrompt.trim()}
-            variant="outline"
-            className="w-full md:w-auto"
+          <h2 className="text-lg font-semibold text-foreground">Paleta de Cor com IA</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Escolha uma paleta visual e, opcionalmente, refine com IA
+        </p>
+      </div>
+
+      {/* Palette Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {PREDEFINED_PALETTES.map((palette) => (
+          <button
+            key={palette.id}
+            onClick={() => handleSelectPalette(palette)}
+            className="border rounded-lg p-3 text-left transition-all hover:shadow-md border-input hover:border-primary/50"
           >
-            {isRefining ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Refinando...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Refinar paleta com IA
-              </>
-            )}
-          </Button>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      {previewPalette && (
-        <div className="flex gap-3 justify-end pt-4 border-t">
-          <Button variant="outline" onClick={handleDiscard}>
-            <X className="h-4 w-4 mr-2" />
-            Descartar
-          </Button>
-          <Button onClick={handleApply} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Check className="h-4 w-4 mr-2" />
-            Aplicar Paleta
-          </Button>
-        </div>
-      )}
+            {/* Color Preview Bar */}
+            <div className="flex gap-0.5 rounded overflow-hidden h-6 mb-2">
+              <div className="flex-1" style={{ backgroundColor: palette.colors.primary }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.secondary }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.headerBg }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.buttonBg }} />
+              <div className="flex-1" style={{ backgroundColor: palette.colors.footerBg }} />
+            </div>
+            
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-muted-foreground">{palette.icon}</span>
+              <span className="font-medium text-sm truncate">{palette.name}</span>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2">{palette.description}</p>
+          </button>
+        ))}
+      </div>
     </Card>
   );
 };
