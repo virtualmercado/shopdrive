@@ -38,6 +38,7 @@ interface StoreData {
   x_url?: string;
   youtube_url?: string;
   cpf_cnpj?: string;
+  header_logo_position?: string;
 }
 
 const AboutUsPageContent = () => {
@@ -105,6 +106,7 @@ const AboutUsPageContent = () => {
         cartItemCount={getItemCount()}
         buttonBgColor={buttonBgColor}
         buttonTextColor={buttonTextColor}
+        logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
 
       <main className="container mx-auto px-4 py-8 flex-1">

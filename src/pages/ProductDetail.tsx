@@ -67,6 +67,7 @@ interface StoreData {
   address_zip_code?: string;
   return_policy_text?: string;
   cpf_cnpj?: string;
+  header_logo_position?: string;
 }
 
 const ProductDetailContent = () => {
@@ -337,6 +338,7 @@ const ProductDetailContent = () => {
         cartItemCount={getItemCount()}
         buttonBgColor={buttonBgColor}
         buttonTextColor={buttonTextColor}
+        logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">

@@ -28,6 +28,7 @@ const Customize = () => {
   const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
   const [buttonBgColor, setButtonBgColor] = useState("#6a1b9a");
   const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
+  const [headerLogoPosition, setHeaderLogoPosition] = useState<"left" | "center" | "right">("left");
 
   useEffect(() => {
     fetchUserData();
@@ -42,7 +43,7 @@ const Customize = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color")
+        .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color, header_logo_position")
         .eq("id", user.id)
         .single();
 
@@ -60,6 +61,7 @@ const Customize = () => {
         if (profile.button_border_style) setButtonBorderStyle(profile.button_border_style);
         if (profile.button_bg_color) setButtonBgColor(profile.button_bg_color);
         if (profile.button_text_color) setButtonTextColor(profile.button_text_color);
+        if (profile.header_logo_position) setHeaderLogoPosition(profile.header_logo_position as "left" | "center" | "right");
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -166,7 +168,8 @@ const Customize = () => {
           product_button_display: productButtonDisplay,
           button_border_style: buttonBorderStyle,
           button_bg_color: buttonBgColor,
-          button_text_color: buttonTextColor
+          button_text_color: buttonTextColor,
+          header_logo_position: headerLogoPosition
         })
         .eq("id", userId);
 
@@ -279,7 +282,7 @@ const Customize = () => {
               <h2 className="text-lg font-semibold text-foreground">Logo</h2>
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {logoUrl ? (
               <div className="space-y-4">
                 <div className="border-2 rounded-lg p-4 flex items-center justify-between bg-muted/20">
@@ -336,6 +339,118 @@ const Customize = () => {
                 <p className="font-medium text-foreground">Formato recomendado: PNG com fundo transparente</p>
                 <p className="font-medium">Tamanho recomendado para Header: 250×80 px</p>
                 <p className="font-medium">Tamanho máximo: 200 KB</p>
+              </div>
+            </div>
+
+            {/* Logo Position Control */}
+            <div className="border-t pt-6">
+              <Label className="text-base font-medium mb-3 block">Posição da logo no cabeçalho</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHeaderLogoPosition("left")}
+                  className={`border rounded-md p-3 text-center transition-all flex flex-col items-center gap-2 ${
+                    headerLogoPosition === "left" 
+                      ? 'border-transparent font-semibold' 
+                      : 'border-input'
+                  }`}
+                  style={{ 
+                    ...(headerLogoPosition === "left" && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(headerLogoPosition !== "left" && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (headerLogoPosition !== "left") {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (headerLogoPosition !== "left") {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1 w-full">
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "left" ? colors.primary : '#9ca3af' }} />
+                    <div className="flex-1 h-2 bg-gray-200 rounded" />
+                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                  </div>
+                  <span className="text-sm">Esquerda</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeaderLogoPosition("center")}
+                  className={`border rounded-md p-3 text-center transition-all flex flex-col items-center gap-2 ${
+                    headerLogoPosition === "center" 
+                      ? 'border-transparent font-semibold' 
+                      : 'border-input'
+                  }`}
+                  style={{ 
+                    ...(headerLogoPosition === "center" && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(headerLogoPosition !== "center" && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (headerLogoPosition !== "center") {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (headerLogoPosition !== "center") {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1 w-full">
+                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "center" ? colors.primary : '#9ca3af' }} />
+                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                  </div>
+                  <span className="text-sm">Centralizada</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeaderLogoPosition("right")}
+                  className={`border rounded-md p-3 text-center transition-all flex flex-col items-center gap-2 ${
+                    headerLogoPosition === "right" 
+                      ? 'border-transparent font-semibold' 
+                      : 'border-input'
+                  }`}
+                  style={{ 
+                    ...(headerLogoPosition === "right" && {
+                      backgroundColor: `${colors.primary}40`,
+                      color: colors.primary
+                    }),
+                    ...(headerLogoPosition !== "right" && {
+                      borderColor: 'hsl(var(--input))'
+                    })
+                  }}
+                  onMouseEnter={(e) => {
+                    if (headerLogoPosition !== "right") {
+                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (headerLogoPosition !== "right") {
+                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-1 w-full">
+                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                    <div className="flex-1 h-2 bg-gray-200 rounded" />
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "right" ? colors.primary : '#9ca3af' }} />
+                  </div>
+                  <span className="text-sm">Direita</span>
+                </button>
               </div>
             </div>
           </div>

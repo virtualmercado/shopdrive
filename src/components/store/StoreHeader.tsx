@@ -20,6 +20,7 @@ interface StoreHeaderProps {
   onSearchChange?: (term: string) => void;
   selectedCategory?: string | null;
   onCategoryChange?: (categoryId: string | null) => void;
+  logoPosition?: "left" | "center" | "right";
 }
 
 interface Category {
@@ -42,6 +43,7 @@ const StoreHeader = ({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
+  logoPosition = "left",
 }: StoreHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -112,27 +114,63 @@ const StoreHeader = ({
           .store-search-input:hover {
             border-color: var(--search-focus-color) !important;
           }
+          .header-grid-left {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-areas: "logo search actions";
+          }
+          .header-grid-center {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            grid-template-areas: "search logo actions";
+          }
+          .header-grid-right {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-areas: "actions search logo";
+          }
+          .header-logo { grid-area: logo; }
+          .header-search { grid-area: search; }
+          .header-actions { grid-area: actions; }
         `}
       </style>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo - Clickable to store home */}
-          <Link to={`/loja/${storeSlug}`} className="flex-shrink-0">
+        {/* Desktop Header with Grid Layout */}
+        <div 
+          className={`hidden md:grid items-center h-20 gap-6 ${
+            logoPosition === "left" ? "header-grid-left" : 
+            logoPosition === "center" ? "header-grid-center" : 
+            "header-grid-right"
+          }`}
+        >
+          {/* Logo */}
+          <Link 
+            to={`/loja/${storeSlug}`} 
+            className={`header-logo flex-shrink-0 ${
+              logoPosition === "left" ? "justify-self-start" : 
+              logoPosition === "center" ? "justify-self-center" : 
+              "justify-self-end"
+            }`}
+          >
             {logoUrl ? (
               <img 
                 src={logoUrl} 
                 alt={storeName} 
-                className="h-8 md:h-12 w-auto object-contain max-w-[160px] md:max-w-[250px] cursor-pointer hover:opacity-90 transition-opacity" 
+                className="h-12 w-auto object-contain max-w-[250px] cursor-pointer hover:opacity-90 transition-opacity" 
               />
             ) : (
-              <span className="text-xl md:text-2xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
+              <span className="text-2xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
                 {storeName}
               </span>
             )}
           </Link>
 
-          {/* Search - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* Search */}
+          <div className={`header-search w-full max-w-lg ${
+            logoPosition === "left" ? "justify-self-center" : 
+            logoPosition === "center" ? "justify-self-start" : 
+            "justify-self-center"
+          }`}>
             <form onSubmit={handleSearchSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
               <Input
@@ -147,8 +185,10 @@ const StoreHeader = ({
             </form>
           </div>
 
-          {/* Icons - Desktop */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Actions */}
+          <div className={`header-actions flex items-center gap-4 ${
+            logoPosition === "right" ? "justify-self-start" : "justify-self-end"
+          }`}>
             <Link 
               to={`/loja/${storeSlug}/conta`}
               className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
@@ -168,33 +208,76 @@ const StoreHeader = ({
               </Button>
             </Link>
           </div>
-
-          {/* Mobile menu button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" style={{ color: backgroundColor }} /> : <Menu className="h-6 w-6" style={{ color: backgroundColor }} />}
-          </Button>
         </div>
 
-        {/* Search - Mobile */}
-        <div className="md:hidden pb-3">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
-            <Input
-              type="search"
-              placeholder="Buscar produtos..."
-              value={localSearchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="pl-10 w-full store-search-input"
-              style={searchInputStyle}
-            />
-          </form>
+        {/* Mobile Header - Two Lines Layout */}
+        <div className="md:hidden">
+          {/* Line 1: Logo + Actions */}
+          <div className={`flex items-center h-16 ${
+            logoPosition === "right" ? "flex-row-reverse" : ""
+          }`}>
+            {/* Logo */}
+            <Link to={`/loja/${storeSlug}`} className={`flex-shrink-0 ${
+              logoPosition === "center" ? "flex-1 flex justify-center" : ""
+            }`}>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt={storeName} 
+                  className="h-8 w-auto object-contain max-w-[160px] cursor-pointer hover:opacity-90 transition-opacity" 
+                />
+              ) : (
+                <span className="text-xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
+                  {storeName}
+                </span>
+              )}
+            </Link>
+            
+            {/* Spacer for non-center positions */}
+            {logoPosition !== "center" && <div className="flex-1" />}
+            
+            {/* Mobile Actions */}
+            <div className={`flex items-center gap-2 ${
+              logoPosition === "center" ? "absolute right-4" : ""
+            }`}>
+              <Link to={`/loja/${storeSlug}/checkout`}>
+                <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
+                  <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                      style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" style={{ color: backgroundColor }} /> : <Menu className="h-6 w-6" style={{ color: backgroundColor }} />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Line 2: Search - Mobile */}
+          <div className="pb-3">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
+              <Input
+                type="search"
+                placeholder="Buscar produtos..."
+                value={localSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-10 w-full store-search-input"
+                style={searchInputStyle}
+              />
+            </form>
+          </div>
         </div>
+
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-6 py-3 border-t overflow-x-auto">
