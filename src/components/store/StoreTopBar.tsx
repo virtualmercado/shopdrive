@@ -19,7 +19,8 @@ const StoreTopBar = ({
 }: StoreTopBarProps) => {
   const navigate = useNavigate();
 
-  const isClickable = linkType !== "none" && linkTarget;
+  // For "sale" type, linkTarget is not required - it navigates to a fixed route
+  const isClickable = linkType !== "none" && (linkType === "sale" || linkTarget);
 
   const handleClick = () => {
     if (!isClickable) return;
