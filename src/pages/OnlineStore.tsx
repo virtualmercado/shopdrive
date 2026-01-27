@@ -217,14 +217,18 @@ const OnlineStoreContent = () => {
       />
       
       {(() => {
-        const customDesktopUrls = storeData.banner_desktop_urls && storeData.banner_desktop_urls.length > 0
-          ? storeData.banner_desktop_urls
+        // IMPORTANT:
+        // banner_*_urls arrays are the source of truth.
+        // If they exist but are empty, we MUST NOT fall back to legacy single-image fields,
+        // otherwise deleted banners can keep showing ("ghost" banners).
+        const customDesktopUrls = storeData.banner_desktop_urls !== undefined
+          ? (storeData.banner_desktop_urls ?? [])
           : storeData.banner_desktop_url
           ? [storeData.banner_desktop_url]
           : [];
         
-        const customMobileUrls = storeData.banner_mobile_urls && storeData.banner_mobile_urls.length > 0
-          ? storeData.banner_mobile_urls
+        const customMobileUrls = storeData.banner_mobile_urls !== undefined
+          ? (storeData.banner_mobile_urls ?? [])
           : storeData.banner_mobile_url
           ? [storeData.banner_mobile_url]
           : [];
