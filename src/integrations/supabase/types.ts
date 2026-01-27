@@ -2617,6 +2617,36 @@ export type Database = {
         }
         Relationships: []
       }
+      product_brands: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           created_at: string
@@ -2682,6 +2712,7 @@ export type Database = {
       }
       products: {
         Row: {
+          brand_id: string | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -2703,6 +2734,7 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          brand_id?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -2724,6 +2756,7 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          brand_id?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -2745,6 +2778,13 @@ export type Database = {
           width?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "product_brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]

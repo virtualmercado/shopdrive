@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag } from "lucide-react";
+import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,6 +46,7 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -164,16 +166,26 @@ const Products = () => {
                 className="pl-9"
               />
             </div>
-            <Button 
-              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => {
-                setSelectedProduct(null);
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              Novo Produto
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                className="gap-2"
+                onClick={() => setBrandModalOpen(true)}
+              >
+                <Tag className="h-4 w-4" />
+                Gerenciar Marcas
+              </Button>
+              <Button 
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  setSelectedProduct(null);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Novo Produto
+              </Button>
+            </div>
           </div>
 
           {/* Categories Filter */}
@@ -317,6 +329,11 @@ const Products = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <BrandManagementModal
+          open={brandModalOpen}
+          onOpenChange={setBrandModalOpen}
+        />
       </div>
     </DashboardLayout>
   );

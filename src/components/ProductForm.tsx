@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor } from "@/components/ImageEditor";
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
+import { BrandSelector } from "@/components/products/BrandSelector";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -42,6 +43,7 @@ interface Product {
   image_url: string | null;
   images: string[];
   category_id: string | null;
+  brand_id?: string | null;
   is_featured?: boolean;
   is_new?: boolean;
   variations?: ProductVariation[];
@@ -70,6 +72,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const [promotionalPrice, setPromotionalPrice] = useState(product?.promotional_price?.toString() || "");
   const [stock, setStock] = useState(product?.stock.toString() || "");
   const [categoryId, setCategoryId] = useState(product?.category_id || "");
+  const [brandId, setBrandId] = useState<string | null>(product?.brand_id || null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -130,6 +133,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       setPromotionalPrice(product.promotional_price?.toString() || "");
       setStock(product.stock.toString());
       setCategoryId(product.category_id || "");
+      setBrandId(product.brand_id || null);
       setImagePreviews(product.images || []);
       setImageFiles([]);
       setIsFeatured(product.is_featured || false);
@@ -400,6 +404,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         image_url: mainImage,
         images: allImages,
         category_id: categoryId || null,
+        brand_id: brandId || null,
         is_featured: isFeatured,
         is_new: isNew,
         user_id: user.id,
@@ -459,6 +464,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     setPromotionalPrice("");
     setStock("");
     setCategoryId("");
+    setBrandId(null);
     setImageFiles([]);
     setImagePreviews([]);
     setNewCategoryName("");
@@ -847,6 +853,15 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
               />
             </div>
           </div>
+
+          {/* Brand Section */}
+          <BrandSelector
+            value={brandId}
+            onChange={setBrandId}
+            buttonBgColor={buttonBgColor}
+            buttonTextColor={buttonTextColor}
+            buttonRadius={buttonRadius}
+          />
 
           {/* Product Variations Section */}
           <div className="space-y-3 border-t pt-4">

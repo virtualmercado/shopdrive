@@ -26,7 +26,7 @@ interface Product {
 
 interface ProductCarouselProps {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   storeOwnerId: string;
   storeSlug?: string;
   featured?: boolean;
@@ -42,6 +42,7 @@ interface ProductCarouselProps {
   productButtonDisplay?: string;
   searchTerm?: string;
   selectedCategory?: string | null;
+  selectedBrandId?: string | null;
   showAllOnSearch?: boolean;
 }
 
@@ -113,6 +114,7 @@ const ProductCarousel = ({
   productButtonDisplay = "below",
   searchTerm = "",
   selectedCategory = null,
+  selectedBrandId = null,
   showAllOnSearch = false,
 }: ProductCarouselProps) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -131,6 +133,9 @@ const ProductCarousel = ({
       // When showAllOnSearch is true, fetch ALL products without filters
       if (showAllOnSearch) {
         query = query.order("created_at", { ascending: false });
+      } else if (selectedBrandId) {
+        // Filter by brand
+        query = query.eq("brand_id", selectedBrandId).order("created_at", { ascending: false });
       } else if (promotional) {
         // Filter only products with promotional price
         query = query.gt("promotional_price", 0).order("created_at", { ascending: false });
@@ -166,7 +171,7 @@ const ProductCarousel = ({
     };
 
     fetchProducts();
-  }, [storeOwnerId, featured, newest, promotional, showAllOnSearch]);
+  }, [storeOwnerId, featured, newest, promotional, selectedBrandId, showAllOnSearch]);
 
   // Filter products based on search term and category
   const filteredProducts = useMemo(() => {

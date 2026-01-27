@@ -8,6 +8,7 @@ import StoreTopBar from "@/components/store/StoreTopBar";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
+import { BrandSection } from "@/components/store/BrandSection";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +60,7 @@ const OnlineStoreContent = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
   const { getItemCount } = useCart();
 
@@ -356,6 +358,34 @@ const OnlineStoreContent = () => {
           productButtonDisplay={productButtonDisplay}
           selectedCategory={selectedCategory}
         />
+
+        {/* Brand Section */}
+        <BrandSection
+          storeOwnerId={storeData.id}
+          selectedBrandId={selectedBrandId}
+          onBrandSelect={setSelectedBrandId}
+          primaryColor={storeData.primary_color}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
+
+        {/* Filtered Products by Brand (if selected) */}
+        {selectedBrandId && (
+          <ProductCarousel
+            title="Produtos da Marca"
+            storeOwnerId={storeData.id}
+            storeSlug={storeSlug}
+            primaryColor={storeData.primary_color}
+            buttonBgColor={buttonBgColor}
+            buttonTextColor={buttonTextColor}
+            buttonBorderStyle={buttonBorderStyle}
+            productImageFormat={productImageFormat}
+            productBorderStyle={productBorderStyle}
+            productTextAlignment={productTextAlignment}
+            productButtonDisplay={productButtonDisplay}
+            selectedBrandId={selectedBrandId}
+          />
+        )}
       </main>
 
       <StoreFooter storeData={storeData} />
