@@ -9,7 +9,7 @@ import bannerBenefits3 from "@/assets/banner-benefits-3.png";
 import bannerBenefits4 from "@/assets/banner-benefits-4.png";
 import bannerBenefits5 from "@/assets/banner-benefits-5.png";
 
-// Fixed VM Benefits Desktop Banners (1920x512) - 5 rotating benefits banners
+// VM Benefits Desktop Banners (1920x512) - 5 pre-inserted banners for merchant convenience
 export const FIXED_VM_DESKTOP_BANNERS = [
   bannerBenefits1,
   bannerBenefits2,
@@ -18,11 +18,11 @@ export const FIXED_VM_DESKTOP_BANNERS = [
   bannerBenefits5,
 ];
 
-// Maximum number of custom banners a merchant can add
-export const MAX_CUSTOM_BANNERS = 3;
-
-// Total maximum banners (5 fixed + 3 custom)
+// Maximum total banners (all editable by merchant)
 export const MAX_TOTAL_BANNERS = 8;
+
+// Legacy export for compatibility
+export const MAX_CUSTOM_BANNERS = MAX_TOTAL_BANNERS;
 
 // Default Mobile Banners (800x600) - Optimized for mobile devices
 export const DEFAULT_MOBILE_BANNERS = [
@@ -39,7 +39,7 @@ export const DEFAULT_MINIBANNER_2 = "https://images.unsplash.com/photo-147285129
 export const DEFAULT_DESKTOP_BANNERS = FIXED_VM_DESKTOP_BANNERS;
 
 /**
- * Check if a banner URL is one of the fixed VM banners
+ * Check if a banner URL is one of the VM pre-inserted banners
  */
 export const isFixedVMBanner = (url: string): boolean => {
   if (!url) return false;
@@ -69,8 +69,9 @@ export const isDefaultBanner = (url: string): boolean => {
 };
 
 /**
- * Get effective banners for a store - combines fixed VM banners with custom merchant banners
- * Fixed banners always show first, followed by custom banners
+ * Get effective banners for a store
+ * If merchant has no banners, returns the pre-inserted VM banners as starting point
+ * Otherwise, returns the merchant's banners
  */
 export const getEffectiveBanners = (
   customDesktopUrls: string[] = [],
@@ -78,12 +79,13 @@ export const getEffectiveBanners = (
   customMinibanner1?: string | null,
   customMinibanner2?: string | null
 ) => {
-  // Combine fixed VM banners with custom merchant banners (max 3 custom)
-  const customBannersLimited = customDesktopUrls.slice(0, MAX_CUSTOM_BANNERS);
-  const combinedDesktopBanners = [...FIXED_VM_DESKTOP_BANNERS, ...customBannersLimited];
+  // If merchant has custom banners, use them; otherwise use pre-inserted VM banners
+  const effectiveDesktopBanners = customDesktopUrls.length > 0 
+    ? customDesktopUrls 
+    : FIXED_VM_DESKTOP_BANNERS;
   
   return {
-    desktopBanners: combinedDesktopBanners,
+    desktopBanners: effectiveDesktopBanners,
     mobileBanners: customMobileUrls.length > 0 ? customMobileUrls : DEFAULT_MOBILE_BANNERS,
     minibanner1: customMinibanner1 || DEFAULT_MINIBANNER_1,
     minibanner2: customMinibanner2 || DEFAULT_MINIBANNER_2,
@@ -91,7 +93,15 @@ export const getEffectiveBanners = (
 };
 
 /**
- * Get only custom banners (excluding fixed VM banners)
+ * Get the initial banner set for new stores
+ * Returns the 5 VM pre-inserted banners as starting point
+ */
+export const getInitialDesktopBanners = (): string[] => {
+  return [...FIXED_VM_DESKTOP_BANNERS];
+};
+
+/**
+ * Get only custom banners (excluding VM pre-inserted banners)
  */
 export const getCustomBannersOnly = (allBanners: string[]): string[] => {
   return allBanners.filter(url => !isFixedVMBanner(url));
