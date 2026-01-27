@@ -10,16 +10,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus, Lock, Info } from "lucide-react";
+import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus, Lock } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
-import { useBillingStatus } from "@/hooks/useBillingStatus";
 import { 
-  DEFAULT_DESKTOP_BANNERS, 
+  FIXED_VM_DESKTOP_BANNERS,
   DEFAULT_MOBILE_BANNERS, 
   DEFAULT_MINIBANNER_1, 
   DEFAULT_MINIBANNER_2,
-  isDefaultBanner 
+  isFixedVMBanner,
+  MAX_CUSTOM_BANNERS
 } from "@/lib/defaultBanners";
 
 const StorePreviewEnhanced = () => {
@@ -28,10 +28,7 @@ const StorePreviewEnhanced = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor } = useTheme();
-  const { data: billingInfo } = useBillingStatus();
   
-  // Check if merchant is on free plan (can't delete banners)
-  const isFreePlan = !billingInfo || billingInfo.planId === 'gratis' || billingInfo.planId === 'free';
   const [storeData, setStoreData] = useState({
     store_name: "",
     store_slug: "",
@@ -550,114 +547,114 @@ const StorePreviewEnhanced = () => {
               <h2 className="text-lg font-semibold text-foreground">Banners</h2>
             </div>
             <p className="text-xs text-muted-foreground ml-10">
-              Sua loja já vem com banners padrão ativados. Substitua-os para personalizar.
+              Sua loja possui 5 banners fixos da VirtualMercado + até 3 banners personalizados.
             </p>
           </div>
-          
-          {/* Plan restriction notice */}
-          {isFreePlan && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-              <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-amber-800">
-                <span className="font-medium">Plano Grátis:</span> Você pode substituir os banners, mas não pode excluí-los. 
-                <a href="/lojista/financeiro" className="underline ml-1">Faça upgrade</a> para ter controle total.
-              </div>
-            </div>
-          )}
           
           <div className="space-y-6">
             {/* Banner Principal Desktop/Tablet */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
-                {storeData.banner_desktop_urls.length === 0 && (
-                  <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
-                )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 1920x600px • Máximo: 3 imagens • Carrossel automático
+                Tamanho recomendado: 1920x512px • Total: 5 banners VM fixos + até 3 personalizados • Carrossel automático
               </p>
               
-              {/* Show default or custom banners */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {(storeData.banner_desktop_urls.length > 0 ? storeData.banner_desktop_urls : DEFAULT_DESKTOP_BANNERS).map((url, index) => {
-                  const isDefault = storeData.banner_desktop_urls.length === 0;
-                  const canDelete = !isFreePlan && !isDefault;
-                  
-                  return (
-                    <div key={index} className="relative group">
+              {/* Fixed VM Banners Section */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">Banners VM Fixos (5)</Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {FIXED_VM_DESKTOP_BANNERS.map((url, index) => (
+                    <div key={`fixed-${index}`} className="relative group">
                       <img
                         src={url}
-                        alt={`Banner Desktop ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
+                        alt={`Banner VM ${index + 1}`}
+                        className="w-full h-20 object-cover rounded-lg border border-gray-200"
                       />
-                      {isDefault && (
-                        <div className="absolute top-2 left-2">
-                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
-                        </div>
-                      )}
-                      {!isDefault && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => canDelete && handleRemoveImage("banner_desktop_urls", index)}
-                              disabled={!canDelete}
-                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
-                                canDelete 
-                                  ? 'opacity-0 group-hover:opacity-100' 
-                                  : 'opacity-50 cursor-not-allowed'
-                              }`}
-                              title={canDelete ? "Excluir imagem" : "Exclusão disponível em planos pagos"}
-                              style={{ 
-                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
-                                color: buttonTextColor 
-                              }}
-                            >
-                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          {!canDelete && (
-                            <TooltipContent>
-                              <p>Exclusão disponível em planos pagos</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      )}
+                      <div className="absolute top-1 left-1">
+                        <Badge variant="outline" className="bg-white/90 text-[10px] px-1.5 py-0.5">
+                          <Lock className="w-2.5 h-2.5 mr-0.5" />
+                          Fixo
+                        </Badge>
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
               
-              {storeData.banner_desktop_urls.length < 3 && (
-                <div>
-                  <input
-                    type="file"
-                    id="banner_desktop_input"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        handleMultipleImageUpload(Array.from(e.target.files), "banner_desktop_urls");
-                        e.target.value = "";
-                      }
-                    }}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="banner_desktop_input"
-                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
-                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {storeData.banner_desktop_urls.length === 0 ? "Substituir Banners" : "Escolher Arquivos"}
-                    </span>
-                  </label>
+              {/* Custom Merchant Banners Section */}
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">Seus Banners ({storeData.banner_desktop_urls.length}/{MAX_CUSTOM_BANNERS})</Badge>
+                  </div>
                 </div>
-              )}
+                
+                {storeData.banner_desktop_urls.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {storeData.banner_desktop_urls.map((url, index) => (
+                      <div key={`custom-${index}`} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Banner Personalizado ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage("banner_desktop_urls", index)}
+                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          title="Excluir imagem"
+                          style={{ 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor 
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground py-2">
+                    Nenhum banner personalizado adicionado. Adicione até 3 banners para complementar o carrossel.
+                  </div>
+                )}
+                
+                {storeData.banner_desktop_urls.length < MAX_CUSTOM_BANNERS && (
+                  <div>
+                    <input
+                      type="file"
+                      id="banner_desktop_input"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          const remainingSlots = MAX_CUSTOM_BANNERS - storeData.banner_desktop_urls.length;
+                          const filesToUpload = Array.from(e.target.files).slice(0, remainingSlots);
+                          handleMultipleImageUpload(filesToUpload, "banner_desktop_urls");
+                          e.target.value = "";
+                        }
+                      }}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="banner_desktop_input"
+                      className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
+                        uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Adicionar Banner Personalizado
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Banner Mobile */}
@@ -676,7 +673,6 @@ const StorePreviewEnhanced = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {(storeData.banner_mobile_urls.length > 0 ? storeData.banner_mobile_urls : DEFAULT_MOBILE_BANNERS).map((url, index) => {
                   const isDefault = storeData.banner_mobile_urls.length === 0;
-                  const canDelete = !isFreePlan && !isDefault;
                   
                   return (
                     <div key={index} className="relative group">
@@ -691,32 +687,18 @@ const StorePreviewEnhanced = () => {
                         </div>
                       )}
                       {!isDefault && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => canDelete && handleRemoveImage("banner_mobile_urls", index)}
-                              disabled={!canDelete}
-                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
-                                canDelete 
-                                  ? 'opacity-0 group-hover:opacity-100' 
-                                  : 'opacity-50 cursor-not-allowed'
-                              }`}
-                              title={canDelete ? "Excluir imagem" : "Exclusão disponível em planos pagos"}
-                              style={{ 
-                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
-                                color: buttonTextColor 
-                              }}
-                            >
-                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          {!canDelete && (
-                            <TooltipContent>
-                              <p>Exclusão disponível em planos pagos</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage("banner_mobile_urls", index)}
+                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          title="Excluir imagem"
+                          style={{ 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor 
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   );
@@ -771,7 +753,6 @@ const StorePreviewEnhanced = () => {
                 {(() => {
                   const currentUrl = storeData.banner_rect_1_url || DEFAULT_MINIBANNER_1;
                   const isDefault = !storeData.banner_rect_1_url;
-                  const canDelete = !isFreePlan && !isDefault;
                   
                   return (
                     <div className="relative group mb-2">
@@ -786,32 +767,18 @@ const StorePreviewEnhanced = () => {
                         </div>
                       )}
                       {!isDefault && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => canDelete && handleRemoveSingleImage("banner_rect_1_url")}
-                              disabled={!canDelete}
-                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
-                                canDelete 
-                                  ? 'opacity-0 group-hover:opacity-100' 
-                                  : 'opacity-50 cursor-not-allowed'
-                              }`}
-                              title={canDelete ? "Excluir minibanner" : "Exclusão disponível em planos pagos"}
-                              style={{ 
-                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
-                                color: buttonTextColor 
-                              }}
-                            >
-                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          {!canDelete && (
-                            <TooltipContent>
-                              <p>Exclusão disponível em planos pagos</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSingleImage("banner_rect_1_url")}
+                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          title="Excluir minibanner"
+                          style={{ 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor 
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   );
@@ -858,7 +825,6 @@ const StorePreviewEnhanced = () => {
                 {(() => {
                   const currentUrl = storeData.banner_rect_2_url || DEFAULT_MINIBANNER_2;
                   const isDefault = !storeData.banner_rect_2_url;
-                  const canDelete = !isFreePlan && !isDefault;
                   
                   return (
                     <div className="relative group mb-2">
@@ -873,32 +839,18 @@ const StorePreviewEnhanced = () => {
                         </div>
                       )}
                       {!isDefault && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => canDelete && handleRemoveSingleImage("banner_rect_2_url")}
-                              disabled={!canDelete}
-                              className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 ${
-                                canDelete 
-                                  ? 'opacity-0 group-hover:opacity-100' 
-                                  : 'opacity-50 cursor-not-allowed'
-                              }`}
-                              title={canDelete ? "Excluir minibanner" : "Exclusão disponível em planos pagos"}
-                              style={{ 
-                                backgroundColor: canDelete ? buttonBgColor : '#9ca3af', 
-                                color: buttonTextColor 
-                              }}
-                            >
-                              {canDelete ? <Trash2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          {!canDelete && (
-                            <TooltipContent>
-                              <p>Exclusão disponível em planos pagos</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSingleImage("banner_rect_2_url")}
+                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          title="Excluir minibanner"
+                          style={{ 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor 
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   );
