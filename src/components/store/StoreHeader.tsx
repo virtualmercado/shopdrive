@@ -262,17 +262,36 @@ const StoreHeader = ({
           </div>
 
           {/* Line 2: Search - Mobile */}
-          <div className="pb-3">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
+          <div className="pb-3 relative z-10">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (onSearchChange) {
+                  onSearchChange(localSearchTerm);
+                }
+              }} 
+              className="relative w-full"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: backgroundColor }} />
               <Input
-                type="search"
+                type="text"
+                inputMode="search"
+                enterKeyHint="search"
                 placeholder="Buscar produtos..."
                 value={localSearchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocalSearchTerm(value);
+                  if (onSearchChange) {
+                    onSearchChange(value);
+                  }
+                }}
                 className="pl-10 w-full store-search-input"
                 style={searchInputStyle}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
               />
             </form>
           </div>
