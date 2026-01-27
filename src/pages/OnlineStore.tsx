@@ -338,6 +338,24 @@ const OnlineStoreContent = () => {
             </div>
           );
         })()}
+
+        {/* Promotional Products Carousel */}
+        <ProductCarousel
+          title="Promoções"
+          subtitle="Aproveite os melhores preços"
+          storeOwnerId={storeData.id}
+          storeSlug={storeSlug}
+          promotional={true}
+          primaryColor={storeData.primary_color}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productImageFormat={productImageFormat}
+          productBorderStyle={productBorderStyle}
+          productTextAlignment={productTextAlignment}
+          productButtonDisplay={productButtonDisplay}
+          selectedCategory={selectedCategory}
+        />
       </main>
 
       <StoreFooter storeData={storeData} />
