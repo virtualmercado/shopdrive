@@ -30,6 +30,7 @@ import CatalogPDF from "./pages/dashboard/CatalogPDF";
 import OnlineStore from "./pages/OnlineStore";
 import StoreCategoryPage from "./pages/StoreCategoryPage";
 import StorePromotionsPage from "./pages/StorePromotionsPage";
+import StoreBrandPage from "./pages/StoreBrandPage";
 import ReturnPolicyPage from "./pages/ReturnPolicyPage";
 import AboutUsPage from "./pages/AboutUsPage";
 import LandingAboutUs from "./pages/LandingAboutUs";
@@ -139,6 +140,7 @@ function App() {
             <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
             <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
             <Route path="/loja/:storeSlug/promocoes" element={<StorePromotionsPage />} />
+            <Route path="/loja/:storeSlug/marca/:brandId" element={<StoreBrandPage />} />
             <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
             <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
             <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />

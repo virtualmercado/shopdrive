@@ -60,7 +60,6 @@ const OnlineStoreContent = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
   const { getItemCount } = useCart();
 
@@ -362,30 +361,11 @@ const OnlineStoreContent = () => {
         {/* Brand Section */}
         <BrandSection
           storeOwnerId={storeData.id}
-          selectedBrandId={selectedBrandId}
-          onBrandSelect={setSelectedBrandId}
+          storeSlug={storeSlug || ""}
           primaryColor={storeData.primary_color}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
         />
-
-        {/* Filtered Products by Brand (if selected) */}
-        {selectedBrandId && (
-          <ProductCarousel
-            title="Produtos da Marca"
-            storeOwnerId={storeData.id}
-            storeSlug={storeSlug}
-            primaryColor={storeData.primary_color}
-            buttonBgColor={buttonBgColor}
-            buttonTextColor={buttonTextColor}
-            buttonBorderStyle={buttonBorderStyle}
-            productImageFormat={productImageFormat}
-            productBorderStyle={productBorderStyle}
-            productTextAlignment={productTextAlignment}
-            productButtonDisplay={productButtonDisplay}
-            selectedBrandId={selectedBrandId}
-          />
-        )}
       </main>
 
       <StoreFooter storeData={storeData} />

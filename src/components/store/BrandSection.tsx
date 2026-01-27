@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tag, CheckCircle2 } from "lucide-react";
 
@@ -11,8 +12,7 @@ interface Brand {
 
 interface BrandSectionProps {
   storeOwnerId: string;
-  selectedBrandId: string | null;
-  onBrandSelect: (brandId: string | null) => void;
+  storeSlug: string;
   primaryColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
@@ -20,14 +20,13 @@ interface BrandSectionProps {
 
 export const BrandSection = ({
   storeOwnerId,
-  selectedBrandId,
-  onBrandSelect,
+  storeSlug,
   primaryColor = "#6a1b9a",
   buttonBgColor = "#6a1b9a",
-  buttonTextColor = "#FFFFFF",
 }: BrandSectionProps) => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBrandsWithProducts();
@@ -74,6 +73,10 @@ export const BrandSection = ({
     }
   };
 
+  const handleBrandClick = (brandId: string) => {
+    navigate(`/loja/${storeSlug}/marca/${brandId}`);
+  };
+
   if (loading || brands.length === 0) {
     return null;
   }
@@ -99,60 +102,38 @@ export const BrandSection = ({
 
           {/* Brands inline, same row */}
           <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1">
-            {brands.map((brand) => {
-              const isSelected = selectedBrandId === brand.id;
-              
-              return (
-                <button
-                  key={brand.id}
-                  onClick={() => onBrandSelect(isSelected ? null : brand.id)}
-                  className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200 ${
-                    isSelected ? "ring-2" : "hover:opacity-80"
-                  }`}
-                  style={{
-                    outlineColor: isSelected ? buttonBgColor : "transparent",
-                    outlineWidth: isSelected ? "2px" : "0",
-                    outlineStyle: isSelected ? "solid" : "none",
-                  }}
-                >
-                  {brand.logo_url ? (
-                    <img
-                      src={brand.logo_url}
-                      alt={brand.name}
-                      className="h-14 w-auto object-contain"
-                    />
-                  ) : (
-                    <div 
-                      className="h-14 w-14 rounded flex items-center justify-center"
-                      style={{ backgroundColor: `${buttonBgColor}20` }}
-                    >
-                      <Tag 
-                        className="h-6 w-6" 
-                        style={{ color: buttonBgColor }}
-                      />
-                    </div>
-                  )}
-                  <span 
-                    className="text-[10px] text-center line-clamp-1"
-                    style={{ color: isSelected ? buttonBgColor : "#666060" }}
+            {brands.map((brand) => (
+              <button
+                key={brand.id}
+                onClick={() => handleBrandClick(brand.id)}
+                className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-opacity duration-200 hover:opacity-70"
+              >
+                {brand.logo_url ? (
+                  <img
+                    src={brand.logo_url}
+                    alt={brand.name}
+                    className="h-14 w-auto object-contain"
+                  />
+                ) : (
+                  <div 
+                    className="h-14 w-14 rounded flex items-center justify-center"
+                    style={{ backgroundColor: `${buttonBgColor}20` }}
                   >
-                    {brand.name}
-                  </span>
-                </button>
-              );
-            })}
+                    <Tag 
+                      className="h-6 w-6" 
+                      style={{ color: buttonBgColor }}
+                    />
+                  </div>
+                )}
+                <span 
+                  className="text-[10px] text-center line-clamp-1"
+                  style={{ color: "#666060" }}
+                >
+                  {brand.name}
+                </span>
+              </button>
+            ))}
           </div>
-
-          {/* Clear filter button */}
-          {selectedBrandId && (
-            <button
-              onClick={() => onBrandSelect(null)}
-              className="text-xs hover:underline flex-shrink-0"
-              style={{ color: primaryColor }}
-            >
-              Ver todas
-            </button>
-          )}
         </div>
       </div>
     </section>
