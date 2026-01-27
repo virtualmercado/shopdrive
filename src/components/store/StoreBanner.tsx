@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface StoreBannerProps {
   desktopBannerUrls?: string[];
@@ -67,9 +66,9 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
 
   return (
     <div className="w-full">
-      {/* Desktop/Tablet Banner Carousel with Horizontal Slide */}
+      {/* Desktop/Tablet Banner Carousel with Horizontal Slide - Dots navigation only */}
       {desktopBannerUrls.length > 0 && (
-        <div className="hidden md:block relative group overflow-hidden">
+        <div className="hidden md:block relative overflow-hidden">
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
@@ -93,39 +92,23 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
             ))}
           </div>
           
+          {/* Dots navigation - only show when 2+ banners */}
           {desktopBannerUrls.length > 1 && (
-            <>
-              <button
-                onClick={prevDesktop}
-                disabled={isDesktopTransitioning}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 disabled:cursor-not-allowed z-10"
-                aria-label="Banner anterior"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={nextDesktop}
-                disabled={isDesktopTransitioning}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 disabled:cursor-not-allowed z-10"
-                aria-label="Próximo banner"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-              
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                {desktopBannerUrls.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToDesktopSlide(index)}
-                    disabled={isDesktopTransitioning}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentDesktopIndex ? "bg-white w-8" : "bg-white/50 w-2 hover:bg-white/70"
-                    }`}
-                    aria-label={`Ir para banner ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {desktopBannerUrls.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToDesktopSlide(index)}
+                  disabled={isDesktopTransitioning}
+                  className={`rounded-full transition-all duration-300 ${
+                    index === currentDesktopIndex 
+                      ? "bg-white w-3 h-3" 
+                      : "bg-white/50 w-2.5 h-2.5 hover:bg-white/70"
+                  }`}
+                  aria-label={`Ir para banner ${index + 1}`}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}
