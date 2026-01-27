@@ -130,9 +130,9 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
         </div>
       )}
       
-      {/* Mobile Banner Carousel with Horizontal Slide */}
+      {/* Mobile Banner Carousel with Horizontal Slide - Only dots, no arrows */}
       {mobileBannerUrls.length > 0 ? (
-        <div className="md:hidden relative group overflow-hidden">
+        <div className="md:hidden relative overflow-hidden">
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
@@ -156,39 +156,23 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
             ))}
           </div>
           
+          {/* Dots navigation - only show when 2+ banners */}
           {mobileBannerUrls.length > 1 && (
-            <>
-              <button
-                onClick={prevMobile}
-                disabled={isMobileTransitioning}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 disabled:cursor-not-allowed z-10"
-                aria-label="Banner anterior"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={nextMobile}
-                disabled={isMobileTransitioning}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 disabled:cursor-not-allowed z-10"
-                aria-label="Próximo banner"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                {mobileBannerUrls.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToMobileSlide(index)}
-                    disabled={isMobileTransitioning}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      index === currentMobileIndex ? "bg-white w-6" : "bg-white/50 w-1.5 hover:bg-white/70"
-                    }`}
-                    aria-label={`Ir para banner ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {mobileBannerUrls.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToMobileSlide(index)}
+                  disabled={isMobileTransitioning}
+                  className={`rounded-full transition-all duration-300 ${
+                    index === currentMobileIndex 
+                      ? "bg-white w-3 h-3" 
+                      : "bg-white/50 w-2.5 h-2.5 hover:bg-white/70"
+                  }`}
+                  aria-label={`Ir para banner ${index + 1}`}
+                />
+              ))}
+            </div>
           )}
         </div>
       ) : (

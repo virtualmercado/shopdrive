@@ -24,12 +24,12 @@ export const MAX_TOTAL_BANNERS = 8;
 // Legacy export for compatibility
 export const MAX_CUSTOM_BANNERS = MAX_TOTAL_BANNERS;
 
-// Default Mobile Banners (800x600) - Optimized for mobile devices
-export const DEFAULT_MOBILE_BANNERS = [
-  "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&h=600&fit=crop&crop=center&q=80",
-  "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop&crop=center&q=80",
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop&crop=center&q=80",
-];
+// Mobile banners - no defaults, merchants start with empty state
+// Maximum 3 mobile banners allowed
+export const MAX_MOBILE_BANNERS = 3;
+
+// Legacy constant kept for compatibility - now returns empty array
+export const DEFAULT_MOBILE_BANNERS: string[] = [];
 
 // Default Minibanners (600x300) - Promotional sections
 export const DEFAULT_MINIBANNER_1 = "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&h=300&fit=crop&crop=center&q=80";
