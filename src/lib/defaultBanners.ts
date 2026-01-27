@@ -18,8 +18,8 @@ export const FIXED_VM_DESKTOP_BANNERS = [
   bannerBenefits5,
 ];
 
-// Maximum total banners (all editable by merchant)
-export const MAX_TOTAL_BANNERS = 8;
+// Maximum total banners (all editable by merchant) - Desktop/Tablet: 4 slots
+export const MAX_TOTAL_BANNERS = 4;
 
 // Legacy export for compatibility
 export const MAX_CUSTOM_BANNERS = MAX_TOTAL_BANNERS;

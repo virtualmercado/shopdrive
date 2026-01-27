@@ -456,6 +456,91 @@ const StorePreviewEnhanced = () => {
     }
   };
 
+  const handleAddDesktopBannerAtSlot = async (slotIndex: number, file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      // Create array with exactly the right positions
+      const newUrls = [...storeData.banner_desktop_urls];
+      
+      // Ensure array is large enough and insert at the correct slot
+      while (newUrls.length <= slotIndex) {
+        newUrls.push("");
+      }
+      newUrls[slotIndex] = data.publicUrl;
+      
+      // Filter out empty strings for storage
+      const cleanUrls = newUrls.filter(url => url !== "");
+
+      setStoreData({
+        ...storeData,
+        banner_desktop_urls: cleanUrls,
+        banner_desktop_url: "",
+      });
+
+      await supabase
+        .from("profiles")
+        .update({ banner_desktop_urls: cleanUrls, banner_desktop_url: null })
+        .eq("id", user.id);
+
+      toast({ title: "Banner desktop adicionado com sucesso!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao adicionar banner desktop",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveDesktopBannerSlot = async (slotIndex: number) => {
+    const currentUrls = storeData.banner_desktop_urls;
+    
+    // Remove the URL at the specific slot index
+    const newUrls = currentUrls.filter((_, i) => i !== slotIndex);
+
+    setStoreData({ 
+      ...storeData, 
+      banner_desktop_urls: newUrls, 
+      banner_desktop_url: "" 
+    });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("profiles")
+        .update({ banner_desktop_urls: newUrls, banner_desktop_url: null })
+        .eq("id", user.id);
+
+      toast({ title: "Banner removido e alterações salvas" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover banner",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -717,110 +802,107 @@ const StorePreviewEnhanced = () => {
           </div>
           
           <div className="space-y-6">
-            {/* Banner Principal Desktop/Tablet */}
+            {/* Banner Principal Desktop/Tablet - 4 Fixed Slots */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
                 <Badge variant="outline" className="text-xs">{storeData.banner_desktop_urls.length}/{MAX_TOTAL_BANNERS}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 1920x512px • Máximo: {MAX_TOTAL_BANNERS} banners • Carrossel automático
+                Tamanho recomendado: 1920x512px • Máximo: {MAX_TOTAL_BANNERS} banners • Carrossel automático com navegação por bolinhas
               </p>
               
-              {/* All Banners - Editable */}
-              <div className="space-y-2">
-                {storeData.banner_desktop_urls.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {storeData.banner_desktop_urls.map((url, index) => (
-                      <div key={`banner-${index}`} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Banner ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                        />
-                        {/* Replace button */}
-                        <input
-                          type="file"
-                          id={`replace_banner_${index}`}
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleReplaceBanner(index, e.target.files[0]);
-                              e.target.value = "";
-                            }
-                          }}
-                          disabled={uploading}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor={`replace_banner_${index}`}
-                          className="absolute top-2 left-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
-                          title="Substituir banner"
-                          style={{ 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor 
-                          }}
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        </label>
-                        {/* Delete button */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage("banner_desktop_urls", index)}
-                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Excluir banner"
-                          style={{ 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor 
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <div className="absolute bottom-1 right-1">
-                          <Badge variant="secondary" className="bg-black/60 text-white text-[10px] px-1.5 py-0.5">
-                            {index + 1}
-                          </Badge>
+              {/* 4 Fixed slots for desktop banners */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[0, 1, 2, 3].map((slotIndex) => {
+                  const url = storeData.banner_desktop_urls[slotIndex];
+                  const hasImage = !!url;
+                  
+                  return (
+                    <div key={slotIndex} className="relative">
+                      {hasImage ? (
+                        <div className="relative group">
+                          <img
+                            src={url}
+                            alt={`Banner ${slotIndex + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="secondary" className="bg-black/60 text-white text-xs">
+                              {slotIndex + 1}
+                            </Badge>
+                          </div>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* Replace button */}
+                            <label
+                              htmlFor={`desktop_replace_${slotIndex}`}
+                              className="rounded-full p-1.5 cursor-pointer transition-all duration-200"
+                              title="Substituir banner"
+                              style={{ 
+                                backgroundColor: buttonBgColor, 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </label>
+                            <input
+                              type="file"
+                              id={`desktop_replace_${slotIndex}`}
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleReplaceBanner(slotIndex, file);
+                                e.target.value = "";
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDesktopBannerSlot(slotIndex)}
+                              className="rounded-full p-1.5 transition-all duration-200"
+                              title="Excluir banner"
+                              style={{ 
+                                backgroundColor: "#dc2626", 
+                                color: "#ffffff" 
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg">
-                    Nenhum banner adicionado. Clique em "Adicionar Banner" para começar.
-                  </div>
-                )}
-                
-                {storeData.banner_desktop_urls.length < MAX_TOTAL_BANNERS && (
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      type="file"
-                      id="banner_desktop_input"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          const remainingSlots = MAX_TOTAL_BANNERS - storeData.banner_desktop_urls.length;
-                          const filesToUpload = Array.from(e.target.files).slice(0, remainingSlots);
-                          handleMultipleImageUpload(filesToUpload, "banner_desktop_urls");
-                          e.target.value = "";
-                        }
-                      }}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="banner_desktop_input"
-                      className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
-                        uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
-                      }`}
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        Adicionar Banner
-                      </span>
-                    </label>
-                  </div>
-                )}
+                      ) : (
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-lg h-24 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="outline" className="text-xs">
+                              {slotIndex + 1}
+                            </Badge>
+                          </div>
+                          <label
+                            htmlFor={`desktop_add_${slotIndex}`}
+                            className="flex flex-col items-center cursor-pointer p-2"
+                          >
+                            <ImagePlus className="w-6 h-6 text-gray-400 mb-1" />
+                            <span className="text-xs text-gray-500">Adicionar imagem</span>
+                          </label>
+                          <input
+                            type="file"
+                            id={`desktop_add_${slotIndex}`}
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAddDesktopBannerAtSlot(slotIndex, file);
+                              e.target.value = "";
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
