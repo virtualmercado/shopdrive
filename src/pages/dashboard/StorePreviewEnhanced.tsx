@@ -217,16 +217,23 @@ const StorePreviewEnhanced = () => {
 
       const newUrls = [...currentUrls, ...uploadedUrls];
 
+      // Sempre que usamos os arrays como fonte da verdade, limpamos os campos legados
+      // (evita "banner fantasma" na vitrine quando o lojista remove todas as imagens).
+      const legacyField = arrayField === "banner_desktop_urls"
+        ? ("banner_desktop_url" as const)
+        : ("banner_mobile_url" as const);
+
       // Atualiza estado local para pré-visualização imediata
       setStoreData({
         ...storeData,
         [arrayField]: newUrls,
+        [legacyField]: "",
       });
 
       // Salva automaticamente no banco apenas quando há novas imagens
       await supabase
         .from("profiles")
-        .update({ [arrayField]: newUrls })
+        .update({ [arrayField]: newUrls, [legacyField]: null })
         .eq("id", user.id);
 
       toast({
@@ -246,7 +253,12 @@ const StorePreviewEnhanced = () => {
   const handleRemoveImage = async (arrayField: "banner_desktop_urls" | "banner_mobile_urls", index: number) => {
     const currentUrls = storeData[arrayField];
     const newUrls = currentUrls.filter((_, i) => i !== index);
-    setStoreData({ ...storeData, [arrayField]: newUrls });
+
+    const legacyField = arrayField === "banner_desktop_urls"
+      ? ("banner_desktop_url" as const)
+      : ("banner_mobile_url" as const);
+
+    setStoreData({ ...storeData, [arrayField]: newUrls, [legacyField]: "" });
 
     // Salvar automaticamente no banco
     try {
@@ -255,7 +267,7 @@ const StorePreviewEnhanced = () => {
 
       await supabase
         .from("profiles")
-        .update({ [arrayField]: newUrls })
+        .update({ [arrayField]: newUrls, [legacyField]: null })
         .eq("id", user.id);
 
       toast({ title: "Imagem removida e alterações salvas" });
@@ -325,11 +337,12 @@ const StorePreviewEnhanced = () => {
       setStoreData({
         ...storeData,
         banner_desktop_urls: newUrls,
+        banner_desktop_url: "",
       });
 
       await supabase
         .from("profiles")
-        .update({ banner_desktop_urls: newUrls })
+        .update({ banner_desktop_urls: newUrls, banner_desktop_url: null })
         .eq("id", user.id);
 
       toast({ title: "Banner substituído com sucesso!" });
@@ -350,9 +363,17 @@ const StorePreviewEnhanced = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+       // Não reintroduzir valores legados ao salvar outras configurações.
+       // Os arrays de banners são a fonte da verdade.
+       const { banner_desktop_url: _legacyDesktop, banner_mobile_url: _legacyMobile, ...payload } = storeData;
+
       const { error } = await supabase
         .from("profiles")
-        .update(storeData)
+        .update({
+          ...payload,
+          banner_desktop_url: null,
+          banner_mobile_url: null,
+        })
         .eq("id", user.id);
 
       if (error) throw error;
