@@ -15,10 +15,10 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
 import { 
   FIXED_VM_DESKTOP_BANNERS,
-  DEFAULT_MOBILE_BANNERS, 
   DEFAULT_MINIBANNER_1, 
   DEFAULT_MINIBANNER_2,
-  MAX_TOTAL_BANNERS
+  MAX_TOTAL_BANNERS,
+  MAX_MOBILE_BANNERS
 } from "@/lib/defaultBanners";
 import { RefreshCw } from "lucide-react";
 
@@ -349,6 +349,105 @@ const StorePreviewEnhanced = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao substituir banner",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleReplaceMobileBanner = async (index: number, file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      const newUrls = [...storeData.banner_mobile_urls];
+      newUrls[index] = data.publicUrl;
+
+      setStoreData({
+        ...storeData,
+        banner_mobile_urls: newUrls,
+        banner_mobile_url: "",
+      });
+
+      await supabase
+        .from("profiles")
+        .update({ banner_mobile_urls: newUrls, banner_mobile_url: null })
+        .eq("id", user.id);
+
+      toast({ title: "Banner mobile substituído com sucesso!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao substituir banner mobile",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddMobileBannerAtSlot = async (slotIndex: number, file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      // Create array with exactly the right positions
+      const newUrls = [...storeData.banner_mobile_urls];
+      
+      // Ensure array is large enough and insert at the correct slot
+      while (newUrls.length <= slotIndex) {
+        newUrls.push("");
+      }
+      newUrls[slotIndex] = data.publicUrl;
+      
+      // Filter out empty strings for storage
+      const cleanUrls = newUrls.filter(url => url !== "");
+
+      setStoreData({
+        ...storeData,
+        banner_mobile_urls: cleanUrls,
+        banner_mobile_url: "",
+      });
+
+      await supabase
+        .from("profiles")
+        .update({ banner_mobile_urls: cleanUrls, banner_mobile_url: null })
+        .eq("id", user.id);
+
+      toast({ title: "Banner mobile adicionado com sucesso!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao adicionar banner mobile",
         description: error.message,
         variant: "destructive",
       });
@@ -725,83 +824,110 @@ const StorePreviewEnhanced = () => {
               </div>
             </div>
 
-            {/* Banner Mobile */}
+            {/* Banner Mobile - 3 slots fixos */}
             <div className="space-y-3 border-t pt-6">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-semibold">Banner Mobile (Formato Exclusivo)</Label>
                 {storeData.banner_mobile_urls.length === 0 && (
-                  <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
+                  <Badge variant="outline" className="text-xs">Nenhum banner</Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 800x600px • Máximo: 3 imagens • Carrossel automático
+                Tamanho recomendado: 800x600px • Até 3 imagens • Carrossel automático com navegação por bolinhas
               </p>
               
-              {/* Show default or custom banners */}
+              {/* 3 Fixed slots for mobile banners */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {(storeData.banner_mobile_urls.length > 0 ? storeData.banner_mobile_urls : DEFAULT_MOBILE_BANNERS).map((url, index) => {
-                  const isDefault = storeData.banner_mobile_urls.length === 0;
+                {[0, 1, 2].map((slotIndex) => {
+                  const url = storeData.banner_mobile_urls[slotIndex];
+                  const hasImage = !!url;
                   
                   return (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Banner Mobile ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      {isDefault && (
-                        <div className="absolute top-2 left-2">
-                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
+                    <div key={slotIndex} className="relative">
+                      {hasImage ? (
+                        <div className="relative group">
+                          <img
+                            src={url}
+                            alt={`Banner Mobile ${slotIndex + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="secondary" className="bg-black/60 text-white text-xs">
+                              {slotIndex + 1}
+                            </Badge>
+                          </div>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* Replace button */}
+                            <label
+                              htmlFor={`mobile_replace_${slotIndex}`}
+                              className="rounded-full p-1.5 cursor-pointer transition-all duration-200"
+                              title="Substituir imagem"
+                              style={{ 
+                                backgroundColor: buttonBgColor, 
+                                color: buttonTextColor 
+                              }}
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </label>
+                            <input
+                              type="file"
+                              id={`mobile_replace_${slotIndex}`}
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleReplaceMobileBanner(slotIndex, file);
+                                e.target.value = "";
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage("banner_mobile_urls", slotIndex)}
+                              className="rounded-full p-1.5 transition-all duration-200"
+                              title="Excluir imagem"
+                              style={{ 
+                                backgroundColor: "#dc2626", 
+                                color: "#ffffff" 
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      {!isDefault && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage("banner_mobile_urls", index)}
-                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Excluir imagem"
-                          style={{ 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor 
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      ) : (
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-lg h-32 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="outline" className="text-xs">
+                              {slotIndex + 1}
+                            </Badge>
+                          </div>
+                          <label
+                            htmlFor={`mobile_add_${slotIndex}`}
+                            className="flex flex-col items-center cursor-pointer p-4"
+                          >
+                            <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-500">Adicionar imagem</span>
+                          </label>
+                          <input
+                            type="file"
+                            id={`mobile_add_${slotIndex}`}
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleAddMobileBannerAtSlot(slotIndex, file);
+                              e.target.value = "";
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-              
-              {storeData.banner_mobile_urls.length < 3 && (
-                <div>
-                  <input
-                    type="file"
-                    id="banner_mobile_input"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        handleMultipleImageUpload(Array.from(e.target.files), "banner_mobile_urls");
-                        e.target.value = "";
-                      }
-                    }}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="banner_mobile_input"
-                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
-                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {storeData.banner_mobile_urls.length === 0 ? "Substituir Banners" : "Escolher Arquivos"}
-                    </span>
-                  </label>
-                </div>
-              )}
             </div>
 
             {/* Minibanners */}
