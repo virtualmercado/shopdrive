@@ -70,8 +70,8 @@ export const isDefaultBanner = (url: string): boolean => {
 
 /**
  * Get effective banners for a store
- * If merchant has no banners, returns the pre-inserted VM banners as starting point
- * Otherwise, returns the merchant's banners
+ * Returns exactly what the merchant has configured - no fallback banners
+ * If merchant has no banners, container should be hidden
  */
 export const getEffectiveBanners = (
   customDesktopUrls: string[] = [],
@@ -79,14 +79,11 @@ export const getEffectiveBanners = (
   customMinibanner1?: string | null,
   customMinibanner2?: string | null
 ) => {
-  // If merchant has custom banners, use them; otherwise use pre-inserted VM banners
-  const effectiveDesktopBanners = customDesktopUrls.length > 0 
-    ? customDesktopUrls 
-    : FIXED_VM_DESKTOP_BANNERS;
-  
+  // Return merchant's banners directly - no fallback to VM banners
+  // When arrays are empty, the StoreBanner component will hide itself
   return {
-    desktopBanners: effectiveDesktopBanners,
-    mobileBanners: customMobileUrls.length > 0 ? customMobileUrls : DEFAULT_MOBILE_BANNERS,
+    desktopBanners: customDesktopUrls,
+    mobileBanners: customMobileUrls,
     minibanner1: customMinibanner1 || DEFAULT_MINIBANNER_1,
     minibanner2: customMinibanner2 || DEFAULT_MINIBANNER_2,
   };
