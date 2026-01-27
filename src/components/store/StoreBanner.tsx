@@ -73,7 +73,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
-              transform: `translateX(-${currentDesktopIndex * 100}%)`,
+              transform: `translateX(-${currentDesktopIndex * (100 / desktopBannerUrls.length)}%)`,
               width: `${desktopBannerUrls.length * 100}%`
             }}
           >
@@ -136,7 +136,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
-              transform: `translateX(-${currentMobileIndex * 100}%)`,
+              transform: `translateX(-${currentMobileIndex * (100 / mobileBannerUrls.length)}%)`,
               width: `${mobileBannerUrls.length * 100}%`
             }}
           >
@@ -198,7 +198,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{ 
-                transform: `translateX(-${currentDesktopIndex * 100}%)`,
+                transform: `translateX(-${currentDesktopIndex * (100 / desktopBannerUrls.length)}%)`,
                 width: `${desktopBannerUrls.length * 100}%`
               }}
             >
