@@ -106,31 +106,25 @@ export const BrandSection = ({
               <button
                 key={brand.id}
                 onClick={() => handleBrandClick(brand.id)}
-                className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg transition-opacity duration-200 hover:opacity-70"
+                className="flex-shrink-0 p-2 rounded-lg transition-opacity duration-200 hover:opacity-70"
               >
                 {brand.logo_url ? (
                   <img
                     src={brand.logo_url}
                     alt={brand.name}
-                    className="h-14 w-auto object-contain"
+                    className="h-16 w-auto object-contain"
                   />
                 ) : (
                   <div 
-                    className="h-14 w-14 rounded flex items-center justify-center"
+                    className="h-16 w-16 rounded flex items-center justify-center"
                     style={{ backgroundColor: `${buttonBgColor}20` }}
                   >
                     <Tag 
-                      className="h-6 w-6" 
+                      className="h-7 w-7" 
                       style={{ color: buttonBgColor }}
                     />
                   </div>
                 )}
-                <span 
-                  className="text-[10px] text-center line-clamp-1"
-                  style={{ color: "#666060" }}
-                >
-                  {brand.name}
-                </span>
               </button>
             ))}
           </div>
