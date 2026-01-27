@@ -31,6 +31,7 @@ interface ProductCarouselProps {
   storeSlug?: string;
   featured?: boolean;
   newest?: boolean;
+  promotional?: boolean;
   primaryColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
@@ -101,6 +102,7 @@ const ProductCarousel = ({
   storeSlug,
   featured,
   newest,
+  promotional,
   primaryColor = "#6a1b9a",
   buttonBgColor = "#6a1b9a",
   buttonTextColor = "#FFFFFF",
@@ -129,6 +131,9 @@ const ProductCarousel = ({
       // When showAllOnSearch is true, fetch ALL products without filters
       if (showAllOnSearch) {
         query = query.order("created_at", { ascending: false });
+      } else if (promotional) {
+        // Filter only products with promotional price
+        query = query.gt("promotional_price", 0).order("created_at", { ascending: false });
       } else {
         // Apply featured/newest filters
         if (featured) {
@@ -161,7 +166,7 @@ const ProductCarousel = ({
     };
 
     fetchProducts();
-  }, [storeOwnerId, featured, newest, showAllOnSearch]);
+  }, [storeOwnerId, featured, newest, promotional, showAllOnSearch]);
 
   // Filter products based on search term and category
   const filteredProducts = useMemo(() => {
