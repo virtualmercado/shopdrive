@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus, Lock } from "lucide-react";
+import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
 import { 
@@ -18,9 +18,9 @@ import {
   DEFAULT_MOBILE_BANNERS, 
   DEFAULT_MINIBANNER_1, 
   DEFAULT_MINIBANNER_2,
-  isFixedVMBanner,
-  MAX_CUSTOM_BANNERS
+  MAX_TOTAL_BANNERS
 } from "@/lib/defaultBanners";
+import { RefreshCw } from "lucide-react";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
@@ -167,11 +167,12 @@ const StorePreviewEnhanced = () => {
     }
 
     const currentUrls = (storeData[arrayField] || []) as string[];
+    const maxBanners = arrayField === 'banner_desktop_urls' ? MAX_TOTAL_BANNERS : 3;
 
-    if (currentUrls.length >= 3) {
+    if (currentUrls.length >= maxBanners) {
       toast({
         title: "Limite atingido",
-        description: "Você pode enviar no máximo 3 imagens",
+        description: `Você pode ter no máximo ${maxBanners} imagens`,
         variant: "destructive",
       });
       return;
@@ -185,7 +186,7 @@ const StorePreviewEnhanced = () => {
       if (!user) return;
 
       const uploadedUrls: string[] = [];
-      const filesToUpload = files.slice(0, 3 - currentUrls.length);
+      const filesToUpload = files.slice(0, maxBanners - currentUrls.length);
 
       for (const file of filesToUpload) {
         const fileExt = file.name.split(".").pop();
@@ -296,6 +297,50 @@ const StorePreviewEnhanced = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleReplaceBanner = async (index: number, file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      const newUrls = [...storeData.banner_desktop_urls];
+      newUrls[index] = data.publicUrl;
+
+      setStoreData({
+        ...storeData,
+        banner_desktop_urls: newUrls,
+      });
+
+      await supabase
+        .from("profiles")
+        .update({ banner_desktop_urls: newUrls })
+        .eq("id", user.id);
+
+      toast({ title: "Banner substituído com sucesso!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao substituir banner",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -547,7 +592,7 @@ const StorePreviewEnhanced = () => {
               <h2 className="text-lg font-semibold text-foreground">Banners</h2>
             </div>
             <p className="text-xs text-muted-foreground ml-10">
-              Sua loja possui 5 banners fixos da VirtualMercado + até 3 banners personalizados.
+              Sua loja pode ter até {MAX_TOTAL_BANNERS} banners no carrossel principal. Adicione, substitua ou remova conforme desejar.
             </p>
           </div>
           
@@ -556,75 +601,77 @@ const StorePreviewEnhanced = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-semibold">Banner Principal (Desktop/Tablet)</Label>
+                <Badge variant="outline" className="text-xs">{storeData.banner_desktop_urls.length}/{MAX_TOTAL_BANNERS}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 1920x512px • Total: 5 banners VM fixos + até 3 personalizados • Carrossel automático
+                Tamanho recomendado: 1920x512px • Máximo: {MAX_TOTAL_BANNERS} banners • Carrossel automático
               </p>
               
-              {/* Fixed VM Banners Section */}
+              {/* All Banners - Editable */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">Banners VM Fixos (5)</Badge>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {FIXED_VM_DESKTOP_BANNERS.map((url, index) => (
-                    <div key={`fixed-${index}`} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Banner VM ${index + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border border-gray-200"
-                      />
-                      <div className="absolute top-1 left-1">
-                        <Badge variant="outline" className="bg-white/90 text-[10px] px-1.5 py-0.5">
-                          <Lock className="w-2.5 h-2.5 mr-0.5" />
-                          Fixo
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Custom Merchant Banners Section */}
-              <div className="space-y-2 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">Seus Banners ({storeData.banner_desktop_urls.length}/{MAX_CUSTOM_BANNERS})</Badge>
-                  </div>
-                </div>
-                
                 {storeData.banner_desktop_urls.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {storeData.banner_desktop_urls.map((url, index) => (
-                      <div key={`custom-${index}`} className="relative group">
+                      <div key={`banner-${index}`} className="relative group">
                         <img
                           src={url}
-                          alt={`Banner Personalizado ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
+                          alt={`Banner ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage("banner_desktop_urls", index)}
-                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Excluir imagem"
+                        {/* Replace button */}
+                        <input
+                          type="file"
+                          id={`replace_banner_${index}`}
+                          accept="image/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleReplaceBanner(index, e.target.files[0]);
+                              e.target.value = "";
+                            }
+                          }}
+                          disabled={uploading}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`replace_banner_${index}`}
+                          className="absolute top-2 left-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
+                          title="Substituir banner"
                           style={{ 
                             backgroundColor: buttonBgColor, 
                             color: buttonTextColor 
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </label>
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage("banner_desktop_urls", index)}
+                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          title="Excluir banner"
+                          style={{ 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor 
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
+                        <div className="absolute bottom-1 right-1">
+                          <Badge variant="secondary" className="bg-black/60 text-white text-[10px] px-1.5 py-0.5">
+                            {index + 1}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground py-2">
-                    Nenhum banner personalizado adicionado. Adicione até 3 banners para complementar o carrossel.
+                  <div className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg">
+                    Nenhum banner adicionado. Clique em "Adicionar Banner" para começar.
                   </div>
                 )}
                 
-                {storeData.banner_desktop_urls.length < MAX_CUSTOM_BANNERS && (
-                  <div>
+                {storeData.banner_desktop_urls.length < MAX_TOTAL_BANNERS && (
+                  <div className="flex gap-2 flex-wrap">
                     <input
                       type="file"
                       id="banner_desktop_input"
@@ -632,7 +679,7 @@ const StorePreviewEnhanced = () => {
                       multiple
                       onChange={(e) => {
                         if (e.target.files) {
-                          const remainingSlots = MAX_CUSTOM_BANNERS - storeData.banner_desktop_urls.length;
+                          const remainingSlots = MAX_TOTAL_BANNERS - storeData.banner_desktop_urls.length;
                           const filesToUpload = Array.from(e.target.files).slice(0, remainingSlots);
                           handleMultipleImageUpload(filesToUpload, "banner_desktop_urls");
                           e.target.value = "";
@@ -649,7 +696,7 @@ const StorePreviewEnhanced = () => {
                     >
                       <Upload className="w-4 h-4" />
                       <span className="text-sm font-medium">
-                        Adicionar Banner Personalizado
+                        Adicionar Banner
                       </span>
                     </label>
                   </div>
