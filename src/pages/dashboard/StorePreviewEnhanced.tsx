@@ -1023,7 +1023,7 @@ const StorePreviewEnhanced = () => {
                   <Label className="text-base font-semibold">Minibanner 1</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tamanho recomendado: 600x300px. Imagem 2 aparece ao passar o mouse (hover) na loja.
+                  Tamanho recomendado: 600x400px. Imagem 2 aparece ao passar o mouse (hover) na loja.
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1165,7 +1165,7 @@ const StorePreviewEnhanced = () => {
                   <Label className="text-base font-semibold">Minibanner 2</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tamanho recomendado: 600x300px. Imagem 2 aparece ao passar o mouse (hover) na loja.
+                  Tamanho recomendado: 600x400px. Imagem 2 aparece ao passar o mouse (hover) na loja.
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4">
