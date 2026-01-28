@@ -122,37 +122,61 @@ const Dashboard = () => {
 
         {/* Charts Grid - 2 per row */}
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Chart 1 - Sales by State */}
+          {/* Chart 1 - Sales by State - Horizontal Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
               Vendas por Estado / últimos 30 dias
             </h3>
             {stateLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-48 w-full" />
               </div>
             ) : (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={salesByState}
-                      dataKey="count"
-                      nameKey="state"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      labelLine={false}
-                      label={renderCustomLabel}
-                    >
-                      {salesByState?.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [`${value} pedidos`, name]}
+                  <BarChart
+                    data={salesByState?.slice().sort((a, b) => a.count - b.count)}
+                    layout="vertical"
+                    margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
+                  >
+                    <XAxis 
+                      type="number" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 11 }}
                     />
-                  </PieChart>
+                    <YAxis 
+                      type="category" 
+                      dataKey="state" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 11 }}
+                      width={80}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#5B9BD5" 
+                      radius={[0, 4, 4, 0]}
+                      label={{
+                        position: 'right',
+                        fill: '#666',
+                        fontSize: 11,
+                        formatter: (value: number) => {
+                          const total = salesByState?.reduce((sum, item) => sum + item.count, 0) || 1;
+                          return `${Math.round((value / total) * 100)}%`;
+                        }
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
@@ -302,37 +326,60 @@ const Dashboard = () => {
             )}
           </Card>
 
-          {/* Chart 5 - Top 10 Customers */}
+          {/* Chart 5 - Top 10 Customers - Horizontal Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
               Top 10 clientes que mais compraram / últimos 6 meses
             </h3>
             {customersLoading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-48 w-full" />
               </div>
             ) : (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={topCustomers}
-                      dataKey="totalValue"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      labelLine={false}
-                      label={renderCustomLabel}
-                    >
-                      {topCustomers?.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                  <BarChart
+                    data={topCustomers?.slice().reverse()}
+                    layout="vertical"
+                    margin={{ top: 5, right: 80, left: 10, bottom: 5 }}
+                  >
+                    <XAxis 
+                      type="number" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 11 }}
+                      tickFormatter={(value) => formatCurrency(value)}
                     />
-                  </PieChart>
+                    <YAxis 
+                      type="category" 
+                      dataKey="name" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#666', fontSize: 10 }}
+                      width={120}
+                      tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [formatCurrency(value), 'Total']}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="totalValue" 
+                      fill="#70AD47" 
+                      radius={[0, 4, 4, 0]}
+                      label={{
+                        position: 'right',
+                        fill: '#666',
+                        fontSize: 10,
+                        formatter: (value: number) => formatCurrency(value)
+                      }}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
