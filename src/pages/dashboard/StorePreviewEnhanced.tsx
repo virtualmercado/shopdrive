@@ -15,8 +15,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
 import { 
   FIXED_VM_DESKTOP_BANNERS,
-  DEFAULT_MINIBANNER_1, 
-  DEFAULT_MINIBANNER_2,
   MAX_TOTAL_BANNERS,
   MAX_MOBILE_BANNERS
 } from "@/lib/defaultBanners";
@@ -94,8 +92,8 @@ const StorePreviewEnhanced = () => {
           banner_mobile_url: data.banner_mobile_url || "",
           banner_rect_1_url: data.banner_rect_1_url || "",
           banner_rect_2_url: data.banner_rect_2_url || "",
-          minibanner_1_img2_url: data.minibanner_1_img2_url || "",
-          minibanner_2_img2_url: data.minibanner_2_img2_url || "",
+          minibanner_1_img2_url: (data as any).minibanner_1_img2_url || "",
+          minibanner_2_img2_url: (data as any).minibanner_2_img2_url || "",
           instagram_url: data.instagram_url || "",
           facebook_url: data.facebook_url || "",
           x_url: data.x_url || "",
@@ -286,7 +284,7 @@ const StorePreviewEnhanced = () => {
   };
 
   const handleRemoveSingleImage = async (
-    field: "banner_rect_1_url" | "banner_rect_2_url"
+    field: "banner_rect_1_url" | "banner_rect_2_url" | "minibanner_1_img2_url" | "minibanner_2_img2_url"
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -294,7 +292,7 @@ const StorePreviewEnhanced = () => {
 
       const { error } = await supabase
         .from("profiles")
-        .update({ [field]: null })
+        .update({ [field]: null } as any)
         .eq("id", user.id);
 
       if (error) throw error;
@@ -305,8 +303,8 @@ const StorePreviewEnhanced = () => {
       });
 
       toast({
-        title: "Minibanner removido",
-        description: "O minibanner foi removido com sucesso.",
+        title: "Imagem removida",
+        description: "A imagem foi removida com sucesso.",
       });
     } catch (error: any) {
       toast({
@@ -1017,149 +1015,289 @@ const StorePreviewEnhanced = () => {
               </div>
             </div>
 
-            {/* Minibanners */}
-            <div className="grid sm:grid-cols-2 gap-4 border-t pt-6">
+            {/* Minibanners - 2 images per minibanner (Image 1 + Image 2 for hover effect) */}
+            <div className="border-t pt-6 space-y-6">
               {/* Minibanner 1 */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Label>Minibanner 1</Label>
-                  {!storeData.banner_rect_1_url && (
-                    <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
-                  )}
+                  <Label className="text-base font-semibold">Minibanner 1</Label>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Tamanho recomendado: 600x300px
+                <p className="text-xs text-muted-foreground">
+                  Tamanho recomendado: 600x300px. Imagem 2 aparece ao passar o mouse (hover) na loja.
                 </p>
                 
-                {(() => {
-                  const currentUrl = storeData.banner_rect_1_url || DEFAULT_MINIBANNER_1;
-                  const isDefault = !storeData.banner_rect_1_url;
-                  
-                  return (
-                    <div className="relative group mb-2">
-                      <img
-                        src={currentUrl}
-                        alt="Minibanner 1"
-                        className="w-full h-24 object-cover rounded-lg"
-                      />
-                      {isDefault && (
-                        <div className="absolute top-2 left-2">
-                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
-                        </div>
-                      )}
-                      {!isDefault && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSingleImage("banner_rect_1_url")}
-                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Excluir minibanner"
-                          style={{ 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor 
-                          }}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Minibanner 1 - Image 1 (Primary) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Imagem 1 (Principal)</Label>
+                    <div className="relative group">
+                      {storeData.banner_rect_1_url ? (
+                        <>
+                          <img
+                            src={storeData.banner_rect_1_url}
+                            alt="Minibanner 1 - Imagem 1"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label 
+                              htmlFor="minibanner_1_img1_replace"
+                              className="rounded-full p-1.5 cursor-pointer transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Substituir"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </label>
+                            <input
+                              type="file"
+                              id="minibanner_1_img1_replace"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file, "banner_rect_1_url");
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSingleImage("banner_rect_1_url")}
+                              className="rounded-full p-1.5 transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <label
+                          htmlFor="minibanner_1_img1_add"
+                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <ImagePlus className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Adicionar imagem</span>
+                          <input
+                            type="file"
+                            id="minibanner_1_img1_add"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, "banner_rect_1_url");
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
                       )}
                     </div>
-                  );
-                })()}
-                
-                <div>
-                  <input
-                    type="file"
-                    id="minibanner_1_input"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, "banner_rect_1_url");
-                    }}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="minibanner_1_input"
-                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
-                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {storeData.banner_rect_1_url ? "Escolher Arquivo" : "Substituir"}
-                    </span>
-                  </label>
+                  </div>
+                  
+                  {/* Minibanner 1 - Image 2 (Hover) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Imagem 2 (Hover)</Label>
+                    <div className="relative group">
+                      {storeData.minibanner_1_img2_url ? (
+                        <>
+                          <img
+                            src={storeData.minibanner_1_img2_url}
+                            alt="Minibanner 1 - Imagem 2"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label 
+                              htmlFor="minibanner_1_img2_replace"
+                              className="rounded-full p-1.5 cursor-pointer transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Substituir"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </label>
+                            <input
+                              type="file"
+                              id="minibanner_1_img2_replace"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file, "minibanner_1_img2_url");
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSingleImage("minibanner_1_img2_url" as any)}
+                              className="rounded-full p-1.5 transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <label
+                          htmlFor="minibanner_1_img2_add"
+                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        >
+                          <ImagePlus className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Adicionar imagem</span>
+                          <input
+                            type="file"
+                            id="minibanner_1_img2_add"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, "minibanner_1_img2_url");
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               
               {/* Minibanner 2 */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Label>Minibanner 2</Label>
-                  {!storeData.banner_rect_2_url && (
-                    <Badge variant="secondary" className="text-xs">Padrão ativo</Badge>
-                  )}
+                  <Label className="text-base font-semibold">Minibanner 2</Label>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Tamanho recomendado: 600x300px
+                <p className="text-xs text-muted-foreground">
+                  Tamanho recomendado: 600x300px. Imagem 2 aparece ao passar o mouse (hover) na loja.
                 </p>
                 
-                {(() => {
-                  const currentUrl = storeData.banner_rect_2_url || DEFAULT_MINIBANNER_2;
-                  const isDefault = !storeData.banner_rect_2_url;
-                  
-                  return (
-                    <div className="relative group mb-2">
-                      <img
-                        src={currentUrl}
-                        alt="Minibanner 2"
-                        className="w-full h-24 object-cover rounded-lg"
-                      />
-                      {isDefault && (
-                        <div className="absolute top-2 left-2">
-                          <Badge variant="outline" className="bg-white/90 text-xs">Padrão</Badge>
-                        </div>
-                      )}
-                      {!isDefault && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSingleImage("banner_rect_2_url")}
-                          className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                          title="Excluir minibanner"
-                          style={{ 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor 
-                          }}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Minibanner 2 - Image 1 (Primary) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Imagem 1 (Principal)</Label>
+                    <div className="relative group">
+                      {storeData.banner_rect_2_url ? (
+                        <>
+                          <img
+                            src={storeData.banner_rect_2_url}
+                            alt="Minibanner 2 - Imagem 1"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label 
+                              htmlFor="minibanner_2_img1_replace"
+                              className="rounded-full p-1.5 cursor-pointer transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Substituir"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </label>
+                            <input
+                              type="file"
+                              id="minibanner_2_img1_replace"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file, "banner_rect_2_url");
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSingleImage("banner_rect_2_url")}
+                              className="rounded-full p-1.5 transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <label
+                          htmlFor="minibanner_2_img1_add"
+                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <ImagePlus className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Adicionar imagem</span>
+                          <input
+                            type="file"
+                            id="minibanner_2_img1_add"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, "banner_rect_2_url");
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
                       )}
                     </div>
-                  );
-                })()}
-                
-                <div>
-                  <input
-                    type="file"
-                    id="minibanner_2_input"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, "banner_rect_2_url");
-                    }}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="minibanner_2_input"
-                    className={`inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer transition-colors ${
-                      uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 hover:border-gray-400"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {storeData.banner_rect_2_url ? "Escolher Arquivo" : "Substituir"}
-                    </span>
-                  </label>
+                  </div>
+                  
+                  {/* Minibanner 2 - Image 2 (Hover) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Imagem 2 (Hover)</Label>
+                    <div className="relative group">
+                      {storeData.minibanner_2_img2_url ? (
+                        <>
+                          <img
+                            src={storeData.minibanner_2_img2_url}
+                            alt="Minibanner 2 - Imagem 2"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label 
+                              htmlFor="minibanner_2_img2_replace"
+                              className="rounded-full p-1.5 cursor-pointer transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Substituir"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </label>
+                            <input
+                              type="file"
+                              id="minibanner_2_img2_replace"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file, "minibanner_2_img2_url");
+                              }}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSingleImage("minibanner_2_img2_url" as any)}
+                              className="rounded-full p-1.5 transition-all"
+                              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <label
+                          htmlFor="minibanner_2_img2_add"
+                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        >
+                          <ImagePlus className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Adicionar imagem</span>
+                          <input
+                            type="file"
+                            id="minibanner_2_img2_add"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, "minibanner_2_img2_url");
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
