@@ -815,7 +815,7 @@ const Customers = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold text-foreground">Clientes</h1>
@@ -1145,7 +1145,7 @@ const Customers = () => {
 
       {/* Filters Modal */}
       <Dialog open={showFiltersModal} onOpenChange={setShowFiltersModal}>
-        <DialogContent className="max-w-7xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="lg:max-w-7xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Filtrar Clientes</DialogTitle>
           </DialogHeader>

@@ -585,11 +585,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Global Billing Alert - Appears below header (hide in template mode) */}
         {!isTemplateEditorMode && <GlobalBillingAlert />}
 
-        {/* Page Content - Full width on mobile */}
-        <main className={cn(
-          "page-enter",
-          isMobile ? "p-4" : "p-6"
-        )} data-page-content>
+        {/* Page Content - Responsive: full width on mobile, constrained on desktop */}
+        <main 
+          className={cn(
+            "page-enter w-full",
+            // Mobile: full width with comfortable padding
+            "px-4 py-4",
+            // Desktop/Tablet: constrained width, centered, comfortable padding
+            "lg:max-w-[1400px] lg:mx-auto lg:px-6 lg:py-6"
+          )} 
+          data-page-content
+        >
           {children}
         </main>
       </div>

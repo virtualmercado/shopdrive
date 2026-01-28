@@ -37,10 +37,10 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed z-50 grid w-full gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        // Mobile: fullscreen
-        "inset-0 rounded-none max-h-screen overflow-y-auto",
-        // Desktop: centered modal
-        "md:inset-auto md:left-[50%] md:top-[50%] md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh] data-[state=closed]:md:zoom-out-95 data-[state=open]:md:zoom-in-95 data-[state=closed]:md:slide-out-to-left-1/2 data-[state=closed]:md:slide-out-to-top-[48%] data-[state=open]:md:slide-in-from-left-1/2 data-[state=open]:md:slide-in-from-top-[48%]",
+        // Mobile (<1024px): fullscreen - use !important to override individual max-w classes
+        "inset-0 rounded-none max-h-screen overflow-y-auto max-w-full",
+        // Desktop/Tablet (>=1024px): centered modal with proper sizing
+        "lg:inset-auto lg:left-[50%] lg:top-[50%] lg:translate-x-[-50%] lg:translate-y-[-50%] lg:rounded-lg lg:max-h-[90vh] data-[state=closed]:lg:zoom-out-95 data-[state=open]:lg:zoom-in-95 data-[state=closed]:lg:slide-out-to-left-1/2 data-[state=closed]:lg:slide-out-to-top-[48%] data-[state=open]:lg:slide-in-from-left-1/2 data-[state=open]:lg:slide-in-from-top-[48%]",
         className,
       )}
       {...props}
