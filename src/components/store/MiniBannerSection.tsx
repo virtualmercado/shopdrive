@@ -31,7 +31,7 @@ const MiniBannerItem = ({ img1Url, img2Url }: MiniBannerData) => {
   
   return (
     <div 
-      className="relative w-full h-48 rounded-lg overflow-hidden cursor-pointer group"
+      className="relative w-full h-[400px] rounded-lg overflow-hidden cursor-pointer group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
