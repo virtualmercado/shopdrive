@@ -31,9 +31,10 @@ export const MAX_MOBILE_BANNERS = 3;
 // Legacy constant kept for compatibility - now returns empty array
 export const DEFAULT_MOBILE_BANNERS: string[] = [];
 
-// Default Minibanners (600x300) - Promotional sections
-export const DEFAULT_MINIBANNER_1 = "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&h=300&fit=crop&crop=center&q=80";
-export const DEFAULT_MINIBANNER_2 = "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&h=300&fit=crop&crop=center&q=80";
+// Minibanners - No defaults, merchants start with empty state
+// Each minibanner supports 2 images (img1 = primary, img2 = hover/touch)
+export const DEFAULT_MINIBANNER_1 = null;
+export const DEFAULT_MINIBANNER_2 = null;
 
 // Legacy export for compatibility
 export const DEFAULT_DESKTOP_BANNERS = FIXED_VM_DESKTOP_BANNERS;
@@ -55,8 +56,6 @@ export const isDefaultBanner = (url: string): boolean => {
   const allDefaults = [
     ...FIXED_VM_DESKTOP_BANNERS,
     ...DEFAULT_MOBILE_BANNERS,
-    DEFAULT_MINIBANNER_1,
-    DEFAULT_MINIBANNER_2,
   ];
   
   // For asset imports, compare directly
@@ -75,17 +74,13 @@ export const isDefaultBanner = (url: string): boolean => {
  */
 export const getEffectiveBanners = (
   customDesktopUrls: string[] = [],
-  customMobileUrls: string[] = [],
-  customMinibanner1?: string | null,
-  customMinibanner2?: string | null
+  customMobileUrls: string[] = []
 ) => {
   // Return merchant's banners directly - no fallback to VM banners
   // When arrays are empty, the StoreBanner component will hide itself
   return {
     desktopBanners: customDesktopUrls,
     mobileBanners: customMobileUrls,
-    minibanner1: customMinibanner1 || DEFAULT_MINIBANNER_1,
-    minibanner2: customMinibanner2 || DEFAULT_MINIBANNER_2,
   };
 };
 

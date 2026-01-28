@@ -40,6 +40,9 @@ const StorePreviewEnhanced = () => {
     banner_mobile_url: "",
     banner_rect_1_url: "",
     banner_rect_2_url: "",
+    // New minibanner 2-image fields
+    minibanner_1_img2_url: "",
+    minibanner_2_img2_url: "",
     instagram_url: "",
     facebook_url: "",
     x_url: "",
@@ -91,6 +94,8 @@ const StorePreviewEnhanced = () => {
           banner_mobile_url: data.banner_mobile_url || "",
           banner_rect_1_url: data.banner_rect_1_url || "",
           banner_rect_2_url: data.banner_rect_2_url || "",
+          minibanner_1_img2_url: data.minibanner_1_img2_url || "",
+          minibanner_2_img2_url: data.minibanner_2_img2_url || "",
           instagram_url: data.instagram_url || "",
           facebook_url: data.facebook_url || "",
           x_url: data.x_url || "",

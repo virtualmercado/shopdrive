@@ -8,6 +8,7 @@ import StoreTopBar from "@/components/store/StoreTopBar";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
+import MiniBannerSection from "@/components/store/MiniBannerSection";
 import { BrandSection } from "@/components/store/BrandSection";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
@@ -28,6 +29,9 @@ interface StoreData {
   banner_mobile_urls?: string[];
   banner_rect_1_url: string;
   banner_rect_2_url: string;
+  // New minibanner fields for 2-image system
+  minibanner_1_img2_url?: string | null;
+  minibanner_2_img2_url?: string | null;
   footer_bg_color: string;
   whatsapp_number: string;
   address?: string;
@@ -320,29 +324,17 @@ const OnlineStoreContent = () => {
           </>
         )}
 
-        {(() => {
-          const effectiveMinibanners = getEffectiveBanners(
-            [], 
-            [], 
-            storeData.banner_rect_1_url, 
-            storeData.banner_rect_2_url
-          );
-          
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <img
-                src={effectiveMinibanners.minibanner1}
-                alt="Banner promocional"
-                className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
-              />
-              <img
-                src={effectiveMinibanners.minibanner2}
-                alt="Banner promocional"
-                className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
-              />
-            </div>
-          );
-        })()}
+        {/* MiniBanner Section with hover/touch effect */}
+        <MiniBannerSection
+          miniBanner1={{
+            img1Url: storeData.banner_rect_1_url || null,
+            img2Url: storeData.minibanner_1_img2_url || null,
+          }}
+          miniBanner2={{
+            img1Url: storeData.banner_rect_2_url || null,
+            img2Url: storeData.minibanner_2_img2_url || null,
+          }}
+        />
 
         {/* Promotional Products Carousel */}
         <ProductCarousel
