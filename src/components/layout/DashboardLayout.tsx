@@ -35,8 +35,6 @@ import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // VM Official Logo for Dashboard
 import vmLogo from "@/assets/logo-vm-dashboard.png";
@@ -57,7 +55,6 @@ interface TemplateEditorContext {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
@@ -71,7 +68,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const [searchParams] = useSearchParams();
-  const isMobile = useIsMobile();
 
   // Template editor mode detection from localStorage (persists across navigation)
   useEffect(() => {
@@ -284,172 +280,101 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   }
 
-  // Sidebar content component for reuse
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <>
-      <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
-        <nav className="p-4 space-y-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            
-            return (
-              <Link
-                key={item.path}
-                to={getNavPath(item.path)}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
-                  isActive 
-                    ? "bg-white/20 font-medium" 
-                    : "hover:bg-white/10"
-                )}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </ScrollArea>
-
-      <div className="p-4 border-t border-white/10">
-        <Button
-          variant="ghost"
-          onClick={() => {
-            onNavigate?.();
-            handleLogout();
-          }}
-          className="w-full justify-start gap-3 text-white hover:bg-white/10"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Sair</span>
-        </Button>
-      </div>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Mobile Sidebar - Off-canvas Sheet */}
-      {isMobile && (
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent 
-            side="left" 
-            className="p-0 w-[280px] border-r-0 flex flex-col [&>button]:text-white [&>button]:hover:bg-white/10 [&>button]:top-5 [&>button]:right-3"
-            style={{ backgroundColor: VM_PRIMARY_COLOR }}
-          >
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <Link to="/" className="flex items-center" onClick={() => setMobileMenuOpen(false)}>
+      {/* Sidebar - Always uses VM official purple color */}
+      <aside 
+        className={cn(
+          "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300 flex flex-col",
+          sidebarOpen ? "w-64" : "w-20"
+        )}
+        style={{ backgroundColor: VM_PRIMARY_COLOR }}
+      >
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            {sidebarOpen && (
+              <Link to="/" className="flex items-center">
                 <img 
                   src={vmLogo} 
                   alt="VirtualMercado" 
                   className="h-10 w-auto object-contain max-w-[180px]"
                 />
               </Link>
-            </div>
-            <SidebarContent onNavigate={() => setMobileMenuOpen(false)} />
-          </SheetContent>
-        </Sheet>
-      )}
-
-      {/* Desktop Sidebar - Fixed position */}
-      {!isMobile && (
-        <aside 
-          className={cn(
-            "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300 flex flex-col",
-            sidebarOpen ? "w-64" : "w-20"
-          )}
-          style={{ backgroundColor: VM_PRIMARY_COLOR }}
-        >
-          <div className="p-4 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              {sidebarOpen && (
-                <Link to="/" className="flex items-center">
-                  <img 
-                    src={vmLogo} 
-                    alt="VirtualMercado" 
-                    className="h-10 w-auto object-contain max-w-[180px]"
-                  />
-                </Link>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-white hover:bg-white/10"
-              >
-                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
-            <nav className="p-4 space-y-2">
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                
-                return (
-                  <Link
-                    key={item.path}
-                    to={getNavPath(item.path)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
-                      isActive 
-                        ? "bg-white/20 font-medium" 
-                        : "hover:bg-white/10"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {sidebarOpen && <span className="text-sm">{item.label}</span>}
-                  </Link>
-                );
-              })}
-            </nav>
-          </ScrollArea>
-
-          <div className="p-4 border-t border-white/10">
+            )}
             <Button
               variant="ghost"
-              onClick={handleLogout}
-              className={cn(
-                "w-full justify-start gap-3 text-white hover:bg-white/10",
-                !sidebarOpen && "justify-center"
-              )}
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-white hover:bg-white/10"
             >
-              <LogOut className="h-5 w-5" />
-              {sidebarOpen && <span>Sair</span>}
+              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
-        </aside>
-      )}
+        </div>
+
+        <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
+          <nav className="p-4 space-y-2">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={getNavPath(item.path)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
+                    isActive 
+                      ? "bg-white/20 font-medium" 
+                      : "hover:bg-white/10"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+        </ScrollArea>
+
+        <div className="p-4 border-t border-white/10">
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className={cn(
+              "w-full justify-start gap-3 text-white hover:bg-white/10",
+              !sidebarOpen && "justify-center"
+            )}
+          >
+            <LogOut className="h-5 w-5" />
+            {sidebarOpen && <span>Sair</span>}
+          </Button>
+        </div>
+      </aside>
 
       {/* Main Content */}
       <div 
         className={cn(
-          "transition-all duration-300 w-full",
-          // Desktop: apply margin for sidebar
-          !isMobile && (sidebarOpen ? "ml-64" : "ml-20"),
-          // Mobile: no margin, full width
-          isMobile && "ml-0"
+          "transition-all duration-300",
+          sidebarOpen ? "ml-64" : "ml-20"
         )}
       >
         {/* Template Editor Mode Banner */}
         {isTemplateEditorMode && (
-          <div className="bg-amber-500 text-white px-4 md:px-6 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="bg-amber-500 text-white px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-              <div className="text-sm md:text-base">
+              <AlertTriangle className="h-5 w-5" />
+              <div>
                 <span className="font-medium">Modo Edição de Template:</span>
                 <span className="ml-2">{templateName || 'Carregando...'}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-3">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleSaveTemplate}
                 disabled={isSavingTemplate}
-                className="bg-white text-amber-600 hover:bg-amber-50 flex-1 md:flex-none"
+                className="bg-white text-amber-600 hover:bg-amber-50"
               >
                 {isSavingTemplate ? (
                   <>
@@ -459,7 +384,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Salvar
+                    Salvar Template
                   </>
                 )}
               </Button>
@@ -467,10 +392,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 variant="ghost"
                 size="sm"
                 onClick={handleExitTemplateMode}
-                className="text-white hover:bg-amber-600 flex-1 md:flex-none"
+                className="text-white hover:bg-amber-600"
               >
                 <X className="h-4 w-4 mr-2" />
-                Fechar
+                Fechar Editor
               </Button>
             </div>
           </div>
@@ -478,29 +403,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Header */}
         <header className="bg-white border-b sticky top-0 z-40">
-          <div className="px-4 md:px-6 py-3 md:py-4">
-            <div className="flex items-center justify-between gap-3 md:gap-4">
-              {/* Mobile menu button */}
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="flex-shrink-0"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
-              
-              <h1 className="text-lg md:text-2xl font-bold text-foreground truncate flex-1">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <h1 className="text-2xl font-bold text-foreground">
                 {isTemplateEditorMode 
-                  ? `Editando: ${templateName || '...'}` 
+                  ? `Editando Template: ${templateName || '...'}` 
                   : menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
                 }
               </h1>
               
-              {/* Store Link Badge - Desktop only */}
-              {storeUrl && !isTemplateEditorMode && !isMobile && (
+              {/* Store Link Badge - Uses VM official colors (hide in template mode) */}
+              {storeUrl && !isTemplateEditorMode && (
                 <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
                   <span className="text-sm font-medium text-black">Seu Link:</span>
                   <a 
@@ -533,69 +446,27 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </div>
               )}
 
-              {/* Ver Loja button */}
               {storeUrl && !isTemplateEditorMode && (
-                <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
-                  <Button 
-                    size={isMobile ? "sm" : "default"}
-                    className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Store className="h-4 w-4" />
-                    {!isMobile && "Ver Loja"}
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-4">
+                  <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
+                    <Button 
+                      className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Store className="h-4 w-4" />
+                      Ver Loja
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
-            
-            {/* Mobile store link - simplified */}
-            {storeUrl && !isTemplateEditorMode && isMobile && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyLink}
-                  className="flex-1 text-xs"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-3 w-3 mr-1 text-green-600" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3 w-3 mr-1" />
-                      Copiar Link
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDomainWizardOpen(true)}
-                  className="flex-1 text-xs"
-                >
-                  <Globe className="h-3 w-3 mr-1" />
-                  Domínio
-                </Button>
-              </div>
-            )}
           </div>
         </header>
 
         {/* Global Billing Alert - Appears below header (hide in template mode) */}
         {!isTemplateEditorMode && <GlobalBillingAlert />}
 
-        {/* Page Content - Responsive: full width on mobile, constrained on desktop */}
-        <main 
-          className={cn(
-            "page-enter w-full",
-            // Mobile: full width with comfortable padding
-            "px-4 py-4",
-            // Desktop/Tablet: constrained width, centered, comfortable padding
-            "lg:max-w-[1400px] lg:mx-auto lg:px-6 lg:py-6"
-          )} 
-          data-page-content
-        >
+        {/* Page Content */}
+        <main className="p-6 page-enter" data-page-content>
           {children}
         </main>
       </div>
