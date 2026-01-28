@@ -2844,6 +2844,8 @@ export type Database = {
           merchant_city: string | null
           merchant_reference_cep: string | null
           merchant_state: string | null
+          minibanner_1_img2_url: string | null
+          minibanner_2_img2_url: string | null
           minimum_order_value: number | null
           phone: string | null
           pickup_address: string | null
@@ -2927,6 +2929,8 @@ export type Database = {
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
           phone?: string | null
           pickup_address?: string | null
@@ -3010,6 +3014,8 @@ export type Database = {
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
           phone?: string | null
           pickup_address?: string | null
