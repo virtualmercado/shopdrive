@@ -10,6 +10,7 @@ import WhatsAppButton from "@/components/store/WhatsAppButton";
 import MiniCart from "@/components/store/MiniCart";
 import MiniBannerSection from "@/components/store/MiniBannerSection";
 import { BrandSection } from "@/components/store/BrandSection";
+import HomeVideoSection from "@/components/store/HomeVideoSection";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,6 +57,11 @@ interface StoreData {
   topbar_text?: string;
   topbar_link_type?: "none" | "content_page" | "category" | "sale" | "section" | "external";
   topbar_link_target?: string;
+  // YouTube video fields
+  home_video_enabled?: boolean;
+  home_video_id?: string | null;
+  home_video_title?: string | null;
+  home_video_description?: string | null;
 }
 
 const OnlineStoreContent = () => {
@@ -98,6 +104,11 @@ const OnlineStoreContent = () => {
         banner_desktop_urls: desktopUrls,
         banner_mobile_urls: mobileUrls,
         topbar_link_type: (data.topbar_link_type as StoreData["topbar_link_type"]) || "none",
+        // YouTube video fields
+        home_video_enabled: (data as any).home_video_enabled || false,
+        home_video_id: (data as any).home_video_id || null,
+        home_video_title: (data as any).home_video_title || null,
+        home_video_description: (data as any).home_video_description || null,
       });
       setLoading(false);
     };
@@ -362,6 +373,16 @@ const OnlineStoreContent = () => {
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
         />
+
+        {/* YouTube Video Section - below BrandSection */}
+        {storeData.home_video_enabled && storeData.home_video_id && (
+          <HomeVideoSection
+            videoId={storeData.home_video_id}
+            title={storeData.home_video_title}
+            description={storeData.home_video_description}
+            primaryColor={storeData.primary_color}
+          />
+        )}
       </main>
 
       <StoreFooter storeData={storeData} />
