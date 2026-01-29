@@ -19,6 +19,7 @@ import {
   MAX_MOBILE_BANNERS
 } from "@/lib/defaultBanners";
 import { RefreshCw } from "lucide-react";
+import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 
 const StorePreviewEnhanced = () => {
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,12 @@ const StorePreviewEnhanced = () => {
     banner_desktop_urls: [] as string[],
     banner_mobile_urls: [] as string[],
     is_maintenance_mode: false,
+    // YouTube video fields
+    home_video_enabled: false,
+    home_video_id: null as string | null,
+    home_video_url_original: null as string | null,
+    home_video_title: null as string | null,
+    home_video_description: null as string | null,
   });
 
   useEffect(() => {
@@ -114,6 +121,12 @@ const StorePreviewEnhanced = () => {
           banner_desktop_urls: (data.banner_desktop_urls as string[]) || [],
           banner_mobile_urls: (data.banner_mobile_urls as string[]) || [],
           is_maintenance_mode: data.is_maintenance_mode || false,
+          // YouTube video fields
+          home_video_enabled: (data as any).home_video_enabled || false,
+          home_video_id: (data as any).home_video_id || null,
+          home_video_url_original: (data as any).home_video_url_original || null,
+          home_video_title: (data as any).home_video_title || null,
+          home_video_description: (data as any).home_video_description || null,
         });
       }
     } catch (error) {
@@ -1354,6 +1367,20 @@ const StorePreviewEnhanced = () => {
             </div>
           </div>
         </Card>
+
+        {/* Vídeo do YouTube (Home) */}
+        <YouTubeVideoCard
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          initialData={{
+            home_video_enabled: storeData.home_video_enabled,
+            home_video_id: storeData.home_video_id,
+            home_video_url_original: storeData.home_video_url_original,
+            home_video_title: storeData.home_video_title,
+            home_video_description: storeData.home_video_description,
+          }}
+          onSaved={fetchStoreData}
+        />
 
         {/* Personalização do Rodapé */}
         <Card className="p-6">
