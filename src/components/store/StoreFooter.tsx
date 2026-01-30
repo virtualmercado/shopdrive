@@ -1,7 +1,8 @@
-import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle } from "lucide-react";
+import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle, MapPin } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import paymentMethodsBanner from "@/assets/payment-methods-banner.png";
+import { buildGoogleMapsSearchUrl, buildAddressString } from "@/lib/maps";
 
 interface StoreFooterProps {
   storeData: {
@@ -80,6 +81,20 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
 
   const addressData = formatFullAddress();
   const iconColor = storeData.primary_color || "#6a1b9a";
+
+  // Build Google Maps URL from structured address
+  const fullAddressForMaps = buildAddressString({
+    street: storeData.address,
+    number: storeData.address_number,
+    complement: storeData.address_complement,
+    neighborhood: storeData.address_neighborhood,
+    city: storeData.address_city,
+    state: storeData.address_state,
+    zipCode: storeData.address_zip_code,
+    country: 'Brasil'
+  });
+  
+  const mapsUrl = buildGoogleMapsSearchUrl(fullAddressForMaps);
 
   return (
     <>
@@ -224,13 +239,37 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     <span>{storeData.whatsapp_number}</span>
                   </div>
                 )}
-                {addressData.hasAddress && (
-                  <div className="flex items-start gap-2 hover:opacity-70 transition-opacity">
-                    <Home className="h-4 w-4 mt-1" style={{ color: iconColor }} />
-                    <div className="flex flex-col">
-                      {addressData.line1 && <span>{addressData.line1}</span>}
-                      {addressData.line2 && <span>{addressData.line2}</span>}
+                {addressData.hasAddress ? (
+                  mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir no Google Maps"
+                      className="flex items-start gap-2 transition-all duration-150 ease-in-out hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent rounded group"
+                      style={{ 
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <MapPin className="h-4 w-4 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" style={{ color: iconColor }} />
+                      <div className="flex flex-col group-hover:opacity-80 transition-opacity">
+                        {addressData.line1 && <span>{addressData.line1}</span>}
+                        {addressData.line2 && <span>{addressData.line2}</span>}
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: iconColor }} />
+                      <div className="flex flex-col">
+                        {addressData.line1 && <span>{addressData.line1}</span>}
+                        {addressData.line2 && <span>{addressData.line2}</span>}
+                      </div>
                     </div>
+                  )
+                ) : (
+                  <div className="flex items-start gap-2 opacity-60">
+                    <MapPin className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: iconColor }} />
+                    <span>Endereço não informado</span>
                   </div>
                 )}
               </div>
