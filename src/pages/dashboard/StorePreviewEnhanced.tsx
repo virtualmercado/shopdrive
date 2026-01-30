@@ -68,6 +68,9 @@ const StorePreviewEnhanced = () => {
     home_video_url_original: null as string | null,
     home_video_title: null as string | null,
     home_video_description: null as string | null,
+    // About Us fields
+    about_us_title: "",
+    about_us_text: "",
   });
 
   useEffect(() => {
@@ -127,6 +130,9 @@ const StorePreviewEnhanced = () => {
           home_video_url_original: (data as any).home_video_url_original || null,
           home_video_title: (data as any).home_video_title || null,
           home_video_description: (data as any).home_video_description || null,
+          // About Us fields
+          about_us_title: (data as any).about_us_title || "",
+          about_us_text: (data as any).about_us_text || "",
         });
       }
     } catch (error) {
@@ -1486,23 +1492,48 @@ const StorePreviewEnhanced = () => {
             </div>
 
             {/* About Us Section */}
-            <div className="space-y-2">
-              <Label htmlFor="about_us_text">Sobre nós</Label>
-              <p className="text-xs text-muted-foreground">
-                O texto será vinculado ao link Sobre Nós no rodapé da sua loja online
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Sobre nós</Label>
+              <p className="text-xs text-muted-foreground -mt-2">
+                O conteúdo será exibido na página "Sobre Nós" acessada pelo rodapé da sua loja online
               </p>
-              <Textarea
-                id="about_us_text"
-                value={(storeData as any).about_us_text || ''}
-                onChange={(e) => {
-                  setStoreData({
-                    ...storeData,
-                    about_us_text: e.target.value,
-                  } as any);
-                }}
-                placeholder="Digite o texto institucional da sua loja..."
-                rows={5}
-              />
+              
+              {/* About Us Title */}
+              <div className="space-y-2">
+                <Label htmlFor="about_us_title">Título da página Sobre Nós</Label>
+                <Input
+                  id="about_us_title"
+                  value={storeData.about_us_title}
+                  onChange={(e) => {
+                    setStoreData({
+                      ...storeData,
+                      about_us_title: e.target.value,
+                    });
+                  }}
+                  placeholder="Ex: Um pouco da nossa história"
+                  maxLength={80}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este título será exibido em destaque na página Sobre Nós da sua loja online.
+                </p>
+              </div>
+              
+              {/* About Us Text */}
+              <div className="space-y-2">
+                <Label htmlFor="about_us_text">Texto institucional</Label>
+                <Textarea
+                  id="about_us_text"
+                  value={storeData.about_us_text}
+                  onChange={(e) => {
+                    setStoreData({
+                      ...storeData,
+                      about_us_text: e.target.value,
+                    });
+                  }}
+                  placeholder="Digite o texto institucional da sua loja..."
+                  rows={6}
+                />
+              </div>
             </div>
 
             {/* Custom Domain Section */}

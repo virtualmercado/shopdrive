@@ -2797,6 +2797,7 @@ export type Database = {
       profiles: {
         Row: {
           about_us_text: string | null
+          about_us_title: string | null
           account_status: string
           account_status_updated_at: string | null
           address: string | null
@@ -2888,6 +2889,7 @@ export type Database = {
         }
         Insert: {
           about_us_text?: string | null
+          about_us_title?: string | null
           account_status?: string
           account_status_updated_at?: string | null
           address?: string | null
@@ -2979,6 +2981,7 @@ export type Database = {
         }
         Update: {
           about_us_text?: string | null
+          about_us_title?: string | null
           account_status?: string
           account_status_updated_at?: string | null
           address?: string | null
