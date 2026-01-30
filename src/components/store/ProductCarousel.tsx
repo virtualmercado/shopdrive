@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Carousel,
@@ -6,6 +6,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import ProductCard from "./ProductCard";
@@ -119,6 +120,14 @@ const ProductCarousel = ({
 }: ProductCarouselProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+
+  // Determine if autoplay should be enabled
+  // Featured and Promotional: NO autoplay
+  // All Products (newest or default): YES autoplay
+  const shouldAutoplay = !featured && !promotional;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -191,6 +200,23 @@ const ProductCarousel = ({
     return result.slice(0, showAllOnSearch ? 50 : 12);
   }, [products, searchTerm, selectedCategory, showAllOnSearch]);
 
+  // Track carousel state for dots
+  useEffect(() => {
+    if (!api) return;
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
+
+  // Handle dot click
+  const scrollTo = useCallback((index: number) => {
+    api?.scrollTo(index);
+  }, [api]);
+
   // Show "no results" message when searching
   if (showAllOnSearch && !loading && filteredProducts.length === 0) {
     return (
@@ -215,6 +241,10 @@ const ProductCarousel = ({
     return null;
   }
 
+  // Calculate number of dots based on items per view
+  // Desktop: 4 items, Tablet: 2 items, Mobile: 1 item
+  // For simplicity, we use the carousel's scroll snap count
+
   return (
     <section className="space-y-4">
       <div className="text-center">
@@ -223,15 +253,18 @@ const ProductCarousel = ({
       </div>
 
       <Carousel
+        setApi={setApi}
         opts={{
           align: "start",
           loop: filteredProducts.length > 3,
         }}
-        plugins={[
+        plugins={shouldAutoplay ? [
           Autoplay({
-            delay: 4000,
+            delay: 5000,
+            stopOnInteraction: true,
+            stopOnMouseEnter: true,
           }),
-        ]}
+        ] : []}
         className="w-full"
       >
         <CarouselContent>
@@ -257,6 +290,29 @@ const ProductCarousel = ({
         <CarouselPrevious className="hidden md:flex" />
         <CarouselNext className="hidden md:flex" />
       </Carousel>
+
+      {/* Navigation Dots */}
+      {count > 1 && (
+        <div className="flex justify-center gap-2 pt-2">
+          {Array.from({ length: count }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollTo(index)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                index === current
+                  ? "w-6"
+                  : "w-2.5 hover:opacity-70"
+              }`}
+              style={{
+                backgroundColor: index === current 
+                  ? primaryColor 
+                  : "hsl(var(--muted-foreground) / 0.3)",
+              }}
+              aria-label={`Ir para slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };
