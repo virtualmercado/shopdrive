@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal } from "lucide-react";
 import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
 import { TopBarConfigSection } from "@/components/customize/TopBarConfigSection";
+import { StoreLayoutSelector } from "@/components/customize/StoreLayoutSelector";
 
 const Customize = () => {
   const { toast } = useToast();
@@ -463,6 +464,14 @@ const Customize = () => {
             </div>
           </div>
         </Card>
+
+        {/* Store Layout Selector */}
+        <StoreLayoutSelector
+          userId={userId}
+          primaryColor={colors.primary}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
 
         {/* AI Color Palette */}
         <AIPaletteSection

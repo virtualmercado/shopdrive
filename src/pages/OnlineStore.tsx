@@ -11,6 +11,7 @@ import MiniCart from "@/components/store/MiniCart";
 import MiniBannerSection from "@/components/store/MiniBannerSection";
 import { BrandSection } from "@/components/store/BrandSection";
 import HomeVideoSection from "@/components/store/HomeVideoSection";
+import { StoreLayoutContent } from "@/components/store/StoreLayoutContent";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,6 +63,8 @@ interface StoreData {
   home_video_id?: string | null;
   home_video_title?: string | null;
   home_video_description?: string | null;
+  // Store layout
+  store_layout?: "layout_01" | "layout_02" | "layout_03";
 }
 
 const OnlineStoreContent = () => {
@@ -109,6 +112,8 @@ const OnlineStoreContent = () => {
         home_video_id: (data as any).home_video_id || null,
         home_video_title: (data as any).home_video_title || null,
         home_video_description: (data as any).home_video_description || null,
+        // Store layout
+        store_layout: (data.store_layout as StoreData["store_layout"]) || "layout_01",
       });
       setLoading(false);
     };
@@ -279,108 +284,18 @@ const OnlineStoreContent = () => {
             showAllOnSearch={true}
           />
         ) : (
-          // Show normal carousels when not searching
-          <>
-            <ProductCarousel
-              title="Destaques"
-              subtitle="Confira os produtos em destaque"
-              storeOwnerId={storeData.id}
-              storeSlug={storeSlug}
-              featured={true}
-              primaryColor={storeData.primary_color}
-              buttonBgColor={buttonBgColor}
-              buttonTextColor={buttonTextColor}
-              buttonBorderStyle={buttonBorderStyle}
-              productImageFormat={productImageFormat}
-              productBorderStyle={productBorderStyle}
-              productTextAlignment={productTextAlignment}
-              productButtonDisplay={productButtonDisplay}
-              selectedCategory={selectedCategory}
-            />
-
-            <ProductCarousel
-              title="Novidades"
-              subtitle="Confira os últimos lançamentos"
-              storeOwnerId={storeData.id}
-              storeSlug={storeSlug}
-              newest
-              primaryColor={storeData.primary_color}
-              buttonBgColor={buttonBgColor}
-              buttonTextColor={buttonTextColor}
-              buttonBorderStyle={buttonBorderStyle}
-              productImageFormat={productImageFormat}
-              productBorderStyle={productBorderStyle}
-              productTextAlignment={productTextAlignment}
-              productButtonDisplay={productButtonDisplay}
-              selectedCategory={selectedCategory}
-            />
-
-            <section id="todos-produtos">
-              <ProductCarousel
-                title="Todos os Produtos"
-                subtitle="Navegue por todo o catálogo"
-              storeOwnerId={storeData.id}
-              storeSlug={storeSlug}
-              primaryColor={storeData.primary_color}
-              buttonBgColor={buttonBgColor}
-              buttonTextColor={buttonTextColor}
-              buttonBorderStyle={buttonBorderStyle}
-              productImageFormat={productImageFormat}
-              productBorderStyle={productBorderStyle}
-              productTextAlignment={productTextAlignment}
-              productButtonDisplay={productButtonDisplay}
-                selectedCategory={selectedCategory}
-              />
-            </section>
-          </>
-        )}
-
-        {/* MiniBanner Section with hover/touch effect */}
-        <MiniBannerSection
-          miniBanner1={{
-            img1Url: storeData.banner_rect_1_url || null,
-            img2Url: storeData.minibanner_1_img2_url || null,
-          }}
-          miniBanner2={{
-            img1Url: storeData.banner_rect_2_url || null,
-            img2Url: storeData.minibanner_2_img2_url || null,
-          }}
-        />
-
-        {/* Promotional Products Carousel */}
-        <ProductCarousel
-          title="Promoções"
-          subtitle="Aproveite os melhores preços"
-          storeOwnerId={storeData.id}
-          storeSlug={storeSlug}
-          promotional={true}
-          primaryColor={storeData.primary_color}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
-          buttonBorderStyle={buttonBorderStyle}
-          productImageFormat={productImageFormat}
-          productBorderStyle={productBorderStyle}
-          productTextAlignment={productTextAlignment}
-          productButtonDisplay={productButtonDisplay}
-          selectedCategory={selectedCategory}
-        />
-
-        {/* Brand Section */}
-        <BrandSection
-          storeOwnerId={storeData.id}
-          storeSlug={storeSlug || ""}
-          primaryColor={storeData.primary_color}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
-        />
-
-        {/* YouTube Video Section - below BrandSection */}
-        {storeData.home_video_enabled && storeData.home_video_id && (
-          <HomeVideoSection
-            videoId={storeData.home_video_id}
-            title={storeData.home_video_title}
-            description={storeData.home_video_description}
-            primaryColor={storeData.primary_color}
+          // Show normal carousels based on selected layout
+          <StoreLayoutContent
+            storeData={storeData}
+            storeSlug={storeSlug}
+            buttonBgColor={buttonBgColor}
+            buttonTextColor={buttonTextColor}
+            buttonBorderStyle={buttonBorderStyle}
+            productImageFormat={productImageFormat}
+            productBorderStyle={productBorderStyle}
+            productTextAlignment={productTextAlignment}
+            productButtonDisplay={productButtonDisplay}
+            selectedCategory={selectedCategory}
           />
         )}
       </main>

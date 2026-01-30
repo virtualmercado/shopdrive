@@ -2872,6 +2872,7 @@ export type Database = {
           show_whatsapp_button: boolean | null
           source_template_id: string | null
           store_description: string | null
+          store_layout: string | null
           store_logo_url: string | null
           store_name: string | null
           store_slug: string | null
@@ -2964,6 +2965,7 @@ export type Database = {
           show_whatsapp_button?: boolean | null
           source_template_id?: string | null
           store_description?: string | null
+          store_layout?: string | null
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
@@ -3056,6 +3058,7 @@ export type Database = {
           show_whatsapp_button?: boolean | null
           source_template_id?: string | null
           store_description?: string | null
+          store_layout?: string | null
           store_logo_url?: string | null
           store_name?: string | null
           store_slug?: string | null
