@@ -80,7 +80,7 @@ const HomeVideoSection = ({
         )}
 
         {/* Video Container - Contained Width */}
-        <div className="w-full max-w-3xl mx-auto px-4">
+        <div className="w-full max-w-5xl mx-auto">
           <div 
             className="relative w-full rounded-xl overflow-hidden shadow-lg bg-black/5"
             style={{ aspectRatio: '16 / 9' }}
