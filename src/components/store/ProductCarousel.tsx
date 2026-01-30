@@ -261,8 +261,9 @@ const ProductCarousel = ({
         plugins={shouldAutoplay ? [
           Autoplay({
             delay: 5000,
-            stopOnInteraction: true,
+            stopOnInteraction: false,
             stopOnMouseEnter: true,
+            playOnInit: true,
           }),
         ] : []}
         className="w-full"
