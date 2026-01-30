@@ -23,6 +23,7 @@ interface StoreData {
   button_bg_color?: string;
   button_text_color?: string;
   button_border_style?: string;
+  about_us_title?: string;
   about_us_text?: string;
   email?: string;
   phone?: string;
@@ -111,10 +112,14 @@ const AboutUsPageContent = () => {
 
       <main className="container mx-auto px-4 py-8 flex-1">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6 text-left">
-            Um pouco da nossa história
-          </h1>
+          {/* Title - only show if exists */}
+          {storeData.about_us_title && (
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6 text-left">
+              {storeData.about_us_title}
+            </h1>
+          )}
           
+          {/* Text content */}
           <div className="text-left text-foreground whitespace-pre-wrap leading-relaxed">
             {storeData.about_us_text || (
               <p className="text-muted-foreground italic">
