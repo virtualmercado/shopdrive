@@ -57,7 +57,7 @@ export const CatalogProductList = ({
   const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
 
   const fetchProducts = useCallback(async () => {
-    if (!storeOwnerId) return;
+    if (!storeSlug) return;
 
     setLoading(true);
     try {
@@ -69,8 +69,7 @@ export const CatalogProductList = ({
       const response = await client
         .from("public_store_products")
         .select("*", { count: "exact" })
-        .eq("user_id", storeOwnerId)
-        .eq("is_active", true)
+        .eq("store_slug", storeSlug)
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -99,7 +98,7 @@ export const CatalogProductList = ({
     } finally {
       setLoading(false);
     }
-  }, [storeOwnerId, currentPage]);
+  }, [storeSlug, currentPage]);
 
   useEffect(() => {
     fetchProducts();
