@@ -12,10 +12,13 @@ import MiniBannerSection from "@/components/store/MiniBannerSection";
 import { BrandSection } from "@/components/store/BrandSection";
 import HomeVideoSection from "@/components/store/HomeVideoSection";
 import { StoreLayoutContent } from "@/components/store/StoreLayoutContent";
+import { CatalogProductList } from "@/components/store/CatalogProductList";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveBanners } from "@/lib/defaultBanners";
+
+type StoreModelType = "loja_virtual" | "catalogo_digital";
 
 interface StoreData {
   id: string;
@@ -65,6 +68,8 @@ interface StoreData {
   home_video_description?: string | null;
   // Store layout
   store_layout?: "layout_01" | "layout_02" | "layout_03";
+  // Store model
+  store_model?: StoreModelType;
 }
 
 const OnlineStoreContent = () => {
@@ -114,6 +119,8 @@ const OnlineStoreContent = () => {
         home_video_description: (data as any).home_video_description || null,
         // Store layout
         store_layout: (data.store_layout as StoreData["store_layout"]) || "layout_01",
+        // Store model
+        store_model: ((data as any).store_model as StoreModelType) || "loja_virtual",
       });
       setLoading(false);
     };
@@ -203,10 +210,11 @@ const OnlineStoreContent = () => {
   const productButtonDisplay = storeData.product_button_display || "below";
 
   const isSearching = activeSearchTerm.trim().length > 0;
+  const isCatalogMode = storeData.store_model === "catalogo_digital";
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Bar */}
+      {/* Top Bar - shown in both modes */}
       {storeData.topbar_enabled && storeData.topbar_text && (
         <StoreTopBar
           text={storeData.topbar_text}
@@ -236,11 +244,8 @@ const OnlineStoreContent = () => {
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
       
-      {(() => {
-        // IMPORTANT:
-        // banner_*_urls arrays are the source of truth.
-        // If they exist but are empty, we MUST NOT fall back to legacy single-image fields,
-        // otherwise deleted banners can keep showing ("ghost" banners).
+      {/* Banner - only shown in Loja Virtual mode */}
+      {!isCatalogMode && (() => {
         const customDesktopUrls = storeData.banner_desktop_urls !== undefined
           ? (storeData.banner_desktop_urls ?? [])
           : storeData.banner_desktop_url
@@ -264,7 +269,23 @@ const OnlineStoreContent = () => {
       })()}
 
       <main className="container mx-auto px-4 py-8 space-y-12">
-        {isSearching ? (
+        {isCatalogMode ? (
+          // Catalog Mode: Show simple product listing with pagination
+          <CatalogProductList
+            storeOwnerId={storeData.id}
+            storeSlug={storeSlug}
+            primaryColor={storeData.primary_color}
+            buttonBgColor={buttonBgColor}
+            buttonTextColor={buttonTextColor}
+            buttonBorderStyle={buttonBorderStyle}
+            productImageFormat={productImageFormat}
+            productBorderStyle={productBorderStyle}
+            productTextAlignment={productTextAlignment}
+            productButtonDisplay={productButtonDisplay}
+            selectedCategory={selectedCategory}
+            searchTerm={activeSearchTerm}
+          />
+        ) : isSearching ? (
           // Show search results section when searching
           <ProductCarousel
             title={`Resultados para "${activeSearchTerm}"`}
