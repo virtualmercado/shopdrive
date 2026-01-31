@@ -20,13 +20,16 @@ import {
 } from "@/lib/defaultBanners";
 import { RefreshCw } from "lucide-react";
 import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
+import StoreModelSelector from "@/components/store/StoreModelSelector";
+import { useAuth } from "@/hooks/useAuth";
 
 const StorePreviewEnhanced = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
-  const { buttonBgColor, buttonTextColor } = useTheme();
+  const { buttonBgColor, buttonTextColor, primaryColor } = useTheme();
   
   const [storeData, setStoreData] = useState({
     store_name: "",
@@ -808,6 +811,14 @@ const StorePreviewEnhanced = () => {
             </div>
           </div>
         </Card>
+
+        {/* Store Model Selector */}
+        <StoreModelSelector
+          userId={user?.id || null}
+          primaryColor={primaryColor}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
 
         {/* Banners */}
         <Card className="p-6">
