@@ -246,7 +246,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Abrir no Google Maps"
-                      className="flex items-start gap-2 transition-all duration-150 ease-in-out hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent rounded group"
+                      className="flex items-start gap-2 transition-all duration-150 ease-in-out hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded group"
                       style={{ 
                         cursor: 'pointer',
                       }}
