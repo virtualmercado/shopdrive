@@ -19,12 +19,51 @@ export const PaletteMoodboard = ({ colors }: PaletteMoodboardProps) => {
     <div className="relative w-full h-full min-h-[400px] rounded-lg overflow-hidden shadow-lg border border-border/30">
       {/* Main container with left image area and right color column */}
       <div className="absolute inset-0 flex">
-        {/* Left side - Moodboard image */}
+        {/* Left side - Moodboard image with dynamic color overlays */}
         <div className="flex-1 relative overflow-hidden">
+          {/* Base image converted to grayscale */}
           <img 
             src={paletteMoodboard} 
             alt="Moodboard de referência" 
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'grayscale(100%)' }}
+          />
+          
+          {/* Color overlay using primary color with multiply blend */}
+          <div 
+            className="absolute inset-0 transition-colors duration-500"
+            style={{ 
+              backgroundColor: colors.primary,
+              mixBlendMode: 'multiply',
+              opacity: 0.7
+            }}
+          />
+          
+          {/* Secondary overlay for depth */}
+          <div 
+            className="absolute inset-0 transition-colors duration-500"
+            style={{ 
+              background: `linear-gradient(135deg, ${colors.headerBg}80 0%, transparent 50%, ${colors.footerBg}60 100%)`,
+              mixBlendMode: 'overlay'
+            }}
+          />
+          
+          {/* Accent color highlights */}
+          <div 
+            className="absolute inset-0 transition-colors duration-500"
+            style={{ 
+              background: `radial-gradient(circle at 70% 20%, ${colors.buttonBg}50 0%, transparent 40%)`,
+              mixBlendMode: 'soft-light'
+            }}
+          />
+          
+          {/* Top bar color accent */}
+          <div 
+            className="absolute inset-0 transition-colors duration-500"
+            style={{ 
+              background: `linear-gradient(to bottom, ${colors.topBarBg}40 0%, transparent 30%)`,
+              mixBlendMode: 'color'
+            }}
           />
         </div>
         
