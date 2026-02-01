@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check } from "lucide-react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
+import { buildGoogleMapsSearchUrl } from "@/lib/maps";
 
 interface Product {
   id: string;
@@ -42,6 +43,10 @@ interface StoreProfile {
   primary_color: string | null;
 }
 
+type ProductsPerPage = 9 | 4 | 2;
+
+const DEFAULT_PRIMARY_COLOR = "#6a1b9a";
+
 const CatalogPDF = () => {
   const { user } = useAuth();
   const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
@@ -49,6 +54,7 @@ const CatalogPDF = () => {
   const [filterType, setFilterType] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [productsPerPage, setProductsPerPage] = useState<ProductsPerPage>(9);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -73,7 +79,6 @@ const CatalogPDF = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    // Fetch products
     const { data: productsData } = await supabase
       .from("products")
       .select("id, name, description, price, promotional_price, image_url, category_id, variations")
@@ -84,7 +89,6 @@ const CatalogPDF = () => {
       setProducts(productsData);
     }
 
-    // Fetch categories
     const { data: categoriesData } = await supabase
       .from("product_categories")
       .select("id, name")
@@ -95,7 +99,6 @@ const CatalogPDF = () => {
       setCategories(categoriesData);
     }
 
-    // Fetch store profile
     const { data: profileData } = await supabase
       .from("profiles")
       .select("store_slug, store_logo_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
@@ -116,7 +119,6 @@ const CatalogPDF = () => {
     if (filterType === "all") {
       setFilteredProducts(products);
     } else if (filterType === "list") {
-      // For list catalog, sort alphabetically by name
       const sortedProducts = [...products].sort((a, b) => 
         a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
       );
@@ -150,7 +152,18 @@ const CatalogPDF = () => {
     return parts.join(", ");
   };
 
-  // Helper function to load image and get dimensions (preserves transparency with PNG)
+  const getHexColor = () => {
+    return storeProfile?.primary_color || primaryColor || DEFAULT_PRIMARY_COLOR;
+  };
+
+  const parseHexColor = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16) || 106;
+    const g = parseInt(hex.slice(3, 5), 16) || 27;
+    const b = parseInt(hex.slice(5, 7), 16) || 154;
+    return { r, g, b };
+  };
+
+  // Helper function to load image and get dimensions
   const loadImageWithDimensions = (url: string, preserveTransparency: boolean = false): Promise<{ data: string; width: number; height: number; format: string } | null> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -161,13 +174,11 @@ const CatalogPDF = () => {
         canvas.height = img.naturalHeight;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          // For transparent images (like logos), don't fill background
           if (!preserveTransparency) {
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
           ctx.drawImage(img, 0, 0);
-          // Use PNG for logos to preserve transparency, JPEG for products
           const format = preserveTransparency ? "image/png" : "image/jpeg";
           const data = canvas.toDataURL(format, 0.9);
           resolve({ data, width: img.naturalWidth, height: img.naturalHeight, format: preserveTransparency ? "PNG" : "JPEG" });
@@ -180,7 +191,6 @@ const CatalogPDF = () => {
     });
   };
 
-  // Helper function to calculate image dimensions maintaining aspect ratio
   const calculateImageDimensions = (
     originalWidth: number,
     originalHeight: number,
@@ -199,7 +209,218 @@ const CatalogPDF = () => {
     return { width: finalWidth, height: finalHeight };
   };
 
-  // Generate PDF for single product with exclusive layout
+  // Find best product image for cover
+  const selectBestCoverImage = (): string | null => {
+    const productsWithImages = filteredProducts.filter(p => p.image_url);
+    if (productsWithImages.length === 0) return null;
+    // Select first product with image (could be improved with AI selection)
+    return productsWithImages[0].image_url;
+  };
+
+  // Generate Cover Page
+  const generateCoverPage = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+
+    // Background image
+    const coverImageUrl = selectBestCoverImage();
+    if (coverImageUrl) {
+      const coverImage = await loadImageWithDimensions(coverImageUrl, false);
+      if (coverImage) {
+        // Cover image fills entire page
+        pdf.addImage(coverImage.data, coverImage.format, 0, 0, pageWidth, pageHeight);
+      }
+    } else {
+      // Fallback: solid color background
+      pdf.setFillColor(r, g, b);
+      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+    }
+
+    // White rectangle overlay in center
+    const rectWidth = 100;
+    const rectHeight = 160;
+    const rectX = (pageWidth - rectWidth) / 2;
+    const rectY = (pageHeight - rectHeight) / 2;
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(rectX, rectY, rectWidth, rectHeight, "F");
+
+    // Title text
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 40;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 14;
+    pdf.text("DE", textCenterX, currentY, { align: "center" });
+    currentY += 14;
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 25;
+
+    // Year
+    const currentYear = new Date().getFullYear();
+    pdf.setFontSize(20);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(currentYear), textCenterX, currentY, { align: "center" });
+    currentY += 30;
+
+    // Logo
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const logoMaxWidth = 60;
+        const logoMaxHeight = 40;
+        const logoDimensions = calculateImageDimensions(
+          logoImage.width,
+          logoImage.height,
+          logoMaxWidth,
+          logoMaxHeight
+        );
+        const logoX = textCenterX - (logoDimensions.width / 2);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, currentY, logoDimensions.width, logoDimensions.height);
+      }
+    }
+  };
+
+  // Generate Back Cover (Contracapa)
+  const generateBackCover = async (pdf: jsPDF) => {
+    pdf.addPage();
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+
+    // Top half with primary color
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, pageWidth, pageHeight / 2, "F");
+
+    // Bottom half white
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+
+    // Logo in center with white background circle
+    const centerX = pageWidth / 2;
+    const centerY = pageHeight / 2;
+    const circleRadius = 35;
+
+    // White circle background for logo
+    pdf.setFillColor(255, 255, 255);
+    pdf.circle(centerX, centerY, circleRadius, "F");
+
+    // Logo
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const logoMaxSize = circleRadius * 1.5;
+        const logoDimensions = calculateImageDimensions(
+          logoImage.width,
+          logoImage.height,
+          logoMaxSize,
+          logoMaxSize
+        );
+        const logoX = centerX - (logoDimensions.width / 2);
+        const logoY = centerY - (logoDimensions.height / 2);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+      }
+    }
+
+    // Contact info below logo
+    let infoY = centerY + circleRadius + 25;
+    pdf.setFontSize(12);
+    pdf.setTextColor(50, 50, 50);
+    pdf.setFont("helvetica", "normal");
+
+    // Store URL (clickable)
+    if (storeProfile?.store_slug) {
+      const storeUrl = `${window.location.origin}/loja/${storeProfile.store_slug}`;
+      pdf.setTextColor(r, g, b);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(storeUrl, centerX, infoY, { align: "center" });
+      const urlWidth = pdf.getTextWidth(storeUrl);
+      pdf.link(centerX - urlWidth / 2, infoY - 4, urlWidth, 6, { url: storeUrl });
+      infoY += 15;
+    }
+
+    // WhatsApp (clickable)
+    if (storeProfile?.whatsapp_number) {
+      pdf.setTextColor(50, 50, 50);
+      pdf.setFont("helvetica", "normal");
+      const whatsappText = `WhatsApp: ${storeProfile.whatsapp_number}`;
+      pdf.text(whatsappText, centerX, infoY, { align: "center" });
+      const whatsappUrl = `https://wa.me/${storeProfile.whatsapp_number.replace(/\D/g, '')}`;
+      const whatsappWidth = pdf.getTextWidth(whatsappText);
+      pdf.link(centerX - whatsappWidth / 2, infoY - 4, whatsappWidth, 6, { url: whatsappUrl });
+      infoY += 15;
+    }
+
+    // Physical address (clickable to Google Maps)
+    const fullAddress = getFullAddress();
+    if (fullAddress) {
+      pdf.setFontSize(10);
+      pdf.setTextColor(80, 80, 80);
+      const addressLines = pdf.splitTextToSize(fullAddress, 150);
+      addressLines.forEach((line: string) => {
+        pdf.text(line, centerX, infoY, { align: "center" });
+        infoY += 5;
+      });
+      
+      const mapsUrl = buildGoogleMapsSearchUrl(fullAddress);
+      if (mapsUrl) {
+        const totalHeight = addressLines.length * 5;
+        pdf.link(centerX - 75, infoY - totalHeight - 4, 150, totalHeight, { url: mapsUrl });
+      }
+    }
+  };
+
+  // Generate Sidebar with page number and logo
+  const drawSidebar = async (pdf: jsPDF, pageNumber: number, logoImageData: { data: string; width: number; height: number; format: string } | null) => {
+    const pageHeight = 297;
+    const sidebarWidth = 12;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+
+    // Sidebar rectangle
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, sidebarWidth, pageHeight, "F");
+
+    // Page number at bottom of sidebar
+    pdf.setFontSize(8);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    const pageText = `PG ${String(pageNumber).padStart(2, '0')}`;
+    
+    // Rotate text for vertical display
+    pdf.text(pageText, sidebarWidth / 2, pageHeight - 15, { align: "center" });
+
+    // Logo in white circle
+    if (logoImageData) {
+      const circleRadius = 10;
+      const circleX = sidebarWidth / 2;
+      const circleY = 30;
+
+      // White circle background
+      pdf.setFillColor(255, 255, 255);
+      pdf.circle(circleX, circleY, circleRadius, "F");
+
+      // Logo inside circle
+      const logoSize = circleRadius * 1.4;
+      const logoDimensions = calculateImageDimensions(
+        logoImageData.width,
+        logoImageData.height,
+        logoSize,
+        logoSize
+      );
+      const logoX = circleX - (logoDimensions.width / 2);
+      const logoY = circleY - (logoDimensions.height / 2);
+      pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+    }
+  };
+
+  // Generate PDF for single product
   const generateSingleProductPDF = async (product: Product) => {
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -207,224 +428,109 @@ const CatalogPDF = () => {
       format: "a4",
     });
 
+    // Generate cover page first
+    await generateCoverPage(pdf);
+    
+    // Add product page
+    pdf.addPage();
+    
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 12;
-    const headerHeight = 28;
-    const footerHeight = 18;
-    const currentDate = new Date().toLocaleDateString("pt-BR");
+    const sidebarWidth = 12;
+    const margin = 20;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
 
-    // Parse primary color
-    const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
-    const r = parseInt(hexColor.slice(1, 3), 16) || 106;
-    const g = parseInt(hexColor.slice(3, 5), 16) || 27;
-    const b = parseInt(hexColor.slice(5, 7), 16) || 154;
-
-    // Load logo if available with proper dimensions (preserve transparency)
+    // Load logo for sidebar
     let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
     if (storeProfile?.store_logo_url) {
       logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
     }
 
-    // Header background
-    pdf.setFillColor(240, 240, 240);
-    pdf.rect(0, 0, pageWidth, headerHeight, "F");
+    // Draw sidebar
+    await drawSidebar(pdf, 1, logoImageData);
 
-    // Logo with proper aspect ratio (no background/border)
-    if (logoImageData) {
-      try {
-        const logoMaxWidth = 40;
-        const logoMaxHeight = 20;
-        const logoDimensions = calculateImageDimensions(
-          logoImageData.width,
-          logoImageData.height,
-          logoMaxWidth,
-          logoMaxHeight
-        );
-        const logoX = margin;
-        const logoY = (headerHeight - logoDimensions.height) / 2;
-        pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
-      } catch (e) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text("Logo", margin, 16);
-      }
-    }
+    // Content area
+    const contentStartX = sidebarWidth + margin;
+    const contentWidth = pageWidth - sidebarWidth - (margin * 2);
+    const contentCenterX = sidebarWidth + (pageWidth - sidebarWidth) / 2;
 
-    // Header title
-    pdf.setFontSize(16);
-    pdf.setTextColor(50, 50, 50);
-    pdf.text("Catálogo de Produtos", pageWidth - margin, 12, { align: "right" });
-    
-    pdf.setFontSize(10);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
-    
-    // Page number in header (single product = 1 page)
-    pdf.setFontSize(9);
-    pdf.setTextColor(80, 80, 80);
-    pdf.text("Página 01", pageWidth - margin, 24, { align: "right" });
+    let currentY = margin + 10;
 
-    // Content area calculations
-    const contentStartY = headerHeight + margin;
-    const contentEndY = pageHeight - footerHeight - margin;
-    const contentHeight = contentEndY - contentStartY;
-    const contentCenterX = pageWidth / 2;
-
-    // Image dimensions for single product (compact size to maximize description space)
-    const imageMaxWidth = 35;
-    const imageMaxHeight = 35;
-    
-    let currentY = contentStartY + 3;
-
-    // Load and add product image centered
+    // Product image
     if (product.image_url) {
       const productImageData = await loadImageWithDimensions(product.image_url, false);
       if (productImageData) {
-        try {
-          const imgDimensions = calculateImageDimensions(
-            productImageData.width,
-            productImageData.height,
-            imageMaxWidth,
-            imageMaxHeight
-          );
-          const imgX = contentCenterX - (imgDimensions.width / 2);
-          pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height);
-          currentY += imgDimensions.height + 4;
-        } catch (e) {
-          currentY += 4;
-        }
+        const imgMaxWidth = 80;
+        const imgMaxHeight = 80;
+        const imgDimensions = calculateImageDimensions(
+          productImageData.width,
+          productImageData.height,
+          imgMaxWidth,
+          imgMaxHeight
+        );
+        const imgX = contentCenterX - (imgDimensions.width / 2);
+        pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height);
+        currentY += imgDimensions.height + 15;
       }
-    } else {
-      currentY += 4;
     }
 
-    // Product title (full name, justified, compact size)
-    pdf.setFontSize(10);
+    // Product title
+    pdf.setFontSize(16);
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "bold");
-    const titleMaxWidth = pageWidth - (margin * 4);
-    const titleLines = pdf.splitTextToSize(product.name, titleMaxWidth);
-    const titleStartX = margin * 2;
-    titleLines.forEach((line: string, index: number) => {
-      const isLastLine = index === titleLines.length - 1;
-      const lineWidth = pdf.getTextWidth(line);
-      
-      // Justify text for multi-line titles (except last line)
-      if (!isLastLine && titleLines.length > 1 && lineWidth >= titleMaxWidth * 0.7) {
-        const words = line.split(' ');
-        if (words.length > 1) {
-          const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-          const extraSpace = (titleMaxWidth - totalWordsWidth) / (words.length - 1);
-          let xPos = titleStartX;
-          words.forEach((word, wordIndex) => {
-            pdf.text(word, xPos, currentY);
-            xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
-          });
-        } else {
-          pdf.text(line, contentCenterX, currentY, { align: "center" });
-        }
-      } else {
-        // Center align for single-line titles or last line
-        pdf.text(line, contentCenterX, currentY, { align: "center" });
-      }
-      currentY += 4;
+    const titleLines = pdf.splitTextToSize(product.name, contentWidth);
+    titleLines.forEach((line: string) => {
+      pdf.text(line, contentCenterX, currentY, { align: "center" });
+      currentY += 7;
     });
-    pdf.setFont("helvetica", "normal");
-    currentY += 2;
-
-    // Product price (centered, compact size)
-    const price = product.promotional_price || product.price;
-    pdf.setFontSize(11);
-    pdf.setTextColor(20, 20, 20);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
-    pdf.setFont("helvetica", "normal");
     currentY += 5;
 
-    // "Ver produto" button (centered, compact size, with merchant's primary color)
-    const btnWidth = 32;
-    const btnHeight = 6;
+    // Price
+    const price = product.promotional_price || product.price;
+    pdf.setFontSize(18);
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
+    currentY += 12;
+
+    // "Ver produto" button
+    const btnWidth = 50;
+    const btnHeight = 10;
     const btnX = contentCenterX - (btnWidth / 2);
-    const btnY = currentY;
     
     pdf.setFillColor(r, g, b);
-    pdf.roundedRect(btnX, btnY, btnWidth, btnHeight, 1.5, 1.5, "F");
+    pdf.roundedRect(btnX, currentY, btnWidth, btnHeight, 2, 2, "F");
     
-    pdf.setFontSize(7);
+    pdf.setFontSize(10);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("Ver produto", contentCenterX, btnY + 4, { align: "center" });
+    pdf.text("Ver produto", contentCenterX, currentY + 6.5, { align: "center" });
 
-    // Add clickable link to the button area
     if (storeProfile?.store_slug) {
       const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
-      pdf.link(btnX, btnY, btnWidth, btnHeight, { url: productUrl });
+      pdf.link(btnX, currentY, btnWidth, btnHeight, { url: productUrl });
     }
-    currentY += btnHeight + 6;
+    currentY += btnHeight + 15;
 
-    // Product description (justified text, full width, prioritized for complete display)
+    // Description
     if (product.description) {
-      pdf.setFontSize(9);
-      pdf.setTextColor(50, 50, 50);
-      const descMargin = margin * 2;
-      const descMaxWidth = pageWidth - (descMargin * 2);
-      const descStartX = descMargin;
-      const descLines = pdf.splitTextToSize(product.description, descMaxWidth);
-      
-      // Calculate available space for description
-      const availableHeight = contentEndY - currentY - 3;
-      const lineHeight = 4;
-      const maxDescLines = Math.floor(availableHeight / lineHeight);
-      const displayDescLines = descLines.slice(0, maxDescLines);
-      
-      // Render description with justified alignment
-      displayDescLines.forEach((line: string, index: number) => {
-        // Last line or short lines should be left-aligned, others justified
-        const isLastLine = index === displayDescLines.length - 1;
-        const lineWidth = pdf.getTextWidth(line);
-        
-        if (isLastLine || lineWidth < descMaxWidth * 0.7) {
-          // Left align for last line or short lines
-          pdf.text(line, descStartX, currentY);
-        } else {
-          // Justify text by distributing extra space between words
-          const words = line.split(' ');
-          if (words.length > 1) {
-            const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-            const extraSpace = (descMaxWidth - totalWordsWidth) / (words.length - 1);
-            let xPos = descStartX;
-            words.forEach((word, wordIndex) => {
-              pdf.text(word, xPos, currentY);
-              xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
-            });
-          } else {
-            pdf.text(line, descStartX, currentY);
-          }
-        }
-        currentY += lineHeight;
-      });
+      pdf.setFontSize(11);
+      pdf.setTextColor(60, 60, 60);
+      pdf.setFont("helvetica", "normal");
+      const descLines = pdf.splitTextToSize(product.description, contentWidth);
+      const maxLines = Math.min(descLines.length, 20);
+      for (let i = 0; i < maxLines; i++) {
+        pdf.text(descLines[i], contentStartX, currentY);
+        currentY += 5;
+      }
     }
 
-    // Footer
-    const footerY = pageHeight - footerHeight;
-    pdf.setFillColor(r, g, b);
-    pdf.rect(0, footerY, pageWidth, footerHeight, "F");
-
-    pdf.setFontSize(8);
-    pdf.setTextColor(255, 255, 255);
-    
-    const footerInfo = [
-      getFullAddress(),
-      storeProfile?.email,
-      storeProfile?.whatsapp_number ? `WhatsApp: ${storeProfile.whatsapp_number}` : ""
-    ].filter(Boolean).join(" | ");
-    
-    pdf.text(footerInfo, pageWidth / 2, footerY + 12, { align: "center" });
+    // Generate back cover
+    await generateBackCover(pdf);
 
     return pdf;
   };
 
-  // Generate PDF for multiple products (grid layout)
+  // Generate PDF for multiple products with grid layout
   const generateMultipleProductsPDF = async () => {
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -432,223 +538,146 @@ const CatalogPDF = () => {
       format: "a4",
     });
 
+    // Generate cover page first
+    await generateCoverPage(pdf);
+
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 12;
-    const headerHeight = 28;
-    const footerHeight = 18;
-    const contentHeight = pageHeight - headerHeight - footerHeight - (margin * 2);
+    const sidebarWidth = 12;
+    const margin = 8;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+
+    // Calculate grid based on products per page
+    let cols: number, rows: number;
+    switch (productsPerPage) {
+      case 4:
+        cols = 2;
+        rows = 2;
+        break;
+      case 2:
+        cols = 1;
+        rows = 2;
+        break;
+      default: // 9
+        cols = 3;
+        rows = 3;
+    }
+
+    const contentStartX = sidebarWidth + margin;
+    const contentWidth = pageWidth - sidebarWidth - (margin * 2);
+    const contentHeight = pageHeight - (margin * 2);
     
-    const cardWidth = (pageWidth - (margin * 2) - 16) / 3;
-    const cardHeight = (contentHeight - 12) / 3;
     const cardGap = 6;
-    const productsPerPage = 9;
+    const cardWidth = (contentWidth - (cardGap * (cols - 1))) / cols;
+    const cardHeight = (contentHeight - (cardGap * (rows - 1))) / rows;
 
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-    const currentDate = new Date().toLocaleDateString("pt-BR");
 
-    // Parse primary color
-    const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
-    const r = parseInt(hexColor.slice(1, 3), 16) || 106;
-    const g = parseInt(hexColor.slice(3, 5), 16) || 27;
-    const b = parseInt(hexColor.slice(5, 7), 16) || 154;
-
-    // Load logo if available with proper dimensions (preserve transparency)
+    // Load logo for sidebar
     let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
     if (storeProfile?.store_logo_url) {
       logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
     }
 
     for (let page = 0; page < totalPages; page++) {
-      if (page > 0) {
-        pdf.addPage();
-      }
+      pdf.addPage();
 
-      // Header background
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(0, 0, pageWidth, headerHeight, "F");
+      // Draw sidebar
+      await drawSidebar(pdf, page + 1, logoImageData);
 
-      // Logo with proper aspect ratio (no background/border)
-      if (logoImageData) {
-        try {
-          const logoMaxWidth = 40;
-          const logoMaxHeight = 20;
-          const logoDimensions = calculateImageDimensions(
-            logoImageData.width,
-            logoImageData.height,
-            logoMaxWidth,
-            logoMaxHeight
-          );
-          const logoX = margin;
-          const logoY = (headerHeight - logoDimensions.height) / 2;
-          pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
-        } catch (e) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(80, 80, 80);
-          pdf.text("Logo", margin, 16);
-        }
-      }
-
-      // Header title
-      pdf.setFontSize(16);
-      pdf.setTextColor(50, 50, 50);
-      pdf.text("Catálogo de Produtos", pageWidth - margin, 10, { align: "right" });
-      
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
-      
-      // Page number in header
-      pdf.setFontSize(9);
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(`Página ${String(page + 1).padStart(2, '0')}`, pageWidth - margin, 24, { align: "right" });
-
-      // Products
       const startIndex = page * productsPerPage;
       const endIndex = Math.min(startIndex + productsPerPage, filteredProducts.length);
       const pageProducts = filteredProducts.slice(startIndex, endIndex);
 
       for (let i = 0; i < pageProducts.length; i++) {
         const product = pageProducts[i];
-        const row = Math.floor(i / 3);
-        const col = i % 3;
+        const row = Math.floor(i / cols);
+        const col = i % cols;
         
-        const x = margin + col * (cardWidth + 8);
-        const y = headerHeight + margin + row * (cardHeight + cardGap);
+        const x = contentStartX + col * (cardWidth + cardGap);
+        const y = margin + row * (cardHeight + cardGap);
 
-        // Card background (pure white) with subtle border
+        // Card background
         pdf.setFillColor(255, 255, 255);
         pdf.setDrawColor(230, 230, 230);
         pdf.setLineWidth(0.3);
         pdf.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "FD");
 
-        // Product image area - NO gray background, pure white
-        const imageAreaWidth = cardWidth - 6;
-        const imageAreaHeight = cardHeight * 0.48;
-        const imageAreaX = x + 3;
-        const imageAreaY = y + 3;
+        // Image area
+        const imageAreaHeight = cardHeight * 0.5;
+        const imageAreaWidth = cardWidth - 8;
+        const imageAreaX = x + 4;
+        const imageAreaY = y + 4;
 
-        // Load and add product image with proper aspect ratio
         if (product.image_url) {
           const productImageData = await loadImageWithDimensions(product.image_url, false);
           if (productImageData) {
-            try {
-              const imgDimensions = calculateImageDimensions(
-                productImageData.width,
-                productImageData.height,
-                imageAreaWidth - 4,
-                imageAreaHeight - 4
-              );
-              const imgX = imageAreaX + (imageAreaWidth - imgDimensions.width) / 2;
-              const imgY = imageAreaY + (imageAreaHeight - imgDimensions.height) / 2;
-              pdf.addImage(productImageData.data, productImageData.format, imgX, imgY, imgDimensions.width, imgDimensions.height);
-            } catch (e) {
-              pdf.setFontSize(7);
-              pdf.setTextColor(150, 150, 150);
-              pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
-            }
-          } else {
-            pdf.setFontSize(7);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
+            const imgDimensions = calculateImageDimensions(
+              productImageData.width,
+              productImageData.height,
+              imageAreaWidth - 4,
+              imageAreaHeight - 4
+            );
+            const imgX = imageAreaX + (imageAreaWidth - imgDimensions.width) / 2;
+            const imgY = imageAreaY + (imageAreaHeight - imgDimensions.height) / 2;
+            pdf.addImage(productImageData.data, productImageData.format, imgX, imgY, imgDimensions.width, imgDimensions.height);
           }
-        } else {
-          pdf.setFontSize(7);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text("Sem imagem", x + cardWidth / 2, imageAreaY + imageAreaHeight / 2, { align: "center" });
         }
 
-        // Product name with word wrap (justified alignment) - FULL title without truncation
-        pdf.setFontSize(7);
+        // Product name
+        const nameY = y + imageAreaHeight + 10;
+        const fontSize = productsPerPage === 2 ? 12 : (productsPerPage === 4 ? 10 : 8);
+        pdf.setFontSize(fontSize);
         pdf.setTextColor(40, 40, 40);
-        const nameY = y + imageAreaHeight + 8;
+        pdf.setFont("helvetica", "bold");
         const maxNameWidth = cardWidth - 8;
         const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
-        // Display ALL lines without truncation
-        const lineHeight = 3;
-        const nameStartX = x + 4;
+        const maxNameLines = productsPerPage === 2 ? 4 : (productsPerPage === 4 ? 3 : 2);
+        const displayNameLines = nameLines.slice(0, maxNameLines);
         
-        nameLines.forEach((line: string, lineIndex: number) => {
-          const isLastLine = lineIndex === nameLines.length - 1;
-          const lineWidth = pdf.getTextWidth(line);
-          
-          // Justify text for multi-line names (except last line)
-          if (!isLastLine && nameLines.length > 1 && lineWidth >= maxNameWidth * 0.7) {
-            const words = line.split(' ');
-            if (words.length > 1) {
-              const totalWordsWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-              const extraSpace = (maxNameWidth - totalWordsWidth) / (words.length - 1);
-              let xPos = nameStartX;
-              words.forEach((word, wordIndex) => {
-                pdf.text(word, xPos, nameY + (lineIndex * lineHeight));
-                xPos += pdf.getTextWidth(word) + (wordIndex < words.length - 1 ? extraSpace : 0);
-              });
-            } else {
-              pdf.text(line, nameStartX, nameY + (lineIndex * lineHeight));
-            }
-          } else {
-            pdf.text(line, nameStartX, nameY + (lineIndex * lineHeight));
-          }
+        let textY = nameY;
+        displayNameLines.forEach((line: string) => {
+          pdf.text(line, x + 4, textY);
+          textY += fontSize * 0.45;
         });
-        
-        // Calculate dynamic price position based on title height
-        const titleHeight = nameLines.length * lineHeight;
 
-        // "Ver produto" button - calculate position first
-        const btnHeight = 7;
-        const btnY = y + cardHeight - btnHeight - 3;
-        const btnWidth = cardWidth - 8;
-
-        // Price - positioned between title and button, with max limit
+        // Price
         const price = product.promotional_price || product.price;
-        pdf.setFontSize(9);
+        const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : 9);
+        pdf.setFontSize(priceSize);
         pdf.setTextColor(20, 20, 20);
-        pdf.setFont("helvetica", "bold");
-        
-        // Calculate ideal price position and ensure it's above the button
-        const idealPriceY = nameY + titleHeight + 5;
-        const maxPriceY = btnY - 4; // Minimum 4mm above button
-        const priceY = Math.min(idealPriceY, maxPriceY);
-        
+        const priceY = y + cardHeight - 20;
         pdf.text(formatPrice(price), x + 4, priceY);
         pdf.setFont("helvetica", "normal");
 
-        // Draw button
+        // "Ver produto" button
+        const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : 7);
+        const btnY = y + cardHeight - btnHeight - 3;
+        const btnWidth = cardWidth - 8;
+        
         pdf.setFillColor(r, g, b);
         pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
         
-        pdf.setFontSize(7);
+        const btnFontSize = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : 7);
+        pdf.setFontSize(btnFontSize);
         pdf.setTextColor(255, 255, 255);
-        pdf.text("Ver produto", x + cardWidth / 2, btnY + 4.5, { align: "center" });
+        pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
 
-        // Add clickable link to product page
         if (storeProfile?.store_slug) {
           const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
           pdf.link(x, y, cardWidth, cardHeight, { url: productUrl });
         }
       }
-
-      // Footer
-      const footerY = pageHeight - footerHeight;
-      pdf.setFillColor(r, g, b);
-      pdf.rect(0, footerY, pageWidth, footerHeight, "F");
-
-      pdf.setFontSize(8);
-      pdf.setTextColor(255, 255, 255);
-      
-      const footerInfo = [
-        getFullAddress(),
-        storeProfile?.email,
-        storeProfile?.whatsapp_number ? `WhatsApp: ${storeProfile.whatsapp_number}` : ""
-      ].filter(Boolean).join(" | ");
-      
-      pdf.text(footerInfo, pageWidth / 2, footerY + 12, { align: "center" });
     }
+
+    // Generate back cover
+    await generateBackCover(pdf);
 
     return pdf;
   };
 
-  // Generate PDF in list format (compact, high density)
+  // Generate PDF in list format
   const generateListPDF = async () => {
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -656,226 +685,101 @@ const CatalogPDF = () => {
       format: "a4",
     });
 
+    // Generate cover page first
+    await generateCoverPage(pdf);
+
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 12;
-    const headerHeight = 28;
-    const footerHeight = 18;
-    const contentStartY = headerHeight + 8;
-    const contentEndY = pageHeight - footerHeight - 5;
-    
-    // List layout settings - maximize products per page with expanded title area
-    const rowHeight = 8; // Compact row height
-    const numberWidth = 8; // Width for product numbering
-    const numberX = margin;
-    const thumbnailSize = 5; // Smaller thumbnail for more space
-    const thumbnailX = margin + numberWidth;
-    const titleX = thumbnailX + thumbnailSize + 3;
-    const priceWidth = 22; // Reduced price width
-    const priceX = pageWidth - margin - priceWidth;
-    const titleMaxWidth = priceX - titleX - 3; // Expanded title area
-    
-    const currentDate = new Date().toLocaleDateString("pt-BR");
+    const sidebarWidth = 12;
+    const margin = 10;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
 
-    // Parse primary color
-    const hexColor = storeProfile?.primary_color || primaryColor || "#6a1b9a";
-    const r = parseInt(hexColor.slice(1, 3), 16) || 106;
-    const g = parseInt(hexColor.slice(3, 5), 16) || 27;
-    const b = parseInt(hexColor.slice(5, 7), 16) || 154;
+    const contentStartX = sidebarWidth + margin;
+    const contentWidth = pageWidth - sidebarWidth - (margin * 2);
+    const rowHeight = 8;
+    const contentStartY = margin + 10;
+    const contentEndY = pageHeight - margin;
+    const availableHeight = contentEndY - contentStartY;
+    const rowsPerPage = Math.floor(availableHeight / rowHeight) - 1; // -1 for header
 
-    // Load logo if available
+    const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
+
+    // Load logo for sidebar
     let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
     if (storeProfile?.store_logo_url) {
       logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
     }
 
-    // Helper to abbreviate product name
-    const abbreviateName = (name: string, maxChars: number): string => {
-      if (name.length <= maxChars) return name;
-      return name.substring(0, maxChars - 3) + "...";
-    };
-
-    // Helper to format variations compactly
-    const formatVariations = (variations: unknown): string => {
-      if (!variations) return "";
-      
-      try {
-        const varArray = Array.isArray(variations) ? variations : [];
-        if (varArray.length === 0) return "";
-        
-        const parts: string[] = [];
-        varArray.forEach((v: any) => {
-          if (v && typeof v === 'object') {
-            if (v.name && v.options && Array.isArray(v.options)) {
-              const optionValues = v.options.map((opt: any) => 
-                typeof opt === 'string' ? opt : opt?.value || ''
-              ).filter(Boolean).join('/');
-              if (optionValues) parts.push(`${v.name}: ${optionValues}`);
-            } else if (v.tipo || v.type) {
-              parts.push(v.tipo || v.type);
-            } else if (v.peso || v.weight) {
-              parts.push(v.peso || v.weight);
-            } else if (v.tamanho || v.size) {
-              parts.push(v.tamanho || v.size);
-            }
-          }
-        });
-        return parts.length > 0 ? ` (${parts.slice(0, 2).join(', ')})` : "";
-      } catch {
-        return "";
-      }
-    };
-
-    // Calculate products per page
-    const availableHeight = contentEndY - contentStartY;
-    const productsPerPage = Math.floor(availableHeight / rowHeight);
-    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
     for (let page = 0; page < totalPages; page++) {
-      if (page > 0) {
-        pdf.addPage();
-      }
+      pdf.addPage();
 
-      // Header background
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(0, 0, pageWidth, headerHeight, "F");
+      // Draw sidebar
+      await drawSidebar(pdf, page + 1, logoImageData);
 
-      // Logo
-      if (logoImageData) {
-        try {
-          const logoMaxWidth = 40;
-          const logoMaxHeight = 20;
-          const logoDimensions = calculateImageDimensions(
-            logoImageData.width,
-            logoImageData.height,
-            logoMaxWidth,
-            logoMaxHeight
-          );
-          const logoX = margin;
-          const logoY = (headerHeight - logoDimensions.height) / 2;
-          pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
-        } catch (e) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(80, 80, 80);
-          pdf.text("Logo", margin, 16);
-        }
-      }
-
-      // Header title
-      pdf.setFontSize(16);
-      pdf.setTextColor(50, 50, 50);
-      pdf.text("Catálogo de Produtos", pageWidth - margin, 10, { align: "right" });
-      
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Gerado em: ${currentDate}`, pageWidth - margin, 18, { align: "right" });
-      
-      // Page number in header
-      pdf.setFontSize(9);
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(`Página ${String(page + 1).padStart(2, '0')}`, pageWidth - margin, 24, { align: "right" });
-
-      // Column headers with primary color
+      // Column headers
       const headerY = contentStartY;
       pdf.setFillColor(r, g, b);
-      pdf.setDrawColor(r, g, b);
-      pdf.rect(margin, headerY - 4, pageWidth - margin * 2, 6, "F");
+      pdf.rect(contentStartX, headerY - 5, contentWidth, 7, "F");
       
-      pdf.setFontSize(7);
+      pdf.setFontSize(8);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Iten", numberX + numberWidth / 2, headerY - 0.5, { align: "center" });
-      pdf.text("Produto", titleX, headerY - 0.5);
-      pdf.text("Valor", priceX + priceWidth / 2, headerY - 0.5, { align: "center" });
+      pdf.text("Item", contentStartX + 5, headerY);
+      pdf.text("Produto", contentStartX + 25, headerY);
+      pdf.text("Valor", contentStartX + contentWidth - 25, headerY);
       pdf.setFont("helvetica", "normal");
 
-      // Products for this page
-      const startIndex = page * productsPerPage;
-      const endIndex = Math.min(startIndex + productsPerPage, filteredProducts.length);
+      const startIndex = page * rowsPerPage;
+      const endIndex = Math.min(startIndex + rowsPerPage, filteredProducts.length);
       const pageProducts = filteredProducts.slice(startIndex, endIndex);
 
-      let currentY = contentStartY + 6;
+      let currentY = contentStartY + 10;
 
       for (let i = 0; i < pageProducts.length; i++) {
         const product = pageProducts[i];
-        
-        // Calculate sequential product number (continuous across pages)
         const productNumber = startIndex + i + 1;
-        
-        // Alternating row background for readability (zebra effect)
+
+        // Zebra striping
         if (i % 2 === 0) {
-          pdf.setFillColor(245, 245, 245); // Lighter gray for even rows
+          pdf.setFillColor(245, 245, 245);
         } else {
-          pdf.setFillColor(252, 252, 252); // Very subtle gray for odd rows
+          pdf.setFillColor(255, 255, 255);
         }
-        pdf.rect(margin, currentY - 5, pageWidth - margin * 2, rowHeight, "F");
+        pdf.rect(contentStartX, currentY - 5, contentWidth, rowHeight, "F");
 
-        // Product number
-        pdf.setFontSize(7);
-        pdf.setTextColor(100, 96, 96); // #666060 in RGB
-        pdf.setFont("helvetica", "normal");
-        pdf.text(String(productNumber), numberX + numberWidth / 2, currentY, { align: "center" });
+        // Item number
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(String(productNumber), contentStartX + 5, currentY);
 
-        // Thumbnail placeholder (small square)
-        pdf.setFillColor(230, 230, 230);
-        pdf.setDrawColor(200, 200, 200);
-        pdf.setLineWidth(0.2);
-        pdf.rect(thumbnailX, currentY - 4.5, thumbnailSize, thumbnailSize, "FD");
-        
-        // Load thumbnail image (small size for efficiency)
-        if (product.image_url) {
-          try {
-            const thumbData = await loadImageWithDimensions(product.image_url, false);
-            if (thumbData) {
-              pdf.addImage(thumbData.data, thumbData.format, thumbnailX, currentY - 4.5, thumbnailSize, thumbnailSize);
-            }
-          } catch {
-            // Keep placeholder
-          }
+        // Product name (truncated)
+        pdf.setTextColor(40, 40, 40);
+        const maxNameLength = 50;
+        let displayName = product.name;
+        if (displayName.length > maxNameLength) {
+          displayName = displayName.substring(0, maxNameLength - 3) + "...";
         }
+        pdf.text(displayName, contentStartX + 25, currentY);
 
-        // Product title (abbreviated) + variations
-        pdf.setFontSize(7);
-        pdf.setTextColor(30, 30, 30);
-        const variations = formatVariations(product.variations);
-        const maxTitleLength = variations ? 45 : 55;
-        const abbreviatedTitle = abbreviateName(product.name, maxTitleLength);
-        const displayText = abbreviatedTitle + variations;
-        
-        // Calculate max width and truncate if needed
-        pdf.setFont("helvetica", "normal");
-        let finalText = displayText;
-        while (pdf.getTextWidth(finalText) > titleMaxWidth && finalText.length > 10) {
-          finalText = finalText.substring(0, finalText.length - 4) + "...";
-        }
-        pdf.text(finalText, titleX, currentY);
-
-        // Price (aligned right)
+        // Price
         const price = product.promotional_price || product.price;
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(20, 20, 20);
-        pdf.text(formatPrice(price), priceX + priceWidth, currentY, { align: "right" });
+        pdf.text(formatPrice(price), contentStartX + contentWidth - 5, currentY, { align: "right" });
         pdf.setFont("helvetica", "normal");
+
+        // Make row clickable
+        if (storeProfile?.store_slug) {
+          const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
+          pdf.link(contentStartX, currentY - 5, contentWidth, rowHeight, { url: productUrl });
+        }
 
         currentY += rowHeight;
       }
-
-      // Footer
-      const footerY = pageHeight - footerHeight;
-      pdf.setFillColor(r, g, b);
-      pdf.rect(0, footerY, pageWidth, footerHeight, "F");
-
-      pdf.setFontSize(8);
-      pdf.setTextColor(255, 255, 255);
-      
-      const footerInfo = [
-        getFullAddress(),
-        storeProfile?.email,
-        storeProfile?.whatsapp_number ? `WhatsApp: ${storeProfile.whatsapp_number}` : ""
-      ].filter(Boolean).join(" | ");
-      
-      pdf.text(footerInfo, pageWidth / 2, footerY + 12, { align: "center" });
     }
+
+    // Generate back cover
+    await generateBackCover(pdf);
 
     return pdf;
   };
@@ -891,7 +795,6 @@ const CatalogPDF = () => {
     try {
       let pdf: jsPDF;
 
-      // Use exclusive layout for single product
       if (filterType === "single" && filteredProducts.length === 1) {
         pdf = await generateSingleProductPDF(filteredProducts[0]);
       } else if (filterType === "list") {
@@ -903,7 +806,6 @@ const CatalogPDF = () => {
       const blob = pdf.output("blob");
       setPdfBlob(blob);
       
-      // Upload PDF to storage and get public URL
       try {
         if (user?.id) {
           const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
@@ -954,7 +856,6 @@ const CatalogPDF = () => {
 
       let url = catalogUrl;
 
-      // If the URL wasn't generated (e.g. upload policy), upload on-demand and then copy
       if (!url && pdfBlob && user?.id) {
         const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -963,40 +864,27 @@ const CatalogPDF = () => {
 
         if (uploadError) throw uploadError;
 
-        url =
-          supabase.storage.from("product-images").getPublicUrl(uploadData.path).data
-            .publicUrl ?? null;
+        const publicUrl = supabase.storage
+          .from("product-images")
+          .getPublicUrl(uploadData.path).data.publicUrl;
 
-        if (url) setCatalogUrl(url);
+        if (publicUrl) {
+          url = publicUrl;
+          setCatalogUrl(publicUrl);
+        }
       }
 
-      if (!url) {
-        toast.error("URL do catálogo não disponível");
-        return;
-      }
-
-      if (navigator.clipboard?.writeText) {
+      if (url) {
         await navigator.clipboard.writeText(url);
+        setCopied(true);
+        toast.success("Link copiado!");
+        setTimeout(() => setCopied(false), 2000);
       } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = url;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.top = "-1000px";
-        textarea.style.left = "-1000px";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+        toast.error("Erro ao gerar link do catálogo");
       }
-
-      setCopied(true);
-      toast.success("Link do catálogo copiado!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
+    } catch (error) {
+      console.error("Error copying URL:", error);
       toast.error("Erro ao copiar link");
-      if (import.meta.env.DEV) console.error("Copy catalog link error:", e);
     } finally {
       setIsCopyingLink(false);
     }
@@ -1010,18 +898,32 @@ const CatalogPDF = () => {
     setSelectedCategory("");
     setSelectedProduct("");
     setFilteredProducts([]);
-  };
-
-  const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return "Sem categoria";
-    const category = categories.find(c => c.id === categoryId);
-    return category?.name || "Sem categoria";
+    setProductsPerPage(9);
   };
 
   const canGenerate = filterType === "all" || 
     filterType === "list" ||
     (filterType === "category" && selectedCategory) || 
     (filterType === "single" && selectedProduct);
+
+  const showProductsPerPageSelector = filterType === "all" || filterType === "category";
+
+  // Get preview grid cols based on products per page
+  const getPreviewGridCols = () => {
+    switch (productsPerPage) {
+      case 2: return 'grid-cols-1';
+      case 4: return 'grid-cols-2';
+      default: return 'grid-cols-3';
+    }
+  };
+
+  const getPreviewProductCount = () => {
+    switch (productsPerPage) {
+      case 2: return 2;
+      case 4: return 4;
+      default: return 9;
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -1091,47 +993,32 @@ const CatalogPDF = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* CSS custom properties for radio buttons and product list hover - merchant color binding */}
                 <style>{`
-                  /* Radio buttons - white background with primary border */
                   .catalog-merchant-radio {
                     border-color: ${buttonBgColor} !important;
                     background-color: #FFFFFF !important;
                     transition: all 0.2s ease !important;
                   }
-                  .catalog-merchant-radio[data-state="unchecked"] {
-                    border-color: ${buttonBgColor} !important;
-                    background-color: #FFFFFF !important;
-                  }
-                  .catalog-merchant-radio[data-state="unchecked"]:hover {
-                    border-color: ${buttonBgColor} !important;
-                    background-color: #FFFFFF !important;
-                  }
-                  .catalog-merchant-radio[data-state="checked"] {
-                    border-color: ${buttonBgColor} !important;
-                    background-color: #FFFFFF !important;
-                  }
                   .catalog-merchant-radio[data-state="checked"] span svg {
                     fill: ${buttonBgColor} !important;
                     color: ${buttonBgColor} !important;
                   }
-                  .catalog-merchant-radio:focus {
-                    box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
-                    outline: none !important;
-                  }
-                  .catalog-merchant-radio:focus-visible {
-                    box-shadow: 0 0 0 2px ${buttonBgColor}33 !important;
-                    outline: none !important;
-                  }
-                  
-                  /* Single product select item hover - merchant color binding */
                   .single-product-select-item[data-highlighted] {
                     background-color: ${buttonBgColor} !important;
                     color: #FFFFFF !important;
                   }
-                  .single-product-select-item:hover {
-                    background-color: ${buttonBgColor} !important;
-                    color: #FFFFFF !important;
+                  .products-per-page-btn {
+                    border-color: ${buttonBgColor}40;
+                    transition: all 0.2s ease;
+                  }
+                  .products-per-page-btn:hover {
+                    border-color: ${buttonBgColor};
+                    background-color: ${buttonBgColor}10;
+                  }
+                  .products-per-page-btn.selected {
+                    border-color: ${buttonBgColor};
+                    background-color: ${buttonBgColor};
+                    color: white;
                   }
                 `}</style>
 
@@ -1141,11 +1028,7 @@ const CatalogPDF = () => {
                       value="all" 
                       id="all"
                       className="catalog-merchant-radio border-2"
-                      style={{
-                        borderColor: buttonBgColor,
-                        backgroundColor: '#FFFFFF',
-                        color: buttonBgColor,
-                      }}
+                      style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
                     />
                     <Label htmlFor="all" className="cursor-pointer">
                       Gerar catálogo de todos os produtos
@@ -1156,11 +1039,7 @@ const CatalogPDF = () => {
                       value="list" 
                       id="list"
                       className="catalog-merchant-radio border-2"
-                      style={{
-                        borderColor: buttonBgColor,
-                        backgroundColor: '#FFFFFF',
-                        color: buttonBgColor,
-                      }}
+                      style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
                     />
                     <Label htmlFor="list" className="cursor-pointer">
                       Gerar catálogo em lista
@@ -1171,11 +1050,7 @@ const CatalogPDF = () => {
                       value="category" 
                       id="category"
                       className="catalog-merchant-radio border-2"
-                      style={{
-                        borderColor: buttonBgColor,
-                        backgroundColor: '#FFFFFF',
-                        color: buttonBgColor,
-                      }}
+                      style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
                     />
                     <Label htmlFor="category" className="cursor-pointer">
                       Gerar catálogo de uma categoria específica
@@ -1186,17 +1061,46 @@ const CatalogPDF = () => {
                       value="single" 
                       id="single"
                       className="catalog-merchant-radio border-2"
-                      style={{
-                        borderColor: buttonBgColor,
-                        backgroundColor: '#FFFFFF',
-                        color: buttonBgColor,
-                      }}
+                      style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
                     />
                     <Label htmlFor="single" className="cursor-pointer">
                       Gerar catálogo de um único produto
                     </Label>
                   </div>
                 </RadioGroup>
+
+                {/* Products per page selector */}
+                {showProductsPerPageSelector && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Produtos por página</Label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setProductsPerPage(9)}
+                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 9 ? 'selected' : ''}`}
+                      >
+                        <Grid3X3 className="h-5 w-5" />
+                        <span className="text-xs font-medium">9 produtos</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProductsPerPage(4)}
+                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 4 ? 'selected' : ''}`}
+                      >
+                        <Grid2X2 className="h-5 w-5" />
+                        <span className="text-xs font-medium">4 produtos</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProductsPerPage(2)}
+                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 2 ? 'selected' : ''}`}
+                      >
+                        <LayoutList className="h-5 w-5" />
+                        <span className="text-xs font-medium">2 produtos</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Category Selector */}
                 {filterType === "category" && (
@@ -1300,214 +1204,196 @@ const CatalogPDF = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Preview Header */}
-                    <div className="bg-gray-100 rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {storeProfile?.store_logo_url ? (
-                          <img 
-                            src={storeProfile.store_logo_url} 
-                            alt="Logo" 
-                            className="h-8 w-auto object-contain"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-gray-300 rounded flex items-center justify-center text-xs text-gray-500">
-                            Logo
-                          </div>
-                        )}
+                    {/* Cover Preview */}
+                    <div className="relative rounded-lg overflow-hidden aspect-[210/297] bg-gray-100">
+                      {/* Background image */}
+                      {filteredProducts[0]?.image_url && (
+                        <img 
+                          src={filteredProducts[0].image_url}
+                          alt="Capa"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                      {/* White overlay rectangle */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
+                          <p className="text-lg font-bold text-gray-800">CATÁLOGO</p>
+                          <p className="text-lg font-bold text-gray-800">DE</p>
+                          <p className="text-lg font-bold text-gray-800">PRODUTOS</p>
+                          <p className="text-sm text-gray-600 mt-2">{new Date().getFullYear()}</p>
+                          {storeProfile?.store_logo_url && (
+                            <img 
+                              src={storeProfile.store_logo_url} 
+                              alt="Logo" 
+                              className="h-8 w-auto mx-auto mt-3 object-contain"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm">Catálogo de Produtos</p>
-                        <p className="text-xs text-muted-foreground">
-                          Gerado em: {new Date().toLocaleDateString("pt-BR")}
-                        </p>
-                        <p className="text-[10px] text-gray-500">
-                          Página 01
-                        </p>
+                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        Capa
                       </div>
                     </div>
 
-                    {/* Single Product Preview - Exclusive Layout */}
-                    {filterType === "single" && filteredProducts.length === 1 ? (
-                      <div className="flex flex-col items-center text-center space-y-4 py-4">
-                        {/* Product Image */}
-                        <div className="w-32 h-32 flex items-center justify-center">
-                          {filteredProducts[0].image_url ? (
-                            <img 
-                              src={filteredProducts[0].image_url} 
-                              alt={filteredProducts[0].name}
-                              className="max-w-full max-h-full object-contain"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-gray-50 rounded">
-                              Sem imagem
-                            </div>
+                    {/* Content page preview with sidebar */}
+                    <div className="relative rounded-lg overflow-hidden bg-white border">
+                      {/* Sidebar preview */}
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-between py-2"
+                        style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                      >
+                        {/* Logo in white circle */}
+                        <div className="w-3 h-3 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                          {storeProfile?.store_logo_url && (
+                            <img src={storeProfile.store_logo_url} alt="" className="w-2 h-2 object-contain" />
                           )}
                         </div>
-                        
-                        {/* Product Title */}
-                        <h3 className="text-sm font-bold text-foreground px-4">
-                          {filteredProducts[0].name}
-                        </h3>
-                        
-                        {/* Product Price */}
-                        <p className="text-lg font-bold text-foreground">
-                          {formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}
-                        </p>
-                        
-                        {/* Ver produto button */}
-                        <div 
-                          className="text-xs text-white rounded-md py-2 px-6"
-                          style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
-                        >
-                          Ver produto
-                        </div>
-                        
-                        {/* Product Description */}
-                        {filteredProducts[0].description && (
-                          <p className="text-xs text-muted-foreground px-4 line-clamp-4">
-                            {filteredProducts[0].description}
-                          </p>
-                        )}
+                        <span className="text-[6px] text-white font-bold">PG 01</span>
                       </div>
-                    ) : filterType === "list" ? (
-                      <>
-                        {/* List Format Preview - matching PDF layout */}
-                        <div 
-                          className="rounded-lg p-2 mb-2 flex items-center text-white text-[10px]"
-                          style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
-                        >
-                          <span className="font-semibold w-8 text-center">Iten</span>
-                          <span className="font-semibold flex-1 pl-7">Produto</span>
-                          <span className="font-semibold pr-2">Valor</span>
-                        </div>
-                        <div className="space-y-0">
-                          {filteredProducts.slice(0, 12).map((product, index) => {
-                            const formatVariationsPreview = (variations: unknown): string => {
-                              if (!variations) return "";
-                              try {
-                                const varArray = Array.isArray(variations) ? variations : [];
-                                if (varArray.length === 0) return "";
-                                const parts: string[] = [];
-                                varArray.forEach((v: any) => {
-                                  if (v && typeof v === 'object') {
-                                    if (v.name && v.options && Array.isArray(v.options)) {
-                                      const optionValues = v.options.map((opt: any) => 
-                                        typeof opt === 'string' ? opt : opt?.value || ''
-                                      ).filter(Boolean).join('/');
-                                      if (optionValues) parts.push(`${v.name}: ${optionValues}`);
-                                    } else if (v.tipo || v.type) {
-                                      parts.push(v.tipo || v.type);
-                                    }
-                                  }
-                                });
-                                return parts.length > 0 ? ` (${parts.slice(0, 1).join('')})` : "";
-                              } catch {
-                                return "";
-                              }
-                            };
-                            const variations = formatVariationsPreview(product.variations);
-                            const itemNumber = index + 1;
-                            return (
+
+                      {/* Content area */}
+                      <div className="ml-5 p-2">
+                        {filterType === "single" && filteredProducts.length === 1 ? (
+                          <div className="flex flex-col items-center text-center space-y-2 py-4">
+                            <div className="w-20 h-20 flex items-center justify-center">
+                              {filteredProducts[0].image_url ? (
+                                <img 
+                                  src={filteredProducts[0].image_url} 
+                                  alt={filteredProducts[0].name}
+                                  className="max-w-full max-h-full object-contain"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-gray-50 rounded">
+                                  Sem imagem
+                                </div>
+                              )}
+                            </div>
+                            <h3 className="text-xs font-bold text-foreground px-2">
+                              {filteredProducts[0].name}
+                            </h3>
+                            <p className="text-sm font-bold text-foreground">
+                              {formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}
+                            </p>
+                            <div 
+                              className="text-[8px] text-white rounded py-1 px-4"
+                              style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                            >
+                              Ver produto
+                            </div>
+                          </div>
+                        ) : filterType === "list" ? (
+                          <div className="space-y-1">
+                            <div 
+                              className="rounded p-1 mb-1 flex items-center text-white text-[8px]"
+                              style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                            >
+                              <span className="font-semibold w-6 text-center">Item</span>
+                              <span className="font-semibold flex-1 pl-2">Produto</span>
+                              <span className="font-semibold pr-1">Valor</span>
+                            </div>
+                            {filteredProducts.slice(0, 8).map((product, index) => (
                               <div 
                                 key={product.id} 
-                                className="flex items-center py-1.5 px-2"
-                                style={{ 
-                                  backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(252, 252, 252)' 
-                                }}
+                                className="flex items-center py-0.5 px-1 text-[7px]"
+                                style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}
                               >
-                                {/* Item Number */}
-                                <span className="w-8 text-center text-[10px] flex-shrink-0" style={{ color: '#666060' }}>
-                                  {itemNumber}
-                                </span>
-                                {/* Thumbnail */}
-                                <div className="w-5 h-5 flex-shrink-0 bg-gray-200 rounded overflow-hidden mr-2">
-                                  {product.image_url ? (
-                                    <img 
-                                      src={product.image_url} 
-                                      alt=""
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gray-300" />
-                                  )}
-                                </div>
-                                {/* Title + Variations */}
-                                <div className="flex-1 min-w-0 pr-2">
-                                  <p className="text-[10px] text-foreground truncate">
-                                    {product.name}{variations}
-                                  </p>
-                                </div>
-                                {/* Price */}
-                                <span className="text-[10px] font-semibold text-foreground flex-shrink-0">
-                                  {formatPrice(product.promotional_price || product.price)}
-                                </span>
+                                <span className="w-6 text-center text-gray-500">{index + 1}</span>
+                                <span className="flex-1 truncate pl-2">{product.name}</span>
+                                <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
                               </div>
-                            );
-                          })}
-                        </div>
-
-                        {filteredProducts.length > 12 && (
-                          <p className="text-sm text-muted-foreground text-center mt-2">
-                            +{filteredProducts.length - 12} produtos adicionais
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* Products Grid Preview */}
-                        <div className="grid grid-cols-3 gap-2">
-                          {filteredProducts.slice(0, 9).map((product) => (
-                            <div 
-                              key={product.id} 
-                              className="bg-white border border-gray-200 rounded-lg p-2 text-center"
-                            >
-                              <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center bg-white">
-                                {product.image_url ? (
-                                  <img 
-                                    src={product.image_url} 
-                                    alt={product.name}
-                                    className="max-w-full max-h-full object-contain"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-gray-50">
-                                    Sem imagem
-                                  </div>
-                                )}
-                              </div>
-                              <p className="text-xs font-medium text-center">{product.name}</p>
-                              <p className="text-xs font-bold mb-1">
-                                {formatPrice(product.promotional_price || product.price)}
+                            ))}
+                            {filteredProducts.length > 8 && (
+                              <p className="text-[8px] text-center text-muted-foreground mt-1">
+                                +{filteredProducts.length - 8} produtos
                               </p>
-                              <div 
-                                className="text-[8px] text-white rounded py-1"
-                                style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
-                              >
-                                Ver produto
-                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <div className={`grid ${getPreviewGridCols()} gap-1`}>
+                              {filteredProducts.slice(0, getPreviewProductCount()).map((product) => (
+                                <div 
+                                  key={product.id} 
+                                  className="bg-white border border-gray-200 rounded p-1 text-center"
+                                >
+                                  <div className="aspect-square rounded mb-1 overflow-hidden flex items-center justify-center bg-white">
+                                    {product.image_url ? (
+                                      <img 
+                                        src={product.image_url} 
+                                        alt={product.name}
+                                        className="max-w-full max-h-full object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-gray-50">
+                                        Sem imagem
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-[7px] font-medium truncate">{product.name}</p>
+                                  <p className="text-[8px] font-bold">
+                                    {formatPrice(product.promotional_price || product.price)}
+                                  </p>
+                                  <div 
+                                    className="text-[6px] text-white rounded py-0.5 mt-0.5"
+                                    style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                                  >
+                                    Ver produto
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-
-                        {filteredProducts.length > 9 && (
-                          <p className="text-sm text-muted-foreground text-center">
-                            +{filteredProducts.length - 9} produtos adicionais
-                          </p>
+                            {filteredProducts.length > getPreviewProductCount() && (
+                              <p className="text-[8px] text-muted-foreground text-center mt-1">
+                                +{filteredProducts.length - getPreviewProductCount()} produtos adicionais
+                              </p>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
+                      </div>
+                      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        Página 1
+                      </div>
+                    </div>
 
-                    {/* Preview Footer */}
-                    <div 
-                      className="rounded-lg p-3 text-center text-white text-xs"
-                      style={{ backgroundColor: storeProfile?.primary_color || '#6a1b9a' }}
-                    >
-                      <p className="truncate">
-                        {[
-                          getFullAddress(),
-                          storeProfile?.email,
-                          storeProfile?.whatsapp_number ? `WhatsApp: ${storeProfile.whatsapp_number}` : ""
-                        ].filter(Boolean).join(" | ")}
-                      </p>
+                    {/* Back cover preview */}
+                    <div className="relative rounded-lg overflow-hidden aspect-[210/297]">
+                      {/* Top half with primary color */}
+                      <div 
+                        className="absolute top-0 left-0 right-0 h-1/2"
+                        style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                      />
+                      {/* Bottom half white */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-white" />
+                      {/* Logo circle in center */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden">
+                          {storeProfile?.store_logo_url ? (
+                            <img 
+                              src={storeProfile.store_logo_url} 
+                              alt="Logo" 
+                              className="w-12 h-12 object-contain"
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-400">Logo</span>
+                          )}
+                        </div>
+                        <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%]">
+                          {storeProfile?.store_slug && (
+                            <p className="font-semibold mb-1" style={{ color: storeProfile?.primary_color || primaryColor }}>
+                              {window.location.origin}/loja/{storeProfile.store_slug}
+                            </p>
+                          )}
+                          {storeProfile?.whatsapp_number && (
+                            <p className="text-[10px]">WhatsApp: {storeProfile.whatsapp_number}</p>
+                          )}
+                          {getFullAddress() && (
+                            <p className="text-[8px] mt-1 truncate">{getFullAddress()}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        Contracapa
+                      </div>
                     </div>
 
                     <p className="text-sm text-muted-foreground text-center">
