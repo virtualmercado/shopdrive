@@ -224,19 +224,31 @@ const CatalogPDF = () => {
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
-    // Background image
-    const coverImageUrl = selectBestCoverImage();
-    if (coverImageUrl) {
-      const coverImage = await loadImageWithDimensions(coverImageUrl, false);
-      if (coverImage) {
-        // Cover image fills entire page
-        pdf.addImage(coverImage.data, coverImage.format, 0, 0, pageWidth, pageHeight);
-      }
-    } else {
-      // Fallback: solid color background
-      pdf.setFillColor(r, g, b);
-      pdf.rect(0, 0, pageWidth, pageHeight, "F");
-    }
+    // White background
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // 3 vertical stripes on the left side (reaching middle of page)
+    // Stripe 1: widest, starts at left edge
+    const stripe1Width = 40;
+    // Stripe 2: half the width of stripe 1
+    const stripe2Width = stripe1Width / 2;
+    // Stripe 3: half the width of stripe 2
+    const stripe3Width = stripe2Width / 2;
+    
+    const gap = 6; // Gap between stripes
+    
+    // Draw stripe 1 (leftmost, full width)
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, stripe1Width, pageHeight, "F");
+    
+    // Draw stripe 2 
+    const stripe2X = stripe1Width + gap;
+    pdf.rect(stripe2X, 0, stripe2Width, pageHeight, "F");
+    
+    // Draw stripe 3 (reaches approximately middle of page)
+    const stripe3X = stripe2X + stripe2Width + gap;
+    pdf.rect(stripe3X, 0, stripe3Width, pageHeight, "F");
 
     // White rectangle overlay in center
     const rectWidth = 100;
@@ -376,8 +388,8 @@ const CatalogPDF = () => {
     }
   };
 
-  // Generate Sidebar with page number and logo
-  const drawSidebar = async (pdf: jsPDF, pageNumber: number, logoImageData: { data: string; width: number; height: number; format: string } | null) => {
+  // Generate Sidebar with page number only (logo removed from product pages)
+  const drawSidebar = async (pdf: jsPDF, pageNumber: number) => {
     const pageHeight = 297;
     const sidebarWidth = 12;
     const hexColor = getHexColor();
@@ -395,29 +407,6 @@ const CatalogPDF = () => {
     
     // Rotate text for vertical display
     pdf.text(pageText, sidebarWidth / 2, pageHeight - 15, { align: "center" });
-
-    // Logo in white circle
-    if (logoImageData) {
-      const circleRadius = 10;
-      const circleX = sidebarWidth / 2;
-      const circleY = 30;
-
-      // White circle background
-      pdf.setFillColor(255, 255, 255);
-      pdf.circle(circleX, circleY, circleRadius, "F");
-
-      // Logo inside circle
-      const logoSize = circleRadius * 1.4;
-      const logoDimensions = calculateImageDimensions(
-        logoImageData.width,
-        logoImageData.height,
-        logoSize,
-        logoSize
-      );
-      const logoX = circleX - (logoDimensions.width / 2);
-      const logoY = circleY - (logoDimensions.height / 2);
-      pdf.addImage(logoImageData.data, logoImageData.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
-    }
   };
 
   // Generate PDF for single product
@@ -441,14 +430,8 @@ const CatalogPDF = () => {
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
-    // Load logo for sidebar
-    let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
-    if (storeProfile?.store_logo_url) {
-      logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
-    }
-
-    // Draw sidebar
-    await drawSidebar(pdf, 1, logoImageData);
+    // Draw sidebar (without logo)
+    await drawSidebar(pdf, 1);
 
     // Content area
     const contentStartX = sidebarWidth + margin;
@@ -574,17 +557,11 @@ const CatalogPDF = () => {
 
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-    // Load logo for sidebar
-    let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
-    if (storeProfile?.store_logo_url) {
-      logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
-    }
-
     for (let page = 0; page < totalPages; page++) {
       pdf.addPage();
 
-      // Draw sidebar
-      await drawSidebar(pdf, page + 1, logoImageData);
+      // Draw sidebar (without logo)
+      await drawSidebar(pdf, page + 1);
 
       const startIndex = page * productsPerPage;
       const endIndex = Math.min(startIndex + productsPerPage, filteredProducts.length);
@@ -705,17 +682,11 @@ const CatalogPDF = () => {
 
     const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
 
-    // Load logo for sidebar
-    let logoImageData: { data: string; width: number; height: number; format: string } | null = null;
-    if (storeProfile?.store_logo_url) {
-      logoImageData = await loadImageWithDimensions(storeProfile.store_logo_url, true);
-    }
-
     for (let page = 0; page < totalPages; page++) {
       pdf.addPage();
 
-      // Draw sidebar
-      await drawSidebar(pdf, page + 1, logoImageData);
+      // Draw sidebar (without logo)
+      await drawSidebar(pdf, page + 1);
 
       // Column headers
       const headerY = contentStartY;
@@ -1205,15 +1176,31 @@ const CatalogPDF = () => {
                 ) : (
                   <div className="space-y-4">
                     {/* Cover Preview */}
-                    <div className="relative rounded-lg overflow-hidden aspect-[210/297] bg-gray-100">
-                      {/* Background image */}
-                      {filteredProducts[0]?.image_url && (
-                        <img 
-                          src={filteredProducts[0].image_url}
-                          alt="Capa"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      )}
+                    <div className="relative rounded-lg overflow-hidden aspect-[210/297] bg-white">
+                      {/* 3 vertical stripes on the left */}
+                      <div 
+                        className="absolute left-0 top-0 bottom-0"
+                        style={{ 
+                          width: '19%',
+                          backgroundColor: storeProfile?.primary_color || primaryColor 
+                        }}
+                      />
+                      <div 
+                        className="absolute top-0 bottom-0"
+                        style={{ 
+                          left: '22%',
+                          width: '9.5%',
+                          backgroundColor: storeProfile?.primary_color || primaryColor 
+                        }}
+                      />
+                      <div 
+                        className="absolute top-0 bottom-0"
+                        style={{ 
+                          left: '34%',
+                          width: '4.75%',
+                          backgroundColor: storeProfile?.primary_color || primaryColor 
+                        }}
+                      />
                       {/* White overlay rectangle */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
@@ -1237,17 +1224,11 @@ const CatalogPDF = () => {
 
                     {/* Content page preview with sidebar */}
                     <div className="relative rounded-lg overflow-hidden bg-white border">
-                      {/* Sidebar preview */}
+                      {/* Sidebar preview (without logo) */}
                       <div 
-                        className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-between py-2"
+                        className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2"
                         style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
                       >
-                        {/* Logo in white circle */}
-                        <div className="w-3 h-3 rounded-full bg-white flex items-center justify-center overflow-hidden">
-                          {storeProfile?.store_logo_url && (
-                            <img src={storeProfile.store_logo_url} alt="" className="w-2 h-2 object-contain" />
-                          )}
-                        </div>
                         <span className="text-[6px] text-white font-bold">PG 01</span>
                       </div>
 
