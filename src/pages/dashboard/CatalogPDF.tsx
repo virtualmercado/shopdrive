@@ -267,9 +267,12 @@ const CatalogPDF = () => {
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "bold");
     pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
-    currentY += 14;
-    pdf.text("DE", textCenterX, currentY, { align: "center" });
-    currentY += 14;
+    currentY += 12;
+    // "de" in lowercase with smaller font
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
     currentY += 25;
 
@@ -357,15 +360,43 @@ const CatalogPDF = () => {
       infoY += 15;
     }
 
-    // WhatsApp (clickable)
+    // WhatsApp (clickable) with icon
     if (storeProfile?.whatsapp_number) {
       pdf.setTextColor(50, 50, 50);
       pdf.setFont("helvetica", "normal");
-      const whatsappText = `WhatsApp: ${storeProfile.whatsapp_number}`;
-      pdf.text(whatsappText, centerX, infoY, { align: "center" });
-      const whatsappUrl = `https://wa.me/${storeProfile.whatsapp_number.replace(/\D/g, '')}`;
-      const whatsappWidth = pdf.getTextWidth(whatsappText);
-      pdf.link(centerX - whatsappWidth / 2, infoY - 4, whatsappWidth, 6, { url: whatsappUrl });
+      
+      // Format phone number: remove country code (+55) and format as (DDD) XXXXX-XXXX
+      const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
+      let displayNumber = rawNumber;
+      
+      // Remove country code (55) if present
+      if (rawNumber.startsWith('55') && rawNumber.length > 11) {
+        displayNumber = rawNumber.substring(2);
+      }
+      
+      // Format: (XX) XXXXX-XXXX or (XX) XXXX-XXXX
+      if (displayNumber.length === 11) {
+        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
+      } else if (displayNumber.length === 10) {
+        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
+      }
+      
+      // Draw WhatsApp icon (simplified green circle with phone)
+      const iconSize = 5;
+      const iconX = centerX - 30;
+      const iconY = infoY - 3;
+      
+      // Green circle for WhatsApp
+      pdf.setFillColor(37, 211, 102);
+      pdf.circle(iconX, iconY, iconSize / 2, "F");
+      
+      // Phone number text
+      const whatsappText = displayNumber;
+      pdf.text(whatsappText, centerX - 22, infoY, { align: "left" });
+      
+      const whatsappUrl = `https://wa.me/${rawNumber}`;
+      const totalWidth = 60;
+      pdf.link(centerX - 35, infoY - 4, totalWidth, 6, { url: whatsappUrl });
       infoY += 15;
     }
 
@@ -399,14 +430,17 @@ const CatalogPDF = () => {
     pdf.setFillColor(r, g, b);
     pdf.rect(0, 0, sidebarWidth, pageHeight, "F");
 
-    // Page number at bottom of sidebar
-    pdf.setFontSize(8);
+    // Page number at bottom of sidebar with line break
+    // PG on first line, number on second line
+    pdf.setFontSize(10);
     pdf.setTextColor(255, 255, 255);
     pdf.setFont("helvetica", "bold");
-    const pageText = `PG ${String(pageNumber).padStart(2, '0')}`;
     
-    // Rotate text for vertical display
-    pdf.text(pageText, sidebarWidth / 2, pageHeight - 15, { align: "center" });
+    const pageNum = String(pageNumber).padStart(2, '0');
+    // "PG" on top line
+    pdf.text("PG", sidebarWidth / 2, pageHeight - 22, { align: "center" });
+    // Number below
+    pdf.text(pageNum, sidebarWidth / 2, pageHeight - 12, { align: "center" });
   };
 
   // Generate PDF for single product
@@ -674,7 +708,8 @@ const CatalogPDF = () => {
 
     const contentStartX = sidebarWidth + margin;
     const contentWidth = pageWidth - sidebarWidth - (margin * 2);
-    const rowHeight = 8;
+    const rowHeight = 12; // Increased for thumbnail
+    const thumbnailSize = 10; // Thumbnail image size
     const contentStartY = margin + 10;
     const contentEndY = pageHeight - margin;
     const availableHeight = contentEndY - contentStartY;
@@ -688,8 +723,9 @@ const CatalogPDF = () => {
       // Draw sidebar (without logo)
       await drawSidebar(pdf, page + 1);
 
-      // Column headers
+      // Column headers with thumbnail space
       const headerY = contentStartY;
+      const thumbnailWidth = 12; // Width for thumbnail column
       pdf.setFillColor(r, g, b);
       pdf.rect(contentStartX, headerY - 5, contentWidth, 7, "F");
       
@@ -697,7 +733,7 @@ const CatalogPDF = () => {
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.text("Item", contentStartX + 5, headerY);
-      pdf.text("Produto", contentStartX + 25, headerY);
+      pdf.text("Produto", contentStartX + 20 + thumbnailWidth, headerY);
       pdf.text("Valor", contentStartX + contentWidth - 25, headerY);
       pdf.setFont("helvetica", "normal");
 
@@ -717,21 +753,41 @@ const CatalogPDF = () => {
         } else {
           pdf.setFillColor(255, 255, 255);
         }
-        pdf.rect(contentStartX, currentY - 5, contentWidth, rowHeight, "F");
+        pdf.rect(contentStartX, currentY - 7, contentWidth, rowHeight, "F");
 
         // Item number
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
         pdf.text(String(productNumber), contentStartX + 5, currentY);
 
-        // Product name (truncated)
+        // Thumbnail image
+        const thumbX = contentStartX + 15;
+        const thumbY = currentY - 6;
+        if (product.image_url) {
+          try {
+            const thumbData = await loadImageWithDimensions(product.image_url, false);
+            if (thumbData) {
+              const thumbDimensions = calculateImageDimensions(
+                thumbData.width,
+                thumbData.height,
+                thumbnailSize,
+                thumbnailSize
+              );
+              pdf.addImage(thumbData.data, thumbData.format, thumbX, thumbY, thumbDimensions.width, thumbDimensions.height);
+            }
+          } catch {
+            // Skip if image fails to load
+          }
+        }
+
+        // Product name (truncated) - positioned after thumbnail
         pdf.setTextColor(40, 40, 40);
-        const maxNameLength = 50;
+        const maxNameLength = 45;
         let displayName = product.name;
         if (displayName.length > maxNameLength) {
           displayName = displayName.substring(0, maxNameLength - 3) + "...";
         }
-        pdf.text(displayName, contentStartX + 25, currentY);
+        pdf.text(displayName, contentStartX + 28, currentY);
 
         // Price
         const price = product.promotional_price || product.price;
@@ -742,7 +798,7 @@ const CatalogPDF = () => {
         // Make row clickable
         if (storeProfile?.store_slug) {
           const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
-          pdf.link(contentStartX, currentY - 5, contentWidth, rowHeight, { url: productUrl });
+          pdf.link(contentStartX, currentY - 7, contentWidth, rowHeight, { url: productUrl });
         }
 
         currentY += rowHeight;
@@ -1203,9 +1259,9 @@ const CatalogPDF = () => {
                       />
                       {/* White overlay rectangle */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
+                      <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
                           <p className="text-lg font-bold text-gray-800">CATÁLOGO</p>
-                          <p className="text-lg font-bold text-gray-800">DE</p>
+                          <p className="text-sm text-gray-800">de</p>
                           <p className="text-lg font-bold text-gray-800">PRODUTOS</p>
                           <p className="text-sm text-gray-600 mt-2">{new Date().getFullYear()}</p>
                           {storeProfile?.store_logo_url && (
@@ -1229,7 +1285,7 @@ const CatalogPDF = () => {
                         className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2"
                         style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
                       >
-                        <span className="text-[6px] text-white font-bold">PG 01</span>
+                        <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>01</span>
                       </div>
 
                       {/* Content area */}
@@ -1272,20 +1328,32 @@ const CatalogPDF = () => {
                               <span className="font-semibold flex-1 pl-2">Produto</span>
                               <span className="font-semibold pr-1">Valor</span>
                             </div>
-                            {filteredProducts.slice(0, 8).map((product, index) => (
+                            {filteredProducts.slice(0, 6).map((product, index) => (
                               <div 
                                 key={product.id} 
-                                className="flex items-center py-0.5 px-1 text-[7px]"
+                                className="flex items-center py-1 px-1 text-[7px]"
                                 style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}
                               >
-                                <span className="w-6 text-center text-gray-500">{index + 1}</span>
-                                <span className="flex-1 truncate pl-2">{product.name}</span>
+                                <span className="w-5 text-center text-gray-500">{index + 1}</span>
+                                {/* Thumbnail */}
+                                <div className="w-4 h-4 flex-shrink-0 mx-1 flex items-center justify-center overflow-hidden rounded-sm bg-white">
+                                  {product.image_url ? (
+                                    <img 
+                                      src={product.image_url} 
+                                      alt={product.name}
+                                      className="max-w-full max-h-full object-contain"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gray-100" />
+                                  )}
+                                </div>
+                                <span className="flex-1 truncate pl-1">{product.name}</span>
                                 <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
                               </div>
                             ))}
-                            {filteredProducts.length > 8 && (
+                            {filteredProducts.length > 6 && (
                               <p className="text-[8px] text-center text-muted-foreground mt-1">
-                                +{filteredProducts.length - 8} produtos
+                                +{filteredProducts.length - 6} produtos
                               </p>
                             )}
                           </div>
