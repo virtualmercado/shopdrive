@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   RotateCcw, 
   RotateCw, 
@@ -20,7 +22,9 @@ import {
   Square,
   Info,
   RefreshCw,
-  Check
+  Check,
+  Move,
+  RotateCcwIcon
 } from "lucide-react";
 import { removeBackground, loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
@@ -80,6 +84,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [processingStep, setProcessingStep] = useState('');
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [rotation, setRotation] = useState(0);
+  const [offsetX, setOffsetX] = useState(0); // Horizontal offset in percentage (-30 to +30)
+  const [rotationInput, setRotationInput] = useState("0");
   const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('original');
   const [shadowType, setShadowType] = useState<ShadowType>('none');
   const [isBackgroundRemoved, setIsBackgroundRemoved] = useState(false);
@@ -88,10 +94,16 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
+  const isMobile = useIsMobile();
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-md';
+  
+  // Rotation and offset step values based on device
+  const rotationStep = isMobile ? 0.5 : 0.1;
+  const offsetStep = isMobile ? 1 : 0.5;
 
   // Load original image when dialog opens
   useEffect(() => {
@@ -132,33 +144,52 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   const drawImage = useCallback((img: HTMLImageElement, imgData?: ImageData) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size to image size
-    canvas.width = img.width;
-    canvas.height = img.height;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Apply rotation
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-    if (imgData) {
-      ctx.putImageData(imgData, 0, 0);
-    } else {
-      ctx.drawImage(img, 0, 0);
+    // Cancel any pending animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
     }
+    
+    animationFrameRef.current = requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    ctx.restore();
-  }, [rotation]);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size to image size
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Calculate offset in pixels based on percentage
+      const offsetPixels = (offsetX / 100) * canvas.width;
+
+      // Apply transformations: translate for offset, then rotate around center
+      ctx.save();
+      ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+      if (imgData) {
+        // putImageData doesn't respect canvas transformations, so we need to
+        // draw to a temp canvas first, then drawImage from that
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgData.width;
+        tempCanvas.height = imgData.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (tempCtx) {
+          tempCtx.putImageData(imgData, 0, 0);
+          ctx.drawImage(tempCanvas, 0, 0);
+        }
+      } else {
+        ctx.drawImage(img, 0, 0);
+      }
+
+      ctx.restore();
+    });
+  }, [rotation, offsetX]);
 
   // Handle background removal
   const handleRemoveBackground = async () => {
@@ -243,7 +274,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     canvas.width = backgroundRemovedImage.width;
     canvas.height = backgroundRemovedImage.height;
 
-    // Draw background first
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background first (before transformations)
     if (selectedBackground !== 'transparent' && selectedBackground !== 'original') {
       const preset = backgroundPresets[selectedBackground];
       
@@ -265,17 +299,35 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       drawCheckerboard(ctx, canvas.width, canvas.height);
     }
 
-    // Apply shadow if needed
+    // Calculate offset in pixels based on percentage
+    const offsetPixels = (offsetX / 100) * canvas.width;
+
+    // Apply transformations for the image layer
+    ctx.save();
+    ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+    // Apply shadow if needed (with transformations)
     if (shadowType !== 'none' && isBackgroundRemoved) {
       applyShadow(ctx, backgroundRemovedImage, shadowType);
     }
 
-    // Draw the image
-    ctx.putImageData(backgroundRemovedImage, 0, 0);
+    // Draw the image using temp canvas (putImageData doesn't respect transformations)
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = backgroundRemovedImage.width;
+    tempCanvas.height = backgroundRemovedImage.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (tempCtx) {
+      tempCtx.putImageData(backgroundRemovedImage, 0, 0);
+      ctx.drawImage(tempCanvas, 0, 0);
+    }
+
+    ctx.restore();
 
     // Apply adjustments
     applyAdjustments(ctx, canvas.width, canvas.height);
-  }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved]);
+  }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved, rotation, offsetX]);
 
   useEffect(() => {
     if (isBackgroundRemoved && backgroundRemovedImage) {
@@ -461,19 +513,56 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     ctx.putImageData(imageData, 0, 0);
   };
 
-  // Rotation handlers
-  const handleRotateLeft = () => {
-    setRotation((prev) => (prev - 90) % 360);
+  // Rotation handlers with fine control
+  const handleRotationChange = useCallback((value: number) => {
+    // Clamp to -180 to +180
+    const clampedValue = Math.max(-180, Math.min(180, value));
+    setRotation(clampedValue);
+    setRotationInput(clampedValue.toFixed(1));
     setHasChanges(true);
+  }, []);
+
+  const handleRotationInputChange = (inputValue: string) => {
+    setRotationInput(inputValue);
+    const numValue = parseFloat(inputValue);
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.max(-180, Math.min(180, numValue));
+      setRotation(clampedValue);
+      setHasChanges(true);
+    }
   };
 
-  const handleRotateRight = () => {
-    setRotation((prev) => (prev + 90) % 360);
-    setHasChanges(true);
+  const handleRotationInputBlur = () => {
+    // On blur, ensure input shows the valid clamped value
+    setRotationInput(rotation.toFixed(1));
   };
 
-  const handleResetRotation = () => {
+  const handleRotateLeft = (e: React.MouseEvent) => {
+    const step = e.shiftKey ? 15 : 1;
+    handleRotationChange(rotation - step);
+  };
+
+  const handleRotateRight = (e: React.MouseEvent) => {
+    const step = e.shiftKey ? 15 : 1;
+    handleRotationChange(rotation + step);
+  };
+
+  const handleQuickRotate = (degrees: number) => {
+    handleRotationChange(rotation + degrees);
+  };
+
+  // Offset handlers
+  const handleOffsetChange = useCallback((value: number) => {
+    // Clamp to -30 to +30
+    const clampedValue = Math.max(-30, Math.min(30, value));
+    setOffsetX(clampedValue);
+    setHasChanges(true);
+  }, []);
+
+  const handleResetTransform = () => {
     setRotation(0);
+    setRotationInput("0");
+    setOffsetX(0);
   };
 
   // Adjustment handlers
@@ -486,6 +575,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const handleUndo = () => {
     setAdjustments(defaultAdjustments);
     setRotation(0);
+    setRotationInput("0");
+    setOffsetX(0);
     setSelectedBackground('original');
     setShadowType('none');
     setIsBackgroundRemoved(false);
@@ -542,12 +633,21 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  // Update canvas when rotation changes
+  // Update canvas when rotation or offset changes
   useEffect(() => {
     if (originalImage && !isBackgroundRemoved) {
       drawImage(originalImage);
     }
-  }, [rotation, originalImage, isBackgroundRemoved, drawImage]);
+  }, [rotation, offsetX, originalImage, isBackgroundRemoved, drawImage]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   // Apply adjustments in real-time
   useEffect(() => {
@@ -623,7 +723,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                         ref={canvasRef}
                         className="max-w-[200px] max-h-[300px] object-contain border rounded"
                         style={{ 
-                          transform: `rotate(${rotation}deg)`,
                           maxWidth: '200px',
                           maxHeight: '300px'
                         }}
@@ -634,46 +733,114 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                   <canvas
                     ref={canvasRef}
                     className="max-w-full max-h-full object-contain border rounded shadow-sm"
-                    style={{ 
-                      transform: `rotate(${rotation}deg)`,
-                      maxHeight: '400px'
-                    }}
+                    style={{ maxHeight: '400px' }}
                   />
                 )}
               </div>
 
-              {/* Bottom Actions */}
-              <div className="px-4 py-3 border-t flex flex-wrap gap-2 justify-center flex-shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRotateLeft}
-                  className={buttonRadius}
-                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                >
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Esquerda
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRotateRight}
-                  className={buttonRadius}
-                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                >
-                  <RotateCw className="h-4 w-4 mr-1" />
-                  Direita
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetRotation}
-                  className={buttonRadius}
-                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Resetar
-                </Button>
+              {/* Bottom Controls - Rotation & Position */}
+              <div className="px-4 py-3 border-t space-y-4 flex-shrink-0">
+                {/* Rotation Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium flex items-center gap-1">
+                      <RotateCcwIcon className="h-3 w-3" />
+                      Rotação (°)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={rotationInput}
+                        onChange={(e) => handleRotationInputChange(e.target.value)}
+                        onBlur={handleRotationInputBlur}
+                        className="w-16 h-7 text-xs text-center"
+                      />
+                    </div>
+                  </div>
+                  <Slider
+                    value={[rotation]}
+                    onValueChange={([value]) => handleRotationChange(value)}
+                    min={-180}
+                    max={180}
+                    step={rotationStep}
+                    className="w-full"
+                  />
+                  <div className="flex gap-1 justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuickRotate(-90)}
+                      className={`text-xs px-2 ${buttonRadius}`}
+                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                    >
+                      -90°
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRotateLeft}
+                      className={buttonRadius}
+                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                      title="Clique: -1° | Shift+Clique: -15°"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRotateRight}
+                      className={buttonRadius}
+                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                      title="Clique: +1° | Shift+Clique: +15°"
+                    >
+                      <RotateCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuickRotate(90)}
+                      className={`text-xs px-2 ${buttonRadius}`}
+                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                    >
+                      +90°
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Horizontal Position Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium flex items-center gap-1">
+                      <Move className="h-3 w-3" />
+                      Posição horizontal (X)
+                    </label>
+                    <span className="text-xs text-muted-foreground">
+                      {offsetX > 0 ? '+' : ''}{offsetX.toFixed(1)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[offsetX]}
+                    onValueChange={([value]) => handleOffsetChange(value)}
+                    min={-30}
+                    max={30}
+                    step={offsetStep}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Reset Button */}
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetTransform}
+                    className={buttonRadius}
+                    style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Resetar
+                  </Button>
+                </div>
               </div>
             </div>
 
