@@ -24,7 +24,8 @@ import {
   RefreshCw,
   Check,
   Move,
-  RotateCcwIcon
+  RotateCcwIcon,
+  ZoomIn
 } from "lucide-react";
 import { removeBackground, loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
@@ -85,7 +86,9 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [rotation, setRotation] = useState(0);
   const [offsetX, setOffsetX] = useState(0); // Horizontal offset in percentage (-30 to +30)
+  const [scale, setScale] = useState(100); // Zoom/scale in percentage (60 to 160)
   const [rotationInput, setRotationInput] = useState("0");
+  const [scaleInput, setScaleInput] = useState("100");
   const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('original');
   const [shadowType, setShadowType] = useState<ShadowType>('none');
   const [isBackgroundRemoved, setIsBackgroundRemoved] = useState(false);
@@ -101,9 +104,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-md';
   
-  // Rotation and offset step values based on device
+  // Rotation, offset, and scale step values based on device
   const rotationStep = isMobile ? 0.5 : 0.1;
   const offsetStep = isMobile ? 1 : 0.5;
+  const scaleStep = isMobile ? 2 : 1;
 
   // Load original image when dialog opens
   useEffect(() => {
@@ -165,11 +169,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
       // Calculate offset in pixels based on percentage
       const offsetPixels = (offsetX / 100) * canvas.width;
+      // Calculate scale factor
+      const scaleFactor = scale / 100;
 
-      // Apply transformations: translate for offset, then rotate around center
+      // Apply transformations: translate for offset, then rotate around center, then scale
       ctx.save();
       ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
       ctx.rotate((rotation * Math.PI) / 180);
+      ctx.scale(scaleFactor, scaleFactor);
       ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
       if (imgData) {
@@ -189,7 +196,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
       ctx.restore();
     });
-  }, [rotation, offsetX]);
+  }, [rotation, offsetX, scale]);
 
   // Handle background removal
   const handleRemoveBackground = async () => {
@@ -301,11 +308,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
     // Calculate offset in pixels based on percentage
     const offsetPixels = (offsetX / 100) * canvas.width;
+    // Calculate scale factor
+    const scaleFactor = scale / 100;
 
-    // Apply transformations for the image layer
+    // Apply transformations for the image layer: translate -> rotate -> scale
     ctx.save();
     ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
     ctx.rotate((rotation * Math.PI) / 180);
+    ctx.scale(scaleFactor, scaleFactor);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
     // Apply shadow if needed (with transformations)
@@ -327,7 +337,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
     // Apply adjustments
     applyAdjustments(ctx, canvas.width, canvas.height);
-  }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved, rotation, offsetX]);
+  }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved, rotation, offsetX, scale]);
 
   useEffect(() => {
     if (isBackgroundRemoved && backgroundRemovedImage) {
@@ -559,10 +569,36 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setHasChanges(true);
   }, []);
 
+  // Scale/Zoom handlers
+  const handleScaleChange = useCallback((value: number) => {
+    // Clamp to 60 to 160
+    const clampedValue = Math.max(60, Math.min(160, value));
+    setScale(clampedValue);
+    setScaleInput(Math.round(clampedValue).toString());
+    setHasChanges(true);
+  }, []);
+
+  const handleScaleInputChange = (inputValue: string) => {
+    setScaleInput(inputValue);
+    const numValue = parseInt(inputValue, 10);
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.max(60, Math.min(160, numValue));
+      setScale(clampedValue);
+      setHasChanges(true);
+    }
+  };
+
+  const handleScaleInputBlur = () => {
+    // On blur, ensure input shows the valid clamped value
+    setScaleInput(Math.round(scale).toString());
+  };
+
   const handleResetTransform = () => {
     setRotation(0);
     setRotationInput("0");
     setOffsetX(0);
+    setScale(100);
+    setScaleInput("100");
   };
 
   // Adjustment handlers
@@ -577,6 +613,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setRotation(0);
     setRotationInput("0");
     setOffsetX(0);
+    setScale(100);
+    setScaleInput("100");
     setSelectedBackground('original');
     setShadowType('none');
     setIsBackgroundRemoved(false);
@@ -633,12 +671,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  // Update canvas when rotation or offset changes
+  // Update canvas when rotation, offset, or scale changes
   useEffect(() => {
     if (originalImage && !isBackgroundRemoved) {
       drawImage(originalImage);
     }
-  }, [rotation, offsetX, originalImage, isBackgroundRemoved, drawImage]);
+  }, [rotation, offsetX, scale, originalImage, isBackgroundRemoved, drawImage]);
 
   // Cleanup animation frame on unmount
   useEffect(() => {
@@ -805,6 +843,34 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                       +90°
                     </Button>
                   </div>
+                </div>
+
+                {/* Zoom/Scale Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium flex items-center gap-1">
+                      <ZoomIn className="h-3 w-3" />
+                      Zoom / Escala (%)
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="text"
+                        value={scaleInput}
+                        onChange={(e) => handleScaleInputChange(e.target.value)}
+                        onBlur={handleScaleInputBlur}
+                        className="w-14 h-7 text-xs text-center"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  <Slider
+                    value={[scale]}
+                    onValueChange={([value]) => handleScaleChange(value)}
+                    min={60}
+                    max={160}
+                    step={scaleStep}
+                    className="w-full"
+                  />
                 </div>
 
                 {/* Horizontal Position Control */}
