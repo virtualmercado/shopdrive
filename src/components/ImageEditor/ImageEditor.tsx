@@ -94,10 +94,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [isBackgroundRemoved, setIsBackgroundRemoved] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isAnimatingReset, setIsAnimatingReset] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const resetAnimationRef = useRef<number | null>(null);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
   const isMobile = useIsMobile();
@@ -108,6 +110,40 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const rotationStep = isMobile ? 0.5 : 0.1;
   const offsetStep = isMobile ? 1 : 0.5;
   const scaleStep = isMobile ? 2 : 1;
+
+  // Soft-clamp: calculate visibility factor based on current transforms
+  const calculateVisibilityFactor = useCallback((currentScale: number, currentOffsetX: number): number => {
+    // Calculate how much of the product remains visible
+    // At scale 100% and offset 0%, visibility = 100%
+    // As we push towards limits, visibility decreases
+    
+    const scaleFactor = currentScale / 100;
+    const canvasWidth = canvasRef.current?.width || 800;
+    const productVisibleWidth = canvasWidth * scaleFactor;
+    const offsetPixels = Math.abs(currentOffsetX / 100) * canvasWidth;
+    
+    // How much of the scaled product is still within frame
+    const visiblePortion = Math.max(0, productVisibleWidth - offsetPixels) / productVisibleWidth;
+    
+    return Math.max(0, Math.min(1, visiblePortion));
+  }, []);
+
+  // Soft-clamp multiplier: reduces sensitivity as we approach visibility limit (60%)
+  const getSoftClampMultiplier = useCallback((visibility: number): number => {
+    const minVisibility = 0.60; // 60% minimum visibility
+    
+    if (visibility >= 0.80) {
+      return 1; // Full sensitivity above 80% visibility
+    } else if (visibility <= minVisibility) {
+      return 0.05; // Almost stopped at 60%
+    } else {
+      // Gradual reduction between 80% and 60%
+      const range = 0.80 - minVisibility;
+      const position = (visibility - minVisibility) / range;
+      // Ease-out curve for smooth braking
+      return 0.05 + (position * position) * 0.95;
+    }
+  }, []);
 
   // Load original image when dialog opens
   useEffect(() => {
@@ -561,22 +597,44 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     handleRotationChange(rotation + degrees);
   };
 
-  // Offset handlers
+  // Offset handlers with soft-clamp
   const handleOffsetChange = useCallback((value: number) => {
-    // Clamp to -30 to +30
-    const clampedValue = Math.max(-30, Math.min(30, value));
+    if (isAnimatingReset) return;
+    
+    // Calculate current visibility
+    const visibility = calculateVisibilityFactor(scale, value);
+    const clampMultiplier = getSoftClampMultiplier(visibility);
+    
+    // Apply soft-clamp: reduce the delta as we approach limit
+    const delta = value - offsetX;
+    const softDelta = delta * clampMultiplier;
+    const newValue = offsetX + softDelta;
+    
+    // Hard clamp to -30 to +30
+    const clampedValue = Math.max(-30, Math.min(30, newValue));
     setOffsetX(clampedValue);
     setHasChanges(true);
-  }, []);
+  }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
 
-  // Scale/Zoom handlers
+  // Scale/Zoom handlers with soft-clamp
   const handleScaleChange = useCallback((value: number) => {
-    // Clamp to 60 to 160
-    const clampedValue = Math.max(60, Math.min(160, value));
+    if (isAnimatingReset) return;
+    
+    // Calculate visibility with new scale value
+    const visibility = calculateVisibilityFactor(value, offsetX);
+    const clampMultiplier = getSoftClampMultiplier(visibility);
+    
+    // Apply soft-clamp: reduce the delta as we approach limit
+    const delta = value - scale;
+    const softDelta = delta * clampMultiplier;
+    const newValue = scale + softDelta;
+    
+    // Hard clamp to 60 to 160
+    const clampedValue = Math.max(60, Math.min(160, newValue));
     setScale(clampedValue);
     setScaleInput(Math.round(clampedValue).toString());
     setHasChanges(true);
-  }, []);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
 
   const handleScaleInputChange = (inputValue: string) => {
     setScaleInput(inputValue);
@@ -593,13 +651,56 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleInput(Math.round(scale).toString());
   };
 
-  const handleResetTransform = () => {
-    setRotation(0);
-    setRotationInput("0");
-    setOffsetX(0);
-    setScale(100);
-    setScaleInput("100");
-  };
+  // Animated reset with ease-out
+  const handleResetTransform = useCallback(() => {
+    if (isAnimatingReset) return;
+    
+    // Cancel any existing reset animation
+    if (resetAnimationRef.current) {
+      cancelAnimationFrame(resetAnimationRef.current);
+    }
+    
+    setIsAnimatingReset(true);
+    
+    const startRotation = rotation;
+    const startOffsetX = offsetX;
+    const startScale = scale;
+    const duration = 180; // 180ms
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      
+      // Ease-out cubic: 1 - (1 - t)^3
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      const newRotation = startRotation * (1 - easeOut);
+      const newOffsetX = startOffsetX * (1 - easeOut);
+      const newScale = startScale + (100 - startScale) * easeOut;
+      
+      setRotation(newRotation);
+      setRotationInput(newRotation.toFixed(1));
+      setOffsetX(newOffsetX);
+      setScale(newScale);
+      setScaleInput(Math.round(newScale).toString());
+      
+      if (progress < 1) {
+        resetAnimationRef.current = requestAnimationFrame(animate);
+      } else {
+        // Ensure final values are exact
+        setRotation(0);
+        setRotationInput("0");
+        setOffsetX(0);
+        setScale(100);
+        setScaleInput("100");
+        setIsAnimatingReset(false);
+        resetAnimationRef.current = null;
+      }
+    };
+    
+    resetAnimationRef.current = requestAnimationFrame(animate);
+  }, [rotation, offsetX, scale, isAnimatingReset]);
 
   // Adjustment handlers
   const handleAdjustmentChange = (key: keyof ImageAdjustments, value: number) => {
@@ -678,11 +779,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   }, [rotation, offsetX, scale, originalImage, isBackgroundRemoved, drawImage]);
 
-  // Cleanup animation frame on unmount
+  // Cleanup animation frames on unmount
   useEffect(() => {
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (resetAnimationRef.current) {
+        cancelAnimationFrame(resetAnimationRef.current);
       }
     };
   }, []);
