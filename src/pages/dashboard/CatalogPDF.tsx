@@ -261,9 +261,47 @@ const CatalogPDF = () => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(rectX, rectY, rectWidth, rectHeight, "F");
 
-    // Title text
+    // Calculate vertical layout to center all content within white rectangle
+    // Content: CATÁLOGO (28pt) + de (16pt) + PRODUTOS (28pt) + Year (20pt) + Logo
     const textCenterX = pageWidth / 2;
-    let currentY = rectY + 40;
+    
+    // Load logo first to calculate its dimensions
+    let logoDimensions = { width: 0, height: 0 };
+    let logoImage: { data: string; width: number; height: number; format: string } | null = null;
+    
+    if (storeProfile?.store_logo_url) {
+      logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const logoMaxWidth = 55;
+        const logoMaxHeight = 45;
+        logoDimensions = calculateImageDimensions(
+          logoImage.width,
+          logoImage.height,
+          logoMaxWidth,
+          logoMaxHeight
+        );
+      }
+    }
+    
+    // Calculate total content height for vertical centering
+    // Title block: CATÁLOGO (10mm) + gap (4mm) + de (5mm) + gap (4mm) + PRODUTOS (10mm) = ~33mm
+    // Gap after title: 10mm
+    // Year: 7mm
+    // Gap before logo: 12mm
+    // Logo height: logoDimensions.height
+    const titleBlockHeight = 33;
+    const gapAfterTitle = 10;
+    const yearHeight = 7;
+    const gapBeforeLogo = 12;
+    const totalContentHeight = titleBlockHeight + gapAfterTitle + yearHeight + gapBeforeLogo + logoDimensions.height;
+    
+    // Start Y position to center content vertically within white rectangle
+    // Ensure minimum padding from top and bottom (at least 25mm from bottom for logo breathing room)
+    const minBottomPadding = 25;
+    const availableHeight = rectHeight - minBottomPadding;
+    let startY = rectY + Math.max(25, (availableHeight - totalContentHeight) / 2 + 15);
+    
+    let currentY = startY;
 
     pdf.setFontSize(28);
     pdf.setTextColor(30, 30, 30);
@@ -276,30 +314,22 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 25;
+    currentY += 20;
 
     // Year
     const currentYear = new Date().getFullYear();
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "normal");
     pdf.text(String(currentYear), textCenterX, currentY, { align: "center" });
-    currentY += 30;
+    currentY += 18;
 
-    // Logo
-    if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
-      if (logoImage) {
-        const logoMaxWidth = 60;
-        const logoMaxHeight = 40;
-        const logoDimensions = calculateImageDimensions(
-          logoImage.width,
-          logoImage.height,
-          logoMaxWidth,
-          logoMaxHeight
-        );
-        const logoX = textCenterX - (logoDimensions.width / 2);
-        pdf.addImage(logoImage.data, logoImage.format, logoX, currentY, logoDimensions.width, logoDimensions.height);
-      }
+    // Logo - positioned with proper spacing, ensuring it doesn't go too low
+    if (logoImage) {
+      const logoX = textCenterX - (logoDimensions.width / 2);
+      // Ensure logo stays within white rectangle with minimum bottom margin
+      const maxLogoY = rectY + rectHeight - logoDimensions.height - 20;
+      const logoY = Math.min(currentY, maxLogoY);
+      pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
     }
   };
 
@@ -345,13 +375,13 @@ const CatalogPDF = () => {
       }
     }
 
-    // Contact info below logo
+    // Contact info below logo - all centered horizontally on page
     let infoY = centerY + circleRadius + 25;
     pdf.setFontSize(12);
     pdf.setTextColor(50, 50, 50);
     pdf.setFont("helvetica", "normal");
 
-    // Store URL (clickable)
+    // Store URL (clickable) - centered
     if (storeProfile?.store_slug) {
       const storeUrl = `${window.location.origin}/loja/${storeProfile.store_slug}`;
       pdf.setTextColor(r, g, b);
@@ -359,13 +389,14 @@ const CatalogPDF = () => {
       pdf.text(storeUrl, centerX, infoY, { align: "center" });
       const urlWidth = pdf.getTextWidth(storeUrl);
       pdf.link(centerX - urlWidth / 2, infoY - 4, urlWidth, 6, { url: storeUrl });
-      infoY += 15;
+      infoY += 18;
     }
 
-    // WhatsApp (clickable) with icon
+    // WhatsApp (clickable) with icon - centered as a block
     if (storeProfile?.whatsapp_number) {
       pdf.setTextColor(50, 50, 50);
       pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
       
       // Format phone number: remove country code (+55) and format as (DDD) XXXXX-XXXX
       const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
@@ -383,51 +414,68 @@ const CatalogPDF = () => {
         displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
       }
       
+      // Calculate total width of icon + text to center the block
+      const iconSize = 6;
+      const iconTextGap = 3;
+      const textWidth = pdf.getTextWidth(displayNumber);
+      const totalBlockWidth = iconSize + iconTextGap + textWidth;
+      const blockStartX = centerX - (totalBlockWidth / 2);
+      
       // Load and draw WhatsApp outline icon
       const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false);
       if (whatsappIconData) {
-        const iconSize = 6;
-        const iconX = centerX - 32;
-        const iconY = infoY - 4;
-        pdf.addImage(whatsappIconData.data, whatsappIconData.format, iconX, iconY, iconSize, iconSize);
+        pdf.addImage(whatsappIconData.data, whatsappIconData.format, blockStartX, infoY - 4.5, iconSize, iconSize);
       }
       
-      // Phone number text
-      const whatsappText = displayNumber;
-      pdf.text(whatsappText, centerX - 22, infoY, { align: "left" });
+      // Phone number text - positioned after icon
+      pdf.text(displayNumber, blockStartX + iconSize + iconTextGap, infoY);
       
       const whatsappUrl = `https://wa.me/${rawNumber}`;
-      const totalWidth = 60;
-      pdf.link(centerX - 35, infoY - 4, totalWidth, 6, { url: whatsappUrl });
-      infoY += 15;
+      pdf.link(blockStartX - 2, infoY - 5, totalBlockWidth + 4, 8, { url: whatsappUrl });
+      infoY += 18;
     }
 
-    // Physical address (clickable to Google Maps) with map pin icon
+    // Physical address (clickable to Google Maps) with map pin icon - centered as a block
     const fullAddress = getFullAddress();
     if (fullAddress) {
-      // Load and draw map pin icon
-      const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
-      const iconSize = 5;
-      const iconX = centerX - 80;
-      
-      if (mapPinIconData) {
-        pdf.addImage(mapPinIconData.data, mapPinIconData.format, iconX, infoY - 3.5, iconSize, iconSize);
-      }
-      
       pdf.setFontSize(10);
       pdf.setTextColor(80, 80, 80);
-      const addressLines = pdf.splitTextToSize(fullAddress, 140);
-      const addressStartX = iconX + iconSize + 3;
+      
+      const iconSize = 5;
+      const iconTextGap = 3;
+      
+      // Calculate address width to center the entire block (icon + text)
+      const maxAddressWidth = 140;
+      const addressLines = pdf.splitTextToSize(fullAddress, maxAddressWidth);
+      
+      // Find the widest line to calculate block width
+      let maxLineWidth = 0;
+      addressLines.forEach((line: string) => {
+        const lineWidth = pdf.getTextWidth(line);
+        if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
+      });
+      
+      const totalBlockWidth = iconSize + iconTextGap + maxLineWidth;
+      const blockStartX = centerX - (totalBlockWidth / 2);
+      
+      // Load and draw map pin icon
+      const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
+      if (mapPinIconData) {
+        pdf.addImage(mapPinIconData.data, mapPinIconData.format, blockStartX, infoY - 3.5, iconSize, iconSize);
+      }
+      
+      // Address text - positioned after icon
+      const textStartX = blockStartX + iconSize + iconTextGap;
       let addressY = infoY;
       addressLines.forEach((line: string) => {
-        pdf.text(line, addressStartX, addressY, { align: "left" });
+        pdf.text(line, textStartX, addressY);
         addressY += 5;
       });
       
       const mapsUrl = buildGoogleMapsSearchUrl(fullAddress);
       if (mapsUrl) {
         const totalHeight = addressLines.length * 5;
-        pdf.link(iconX - 2, infoY - 4, 155, totalHeight + 4, { url: mapsUrl });
+        pdf.link(blockStartX - 2, infoY - 4, totalBlockWidth + 4, totalHeight + 4, { url: mapsUrl });
       }
       infoY = addressY;
     }
