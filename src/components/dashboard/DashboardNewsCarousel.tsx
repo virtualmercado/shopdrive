@@ -205,9 +205,12 @@ const DashboardNewsCarousel = () => {
               key={banner.id}
               onClick={() => handleBannerClick(banner)}
               className="relative rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border"
-              style={{ height: "160px" }}
+              style={{ 
+                height: visibleCount === 1 ? "280px" : "200px",
+                aspectRatio: visibleCount === 1 ? "1/1" : "2/1"
+              }}
             >
-              {/* Background Image */}
+              {/* Background Image - No overlay for maximum clarity */}
               <img
                 src={
                   (visibleCount === 1 && banner.image_mobile_url) 
@@ -215,20 +218,17 @@ const DashboardNewsCarousel = () => {
                     : banner.image_desktop_url
                 }
                 alt={banner.title}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
               />
               
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              
-              {/* Badge */}
+              {/* Badge - positioned on clean image */}
               {(banner.badge_text || banner.is_sponsored) && (
-                <div className="absolute top-3 left-3">
+                <div className="absolute top-3 left-3 z-10">
                   <Badge 
                     variant="outline"
                     className={cn(
-                      "text-xs font-medium",
+                      "text-xs font-medium shadow-sm",
                       getBadgeClassName(banner.badge_type, banner.is_sponsored)
                     )}
                   >
@@ -237,13 +237,13 @@ const DashboardNewsCarousel = () => {
                 </div>
               )}
               
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                <h3 className="font-semibold text-sm sm:text-base line-clamp-1 group-hover:underline">
+              {/* Content - subtle gradient only at bottom for text readability */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
+                <h3 className="font-semibold text-sm sm:text-base line-clamp-1 group-hover:underline text-white drop-shadow-sm">
                   {banner.title}
                 </h3>
                 {banner.subtitle && (
-                  <p className="text-xs sm:text-sm text-white/80 line-clamp-1 mt-1">
+                  <p className="text-xs sm:text-sm text-white/90 line-clamp-1 mt-1 drop-shadow-sm">
                     {banner.subtitle}
                   </p>
                 )}

@@ -742,9 +742,9 @@ const AdminCommunication = () => {
                       <div className="flex items-start gap-2">
                         <Monitor className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-medium text-foreground">Desktop</p>
-                          <p>Tamanho ideal: <span className="font-semibold text-primary">400 x 160 px</span></p>
-                          <p>Proporção: 5:2 (horizontal)</p>
+                          <p className="font-medium text-foreground">Desktop / Tablet</p>
+                          <p>Tamanho ideal: <span className="font-semibold text-primary">800 x 400 px</span></p>
+                          <p>Proporção: 2:1 (horizontal)</p>
                           <p>Formatos: JPG, PNG ou WebP</p>
                         </div>
                       </div>
@@ -752,14 +752,14 @@ const AdminCommunication = () => {
                         <Smartphone className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-foreground">Mobile</p>
-                          <p>Tamanho ideal: <span className="font-semibold text-primary">320 x 160 px</span></p>
-                          <p>Proporção: 2:1 (horizontal)</p>
+                          <p>Tamanho ideal: <span className="font-semibold text-primary">400 x 400 px</span></p>
+                          <p>Proporção: 1:1 (quadrado)</p>
                           <p>Formatos: JPG, PNG ou WebP</p>
                         </div>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground/80 mt-2">
-                      💡 O carrossel exibe 3 cards em desktop, 2 em tablet e 1 em mobile. Imagens com altura de 160px garantem melhor visualização.
+                      💡 O carrossel exibe 3 cards em desktop, 2 em tablet e 1 em mobile. As imagens são exibidas sem máscara para máxima nitidez e resolução.
                     </p>
                   </div>
                 </div>
@@ -797,7 +797,7 @@ const AdminCommunication = () => {
                     />
                   </div>
                 )}
-                <span className="text-xs text-muted-foreground">Recomendado: 400 x 160 px (proporção 5:2)</span>
+                <span className="text-xs text-muted-foreground">Recomendado: 800 x 400 px (proporção 2:1)</span>
               </div>
 
               <div className="col-span-2">
@@ -832,7 +832,7 @@ const AdminCommunication = () => {
                     />
                   </div>
                 )}
-                <span className="text-xs text-muted-foreground">Recomendado: 320 x 160 px (proporção 2:1). Se vazio, usará a imagem desktop.</span>
+                <span className="text-xs text-muted-foreground">Recomendado: 400 x 400 px (proporção 1:1 quadrado). Se vazio, usará a imagem desktop.</span>
               </div>
 
               <div>
@@ -860,25 +860,24 @@ const AdminCommunication = () => {
             {formData.image_desktop_url && (
               <div>
                 <Label>Pré-visualização</Label>
-                <div className="mt-2 border rounded-lg overflow-hidden" style={{ height: "160px" }}>
-                  <div className="relative h-full">
+                <div className="mt-2 border rounded-lg overflow-hidden group cursor-pointer" style={{ height: "200px" }}>
+                  <div className="relative h-full transition-transform duration-300 group-hover:scale-[1.02]">
                     <img
                       src={formData.image_desktop_url}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                     {formData.badge_text && (
-                      <div className="absolute top-3 left-3">
-                        <Badge variant="outline" className="bg-white/90 text-xs">
+                      <div className="absolute top-3 left-3 z-10">
+                        <Badge variant="outline" className="bg-white/90 text-xs shadow-sm">
                           {formData.badge_text}
                         </Badge>
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                      <h3 className="font-semibold">{formData.title || "Título do banner"}</h3>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
+                      <h3 className="font-semibold text-white drop-shadow-sm group-hover:underline">{formData.title || "Título do banner"}</h3>
                       {formData.subtitle && (
-                        <p className="text-sm text-white/80">{formData.subtitle}</p>
+                        <p className="text-sm text-white/90 drop-shadow-sm">{formData.subtitle}</p>
                       )}
                     </div>
                   </div>
@@ -930,12 +929,15 @@ const AdminCommunication = () => {
           {editingBanner && (
             <div 
               className={cn(
-                "border rounded-lg overflow-hidden mx-auto",
+                "border rounded-lg overflow-hidden mx-auto group cursor-pointer",
                 previewDevice === "mobile" ? "max-w-[320px]" : "w-full"
               )}
-              style={{ height: previewDevice === "mobile" ? "200px" : "160px" }}
+              style={{ 
+                height: previewDevice === "mobile" ? "320px" : "200px",
+                aspectRatio: previewDevice === "mobile" ? "1/1" : "2/1"
+              }}
             >
-              <div className="relative h-full">
+              <div className="relative h-full transition-transform duration-300 group-hover:scale-[1.02]">
                 <img
                   src={
                     previewDevice === "mobile" && editingBanner.image_mobile_url
@@ -943,20 +945,19 @@ const AdminCommunication = () => {
                       : editingBanner.image_desktop_url
                   }
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 {(editingBanner.badge_text || editingBanner.is_sponsored) && (
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="outline" className="bg-white/90 text-xs">
+                  <div className="absolute top-3 left-3 z-10">
+                    <Badge variant="outline" className="bg-white/90 text-xs shadow-sm">
                       {editingBanner.is_sponsored ? "Patrocinado" : editingBanner.badge_text}
                     </Badge>
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <h3 className="font-semibold">{editingBanner.title}</h3>
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
+                  <h3 className="font-semibold text-white drop-shadow-sm group-hover:underline">{editingBanner.title}</h3>
                   {editingBanner.subtitle && (
-                    <p className="text-sm text-white/80">{editingBanner.subtitle}</p>
+                    <p className="text-sm text-white/90 drop-shadow-sm">{editingBanner.subtitle}</p>
                   )}
                 </div>
               </div>
