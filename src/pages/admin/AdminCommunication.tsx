@@ -767,128 +767,122 @@ const AdminCommunication = () => {
                 </div>
               </div>
 
+              {/* Imagens lado a lado */}
               <div className="col-span-2">
-                <Label htmlFor="image_desktop_url">Imagem Desktop *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="image_desktop_url"
-                    value={formData.image_desktop_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, image_desktop_url: e.target.value }))}
-                    placeholder="https://... ou selecione da biblioteca"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setMediaTargetField("desktop");
-                      setIsMediaSelectorOpen(true);
-                    }}
-                    className="flex-shrink-0"
-                  >
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                    Biblioteca
-                  </Button>
-                </div>
-                {formData.image_desktop_url && (
-                  <div className="mt-2 flex items-start gap-3">
-                    <div className="relative h-16 w-32 border rounded overflow-hidden flex-shrink-0">
-                      <img 
-                        src={formData.image_desktop_url} 
-                        alt="Preview Desktop" 
-                        className="w-full h-full object-cover"
-                      />
+                <Label className="mb-2 block">Imagens do Banner</Label>
+                <div className="flex flex-wrap gap-4">
+                  {/* Desktop Image */}
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Monitor className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Desktop/Tablet</span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
+                    {formData.image_desktop_url ? (
+                      <div className="relative group rounded-lg overflow-hidden border" style={{ aspectRatio: "2/1" }}>
+                        <img 
+                          src={formData.image_desktop_url} 
+                          alt="Preview Desktop" 
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Overlay com ícones */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => {
+                              setMediaTargetField("desktop");
+                              setIsMediaSelectorOpen(true);
+                            }}
+                            className="h-8 w-8"
+                            title="Substituir imagem"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => setFormData(prev => ({ ...prev, image_desktop_url: "" }))}
+                            className="h-8 w-8"
+                            title="Excluir imagem"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                        style={{ aspectRatio: "2/1" }}
                         onClick={() => {
                           setMediaTargetField("desktop");
                           setIsMediaSelectorOpen(true);
                         }}
-                        className="text-xs h-7"
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Substituir
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFormData(prev => ({ ...prev, image_desktop_url: "" }))}
-                        className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
+                        <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Clique para adicionar</span>
+                      </div>
+                    )}
+                    <span className="text-xs text-muted-foreground mt-1 block">800 x 400 px (2:1)</span>
                   </div>
-                )}
-                <span className="text-xs text-muted-foreground">Recomendado: 800 x 400 px (proporção 2:1)</span>
-              </div>
 
-              <div className="col-span-2">
-                <Label htmlFor="image_mobile_url">Imagem Mobile - opcional</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="image_mobile_url"
-                    value={formData.image_mobile_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, image_mobile_url: e.target.value }))}
-                    placeholder="https://... ou selecione da biblioteca"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setMediaTargetField("mobile");
-                      setIsMediaSelectorOpen(true);
-                    }}
-                    className="flex-shrink-0"
-                  >
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                    Biblioteca
-                  </Button>
-                </div>
-                {formData.image_mobile_url && (
-                  <div className="mt-2 flex items-start gap-3">
-                    <div className="relative h-16 w-16 border rounded overflow-hidden flex-shrink-0">
-                      <img 
-                        src={formData.image_mobile_url} 
-                        alt="Preview Mobile" 
-                        className="w-full h-full object-cover"
-                      />
+                  {/* Mobile Image */}
+                  <div className="w-[120px] flex-shrink-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Mobile</span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
+                    {formData.image_mobile_url ? (
+                      <div className="relative group rounded-lg overflow-hidden border" style={{ aspectRatio: "1/1" }}>
+                        <img 
+                          src={formData.image_mobile_url} 
+                          alt="Preview Mobile" 
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Overlay com ícones */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => {
+                              setMediaTargetField("mobile");
+                              setIsMediaSelectorOpen(true);
+                            }}
+                            className="h-7 w-7"
+                            title="Substituir imagem"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => setFormData(prev => ({ ...prev, image_mobile_url: "" }))}
+                            className="h-7 w-7"
+                            title="Excluir imagem"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                        style={{ aspectRatio: "1/1" }}
                         onClick={() => {
                           setMediaTargetField("mobile");
                           setIsMediaSelectorOpen(true);
                         }}
-                        className="text-xs h-7"
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Substituir
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFormData(prev => ({ ...prev, image_mobile_url: "" }))}
-                        className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
+                        <FolderOpen className="h-6 w-6 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground text-center">Adicionar</span>
+                      </div>
+                    )}
+                    <span className="text-xs text-muted-foreground mt-1 block">400 x 400 px</span>
                   </div>
-                )}
-                <span className="text-xs text-muted-foreground">Recomendado: 400 x 400 px (proporção 1:1 quadrado). Se vazio, usará a imagem desktop.</span>
+                </div>
               </div>
 
               <div>
