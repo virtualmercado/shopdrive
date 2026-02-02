@@ -56,6 +56,8 @@ import {
   Monitor,
   Smartphone,
   FolderOpen,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { MediaSelectorModal } from "@/components/admin/MediaSelectorModal";
 import { toast } from "sonner";
@@ -789,12 +791,39 @@ const AdminCommunication = () => {
                   </Button>
                 </div>
                 {formData.image_desktop_url && (
-                  <div className="mt-2 relative h-16 w-32 border rounded overflow-hidden">
-                    <img 
-                      src={formData.image_desktop_url} 
-                      alt="Preview Desktop" 
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="mt-2 flex items-start gap-3">
+                    <div className="relative h-16 w-32 border rounded overflow-hidden flex-shrink-0">
+                      <img 
+                        src={formData.image_desktop_url} 
+                        alt="Preview Desktop" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMediaTargetField("desktop");
+                          setIsMediaSelectorOpen(true);
+                        }}
+                        className="text-xs h-7"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Substituir
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({ ...prev, image_desktop_url: "" }))}
+                        className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
                 )}
                 <span className="text-xs text-muted-foreground">Recomendado: 800 x 400 px (proporção 2:1)</span>
@@ -824,12 +853,39 @@ const AdminCommunication = () => {
                   </Button>
                 </div>
                 {formData.image_mobile_url && (
-                  <div className="mt-2 relative h-16 w-24 border rounded overflow-hidden">
-                    <img 
-                      src={formData.image_mobile_url} 
-                      alt="Preview Mobile" 
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="mt-2 flex items-start gap-3">
+                    <div className="relative h-16 w-16 border rounded overflow-hidden flex-shrink-0">
+                      <img 
+                        src={formData.image_mobile_url} 
+                        alt="Preview Mobile" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMediaTargetField("mobile");
+                          setIsMediaSelectorOpen(true);
+                        }}
+                        className="text-xs h-7"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Substituir
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({ ...prev, image_mobile_url: "" }))}
+                        className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
                 )}
                 <span className="text-xs text-muted-foreground">Recomendado: 400 x 400 px (proporção 1:1 quadrado). Se vazio, usará a imagem desktop.</span>
