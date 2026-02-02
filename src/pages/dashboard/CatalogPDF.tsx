@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList } from "lucide-react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { buildGoogleMapsSearchUrl } from "@/lib/maps";
+import iconWhatsAppOutline from "@/assets/icon-whatsapp-outline.jpg";
+import iconMapPin from "@/assets/icon-map-pin.jpg";
 
 interface Product {
   id: string;
@@ -381,14 +383,14 @@ const CatalogPDF = () => {
         displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
       }
       
-      // Draw WhatsApp icon (simplified green circle with phone)
-      const iconSize = 5;
-      const iconX = centerX - 30;
-      const iconY = infoY - 3;
-      
-      // Green circle for WhatsApp
-      pdf.setFillColor(37, 211, 102);
-      pdf.circle(iconX, iconY, iconSize / 2, "F");
+      // Load and draw WhatsApp outline icon
+      const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false);
+      if (whatsappIconData) {
+        const iconSize = 6;
+        const iconX = centerX - 32;
+        const iconY = infoY - 4;
+        pdf.addImage(whatsappIconData.data, whatsappIconData.format, iconX, iconY, iconSize, iconSize);
+      }
       
       // Phone number text
       const whatsappText = displayNumber;
@@ -400,22 +402,34 @@ const CatalogPDF = () => {
       infoY += 15;
     }
 
-    // Physical address (clickable to Google Maps)
+    // Physical address (clickable to Google Maps) with map pin icon
     const fullAddress = getFullAddress();
     if (fullAddress) {
+      // Load and draw map pin icon
+      const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
+      const iconSize = 5;
+      const iconX = centerX - 80;
+      
+      if (mapPinIconData) {
+        pdf.addImage(mapPinIconData.data, mapPinIconData.format, iconX, infoY - 3.5, iconSize, iconSize);
+      }
+      
       pdf.setFontSize(10);
       pdf.setTextColor(80, 80, 80);
-      const addressLines = pdf.splitTextToSize(fullAddress, 150);
+      const addressLines = pdf.splitTextToSize(fullAddress, 140);
+      const addressStartX = iconX + iconSize + 3;
+      let addressY = infoY;
       addressLines.forEach((line: string) => {
-        pdf.text(line, centerX, infoY, { align: "center" });
-        infoY += 5;
+        pdf.text(line, addressStartX, addressY, { align: "left" });
+        addressY += 5;
       });
       
       const mapsUrl = buildGoogleMapsSearchUrl(fullAddress);
       if (mapsUrl) {
         const totalHeight = addressLines.length * 5;
-        pdf.link(centerX - 75, infoY - totalHeight - 4, 150, totalHeight, { url: mapsUrl });
+        pdf.link(iconX - 2, infoY - 4, 155, totalHeight + 4, { url: mapsUrl });
       }
+      infoY = addressY;
     }
   };
 
@@ -1426,17 +1440,44 @@ const CatalogPDF = () => {
                             <span className="text-xs text-gray-400">Logo</span>
                           )}
                         </div>
-                        <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%]">
+                        <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
                           {storeProfile?.store_slug && (
-                            <p className="font-semibold mb-1" style={{ color: storeProfile?.primary_color || primaryColor }}>
+                            <p 
+                              className="font-semibold cursor-pointer transition-all duration-200 hover:underline hover:scale-105" 
+                              style={{ color: storeProfile?.primary_color || primaryColor }}
+                            >
                               {window.location.origin}/loja/{storeProfile.store_slug}
                             </p>
                           )}
                           {storeProfile?.whatsapp_number && (
-                            <p className="text-[10px]">WhatsApp: {storeProfile.whatsapp_number}</p>
+                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
+                              <img 
+                                src={iconWhatsAppOutline} 
+                                alt="WhatsApp" 
+                                className="w-3 h-3 object-contain"
+                              />
+                              <span className="text-[10px]">
+                                {(() => {
+                                  const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
+                                  let displayNumber = rawNumber;
+                                  if (rawNumber.startsWith('55') && rawNumber.length > 11) {
+                                    displayNumber = rawNumber.substring(2);
+                                  }
+                                  if (displayNumber.length === 11) {
+                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
+                                  } else if (displayNumber.length === 10) {
+                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
+                                  }
+                                  return displayNumber;
+                                })()}
+                              </span>
+                            </div>
                           )}
                           {getFullAddress() && (
-                            <p className="text-[8px] mt-1 truncate">{getFullAddress()}</p>
+                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
+                              <MapPin className="w-3 h-3 flex-shrink-0" />
+                              <span className="text-[8px] truncate">{getFullAddress()}</span>
+                            </div>
                           )}
                         </div>
                       </div>
