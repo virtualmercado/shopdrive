@@ -767,120 +767,127 @@ const AdminCommunication = () => {
                 </div>
               </div>
 
-              {/* Imagens lado a lado */}
-              <div className="col-span-2">
-                <Label className="mb-2 block">Imagens do Banner</Label>
-                <div className="flex flex-wrap gap-4">
-                  {/* Desktop Image */}
-                  <div className="flex-1 min-w-[200px]">
-                    <div className="flex items-center gap-2 mb-2">
+              {/* Imagens do Banner - Padrão visual do lojista */}
+              <div className="col-span-2 space-y-4">
+                <Label className="text-base font-medium">Imagens do Banner</Label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Desktop Image Slot */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
                       <Monitor className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Desktop/Tablet</span>
+                      <Badge variant="outline" className="text-xs">800x400px</Badge>
                     </div>
+                    
                     {formData.image_desktop_url ? (
-                      <div className="relative group rounded-lg overflow-hidden border" style={{ aspectRatio: "2/1" }}>
-                        <img 
-                          src={formData.image_desktop_url} 
-                          alt="Preview Desktop" 
-                          className="w-full h-full object-cover"
+                      <div className="relative group">
+                        <img
+                          src={formData.image_desktop_url}
+                          alt="Banner Desktop"
+                          className="w-full h-24 object-cover rounded-lg border border-border"
                         />
-                        {/* Overlay com ícones */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="secondary" className="bg-black/60 text-white text-xs">
+                            1
+                          </Badge>
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="icon"
                             onClick={() => {
                               setMediaTargetField("desktop");
                               setIsMediaSelectorOpen(true);
                             }}
-                            className="h-8 w-8"
+                            className="rounded-full p-1.5 cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
                             title="Substituir imagem"
                           >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                          <Button
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             type="button"
-                            variant="destructive"
-                            size="icon"
                             onClick={() => setFormData(prev => ({ ...prev, image_desktop_url: "" }))}
-                            className="h-8 w-8"
+                            className="rounded-full p-1.5 transition-all duration-200 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             title="Excluir imagem"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <div 
-                        className="border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                        style={{ aspectRatio: "2/1" }}
+                        className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg h-24 flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => {
                           setMediaTargetField("desktop");
                           setIsMediaSelectorOpen(true);
                         }}
                       >
-                        <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Clique para adicionar</span>
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="text-xs">1</Badge>
+                        </div>
+                        <FolderOpen className="w-6 h-6 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">Adicionar imagem</span>
                       </div>
                     )}
-                    <span className="text-xs text-muted-foreground mt-1 block">800 x 400 px (2:1)</span>
                   </div>
 
-                  {/* Mobile Image */}
-                  <div className="w-[120px] flex-shrink-0">
-                    <div className="flex items-center gap-2 mb-2">
+                  {/* Mobile Image Slot */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
                       <Smartphone className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Mobile</span>
+                      <Badge variant="outline" className="text-xs">400x400px</Badge>
                     </div>
+                    
                     {formData.image_mobile_url ? (
-                      <div className="relative group rounded-lg overflow-hidden border" style={{ aspectRatio: "1/1" }}>
-                        <img 
-                          src={formData.image_mobile_url} 
-                          alt="Preview Mobile" 
-                          className="w-full h-full object-cover"
+                      <div className="relative group">
+                        <img
+                          src={formData.image_mobile_url}
+                          alt="Banner Mobile"
+                          className="w-full h-24 object-cover rounded-lg border border-border"
                         />
-                        {/* Overlay com ícones */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="secondary" className="bg-black/60 text-white text-xs">
+                            1
+                          </Badge>
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="icon"
                             onClick={() => {
                               setMediaTargetField("mobile");
                               setIsMediaSelectorOpen(true);
                             }}
-                            className="h-7 w-7"
+                            className="rounded-full p-1.5 cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
                             title="Substituir imagem"
                           >
-                            <RefreshCw className="h-3 w-3" />
-                          </Button>
-                          <Button
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             type="button"
-                            variant="destructive"
-                            size="icon"
                             onClick={() => setFormData(prev => ({ ...prev, image_mobile_url: "" }))}
-                            className="h-7 w-7"
+                            className="rounded-full p-1.5 transition-all duration-200 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             title="Excluir imagem"
                           >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <div 
-                        className="border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                        style={{ aspectRatio: "1/1" }}
+                        className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg h-24 flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => {
                           setMediaTargetField("mobile");
                           setIsMediaSelectorOpen(true);
                         }}
                       >
-                        <FolderOpen className="h-6 w-6 text-muted-foreground mb-1" />
-                        <span className="text-xs text-muted-foreground text-center">Adicionar</span>
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="outline" className="text-xs">1</Badge>
+                        </div>
+                        <FolderOpen className="w-6 h-6 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">Adicionar imagem</span>
                       </div>
                     )}
-                    <span className="text-xs text-muted-foreground mt-1 block">400 x 400 px</span>
                   </div>
                 </div>
               </div>
