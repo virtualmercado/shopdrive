@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -20,14 +19,11 @@ import {
   Cloud,
   CircleDot,
   Square,
-  Info,
   RefreshCw,
-  Check,
-  RotateCcwIcon,
   ZoomIn,
   Wand2
 } from "lucide-react";
-import { removeBackground, loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
+import { loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
 interface ImageEditorProps {
   open: boolean;
@@ -45,22 +41,12 @@ interface ImageAdjustments {
   blacks: number;
 }
 
-type BackgroundType = 'original' | 'white' | 'black' | 'transparent' | 
-  'neutral-light' | 'pastel-pink' | 'pastel-blue' | 'pastel-green' | 'auto-contrast' |
-  'wood' | 'marble' | 'neutral-surface' | 'light-texture';
-
-type ShadowType = 'none' | 'base' | 'around';
-
 // History state snapshot for undo functionality
 interface EditorHistoryState {
   adjustments: ImageAdjustments;
   rotation: number;
   offsetX: number;
   scale: number;
-  selectedBackground: BackgroundType;
-  shadowType: ShadowType;
-  isBackgroundRemoved: boolean;
-  backgroundRemovedImage: ImageData | null;
 }
 
 const MAX_HISTORY_SIZE = 20;
@@ -72,22 +58,6 @@ const defaultAdjustments: ImageAdjustments = {
   shadows: 0,
   whites: 0,
   blacks: 0,
-};
-
-const backgroundPresets: Record<BackgroundType, { label: string; color?: string; pattern?: string }> = {
-  original: { label: 'Original' },
-  white: { label: 'Branco', color: '#FFFFFF' },
-  black: { label: 'Preto', color: '#000000' },
-  transparent: { label: 'Transparente' },
-  'neutral-light': { label: 'Neutro Claro', color: '#F5F5F5' },
-  'pastel-pink': { label: 'Rosa Pastel', color: '#FFE4E6' },
-  'pastel-blue': { label: 'Azul Pastel', color: '#E0F2FE' },
-  'pastel-green': { label: 'Verde Pastel', color: '#DCFCE7' },
-  'auto-contrast': { label: 'Auto Contraste' },
-  'wood': { label: 'Madeira', pattern: 'wood' },
-  'marble': { label: 'Mármore', pattern: 'marble' },
-  'neutral-surface': { label: 'Superfície Neutra', pattern: 'neutral' },
-  'light-texture': { label: 'Textura Leve', pattern: 'light' },
 };
 
 // Helper: apply tonal adjustments to ImageData
@@ -336,7 +306,7 @@ const simulateAdjustmentQuality = (
 // Helper: calculate auto adjustments based on histogram (ULTRA-CONSERVATIVE for e-commerce)
 const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
   const { 
-    median, stdDev, p1, p99, 
+    median, stdDev, 
     clippingHighlights, clippingShadows,
     hasWhiteBackground, isWellExposed, isBalanced,
     hasGoodContrast, isEcommerceReady,
@@ -501,8 +471,6 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
 
 export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEditorProps) => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
-  const [processedImage, setProcessedImage] = useState<ImageData | null>(null);
-  const [backgroundRemovedImage, setBackgroundRemovedImage] = useState<ImageData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState('');
@@ -513,10 +481,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [scaleSliderPos, setScaleSliderPos] = useState(0); // Bipolar slider position: -100 to +100, 0 = 100%
   const [rotationInput, setRotationInput] = useState("0");
   const [scaleInput, setScaleInput] = useState("100");
-  const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('original');
-  const [shadowType, setShadowType] = useState<ShadowType>('none');
-  const [isBackgroundRemoved, setIsBackgroundRemoved] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isAnimatingReset, setIsAnimatingReset] = useState(false);
   const [isAnimatingAuto, setIsAnimatingAuto] = useState(false);
@@ -541,7 +505,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   
   const rotationStep = isMobile ? 0.5 : 0.1;
   const offsetStep = isMobile ? 1 : 0.5;
-  const scaleStep = isMobile ? 2 : 1;
 
   const calculateVisibilityFactor = useCallback((currentScale: number, currentOffsetX: number): number => {
     const scaleFactor = currentScale / 100;
@@ -593,10 +556,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         rotation,
         offsetX,
         scale,
-        selectedBackground,
-        shadowType,
-        isBackgroundRemoved,
-        backgroundRemovedImage,
       };
     }
     
@@ -621,7 +580,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       isInteractingRef.current = false;
       interactionTimeoutRef.current = null;
     }, 300); // 300ms debounce - commits after user stops interacting
-  }, [adjustments, rotation, offsetX, scale, selectedBackground, shadowType, isBackgroundRemoved, backgroundRemovedImage]);
+  }, [adjustments, rotation, offsetX, scale]);
 
   // Immediate push for discrete actions (button clicks, etc.)
   const pushToHistoryImmediate = useCallback(() => {
@@ -630,10 +589,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       rotation,
       offsetX,
       scale,
-      selectedBackground,
-      shadowType,
-      isBackgroundRemoved,
-      backgroundRemovedImage,
     };
     
     setHistoryStack(prev => {
@@ -644,7 +599,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       }
       return newStack;
     });
-  }, [adjustments, rotation, offsetX, scale, selectedBackground, shadowType, isBackgroundRemoved, backgroundRemovedImage]);
+  }, [adjustments, rotation, offsetX, scale]);
 
   useEffect(() => {
     if (open && imageUrl) {
@@ -683,7 +638,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   // Unified draw function that applies both transforms and adjustments
-  const drawImage = useCallback((img: HTMLImageElement, imgData?: ImageData, currentAdjustments?: ImageAdjustments) => {
+  const drawImage = useCallback((img: HTMLImageElement, currentAdjustments?: ImageAdjustments) => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
@@ -704,20 +659,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       const adj = currentAdjustments || adjustments;
       const hasAdjustments = Object.values(adj).some(v => v !== 0);
 
-      // Create source image data (either from imgData or from original image)
-      let sourceData: ImageData;
-      
-      if (imgData) {
-        sourceData = imgData;
-      } else {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-        tempCtx.drawImage(img, 0, 0);
-        sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      }
+      // Create source image data from original image
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      tempCtx.drawImage(img, 0, 0);
+      const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
       // Apply adjustments if any
       const adjustedData = hasAdjustments ? applyAdjustmentsToImageData(sourceData, adj) : sourceData;
@@ -741,260 +690,16 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     });
   }, [rotation, offsetX, scale, adjustments]);
 
-  const handleRemoveBackground = async () => {
-    if (!originalImage) return;
-
-    // Push current state to history before removing background
-    pushToHistoryImmediate();
-
-    setIsProcessing(true);
-    setProcessingStep('Preparando imagem...');
-    setProcessingProgress(10);
-
-    try {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = originalImage.width;
-      tempCanvas.height = originalImage.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) throw new Error('Could not get canvas context');
-      
-      tempCtx.drawImage(originalImage, 0, 0);
-
-      setProcessingStep('Removendo fundo...');
-      setProcessingProgress(30);
-
-      const resultBlob = await removeBackground(originalImage, (progress) => {
-        setProcessingProgress(30 + progress * 60);
-      });
-
-      setProcessingStep('Processando resultado...');
-      setProcessingProgress(90);
-
-      const resultImg = new Image();
-      resultImg.src = URL.createObjectURL(resultBlob);
-      
-      await new Promise<void>((resolve) => {
-        resultImg.onload = () => {
-          const resultCanvas = document.createElement('canvas');
-          resultCanvas.width = resultImg.width;
-          resultCanvas.height = resultImg.height;
-          const resultCtx = resultCanvas.getContext('2d');
-          if (resultCtx) {
-            resultCtx.drawImage(resultImg, 0, 0);
-            const imageData = resultCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
-            setBackgroundRemovedImage(imageData);
-            setProcessedImage(imageData);
-            setIsBackgroundRemoved(true);
-            setShowComparison(true);
-            setHasChanges(true);
-          }
-          URL.revokeObjectURL(resultImg.src);
-          resolve();
-        };
-      });
-
-      setProcessingProgress(100);
-      
-      toast({
-        title: "Sucesso",
-        description: "Fundo removido com sucesso!",
-      });
-    } catch (error) {
-      console.error('Error removing background:', error);
-      toast({
-        title: "Erro na remoção de fundo",
-        description: "Tente novamente com uma imagem diferente",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-      setProcessingStep('');
-    }
-  };
-
-  // Apply background with all effects including adjustments
-  const applyBackground = useCallback((currentAdjustments?: ImageAdjustments) => {
-    if (!backgroundRemovedImage || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = backgroundRemovedImage.width;
-    canvas.height = backgroundRemovedImage.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background first
-    if (selectedBackground !== 'transparent' && selectedBackground !== 'original') {
-      const preset = backgroundPresets[selectedBackground];
-      
-      if (preset.pattern) {
-        drawTextureBackground(ctx, canvas.width, canvas.height, preset.pattern);
-      } else if (preset.color) {
-        ctx.fillStyle = preset.color;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      } else if (selectedBackground === 'auto-contrast') {
-        const avgColor = calculateAverageColor(backgroundRemovedImage);
-        const contrastColor = getContrastingColor(avgColor);
-        ctx.fillStyle = contrastColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    } else if (selectedBackground === 'transparent') {
-      drawCheckerboard(ctx, canvas.width, canvas.height);
-    }
-
-    const offsetPixels = (offsetX / 100) * canvas.width;
-    const scaleFactor = scale / 100;
-    const adj = currentAdjustments || adjustments;
-    const hasAdj = Object.values(adj).some(v => v !== 0);
-
-    // Apply adjustments to the background-removed image
-    const adjustedData = hasAdj ? applyAdjustmentsToImageData(backgroundRemovedImage, adj) : backgroundRemovedImage;
-
-    ctx.save();
-    ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(scaleFactor, scaleFactor);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-    // Apply shadow if needed
-    if (shadowType !== 'none' && isBackgroundRemoved) {
-      applyShadow(ctx, adjustedData, shadowType);
-    }
-
-    // Draw the adjusted image
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = adjustedData.width;
-    tempCanvas.height = adjustedData.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (tempCtx) {
-      tempCtx.putImageData(adjustedData, 0, 0);
-      ctx.drawImage(tempCanvas, 0, 0);
-    }
-
-    ctx.restore();
-  }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved, rotation, offsetX, scale]);
-
-  useEffect(() => {
-    if (isBackgroundRemoved && backgroundRemovedImage) {
-      applyBackground();
-    }
-  }, [applyBackground, isBackgroundRemoved, backgroundRemovedImage]);
-
-  const drawTextureBackground = (ctx: CanvasRenderingContext2D, width: number, height: number, pattern: string) => {
-    switch (pattern) {
-      case 'wood':
-        const woodGradient = ctx.createLinearGradient(0, 0, width, height);
-        woodGradient.addColorStop(0, '#D4A574');
-        woodGradient.addColorStop(0.3, '#C9956C');
-        woodGradient.addColorStop(0.6, '#D4A574');
-        woodGradient.addColorStop(1, '#B8845C');
-        ctx.fillStyle = woodGradient;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      case 'marble':
-        ctx.fillStyle = '#F5F5F5';
-        ctx.fillRect(0, 0, width, height);
-        ctx.strokeStyle = 'rgba(180, 180, 180, 0.3)';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 5; i++) {
-          ctx.beginPath();
-          ctx.moveTo(Math.random() * width, 0);
-          ctx.bezierCurveTo(
-            Math.random() * width, height * 0.3,
-            Math.random() * width, height * 0.6,
-            Math.random() * width, height
-          );
-          ctx.stroke();
-        }
-        break;
-      case 'neutral':
-        ctx.fillStyle = '#E5E5E5';
-        ctx.fillRect(0, 0, width, height);
-        break;
-      case 'light':
-        ctx.fillStyle = '#FAFAFA';
-        ctx.fillRect(0, 0, width, height);
-        const imageData = ctx.getImageData(0, 0, width, height);
-        for (let i = 0; i < imageData.data.length; i += 4) {
-          const noise = (Math.random() - 0.5) * 10;
-          imageData.data[i] += noise;
-          imageData.data[i + 1] += noise;
-          imageData.data[i + 2] += noise;
-        }
-        ctx.putImageData(imageData, 0, 0);
-        break;
-    }
-  };
-
-  const drawCheckerboard = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const size = 10;
-    for (let x = 0; x < width; x += size) {
-      for (let y = 0; y < height; y += size) {
-        ctx.fillStyle = ((x / size + y / size) % 2 === 0) ? '#FFFFFF' : '#CCCCCC';
-        ctx.fillRect(x, y, size, size);
-      }
-    }
-  };
-
-  const applyShadow = (ctx: CanvasRenderingContext2D, imageData: ImageData, type: ShadowType) => {
-    ctx.save();
-    
-    if (type === 'base') {
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 10;
-    } else if (type === 'around') {
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-    }
-    
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = imageData.width;
-    tempCanvas.height = imageData.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (tempCtx) {
-      tempCtx.putImageData(imageData, 0, 0);
-      ctx.drawImage(tempCanvas, 0, 0);
-    }
-    
-    ctx.restore();
-  };
-
-  const calculateAverageColor = (imageData: ImageData): { r: number; g: number; b: number } => {
-    let r = 0, g = 0, b = 0, count = 0;
-    
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      if (imageData.data[i + 3] > 128) {
-        r += imageData.data[i];
-        g += imageData.data[i + 1];
-        b += imageData.data[i + 2];
-        count++;
-      }
-    }
-    
-    return {
-      r: Math.round(r / count),
-      g: Math.round(g / count),
-      b: Math.round(b / count),
-    };
-  };
-
-  const getContrastingColor = (color: { r: number; g: number; b: number }): string => {
-    const luminance = (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255;
-    return luminance > 0.5 ? '#2D2D2D' : '#F5F5F5';
-  };
-
   const handleRotationChange = useCallback((value: number) => {
+    if (isAnimatingReset) return;
+    
     captureStateBeforeInteraction();
+    
     const clampedValue = Math.max(-180, Math.min(180, value));
     setRotation(clampedValue);
     setRotationInput(clampedValue.toFixed(1));
     setHasChanges(true);
-  }, [captureStateBeforeInteraction]);
+  }, [isAnimatingReset, captureStateBeforeInteraction]);
 
   const handleRotationInputChange = (inputValue: string) => {
     setRotationInput(inputValue);
@@ -1060,25 +765,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleInput(Math.round(newScale).toString());
     setHasChanges(true);
   }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos, captureStateBeforeInteraction]);
-
-  const handleScaleChange = useCallback((value: number) => {
-    if (isAnimatingReset) return;
-    
-    captureStateBeforeInteraction();
-    
-    const visibility = calculateVisibilityFactor(value, offsetX);
-    const clampMultiplier = getSoftClampMultiplier(visibility);
-    
-    const delta = value - scale;
-    const softDelta = delta * clampMultiplier;
-    const newValue = scale + softDelta;
-    
-    const clampedValue = Math.max(60, Math.min(160, newValue));
-    setScale(clampedValue);
-    setScaleSliderPos(scaleToSliderPos(clampedValue));
-    setScaleInput(Math.round(clampedValue).toString());
-    setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos, captureStateBeforeInteraction]);
 
   const handleScaleInputChange = (inputValue: string) => {
     setScaleInput(inputValue);
@@ -1149,12 +835,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         setScaleSliderPos(0);
         setScaleInput("100");
         setAdjustments(defaultAdjustments);
-        setSelectedBackground('original');
-        setShadowType('none');
-        setIsBackgroundRemoved(false);
-        setBackgroundRemovedImage(null);
-        setProcessedImage(null);
-        setShowComparison(false);
         setHasChanges(false);
         setHistoryStack([]); // Clear history on reset
         setIsAnimatingReset(false);
@@ -1167,7 +847,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     };
     
     resetAnimationRef.current = requestAnimationFrame(animate);
-  }, [rotation, offsetX, scale, adjustments, isAnimatingReset, originalImage, drawImage]);
+  }, [rotation, offsetX, scale, adjustments, isAnimatingReset, originalImage, drawImage, scaleToSliderPos]);
 
   // Auto button: analyze image and set optimal adjustments
   const handleAutoAdjust = useCallback(() => {
@@ -1177,19 +857,13 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     pushToHistoryImmediate();
 
     // Get source image data
-    let sourceData: ImageData;
-    
-    if (isBackgroundRemoved && backgroundRemovedImage) {
-      sourceData = backgroundRemovedImage;
-    } else {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = originalImage.width;
-      tempCanvas.height = originalImage.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      tempCtx.drawImage(originalImage, 0, 0);
-      sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    }
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = originalImage.width;
+    tempCanvas.height = originalImage.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+    tempCtx.drawImage(originalImage, 0, 0);
+    const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
     // Analyze histogram
     const analysis = analyzeImageHistogram(sourceData);
@@ -1238,7 +912,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     };
 
     autoAnimationRef.current = requestAnimationFrame(animate);
-  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast, pushToHistoryImmediate]);
+  }, [originalImage, adjustments, isAnimatingAuto, toast, pushToHistoryImmediate]);
 
   const handleAdjustmentChange = (key: keyof ImageAdjustments, value: number) => {
     captureStateBeforeInteraction();
@@ -1261,17 +935,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setScale(previousState.scale);
       setScaleSliderPos(scaleToSliderPos(previousState.scale));
       setScaleInput(Math.round(previousState.scale).toString());
-      setSelectedBackground(previousState.selectedBackground);
-      setShadowType(previousState.shadowType);
-      setIsBackgroundRemoved(previousState.isBackgroundRemoved);
-      setBackgroundRemovedImage(previousState.backgroundRemovedImage);
-      
-      if (previousState.isBackgroundRemoved) {
-        setShowComparison(true);
-      } else {
-        setProcessedImage(null);
-        setShowComparison(false);
-      }
       
       setHistoryStack(newStack);
       
@@ -1279,63 +942,58 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setHasChanges(newStack.length > 0);
       
       // Redraw the image with restored state
-      if (!previousState.isBackgroundRemoved && originalImage) {
-        drawImage(originalImage, undefined, previousState.adjustments);
+      if (originalImage) {
+        drawImage(originalImage, previousState.adjustments);
       }
     }
   }, [historyStack, originalImage, drawImage, scaleToSliderPos]);
 
   const handleSave = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !originalImage) return;
 
     setIsProcessing(true);
     setProcessingStep('Salvando imagem...');
     setProcessingProgress(50);
 
     try {
-      // Re-render with final state
-      if (isBackgroundRemoved && backgroundRemovedImage) {
-        applyBackground(adjustments);
-      } else if (originalImage) {
-        // Synchronous final render
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = originalImage.width;
-          canvas.height = originalImage.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Synchronous final render
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        canvas.width = originalImage.width;
+        canvas.height = originalImage.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          const offsetPixels = (offsetX / 100) * canvas.width;
-          const scaleFactor = scale / 100;
+        const offsetPixels = (offsetX / 100) * canvas.width;
+        const scaleFactor = scale / 100;
 
-          // Get source data
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = originalImage.width;
-          tempCanvas.height = originalImage.height;
-          const tempCtx = tempCanvas.getContext('2d');
-          if (tempCtx) {
-            tempCtx.drawImage(originalImage, 0, 0);
-            const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            
-            // Apply adjustments
-            const hasAdj = Object.values(adjustments).some(v => v !== 0);
-            const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
+        // Get source data
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = originalImage.width;
+        tempCanvas.height = originalImage.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (tempCtx) {
+          tempCtx.drawImage(originalImage, 0, 0);
+          const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+          
+          // Apply adjustments
+          const hasAdj = Object.values(adjustments).some(v => v !== 0);
+          const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
 
-            const adjustedCanvas = document.createElement('canvas');
-            adjustedCanvas.width = adjustedData.width;
-            adjustedCanvas.height = adjustedData.height;
-            const adjustedCtx = adjustedCanvas.getContext('2d');
-            if (adjustedCtx) {
-              adjustedCtx.putImageData(adjustedData, 0, 0);
+          const adjustedCanvas = document.createElement('canvas');
+          adjustedCanvas.width = adjustedData.width;
+          adjustedCanvas.height = adjustedData.height;
+          const adjustedCtx = adjustedCanvas.getContext('2d');
+          if (adjustedCtx) {
+            adjustedCtx.putImageData(adjustedData, 0, 0);
 
-              ctx.save();
-              ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
-              ctx.rotate((rotation * Math.PI) / 180);
-              ctx.scale(scaleFactor, scaleFactor);
-              ctx.translate(-canvas.width / 2, -canvas.height / 2);
-              ctx.drawImage(adjustedCanvas, 0, 0);
-              ctx.restore();
-            }
+            ctx.save();
+            ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+            ctx.scale(scaleFactor, scaleFactor);
+            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            ctx.drawImage(adjustedCanvas, 0, 0);
+            ctx.restore();
           }
         }
       }
@@ -1366,17 +1024,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
   // Update canvas when transforms or adjustments change
   useEffect(() => {
-    if (originalImage && !isBackgroundRemoved) {
-      drawImage(originalImage, undefined, adjustments);
+    if (originalImage) {
+      drawImage(originalImage, adjustments);
     }
-  }, [rotation, offsetX, scale, adjustments, originalImage, isBackgroundRemoved, drawImage]);
-
-  // Update background-removed canvas when adjustments change
-  useEffect(() => {
-    if (isBackgroundRemoved && backgroundRemovedImage) {
-      applyBackground(adjustments);
-    }
-  }, [adjustments, isBackgroundRemoved, backgroundRemovedImage, rotation, offsetX, scale, selectedBackground, shadowType]);
+  }, [rotation, offsetX, scale, adjustments, originalImage, drawImage]);
 
   useEffect(() => {
     return () => {
@@ -1410,49 +1061,25 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
-                <Info className="h-4 w-4 flex-shrink-0" />
-                <span>Para melhores resultados na remoção de fundo, utilize fotos com fundo contrastante e sem outros objetos além do produto.</span>
-              </div>
-
+              {/* Preview Area */}
               <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto">
-                {showComparison && originalImage ? (
-                  <div className="flex gap-4 items-center">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-2">ANTES</p>
-                      <img 
-                        src={imageUrl} 
-                        alt="Original" 
-                        className="max-w-[200px] max-h-[300px] object-contain border rounded"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-2">DEPOIS</p>
-                      <canvas
-                        ref={canvasRef}
-                        className="max-w-[200px] max-h-[300px] object-contain border rounded"
-                        style={{ maxWidth: '200px', maxHeight: '300px' }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <canvas
-                    ref={canvasRef}
-                    className="max-w-full max-h-full object-contain border rounded shadow-sm"
-                    style={{ maxHeight: '400px' }}
-                  />
-                )}
+                <canvas
+                  ref={canvasRef}
+                  className="max-w-full max-h-full object-contain border rounded shadow-sm"
+                  style={{ maxHeight: '400px' }}
+                />
               </div>
 
-              <div className="px-4 py-3 border-t space-y-4 flex-shrink-0">
+              {/* Transform Controls */}
+              <div className="px-4 py-3 border-t space-y-3 flex-shrink-0">
                 {/* Rotation Control */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium flex items-center gap-1">
-                      <RotateCcwIcon className="h-3 w-3" />
+                      <RotateCw className="h-3 w-3" />
                       Rotação (°)
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Input
                         type="text"
                         value={rotationInput}
@@ -1460,6 +1087,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                         onBlur={handleRotationInputBlur}
                         className="w-16 h-7 text-xs text-center"
                       />
+                      <span className="text-xs text-muted-foreground">°</span>
                     </div>
                   </div>
                   <Slider
@@ -1470,7 +1098,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                     step={rotationStep}
                     className="w-full"
                   />
-                  <div className="flex gap-1 justify-center">
+                  <div className="flex justify-between gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1482,21 +1110,19 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={handleRotateLeft}
-                      className={buttonRadius}
+                      className={`h-8 w-8 ${buttonRadius}`}
                       style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                      title="Clique: -1° | Shift+Clique: -15°"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={handleRotateRight}
-                      className={buttonRadius}
+                      className={`h-8 w-8 ${buttonRadius}`}
                       style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                      title="Clique: +1° | Shift+Clique: +15°"
                     >
                       <RotateCw className="h-4 w-4" />
                     </Button>
@@ -1580,196 +1206,60 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
               </div>
             </div>
 
-            {/* Side Panel */}
+            {/* Side Panel - Adjustments Only */}
             <div className="w-72 border-l flex flex-col overflow-hidden bg-background flex-shrink-0">
               <div className="flex-1 overflow-y-auto p-4">
-                <Tabs defaultValue="background" className="w-full">
-                  <TabsList className="w-full grid grid-cols-3 mb-4">
-                    <TabsTrigger value="background" className="text-xs">Fundo</TabsTrigger>
-                    <TabsTrigger value="adjustments" className="text-xs">Ajustes</TabsTrigger>
-                    <TabsTrigger value="shadows" className="text-xs">Sombras</TabsTrigger>
-                  </TabsList>
-
-                  {/* Background Tab */}
-                  <TabsContent value="background" className="space-y-4">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Ajustes</h3>
+                  
+                  {/* Auto Button */}
+                  <div className="space-y-2">
                     <Button
-                      onClick={handleRemoveBackground}
-                      disabled={isProcessing || isBackgroundRemoved}
+                      onClick={handleAutoAdjust}
+                      disabled={isProcessing || isAnimatingAuto || !originalImage}
+                      variant="outline"
                       className={`w-full ${buttonRadius}`}
-                      style={{ 
-                        backgroundColor: isBackgroundRemoved ? '#22c55e' : buttonBgColor, 
-                        color: buttonTextColor 
-                      }}
+                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
                     >
-                      {isBackgroundRemoved ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Fundo Removido
-                        </>
-                      ) : (
-                        'Remover Fundo'
-                      )}
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Auto
                     </Button>
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                      Auto usa IA para analisar a imagem e sugerir ajustes profissionais para e-commerce.
+                    </p>
+                  </div>
 
-                    {isBackgroundRemoved && (
-                      <>
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">Clássicos</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {(['original', 'white', 'black', 'transparent'] as BackgroundType[]).map((bg) => (
-                              <button
-                                key={bg}
-                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
-                                className={`w-full aspect-square rounded border-2 transition-all ${
-                                  selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
-                                }`}
-                                style={{
-                                  borderColor: selectedBackground === bg ? buttonBgColor : 'transparent',
-                                  backgroundColor: bg === 'white' ? '#FFFFFF' : 
-                                                   bg === 'black' ? '#000000' :
-                                                   bg === 'transparent' ? 'transparent' : '#F5F5F5',
-                                  backgroundImage: bg === 'transparent' ? 
-                                    'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)' : 
-                                    undefined,
-                                  backgroundSize: bg === 'transparent' ? '8px 8px' : undefined,
-                                  backgroundPosition: bg === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : undefined,
-                                  ['--tw-ring-color' as any]: buttonBgColor
-                                }}
-                                title={backgroundPresets[bg].label}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">Estúdio</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {(['neutral-light', 'pastel-pink', 'pastel-blue', 'pastel-green', 'auto-contrast'] as BackgroundType[]).map((bg) => (
-                              <button
-                                key={bg}
-                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
-                                className={`w-full aspect-square rounded border-2 transition-all ${
-                                  selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
-                                }`}
-                                style={{
-                                  borderColor: selectedBackground === bg ? buttonBgColor : 'transparent',
-                                  backgroundColor: backgroundPresets[bg].color || '#F5F5F5',
-                                  ['--tw-ring-color' as any]: buttonBgColor
-                                }}
-                                title={backgroundPresets[bg].label}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">Texturas</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {(['wood', 'marble', 'neutral-surface', 'light-texture'] as BackgroundType[]).map((bg) => (
-                              <button
-                                key={bg}
-                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
-                                className={`w-full aspect-square rounded border-2 transition-all ${
-                                  selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
-                                }`}
-                                style={{
-                                  borderColor: selectedBackground === bg ? buttonBgColor : 'transparent',
-                                  backgroundColor: bg === 'wood' ? '#D4A574' : 
-                                                   bg === 'marble' ? '#F5F5F5' :
-                                                   bg === 'neutral-surface' ? '#E5E5E5' : '#FAFAFA',
-                                  ['--tw-ring-color' as any]: buttonBgColor
-                                }}
-                                title={backgroundPresets[bg].label}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </TabsContent>
-
-                  {/* Adjustments Tab */}
-                  <TabsContent value="adjustments" className="space-y-4">
-                    {/* Auto Button */}
-                    <div className="space-y-2">
-                      <Button
-                        onClick={handleAutoAdjust}
-                        disabled={isProcessing || isAnimatingAuto || !originalImage}
-                        variant="outline"
-                        className={`w-full ${buttonRadius}`}
-                        style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                      >
-                        <Wand2 className="h-4 w-4 mr-2" />
-                        Auto
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                        Auto usa IA para analisar a imagem e sugerir ajustes profissionais para e-commerce.
-                      </p>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      {[
-                        { key: 'exposure', label: 'Exposição', icon: Sun },
-                        { key: 'contrast', label: 'Contraste', icon: Contrast },
-                        { key: 'highlights', label: 'Realces', icon: Sparkles },
-                        { key: 'shadows', label: 'Sombras', icon: Cloud },
-                        { key: 'whites', label: 'Brancos', icon: CircleDot },
-                        { key: 'blacks', label: 'Pretos', icon: Square },
-                      ].map(({ key, label, icon: Icon }) => (
-                        <div key={key} className="space-y-2 mb-3">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium flex items-center gap-1">
-                              <Icon className="h-3 w-3" />
-                              {label}
-                            </label>
-                            <span className="text-xs text-muted-foreground">
-                              {adjustments[key as keyof ImageAdjustments]}
-                            </span>
-                          </div>
-                          <Slider
-                            value={[adjustments[key as keyof ImageAdjustments]]}
-                            onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
-                            min={-100}
-                            max={100}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-
-                  {/* Shadows Tab */}
-                  <TabsContent value="shadows" className="space-y-4">
-                    {!isBackgroundRemoved ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">
-                        Remova o fundo primeiro para adicionar sombras
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-xs font-medium text-muted-foreground">Tipo de Sombra</p>
-                        {[
-                          { value: 'none', label: 'Sem sombra' },
-                          { value: 'base', label: 'Sombra na base' },
-                          { value: 'around', label: 'Sombra ao redor' },
-                        ].map(({ value, label }) => (
-                          <button
-                            key={value}
-                            onClick={() => { pushToHistoryImmediate(); setShadowType(value as ShadowType); setHasChanges(true); }}
-                            className={`w-full p-3 text-left rounded border-2 transition-all text-sm ${
-                              shadowType === value ? 'bg-muted' : ''
-                            }`}
-                            style={{
-                              borderColor: shadowType === value ? buttonBgColor : 'transparent',
-                            }}
-                          >
+                  <div className="border-t pt-4">
+                    {[
+                      { key: 'exposure', label: 'Exposição', icon: Sun },
+                      { key: 'contrast', label: 'Contraste', icon: Contrast },
+                      { key: 'highlights', label: 'Realces', icon: Sparkles },
+                      { key: 'shadows', label: 'Sombras', icon: Cloud },
+                      { key: 'whites', label: 'Brancos', icon: CircleDot },
+                      { key: 'blacks', label: 'Pretos', icon: Square },
+                    ].map(({ key, label, icon: Icon }) => (
+                      <div key={key} className="space-y-2 mb-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-medium flex items-center gap-1">
+                            <Icon className="h-3 w-3" />
                             {label}
-                          </button>
-                        ))}
+                          </label>
+                          <span className="text-xs text-muted-foreground">
+                            {adjustments[key as keyof ImageAdjustments]}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[adjustments[key as keyof ImageAdjustments]]}
+                          onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
+                          min={-100}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
                       </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Save Actions */}
