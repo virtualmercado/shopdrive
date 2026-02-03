@@ -169,11 +169,19 @@ interface HistogramAnalysis {
   p997: number;
   clippingHighlights: number;
   clippingShadows: number;
+  // E-commerce specific metrics
+  hasWhiteBackground: boolean;
+  backgroundBrightness: number;
+  isWellExposed: boolean;
+  isBalanced: boolean;
 }
 
 const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   const data = imageData.data;
   const luminances: number[] = [];
+  let whitePixels = 0;
+  let nearWhitePixels = 0;
+  let totalPixels = 0;
   
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3];
@@ -183,6 +191,14 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
       const b = data[i + 2];
       const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
       luminances.push(luminance);
+      totalPixels++;
+      
+      // Detect white/near-white pixels (background detection)
+      if (r > 245 && g > 245 && b > 245) {
+        whitePixels++;
+      } else if (r > 230 && g > 230 && b > 230) {
+        nearWhitePixels++;
+      }
     }
   }
 
@@ -190,7 +206,9 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
     return {
       median: 0.5, mean: 0.5, stdDev: 0.2,
       p1: 0.05, p99: 0.95, p03: 0.02, p997: 0.98,
-      clippingHighlights: 0, clippingShadows: 0
+      clippingHighlights: 0, clippingShadows: 0,
+      hasWhiteBackground: false, backgroundBrightness: 0.5,
+      isWellExposed: true, isBalanced: true
     };
   }
 
@@ -211,71 +229,138 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   const clippingHighlights = luminances.filter(l => l > 0.98).length / luminances.length;
   const clippingShadows = luminances.filter(l => l < 0.02).length / luminances.length;
 
-  return { median, mean, stdDev, p1, p99, p03, p997, clippingHighlights, clippingShadows };
+  // E-commerce specific: detect white background
+  const whiteRatio = (whitePixels + nearWhitePixels) / totalPixels;
+  const hasWhiteBackground = whiteRatio > 0.15; // 15%+ white/near-white = likely white bg
+  const backgroundBrightness = p99;
+
+  // Check if image is already well-exposed for e-commerce
+  // Good exposure: median between 0.45-0.70, not too dark or bright
+  const isWellExposed = median >= 0.40 && median <= 0.75;
+  
+  // Check if contrast is balanced (not washed out, not too harsh)
+  const isBalanced = stdDev >= 0.15 && stdDev <= 0.32;
+
+  return { 
+    median, mean, stdDev, p1, p99, p03, p997, 
+    clippingHighlights, clippingShadows,
+    hasWhiteBackground, backgroundBrightness,
+    isWellExposed, isBalanced
+  };
 };
 
-// Helper: calculate auto adjustments based on histogram
+// Helper: calculate auto adjustments based on histogram (conservative for e-commerce)
 const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
-  const { median, stdDev, p1, p99, clippingHighlights, clippingShadows } = analysis;
+  const { 
+    median, stdDev, p1, p99, 
+    clippingHighlights, clippingShadows,
+    hasWhiteBackground, isWellExposed, isBalanced 
+  } = analysis;
 
-  // Exposure: adjust median to target ~0.55 for e-commerce
-  const targetMedian = 0.55;
+  // RULE 1: If image is already well-exposed and balanced, apply minimal/no adjustments
+  if (isWellExposed && isBalanced && clippingHighlights < 0.05 && clippingShadows < 0.03) {
+    // Image is already good - return near-zero adjustments
+    return {
+      exposure: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+    };
+  }
+
+  // RULE 2: White background protection - be extra conservative
+  const isWhiteBgProtected = hasWhiteBackground && clippingHighlights < 0.15;
+
+  // === EXPOSURE ===
+  // Target median ~0.55 for e-commerce, but use SUBTLE corrections
   let exposure = 0;
-  if (median < targetMedian - 0.05) {
-    exposure = Math.min(40, (targetMedian - median) * 100);
-  } else if (median > targetMedian + 0.05) {
-    exposure = Math.max(-30, (targetMedian - median) * 80);
+  const targetMedian = 0.55;
+  const exposureDeviation = Math.abs(median - targetMedian);
+  
+  // Only adjust if significantly off (>0.10 deviation)
+  if (exposureDeviation > 0.10) {
+    if (median < targetMedian - 0.10) {
+      // Underexposed - gentle lift
+      exposure = Math.min(20, (targetMedian - median) * 50);
+    } else if (median > targetMedian + 0.10 && !isWhiteBgProtected) {
+      // Overexposed - only reduce if NOT white background protected
+      exposure = Math.max(-15, (targetMedian - median) * 40);
+    }
+  }
+  // White bg: NEVER reduce exposure
+  if (isWhiteBgProtected && exposure < 0) {
+    exposure = 0;
   }
 
-  // Contrast: based on standard deviation
+  // === CONTRAST ===
+  // Very subtle contrast adjustments
   let contrast = 0;
-  if (stdDev < 0.18) {
-    // Image is "washed out", needs more contrast
-    contrast = Math.min(25, (0.18 - stdDev) * 150);
-  } else if (stdDev > 0.28) {
-    // Image is too harsh, reduce contrast
-    contrast = Math.max(-20, (0.28 - stdDev) * 100);
+  if (stdDev < 0.12) {
+    // Severely washed out - mild contrast boost
+    contrast = Math.min(12, (0.18 - stdDev) * 60);
+  } else if (stdDev > 0.35) {
+    // Too harsh - slight reduction
+    contrast = Math.max(-10, (0.28 - stdDev) * 40);
+  }
+  // If already balanced, no contrast change
+  if (isBalanced) {
+    contrast = 0;
   }
 
-  // Whites: pull back if there's highlight clipping
+  // === WHITES ===
+  // Only pull back whites if SEVERE clipping (>8%)
   let whites = 0;
-  if (clippingHighlights > 0.02) {
-    whites = Math.max(-50, -clippingHighlights * 800);
-  } else if (p99 < 0.85) {
-    // Brighten whites if no clipping and room to expand
-    whites = Math.min(20, (0.90 - p99) * 100);
+  if (clippingHighlights > 0.08) {
+    whites = Math.max(-25, -clippingHighlights * 200);
+  }
+  // White bg protection: NEVER touch whites
+  if (isWhiteBgProtected) {
+    whites = 0;
   }
 
-  // Blacks: lift if shadows are crushed
+  // === BLACKS ===
+  // Very conservative - only adjust if shadows are severely crushed
   let blacks = 0;
-  if (clippingShadows > 0.02) {
-    blacks = Math.max(-40, -clippingShadows * 600);
-  } else if (p1 > 0.15) {
-    // Deepen blacks if no crushing
-    blacks = Math.min(15, (p1 - 0.05) * 80);
+  if (clippingShadows > 0.05) {
+    // Lift crushed shadows slightly
+    blacks = Math.max(-20, -clippingShadows * 250);
+  }
+  // White bg: NEVER darken blacks (would gray out background)
+  if (isWhiteBgProtected && blacks > 0) {
+    blacks = 0;
   }
 
-  // Highlights: recover if significant clipping
+  // === HIGHLIGHTS ===
+  // Only recover if significant clipping (>5%)
   let highlights = 0;
-  if (clippingHighlights > 0.01) {
-    highlights = Math.max(-40, -clippingHighlights * 600);
+  if (clippingHighlights > 0.05) {
+    highlights = Math.max(-20, -clippingHighlights * 250);
+  }
+  // White bg: minimal highlight adjustments
+  if (isWhiteBgProtected) {
+    highlights = Math.max(highlights, -10);
   }
 
-  // Shadows: lift if too compressed
+  // === SHADOWS ===
+  // Gentle shadow lift only if truly crushed
   let shadows = 0;
-  if (clippingShadows > 0.005) {
-    shadows = Math.min(30, clippingShadows * 400);
-  } else if (p1 < 0.03 && stdDev < 0.22) {
-    shadows = Math.min(20, 15);
+  if (clippingShadows > 0.04) {
+    shadows = Math.min(15, clippingShadows * 200);
   }
+
+  // RULE 5: Final safety - cap all adjustments to subtle range
+  const capAdjustment = (val: number, max: number) => 
+    Math.max(-max, Math.min(max, val));
 
   return {
-    exposure: Math.round(exposure),
-    contrast: Math.round(contrast),
-    highlights: Math.round(highlights),
-    shadows: Math.round(shadows),
-    whites: Math.round(whites),
-    blacks: Math.round(blacks),
+    exposure: Math.round(capAdjustment(exposure, 20)),
+    contrast: Math.round(capAdjustment(contrast, 15)),
+    highlights: Math.round(capAdjustment(highlights, 20)),
+    shadows: Math.round(capAdjustment(shadows, 15)),
+    whites: Math.round(capAdjustment(whites, 25)),
+    blacks: Math.round(capAdjustment(blacks, 20)),
   };
 };
 
