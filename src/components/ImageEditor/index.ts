@@ -1,2 +1,2 @@
 export { ImageEditor } from './ImageEditor';
-export { removeBackground, loadImageFromUrl, loadImageFromDataUrl, loadImageFromFile } from './backgroundRemoval';
+export { loadImageFromUrl, loadImageFromDataUrl, loadImageFromFile } from './backgroundRemoval';
