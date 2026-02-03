@@ -158,7 +158,7 @@ const applyAdjustmentsToImageData = (imageData: ImageData, adjustments: ImageAdj
   return result;
 };
 
-// Helper: analyze image histogram for auto adjustments
+// Helper: analyze image histogram for auto adjustments (advanced e-commerce analysis)
 interface HistogramAnalysis {
   median: number;
   mean: number;
@@ -174,6 +174,11 @@ interface HistogramAnalysis {
   backgroundBrightness: number;
   isWellExposed: boolean;
   isBalanced: boolean;
+  // Advanced diagnostic metrics
+  productReadability: number; // 0-1 score for label/product clarity
+  dynamicRange: number; // Tonal spread
+  hasGoodContrast: boolean;
+  isEcommerceReady: boolean; // Master flag: image already suitable
 }
 
 const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
@@ -182,6 +187,7 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   let whitePixels = 0;
   let nearWhitePixels = 0;
   let totalPixels = 0;
+  let midtonePixels = 0; // Pixels in readable range (product/label area)
   
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3];
@@ -199,6 +205,11 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
       } else if (r > 230 && g > 230 && b > 230) {
         nearWhitePixels++;
       }
+      
+      // Count midtone pixels (where product/label typically resides)
+      if (luminance >= 0.15 && luminance <= 0.85) {
+        midtonePixels++;
+      }
     }
   }
 
@@ -208,7 +219,9 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
       p1: 0.05, p99: 0.95, p03: 0.02, p997: 0.98,
       clippingHighlights: 0, clippingShadows: 0,
       hasWhiteBackground: false, backgroundBrightness: 0.5,
-      isWellExposed: true, isBalanced: true
+      isWellExposed: true, isBalanced: true,
+      productReadability: 1, dynamicRange: 0.9,
+      hasGoodContrast: true, isEcommerceReady: true
     };
   }
 
@@ -229,37 +242,96 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   const clippingHighlights = luminances.filter(l => l > 0.98).length / luminances.length;
   const clippingShadows = luminances.filter(l => l < 0.02).length / luminances.length;
 
-  // E-commerce specific: detect white background
+  // E-commerce specific: detect white background (more strict)
   const whiteRatio = (whitePixels + nearWhitePixels) / totalPixels;
-  const hasWhiteBackground = whiteRatio > 0.15; // 15%+ white/near-white = likely white bg
+  const hasWhiteBackground = whiteRatio > 0.12; // 12%+ white/near-white = likely white bg
   const backgroundBrightness = p99;
 
+  // Dynamic range: spread between dark and bright areas
+  const dynamicRange = p99 - p1;
+  
   // Check if image is already well-exposed for e-commerce
-  // Good exposure: median between 0.45-0.70, not too dark or bright
-  const isWellExposed = median >= 0.40 && median <= 0.75;
+  // Ideal: median between 0.42-0.68 (centered, not too dark or bright)
+  const isWellExposed = median >= 0.38 && median <= 0.72;
   
   // Check if contrast is balanced (not washed out, not too harsh)
-  const isBalanced = stdDev >= 0.15 && stdDev <= 0.32;
+  const isBalanced = stdDev >= 0.14 && stdDev <= 0.34;
+  
+  // Product readability: high ratio of midtone pixels where labels are readable
+  const productReadability = midtonePixels / totalPixels;
+  
+  // Good contrast: sufficient tonal separation without crushing
+  const hasGoodContrast = dynamicRange >= 0.5 && clippingHighlights < 0.06 && clippingShadows < 0.04;
+  
+  // MASTER FLAG: Image is e-commerce ready if ALL conditions met
+  const isEcommerceReady = 
+    isWellExposed && 
+    isBalanced && 
+    hasGoodContrast && 
+    productReadability >= 0.3 &&
+    clippingHighlights < 0.08 && 
+    clippingShadows < 0.05;
 
   return { 
     median, mean, stdDev, p1, p99, p03, p997, 
     clippingHighlights, clippingShadows,
     hasWhiteBackground, backgroundBrightness,
-    isWellExposed, isBalanced
+    isWellExposed, isBalanced,
+    productReadability, dynamicRange,
+    hasGoodContrast, isEcommerceReady
   };
 };
 
-// Helper: calculate auto adjustments based on histogram (conservative for e-commerce)
+// Helper: simulate adjustment result and compare quality
+const simulateAdjustmentQuality = (
+  originalAnalysis: HistogramAnalysis,
+  adjustments: ImageAdjustments
+): { wouldImprove: boolean; qualityDelta: number } => {
+  // Estimate resulting metrics based on adjustments
+  const estimatedMedian = Math.max(0.1, Math.min(0.9, 
+    originalAnalysis.median * Math.pow(2, adjustments.exposure / 100)
+  ));
+  
+  const estimatedStdDev = originalAnalysis.stdDev * (1 + adjustments.contrast / 200);
+  
+  // Quality score: closer to ideal = better
+  const idealMedian = 0.52;
+  const idealStdDev = 0.22;
+  
+  const originalScore = 
+    (1 - Math.abs(originalAnalysis.median - idealMedian) * 2) +
+    (1 - Math.abs(originalAnalysis.stdDev - idealStdDev) * 3) +
+    (originalAnalysis.hasGoodContrast ? 0.5 : 0) +
+    (originalAnalysis.productReadability * 0.5);
+    
+  const estimatedScore = 
+    (1 - Math.abs(estimatedMedian - idealMedian) * 2) +
+    (1 - Math.abs(estimatedStdDev - idealStdDev) * 3) +
+    (originalAnalysis.hasGoodContrast ? 0.5 : 0) + // Preserved
+    (originalAnalysis.productReadability * 0.5); // Preserved
+  
+  const qualityDelta = estimatedScore - originalScore;
+  
+  // Only consider improvement if delta is meaningfully positive
+  return {
+    wouldImprove: qualityDelta > 0.05,
+    qualityDelta
+  };
+};
+
+// Helper: calculate auto adjustments based on histogram (ULTRA-CONSERVATIVE for e-commerce)
 const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
   const { 
     median, stdDev, p1, p99, 
     clippingHighlights, clippingShadows,
-    hasWhiteBackground, isWellExposed, isBalanced 
+    hasWhiteBackground, isWellExposed, isBalanced,
+    hasGoodContrast, isEcommerceReady,
+    productReadability
   } = analysis;
 
-  // RULE 1: If image is already well-exposed and balanced, apply minimal/no adjustments
-  if (isWellExposed && isBalanced && clippingHighlights < 0.05 && clippingShadows < 0.03) {
-    // Image is already good - return near-zero adjustments
+  // ========== RULE 1: E-COMMERCE READY = NO ADJUSTMENTS ==========
+  // If image already meets all e-commerce criteria, return zeros
+  if (isEcommerceReady) {
     return {
       exposure: 0,
       contrast: 0,
@@ -270,39 +342,64 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
     };
   }
 
-  // RULE 2: White background protection - be extra conservative
-  const isWhiteBgProtected = hasWhiteBackground && clippingHighlights < 0.15;
+  // ========== RULE 2: MOSTLY GOOD = MINIMAL ADJUSTMENTS ==========
+  // If image is 3 out of 4 quality checks, only tiny corrections
+  const qualityChecks = [isWellExposed, isBalanced, hasGoodContrast, productReadability >= 0.35];
+  const passedChecks = qualityChecks.filter(Boolean).length;
+  
+  if (passedChecks >= 3) {
+    // Very subtle corrections only
+    let tinyExposure = 0;
+    if (!isWellExposed && median < 0.40) {
+      tinyExposure = Math.min(8, (0.48 - median) * 25); // Max +8
+    }
+    
+    return {
+      exposure: Math.round(tinyExposure),
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+    };
+  }
+
+  // ========== RULE 3: WHITE BACKGROUND ABSOLUTE PROTECTION ==========
+  const isWhiteBgProtected = hasWhiteBackground;
+  // White bg = studio photo = correct as-is
 
   // === EXPOSURE ===
-  // Target median ~0.55 for e-commerce, but use SUBTLE corrections
+  // Target median ~0.52 for e-commerce, but use VERY SUBTLE corrections
   let exposure = 0;
-  const targetMedian = 0.55;
+  const targetMedian = 0.52;
   const exposureDeviation = Math.abs(median - targetMedian);
   
-  // Only adjust if significantly off (>0.10 deviation)
-  if (exposureDeviation > 0.10) {
-    if (median < targetMedian - 0.10) {
-      // Underexposed - gentle lift
-      exposure = Math.min(20, (targetMedian - median) * 50);
-    } else if (median > targetMedian + 0.10 && !isWhiteBgProtected) {
-      // Overexposed - only reduce if NOT white background protected
-      exposure = Math.max(-15, (targetMedian - median) * 40);
+  // Only adjust if SIGNIFICANTLY off (>0.12 deviation)
+  if (exposureDeviation > 0.12) {
+    if (median < targetMedian - 0.12) {
+      // Underexposed - gentle lift, max +18
+      exposure = Math.min(18, (targetMedian - median) * 45);
+    } else if (median > targetMedian + 0.15 && !isWhiteBgProtected) {
+      // Overexposed - only reduce if NOT white background
+      exposure = Math.max(-12, (targetMedian - median) * 35);
     }
   }
-  // White bg: NEVER reduce exposure
+  
+  // WHITE BG: NEVER reduce exposure (absolute rule)
   if (isWhiteBgProtected && exposure < 0) {
     exposure = 0;
   }
 
   // === CONTRAST ===
-  // Very subtle contrast adjustments
+  // Ultra-subtle contrast adjustments
   let contrast = 0;
-  if (stdDev < 0.12) {
-    // Severely washed out - mild contrast boost
-    contrast = Math.min(12, (0.18 - stdDev) * 60);
-  } else if (stdDev > 0.35) {
-    // Too harsh - slight reduction
-    contrast = Math.max(-10, (0.28 - stdDev) * 40);
+  if (stdDev < 0.10) {
+    // Severely washed out - mild contrast boost, max +10
+    contrast = Math.min(10, (0.16 - stdDev) * 55);
+  }
+  // NEVER increase contrast for white bg images
+  if (isWhiteBgProtected) {
+    contrast = 0;
   }
   // If already balanced, no contrast change
   if (isBalanced) {
@@ -310,57 +407,81 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
   }
 
   // === WHITES ===
-  // Only pull back whites if SEVERE clipping (>8%)
+  // Only pull back whites if SEVERE clipping (>10%)
   let whites = 0;
-  if (clippingHighlights > 0.08) {
-    whites = Math.max(-25, -clippingHighlights * 200);
+  if (clippingHighlights > 0.10) {
+    whites = Math.max(-20, -clippingHighlights * 150);
   }
-  // White bg protection: NEVER touch whites
+  // WHITE BG: NEVER touch whites (absolute rule)
   if (isWhiteBgProtected) {
     whites = 0;
   }
 
   // === BLACKS ===
-  // Very conservative - only adjust if shadows are severely crushed
+  // Ultra-conservative - only adjust if shadows are SEVERELY crushed
   let blacks = 0;
-  if (clippingShadows > 0.05) {
+  if (clippingShadows > 0.06) {
     // Lift crushed shadows slightly
-    blacks = Math.max(-20, -clippingShadows * 250);
+    blacks = Math.max(-15, -clippingShadows * 180);
   }
-  // White bg: NEVER darken blacks (would gray out background)
-  if (isWhiteBgProtected && blacks > 0) {
+  // WHITE BG: NEVER darken blacks (would gray out background)
+  if (isWhiteBgProtected) {
     blacks = 0;
   }
 
   // === HIGHLIGHTS ===
-  // Only recover if significant clipping (>5%)
+  // Only recover if significant clipping (>7%)
   let highlights = 0;
-  if (clippingHighlights > 0.05) {
-    highlights = Math.max(-20, -clippingHighlights * 250);
+  if (clippingHighlights > 0.07 && !isWhiteBgProtected) {
+    highlights = Math.max(-15, -clippingHighlights * 180);
   }
-  // White bg: minimal highlight adjustments
+  // White bg: NO highlight adjustments
   if (isWhiteBgProtected) {
-    highlights = Math.max(highlights, -10);
+    highlights = 0;
   }
 
   // === SHADOWS ===
-  // Gentle shadow lift only if truly crushed
+  // Gentle shadow lift only if truly crushed (>5%)
   let shadows = 0;
-  if (clippingShadows > 0.04) {
-    shadows = Math.min(15, clippingShadows * 200);
+  if (clippingShadows > 0.05) {
+    shadows = Math.min(12, clippingShadows * 150);
   }
 
-  // RULE 5: Final safety - cap all adjustments to subtle range
+  // ========== RULE 4: SIMULATE & VALIDATE ==========
+  const proposedAdjustments = {
+    exposure: Math.round(exposure),
+    contrast: Math.round(contrast),
+    highlights: Math.round(highlights),
+    shadows: Math.round(shadows),
+    whites: Math.round(whites),
+    blacks: Math.round(blacks),
+  };
+  
+  const simulation = simulateAdjustmentQuality(analysis, proposedAdjustments);
+  
+  // If simulation suggests no improvement or degradation, return zeros
+  if (!simulation.wouldImprove || simulation.qualityDelta < 0.03) {
+    return {
+      exposure: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+    };
+  }
+
+  // ========== RULE 5: FINAL SAFETY CAPS ==========
   const capAdjustment = (val: number, max: number) => 
     Math.max(-max, Math.min(max, val));
 
   return {
-    exposure: Math.round(capAdjustment(exposure, 20)),
-    contrast: Math.round(capAdjustment(contrast, 15)),
-    highlights: Math.round(capAdjustment(highlights, 20)),
-    shadows: Math.round(capAdjustment(shadows, 15)),
-    whites: Math.round(capAdjustment(whites, 25)),
-    blacks: Math.round(capAdjustment(blacks, 20)),
+    exposure: Math.round(capAdjustment(exposure, 18)),
+    contrast: Math.round(capAdjustment(contrast, 10)),
+    highlights: Math.round(capAdjustment(highlights, 15)),
+    shadows: Math.round(capAdjustment(shadows, 12)),
+    whites: Math.round(capAdjustment(whites, 20)),
+    blacks: Math.round(capAdjustment(blacks, 15)),
   };
 };
 
