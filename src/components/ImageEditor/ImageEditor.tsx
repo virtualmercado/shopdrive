@@ -51,6 +51,20 @@ type BackgroundType = 'original' | 'white' | 'black' | 'transparent' |
 
 type ShadowType = 'none' | 'base' | 'around';
 
+// History state snapshot for undo functionality
+interface EditorHistoryState {
+  adjustments: ImageAdjustments;
+  rotation: number;
+  offsetX: number;
+  scale: number;
+  selectedBackground: BackgroundType;
+  shadowType: ShadowType;
+  isBackgroundRemoved: boolean;
+  backgroundRemovedImage: ImageData | null;
+}
+
+const MAX_HISTORY_SIZE = 20;
+
 const defaultAdjustments: ImageAdjustments = {
   exposure: 0,
   contrast: 0,
@@ -507,6 +521,9 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [isAnimatingReset, setIsAnimatingReset] = useState(false);
   const [isAnimatingAuto, setIsAnimatingAuto] = useState(false);
   
+  // History stack for undo functionality
+  const [historyStack, setHistoryStack] = useState<EditorHistoryState[]>([]);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
@@ -560,6 +577,29 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       return ((s - 100) / 60) * 100;
     }
   }, []);
+
+  // Push current state to history before making changes
+  const pushToHistory = useCallback(() => {
+    const currentState: EditorHistoryState = {
+      adjustments: { ...adjustments },
+      rotation,
+      offsetX,
+      scale,
+      selectedBackground,
+      shadowType,
+      isBackgroundRemoved,
+      backgroundRemovedImage,
+    };
+    
+    setHistoryStack(prev => {
+      const newStack = [...prev, currentState];
+      // Limit stack size
+      if (newStack.length > MAX_HISTORY_SIZE) {
+        return newStack.slice(-MAX_HISTORY_SIZE);
+      }
+      return newStack;
+    });
+  }, [adjustments, rotation, offsetX, scale, selectedBackground, shadowType, isBackgroundRemoved, backgroundRemovedImage]);
 
   useEffect(() => {
     if (open && imageUrl) {
@@ -658,6 +698,9 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
   const handleRemoveBackground = async () => {
     if (!originalImage) return;
+
+    // Push current state to history before removing background
+    pushToHistory();
 
     setIsProcessing(true);
     setProcessingStep('Preparando imagem...');
@@ -901,11 +944,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   const handleRotationChange = useCallback((value: number) => {
+    pushToHistory();
     const clampedValue = Math.max(-180, Math.min(180, value));
     setRotation(clampedValue);
     setRotationInput(clampedValue.toFixed(1));
     setHasChanges(true);
-  }, []);
+  }, [pushToHistory]);
 
   const handleRotationInputChange = (inputValue: string) => {
     setRotationInput(inputValue);
@@ -938,6 +982,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const handleOffsetChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
+    pushToHistory();
+    
     const visibility = calculateVisibilityFactor(scale, value);
     const clampMultiplier = getSoftClampMultiplier(visibility);
     
@@ -948,11 +994,13 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     const clampedValue = Math.max(-30, Math.min(30, newValue));
     setOffsetX(clampedValue);
     setHasChanges(true);
-  }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
+  }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, pushToHistory]);
 
   // Handler for bipolar scale slider
   const handleScaleSliderChange = useCallback((pos: number) => {
     if (isAnimatingReset) return;
+    
+    pushToHistory();
     
     const targetScale = sliderPosToScale(pos);
     const visibility = calculateVisibilityFactor(targetScale, offsetX);
@@ -966,10 +1014,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleSliderPos(scaleToSliderPos(newScale));
     setScaleInput(Math.round(newScale).toString());
     setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos]);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos, pushToHistory]);
 
   const handleScaleChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
+    
+    pushToHistory();
     
     const visibility = calculateVisibilityFactor(value, offsetX);
     const clampMultiplier = getSoftClampMultiplier(visibility);
@@ -983,7 +1033,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleSliderPos(scaleToSliderPos(clampedValue));
     setScaleInput(Math.round(clampedValue).toString());
     setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos]);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos, pushToHistory]);
 
   const handleScaleInputChange = (inputValue: string) => {
     setScaleInput(inputValue);
@@ -1000,7 +1050,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleInput(Math.round(scale).toString());
   };
 
-  // Animated reset with ease-out (includes adjustments)
+  // Animated reset with ease-out (includes adjustments) - clears history
   const handleResetTransform = useCallback(() => {
     if (isAnimatingReset) return;
     
@@ -1054,17 +1104,32 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         setScaleSliderPos(0);
         setScaleInput("100");
         setAdjustments(defaultAdjustments);
+        setSelectedBackground('original');
+        setShadowType('none');
+        setIsBackgroundRemoved(false);
+        setBackgroundRemovedImage(null);
+        setProcessedImage(null);
+        setShowComparison(false);
+        setHasChanges(false);
+        setHistoryStack([]); // Clear history on reset
         setIsAnimatingReset(false);
         resetAnimationRef.current = null;
+        
+        if (originalImage) {
+          drawImage(originalImage);
+        }
       }
     };
     
     resetAnimationRef.current = requestAnimationFrame(animate);
-  }, [rotation, offsetX, scale, adjustments, isAnimatingReset]);
+  }, [rotation, offsetX, scale, adjustments, isAnimatingReset, originalImage, drawImage]);
 
   // Auto button: analyze image and set optimal adjustments
   const handleAutoAdjust = useCallback(() => {
     if (isAnimatingAuto || !originalImage) return;
+
+    // Push current state to history before auto adjustment
+    pushToHistory();
 
     // Get source image data
     let sourceData: ImageData;
@@ -1128,33 +1193,52 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     };
 
     autoAnimationRef.current = requestAnimationFrame(animate);
-  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast]);
+  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast, pushToHistory]);
 
   const handleAdjustmentChange = (key: keyof ImageAdjustments, value: number) => {
+    pushToHistory();
     setAdjustments((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
-  const handleUndo = () => {
-    setAdjustments(defaultAdjustments);
-    setRotation(0);
-    setRotationInput("0");
-    setOffsetX(0);
-    setScale(100);
-    setScaleSliderPos(0);
-    setScaleInput("100");
-    setSelectedBackground('original');
-    setShadowType('none');
-    setIsBackgroundRemoved(false);
-    setBackgroundRemovedImage(null);
-    setProcessedImage(null);
-    setShowComparison(false);
-    setHasChanges(false);
+  // Undo last action from history stack
+  const handleUndo = useCallback(() => {
+    if (historyStack.length === 0) return;
     
-    if (originalImage) {
-      drawImage(originalImage);
+    const newStack = [...historyStack];
+    const previousState = newStack.pop();
+    
+    if (previousState) {
+      setAdjustments(previousState.adjustments);
+      setRotation(previousState.rotation);
+      setRotationInput(previousState.rotation.toFixed(1));
+      setOffsetX(previousState.offsetX);
+      setScale(previousState.scale);
+      setScaleSliderPos(scaleToSliderPos(previousState.scale));
+      setScaleInput(Math.round(previousState.scale).toString());
+      setSelectedBackground(previousState.selectedBackground);
+      setShadowType(previousState.shadowType);
+      setIsBackgroundRemoved(previousState.isBackgroundRemoved);
+      setBackgroundRemovedImage(previousState.backgroundRemovedImage);
+      
+      if (previousState.isBackgroundRemoved) {
+        setShowComparison(true);
+      } else {
+        setProcessedImage(null);
+        setShowComparison(false);
+      }
+      
+      setHistoryStack(newStack);
+      
+      // Update hasChanges based on whether there are still items in history
+      setHasChanges(newStack.length > 0);
+      
+      // Redraw the image with restored state
+      if (!previousState.isBackgroundRemoved && originalImage) {
+        drawImage(originalImage, undefined, previousState.adjustments);
+      }
     }
-  };
+  }, [historyStack, originalImage, drawImage, scaleToSliderPos]);
 
   const handleSave = async () => {
     if (!canvasRef.current) return;
@@ -1435,14 +1519,13 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                   />
                 </div>
 
-                {/* Reset Button */}
+                {/* Reset Button - Red visual style for destructive action */}
                 <div className="flex justify-center">
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
                     onClick={handleResetTransform}
                     className={buttonRadius}
-                    style={{ borderColor: buttonBgColor, color: buttonBgColor }}
                   >
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Resetar
@@ -1490,7 +1573,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['original', 'white', 'black', 'transparent'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1518,7 +1601,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['neutral-light', 'pastel-pink', 'pastel-blue', 'pastel-green', 'auto-contrast'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1539,7 +1622,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['wood', 'marble', 'neutral-surface', 'light-texture'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1626,7 +1709,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                         ].map(({ value, label }) => (
                           <button
                             key={value}
-                            onClick={() => { setShadowType(value as ShadowType); setHasChanges(true); }}
+                            onClick={() => { pushToHistory(); setShadowType(value as ShadowType); setHasChanges(true); }}
                             className={`w-full p-3 text-left rounded border-2 transition-all text-sm ${
                               shadowType === value ? 'bg-muted' : ''
                             }`}
@@ -1657,12 +1740,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                 <Button
                   variant="outline"
                   onClick={handleUndo}
-                  disabled={isProcessing || !hasChanges}
+                  disabled={isProcessing || historyStack.length === 0}
                   className={`w-full ${buttonRadius}`}
                   style={{ borderColor: buttonBgColor, color: buttonBgColor }}
                 >
                   <Undo2 className="h-4 w-4 mr-2" />
-                  Desfazer alterações
+                  Desfazer última alteração
                 </Button>
               </div>
             </div>
