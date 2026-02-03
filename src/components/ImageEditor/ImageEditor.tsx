@@ -21,7 +21,11 @@ import {
   Square,
   RefreshCw,
   ZoomIn,
-  Wand2
+  Wand2,
+  Share2,
+  Crop,
+  Copy,
+  Focus
 } from "lucide-react";
 import { loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
@@ -30,6 +34,8 @@ interface ImageEditorProps {
   onOpenChange: (open: boolean) => void;
   imageUrl: string;
   onSave: (editedImageUrl: string) => void;
+  otherProductImages?: string[];
+  onApplyToOthers?: (settings: EditorSettings) => void;
 }
 
 interface ImageAdjustments {
@@ -39,6 +45,32 @@ interface ImageAdjustments {
   shadows: number;
   whites: number;
   blacks: number;
+  sharpness: number;
+}
+
+// Crop preset definition
+type CropPreset = '1:1' | '4:5' | '16:9' | 'original';
+
+interface CropPresetConfig {
+  label: string;
+  ratio: number | null; // null = original
+  description: string;
+}
+
+const cropPresets: Record<CropPreset, CropPresetConfig> = {
+  'original': { label: 'Original', ratio: null, description: 'Proporção original' },
+  '1:1': { label: '1:1', ratio: 1, description: 'Quadrado (loja)' },
+  '4:5': { label: '4:5', ratio: 4/5, description: 'Vertical (Instagram)' },
+  '16:9': { label: '16:9', ratio: 16/9, description: 'Banner horizontal' },
+};
+
+// Editor settings that can be applied to other images
+export interface EditorSettings {
+  adjustments: ImageAdjustments;
+  rotation: number;
+  offsetX: number;
+  scale: number;
+  cropPreset: CropPreset;
 }
 
 // History state snapshot for undo functionality
@@ -47,6 +79,7 @@ interface EditorHistoryState {
   rotation: number;
   offsetX: number;
   scale: number;
+  cropPreset: CropPreset;
 }
 
 const MAX_HISTORY_SIZE = 20;
@@ -58,6 +91,46 @@ const defaultAdjustments: ImageAdjustments = {
   shadows: 0,
   whites: 0,
   blacks: 0,
+  sharpness: 0,
+};
+
+// Helper: apply sharpness using unsharp mask technique
+const applySharpness = (imageData: ImageData, amount: number): ImageData => {
+  if (amount === 0) return imageData;
+  
+  const data = imageData.data;
+  const width = imageData.width;
+  const height = imageData.height;
+  const result = new ImageData(new Uint8ClampedArray(data), width, height);
+  const resultData = result.data;
+  
+  // Sharpness strength (0-30 maps to 0-0.6 multiplier)
+  const strength = (amount / 30) * 0.6;
+  
+  // Simple unsharp mask: enhance edges by subtracting blurred version
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = (y * width + x) * 4;
+      
+      // Get surrounding pixels for blur approximation
+      const idxUp = ((y - 1) * width + x) * 4;
+      const idxDown = ((y + 1) * width + x) * 4;
+      const idxLeft = (y * width + (x - 1)) * 4;
+      const idxRight = (y * width + (x + 1)) * 4;
+      
+      for (let c = 0; c < 3; c++) {
+        const center = data[idx + c];
+        const blur = (data[idxUp + c] + data[idxDown + c] + data[idxLeft + c] + data[idxRight + c]) / 4;
+        const detail = center - blur;
+        
+        // Apply sharpening with controlled strength
+        resultData[idx + c] = Math.max(0, Math.min(255, center + detail * strength));
+      }
+      resultData[idx + 3] = data[idx + 3]; // Preserve alpha
+    }
+  }
+  
+  return result;
 };
 
 // Helper: apply tonal adjustments to ImageData
@@ -137,6 +210,11 @@ const applyAdjustmentsToImageData = (imageData: ImageData, adjustments: ImageAdj
     resultData[i + 1] = Math.max(0, Math.min(255, g));
     resultData[i + 2] = Math.max(0, Math.min(255, b));
     resultData[i + 3] = a;
+  }
+
+  // Apply sharpness as a second pass
+  if (adjustments.sharpness > 0) {
+    return applySharpness(result, adjustments.sharpness);
   }
 
   return result;
@@ -323,6 +401,7 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
       shadows: 0,
       whites: 0,
       blacks: 0,
+      sharpness: 0,
     };
   }
 
@@ -345,6 +424,7 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
       shadows: 0,
       whites: 0,
       blacks: 0,
+      sharpness: 0,
     };
   }
 
@@ -432,13 +512,14 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
   }
 
   // ========== RULE 4: SIMULATE & VALIDATE ==========
-  const proposedAdjustments = {
+  const proposedAdjustments: ImageAdjustments = {
     exposure: Math.round(exposure),
     contrast: Math.round(contrast),
     highlights: Math.round(highlights),
     shadows: Math.round(shadows),
     whites: Math.round(whites),
     blacks: Math.round(blacks),
+    sharpness: 0,
   };
   
   const simulation = simulateAdjustmentQuality(analysis, proposedAdjustments);
@@ -452,6 +533,7 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
       shadows: 0,
       whites: 0,
       blacks: 0,
+      sharpness: 0,
     };
   }
 
@@ -466,10 +548,18 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
     shadows: Math.round(capAdjustment(shadows, 12)),
     whites: Math.round(capAdjustment(whites, 20)),
     blacks: Math.round(capAdjustment(blacks, 15)),
+    sharpness: 0,
   };
 };
 
-export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEditorProps) => {
+export const ImageEditor = ({ 
+  open, 
+  onOpenChange, 
+  imageUrl, 
+  onSave,
+  otherProductImages = [],
+  onApplyToOthers
+}: ImageEditorProps) => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -484,6 +574,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [hasChanges, setHasChanges] = useState(false);
   const [isAnimatingReset, setIsAnimatingReset] = useState(false);
   const [isAnimatingAuto, setIsAnimatingAuto] = useState(false);
+  const [cropPreset, setCropPreset] = useState<CropPreset>('original');
+  const [showGuides, setShowGuides] = useState(true);
   
   // History stack for undo functionality
   const [historyStack, setHistoryStack] = useState<EditorHistoryState[]>([]);
@@ -494,6 +586,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const pendingHistoryStateRef = useRef<EditorHistoryState | null>(null);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const guidesCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
   const autoAnimationRef = useRef<number | null>(null);
@@ -546,6 +639,86 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   }, []);
 
+  // Calculate crop dimensions based on preset
+  const getCropDimensions = useCallback((imgWidth: number, imgHeight: number, preset: CropPreset) => {
+    const config = cropPresets[preset];
+    if (!config.ratio) {
+      return { width: imgWidth, height: imgHeight, offsetX: 0, offsetY: 0 };
+    }
+    
+    const imgRatio = imgWidth / imgHeight;
+    const targetRatio = config.ratio;
+    
+    let cropWidth: number;
+    let cropHeight: number;
+    
+    if (imgRatio > targetRatio) {
+      // Image is wider than target - fit by height
+      cropHeight = imgHeight;
+      cropWidth = cropHeight * targetRatio;
+    } else {
+      // Image is taller than target - fit by width
+      cropWidth = imgWidth;
+      cropHeight = cropWidth / targetRatio;
+    }
+    
+    return {
+      width: cropWidth,
+      height: cropHeight,
+      offsetX: (imgWidth - cropWidth) / 2,
+      offsetY: (imgHeight - cropHeight) / 2
+    };
+  }, []);
+
+  // Draw safe area guides
+  const drawGuides = useCallback((canvasWidth: number, canvasHeight: number) => {
+    const guidesCanvas = guidesCanvasRef.current;
+    if (!guidesCanvas || !showGuides) return;
+    
+    guidesCanvas.width = canvasWidth;
+    guidesCanvas.height = canvasHeight;
+    
+    const ctx = guidesCanvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Guide line style
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    
+    const centerX = canvasWidth / 2;
+    const centerY = canvasHeight / 2;
+    
+    // Vertical center line
+    ctx.beginPath();
+    ctx.moveTo(centerX, 0);
+    ctx.lineTo(centerX, canvasHeight);
+    ctx.stroke();
+    
+    // Horizontal center line
+    ctx.beginPath();
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(canvasWidth, centerY);
+    ctx.stroke();
+    
+    // Safe margin (10% from each edge)
+    const margin = 0.10;
+    const safeLeft = canvasWidth * margin;
+    const safeTop = canvasHeight * margin;
+    const safeRight = canvasWidth * (1 - margin);
+    const safeBottom = canvasHeight * (1 - margin);
+    
+    ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
+    ctx.setLineDash([10, 5]);
+    ctx.beginPath();
+    ctx.rect(safeLeft, safeTop, safeRight - safeLeft, safeBottom - safeTop);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+  }, [showGuides]);
+
   // Capture state BEFORE an interaction begins (called once at start of interaction)
   const captureStateBeforeInteraction = useCallback(() => {
     // Only capture if we're not already in an interaction
@@ -556,6 +729,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         rotation,
         offsetX,
         scale,
+        cropPreset,
       };
     }
     
@@ -580,7 +754,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       isInteractingRef.current = false;
       interactionTimeoutRef.current = null;
     }, 300); // 300ms debounce - commits after user stops interacting
-  }, [adjustments, rotation, offsetX, scale]);
+  }, [adjustments, rotation, offsetX, scale, cropPreset]);
 
   // Immediate push for discrete actions (button clicks, etc.)
   const pushToHistoryImmediate = useCallback(() => {
@@ -589,6 +763,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       rotation,
       offsetX,
       scale,
+      cropPreset,
     };
     
     setHistoryStack(prev => {
@@ -599,7 +774,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       }
       return newStack;
     });
-  }, [adjustments, rotation, offsetX, scale]);
+  }, [adjustments, rotation, offsetX, scale, cropPreset]);
 
   useEffect(() => {
     if (open && imageUrl) {
@@ -650,8 +825,11 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Calculate crop dimensions
+      const crop = getCropDimensions(img.width, img.height, cropPreset);
+      
+      canvas.width = crop.width;
+      canvas.height = crop.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const offsetPixels = (offsetX / 100) * canvas.width;
@@ -684,11 +862,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(scaleFactor, scaleFactor);
-      ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      ctx.translate(-img.width / 2, -img.height / 2);
       ctx.drawImage(adjustedCanvas, 0, 0);
       ctx.restore();
+      
+      // Draw guides
+      drawGuides(canvas.width, canvas.height);
     });
-  }, [rotation, offsetX, scale, adjustments]);
+  }, [rotation, offsetX, scale, adjustments, cropPreset, getCropDimensions, drawGuides]);
 
   const handleRotationChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
@@ -781,6 +962,20 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleInput(Math.round(scale).toString());
   };
 
+  // Handle crop preset change with auto-adjustment
+  const handleCropPresetChange = useCallback((preset: CropPreset) => {
+    if (cropPreset === preset) return;
+    
+    pushToHistoryImmediate();
+    setCropPreset(preset);
+    setHasChanges(true);
+    
+    toast({
+      title: `Corte ${cropPresets[preset].label}`,
+      description: cropPresets[preset].description,
+    });
+  }, [cropPreset, pushToHistoryImmediate, toast]);
+
   // Animated reset with ease-out (includes adjustments) - clears history
   const handleResetTransform = useCallback(() => {
     if (isAnimatingReset) return;
@@ -815,6 +1010,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         shadows: Math.round(startAdjustments.shadows * (1 - easeOut)),
         whites: Math.round(startAdjustments.whites * (1 - easeOut)),
         blacks: Math.round(startAdjustments.blacks * (1 - easeOut)),
+        sharpness: Math.round(startAdjustments.sharpness * (1 - easeOut)),
       };
       
       setRotation(newRotation);
@@ -835,6 +1031,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         setScaleSliderPos(0);
         setScaleInput("100");
         setAdjustments(defaultAdjustments);
+        setCropPreset('original');
         setHasChanges(false);
         setHistoryStack([]); // Clear history on reset
         setIsAnimatingReset(false);
@@ -892,6 +1089,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         shadows: Math.round(startAdjustments.shadows + (targetAdjustments.shadows - startAdjustments.shadows) * easeOut),
         whites: Math.round(startAdjustments.whites + (targetAdjustments.whites - startAdjustments.whites) * easeOut),
         blacks: Math.round(startAdjustments.blacks + (targetAdjustments.blacks - startAdjustments.blacks) * easeOut),
+        sharpness: Math.round(startAdjustments.sharpness + (targetAdjustments.sharpness - startAdjustments.sharpness) * easeOut),
       };
 
       setAdjustments(newAdjustments);
@@ -935,6 +1133,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setScale(previousState.scale);
       setScaleSliderPos(scaleToSliderPos(previousState.scale));
       setScaleInput(Math.round(previousState.scale).toString());
+      setCropPreset(previousState.cropPreset);
       
       setHistoryStack(newStack);
       
@@ -948,6 +1147,151 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   }, [historyStack, originalImage, drawImage, scaleToSliderPos]);
 
+  // Apply settings to other product images
+  const handleApplyToOthers = useCallback(() => {
+    if (!onApplyToOthers) {
+      toast({
+        title: "Indisponível",
+        description: "Não há outras imagens do produto para aplicar os ajustes",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const settings: EditorSettings = {
+      adjustments: { ...adjustments },
+      rotation,
+      offsetX,
+      scale,
+      cropPreset,
+    };
+    
+    onApplyToOthers(settings);
+    
+    toast({
+      title: "Ajustes aplicados",
+      description: `Configurações aplicadas às outras ${otherProductImages.length} imagens do produto`,
+    });
+  }, [adjustments, rotation, offsetX, scale, cropPreset, onApplyToOthers, otherProductImages.length, toast]);
+
+  // Share image using native Web Share API
+  const handleShare = useCallback(async () => {
+    if (!canvasRef.current || !originalImage) return;
+    
+    setIsProcessing(true);
+    setProcessingStep('Preparando imagem para compartilhar...');
+    setProcessingProgress(30);
+    
+    try {
+      // Render final image
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+      
+      // Get crop dimensions
+      const crop = getCropDimensions(originalImage.width, originalImage.height, cropPreset);
+      canvas.width = crop.width;
+      canvas.height = crop.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const offsetPixels = (offsetX / 100) * canvas.width;
+      const scaleFactor = scale / 100;
+      
+      // Get source data and apply adjustments
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = originalImage.width;
+      tempCanvas.height = originalImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.drawImage(originalImage, 0, 0);
+        const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        
+        const hasAdj = Object.values(adjustments).some(v => v !== 0);
+        const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
+        
+        const adjustedCanvas = document.createElement('canvas');
+        adjustedCanvas.width = adjustedData.width;
+        adjustedCanvas.height = adjustedData.height;
+        const adjustedCtx = adjustedCanvas.getContext('2d');
+        if (adjustedCtx) {
+          adjustedCtx.putImageData(adjustedData, 0, 0);
+          
+          ctx.save();
+          ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+          ctx.rotate((rotation * Math.PI) / 180);
+          ctx.scale(scaleFactor, scaleFactor);
+          ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
+          ctx.drawImage(adjustedCanvas, 0, 0);
+          ctx.restore();
+        }
+      }
+      
+      setProcessingProgress(60);
+      
+      // Convert to blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/png', 1.0);
+      });
+      
+      if (!blob) throw new Error('Failed to create image blob');
+      
+      setProcessingProgress(80);
+      
+      // Check if Web Share API is available and supports files
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], 'produto-editado.png', { type: 'image/png' });
+        const shareData = {
+          files: [file],
+          title: 'Imagem do Produto',
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast({
+            title: "Compartilhado!",
+            description: "Imagem compartilhada com sucesso",
+          });
+        } else {
+          // Fallback: download
+          downloadImage(blob);
+        }
+      } else {
+        // Fallback: download
+        downloadImage(blob);
+      }
+      
+      setProcessingProgress(100);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing image:', error);
+        toast({
+          title: "Erro ao compartilhar",
+          description: "Use o botão Salvar para baixar a imagem",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+    }
+  }, [canvasRef, originalImage, adjustments, rotation, offsetX, scale, cropPreset, getCropDimensions, toast]);
+  
+  const downloadImage = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'produto-editado.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Download iniciado",
+      description: "A imagem foi baixada para seu dispositivo",
+    });
+  };
+
   const handleSave = async () => {
     if (!canvasRef.current || !originalImage) return;
 
@@ -960,8 +1304,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        canvas.width = originalImage.width;
-        canvas.height = originalImage.height;
+        // Get crop dimensions
+        const crop = getCropDimensions(originalImage.width, originalImage.height, cropPreset);
+        canvas.width = crop.width;
+        canvas.height = crop.height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const offsetPixels = (offsetX / 100) * canvas.width;
@@ -991,7 +1337,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
             ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
             ctx.rotate((rotation * Math.PI) / 180);
             ctx.scale(scaleFactor, scaleFactor);
-            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
             ctx.drawImage(adjustedCanvas, 0, 0);
             ctx.restore();
           }
@@ -1027,7 +1373,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     if (originalImage) {
       drawImage(originalImage, adjustments);
     }
-  }, [rotation, offsetX, scale, adjustments, originalImage, drawImage]);
+  }, [rotation, offsetX, scale, adjustments, originalImage, drawImage, cropPreset]);
 
   useEffect(() => {
     return () => {
@@ -1061,13 +1407,43 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Crop Presets */}
+              <div className="px-4 py-2 border-b flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
+                  <Crop className="h-3 w-3" />
+                  Corte:
+                </span>
+                {(Object.keys(cropPresets) as CropPreset[]).map((preset) => (
+                  <Button
+                    key={preset}
+                    variant={cropPreset === preset ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleCropPresetChange(preset)}
+                    className={`text-xs px-3 h-7 ${buttonRadius}`}
+                    style={cropPreset === preset ? { backgroundColor: buttonBgColor, color: buttonTextColor } : { borderColor: buttonBgColor, color: buttonBgColor }}
+                  >
+                    {cropPresets[preset].label}
+                  </Button>
+                ))}
+              </div>
+              
               {/* Preview Area */}
-              <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto">
-                <canvas
-                  ref={canvasRef}
-                  className="max-w-full max-h-full object-contain border rounded shadow-sm"
-                  style={{ maxHeight: '400px' }}
-                />
+              <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto relative">
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    className="max-w-full max-h-full object-contain border rounded shadow-sm"
+                    style={{ maxHeight: '400px' }}
+                  />
+                  {/* Guides overlay canvas */}
+                  {showGuides && (
+                    <canvas
+                      ref={guidesCanvasRef}
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ maxHeight: '400px' }}
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Transform Controls */}
@@ -1231,13 +1607,14 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
                   <div className="border-t pt-4">
                     {[
-                      { key: 'exposure', label: 'Exposição', icon: Sun },
-                      { key: 'contrast', label: 'Contraste', icon: Contrast },
-                      { key: 'highlights', label: 'Realces', icon: Sparkles },
-                      { key: 'shadows', label: 'Sombras', icon: Cloud },
-                      { key: 'whites', label: 'Brancos', icon: CircleDot },
-                      { key: 'blacks', label: 'Pretos', icon: Square },
-                    ].map(({ key, label, icon: Icon }) => (
+                      { key: 'exposure', label: 'Exposição', icon: Sun, min: -100, max: 100 },
+                      { key: 'contrast', label: 'Contraste', icon: Contrast, min: -100, max: 100 },
+                      { key: 'highlights', label: 'Realces', icon: Sparkles, min: -100, max: 100 },
+                      { key: 'shadows', label: 'Sombras', icon: Cloud, min: -100, max: 100 },
+                      { key: 'whites', label: 'Brancos', icon: CircleDot, min: -100, max: 100 },
+                      { key: 'blacks', label: 'Pretos', icon: Square, min: -100, max: 100 },
+                      { key: 'sharpness', label: 'Nitidez', icon: Focus, min: 0, max: 30 },
+                    ].map(({ key, label, icon: Icon, min, max }) => (
                       <div key={key} className="space-y-2 mb-3">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-medium flex items-center gap-1">
@@ -1251,14 +1628,32 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                         <Slider
                           value={[adjustments[key as keyof ImageAdjustments]]}
                           onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
-                          min={-100}
-                          max={100}
+                          min={min}
+                          max={max}
                           step={1}
                           className="w-full"
                         />
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Apply to other images */}
+                  {otherProductImages.length > 0 && onApplyToOthers && (
+                    <div className="border-t pt-4">
+                      <Button
+                        onClick={handleApplyToOthers}
+                        variant="outline"
+                        className={`w-full ${buttonRadius}`}
+                        style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Aplicar às outras imagens
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center leading-tight mt-2">
+                        Aplica estes ajustes às outras {otherProductImages.length} imagens do produto.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1272,6 +1667,16 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Salvar imagem processada
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  disabled={isProcessing || !originalImage}
+                  className={`w-full ${buttonRadius}`}
+                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Compartilhar imagem
                 </Button>
                 <Button
                   variant="outline"
