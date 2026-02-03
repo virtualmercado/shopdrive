@@ -290,6 +290,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [rotation, setRotation] = useState(0);
   const [offsetX, setOffsetX] = useState(0);
   const [scale, setScale] = useState(100);
+  const [scaleSliderPos, setScaleSliderPos] = useState(0); // Bipolar slider position: -100 to +100, 0 = 100%
   const [rotationInput, setRotationInput] = useState("0");
   const [scaleInput, setScaleInput] = useState("100");
   const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('original');
@@ -330,6 +331,28 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     const range = 0.80 - minVisibility;
     const position = (visibility - minVisibility) / range;
     return 0.05 + (position * position) * 0.95;
+  }, []);
+
+  // Bipolar mapping: slider position (-100 to +100) to scale (60% to 160%)
+  const sliderPosToScale = useCallback((pos: number): number => {
+    if (pos <= 0) {
+      // -100 → 60%, 0 → 100%
+      return 100 + (pos / 100) * 40;
+    } else {
+      // 0 → 100%, +100 → 160%
+      return 100 + (pos / 100) * 60;
+    }
+  }, []);
+
+  // Bipolar mapping: scale (60% to 160%) to slider position (-100 to +100)
+  const scaleToSliderPos = useCallback((s: number): number => {
+    if (s <= 100) {
+      // 60% → -100, 100% → 0
+      return ((s - 100) / 40) * 100;
+    } else {
+      // 100% → 0, 160% → +100
+      return ((s - 100) / 60) * 100;
+    }
   }, []);
 
   useEffect(() => {
@@ -721,6 +744,24 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setHasChanges(true);
   }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
 
+  // Handler for bipolar scale slider
+  const handleScaleSliderChange = useCallback((pos: number) => {
+    if (isAnimatingReset) return;
+    
+    const targetScale = sliderPosToScale(pos);
+    const visibility = calculateVisibilityFactor(targetScale, offsetX);
+    const clampMultiplier = getSoftClampMultiplier(visibility);
+    
+    const delta = targetScale - scale;
+    const softDelta = delta * clampMultiplier;
+    const newScale = Math.max(60, Math.min(160, scale + softDelta));
+    
+    setScale(newScale);
+    setScaleSliderPos(scaleToSliderPos(newScale));
+    setScaleInput(Math.round(newScale).toString());
+    setHasChanges(true);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos]);
+
   const handleScaleChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
@@ -733,9 +774,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     
     const clampedValue = Math.max(60, Math.min(160, newValue));
     setScale(clampedValue);
+    setScaleSliderPos(scaleToSliderPos(clampedValue));
     setScaleInput(Math.round(clampedValue).toString());
     setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos]);
 
   const handleScaleInputChange = (inputValue: string) => {
     setScaleInput(inputValue);
@@ -743,6 +785,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     if (!isNaN(numValue)) {
       const clampedValue = Math.max(60, Math.min(160, numValue));
       setScale(clampedValue);
+      setScaleSliderPos(scaleToSliderPos(clampedValue));
       setHasChanges(true);
     }
   };
@@ -791,6 +834,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setRotationInput(newRotation.toFixed(1));
       setOffsetX(newOffsetX);
       setScale(newScale);
+      setScaleSliderPos(scaleToSliderPos(newScale));
       setScaleInput(Math.round(newScale).toString());
       setAdjustments(newAdjustments);
       
@@ -801,6 +845,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
         setRotationInput("0");
         setOffsetX(0);
         setScale(100);
+        setScaleSliderPos(0);
         setScaleInput("100");
         setAdjustments(defaultAdjustments);
         setIsAnimatingReset(false);
@@ -890,6 +935,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setRotationInput("0");
     setOffsetX(0);
     setScale(100);
+    setScaleSliderPos(0);
     setScaleInput("100");
     setSelectedBackground('original');
     setShadowType('none');
@@ -1149,11 +1195,11 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                     </div>
                   </div>
                   <Slider
-                    value={[scale - 100]}
-                    onValueChange={([delta]) => handleScaleChange(100 + delta)}
-                    min={-40}
-                    max={60}
-                    step={scaleStep}
+                    value={[scaleSliderPos]}
+                    onValueChange={([pos]) => handleScaleSliderChange(pos)}
+                    min={-100}
+                    max={100}
+                    step={1}
                     className="w-full"
                   />
                 </div>
