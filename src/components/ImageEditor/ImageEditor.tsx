@@ -23,9 +23,9 @@ import {
   Info,
   RefreshCw,
   Check,
-  Move,
   RotateCcwIcon,
-  ZoomIn
+  ZoomIn,
+  Wand2
 } from "lucide-react";
 import { removeBackground, loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
@@ -76,6 +76,209 @@ const backgroundPresets: Record<BackgroundType, { label: string; color?: string;
   'light-texture': { label: 'Textura Leve', pattern: 'light' },
 };
 
+// Helper: apply tonal adjustments to ImageData
+const applyAdjustmentsToImageData = (imageData: ImageData, adjustments: ImageAdjustments): ImageData => {
+  const data = imageData.data;
+  const result = new ImageData(new Uint8ClampedArray(data), imageData.width, imageData.height);
+  const resultData = result.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i];
+    let g = data[i + 1];
+    let b = data[i + 2];
+    const a = data[i + 3];
+
+    // Skip fully transparent pixels
+    if (a === 0) {
+      resultData[i] = r;
+      resultData[i + 1] = g;
+      resultData[i + 2] = b;
+      resultData[i + 3] = a;
+      continue;
+    }
+
+    // Exposure (EV-style gamma adjustment)
+    const exposureFactor = Math.pow(2, adjustments.exposure / 100);
+    r *= exposureFactor;
+    g *= exposureFactor;
+    b *= exposureFactor;
+
+    // Contrast (S-curve around midtones)
+    const contrastFactor = (100 + adjustments.contrast) / 100;
+    r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255;
+    g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255;
+    b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255;
+
+    // Calculate luminance for masking
+    const luminance = (r * 0.299 + g * 0.587 + b * 0.114);
+
+    // Highlights (soft mask for bright areas - above 60% luminance)
+    if (luminance > 153) {
+      const highlightMask = Math.pow((luminance - 153) / 102, 0.5); // Soft feather
+      const highlightEffect = highlightMask * (adjustments.highlights / 100) * 60;
+      r += highlightEffect;
+      g += highlightEffect;
+      b += highlightEffect;
+    }
+
+    // Shadows (soft mask for dark areas - below 40% luminance)
+    if (luminance < 102) {
+      const shadowMask = Math.pow((102 - luminance) / 102, 0.5); // Soft feather
+      const shadowEffect = shadowMask * (adjustments.shadows / 100) * 60;
+      r += shadowEffect;
+      g += shadowEffect;
+      b += shadowEffect;
+    }
+
+    // Whites (affect very bright pixels - above 78% luminance)
+    if (luminance > 200) {
+      const whiteMask = (luminance - 200) / 55;
+      const whiteEffect = whiteMask * (adjustments.whites / 100) * 40;
+      r += whiteEffect;
+      g += whiteEffect;
+      b += whiteEffect;
+    }
+
+    // Blacks (affect very dark pixels - below 22% luminance)
+    if (luminance < 55) {
+      const blackMask = (55 - luminance) / 55;
+      const blackEffect = blackMask * (adjustments.blacks / 100) * 40;
+      r -= blackEffect;
+      g -= blackEffect;
+      b -= blackEffect;
+    }
+
+    // Clamp values
+    resultData[i] = Math.max(0, Math.min(255, r));
+    resultData[i + 1] = Math.max(0, Math.min(255, g));
+    resultData[i + 2] = Math.max(0, Math.min(255, b));
+    resultData[i + 3] = a;
+  }
+
+  return result;
+};
+
+// Helper: analyze image histogram for auto adjustments
+interface HistogramAnalysis {
+  median: number;
+  mean: number;
+  stdDev: number;
+  p1: number;
+  p99: number;
+  p03: number;
+  p997: number;
+  clippingHighlights: number;
+  clippingShadows: number;
+}
+
+const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
+  const data = imageData.data;
+  const luminances: number[] = [];
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a > 128) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      luminances.push(luminance);
+    }
+  }
+
+  if (luminances.length === 0) {
+    return {
+      median: 0.5, mean: 0.5, stdDev: 0.2,
+      p1: 0.05, p99: 0.95, p03: 0.02, p997: 0.98,
+      clippingHighlights: 0, clippingShadows: 0
+    };
+  }
+
+  luminances.sort((a, b) => a - b);
+
+  const mean = luminances.reduce((acc, v) => acc + v, 0) / luminances.length;
+  const median = luminances[Math.floor(luminances.length / 2)];
+  const variance = luminances.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / luminances.length;
+  const stdDev = Math.sqrt(variance);
+
+  const getPercentile = (p: number) => luminances[Math.floor(luminances.length * p)] || 0;
+  
+  const p1 = getPercentile(0.01);
+  const p99 = getPercentile(0.99);
+  const p03 = getPercentile(0.003);
+  const p997 = getPercentile(0.997);
+
+  const clippingHighlights = luminances.filter(l => l > 0.98).length / luminances.length;
+  const clippingShadows = luminances.filter(l => l < 0.02).length / luminances.length;
+
+  return { median, mean, stdDev, p1, p99, p03, p997, clippingHighlights, clippingShadows };
+};
+
+// Helper: calculate auto adjustments based on histogram
+const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
+  const { median, stdDev, p1, p99, clippingHighlights, clippingShadows } = analysis;
+
+  // Exposure: adjust median to target ~0.55 for e-commerce
+  const targetMedian = 0.55;
+  let exposure = 0;
+  if (median < targetMedian - 0.05) {
+    exposure = Math.min(40, (targetMedian - median) * 100);
+  } else if (median > targetMedian + 0.05) {
+    exposure = Math.max(-30, (targetMedian - median) * 80);
+  }
+
+  // Contrast: based on standard deviation
+  let contrast = 0;
+  if (stdDev < 0.18) {
+    // Image is "washed out", needs more contrast
+    contrast = Math.min(25, (0.18 - stdDev) * 150);
+  } else if (stdDev > 0.28) {
+    // Image is too harsh, reduce contrast
+    contrast = Math.max(-20, (0.28 - stdDev) * 100);
+  }
+
+  // Whites: pull back if there's highlight clipping
+  let whites = 0;
+  if (clippingHighlights > 0.02) {
+    whites = Math.max(-50, -clippingHighlights * 800);
+  } else if (p99 < 0.85) {
+    // Brighten whites if no clipping and room to expand
+    whites = Math.min(20, (0.90 - p99) * 100);
+  }
+
+  // Blacks: lift if shadows are crushed
+  let blacks = 0;
+  if (clippingShadows > 0.02) {
+    blacks = Math.max(-40, -clippingShadows * 600);
+  } else if (p1 > 0.15) {
+    // Deepen blacks if no crushing
+    blacks = Math.min(15, (p1 - 0.05) * 80);
+  }
+
+  // Highlights: recover if significant clipping
+  let highlights = 0;
+  if (clippingHighlights > 0.01) {
+    highlights = Math.max(-40, -clippingHighlights * 600);
+  }
+
+  // Shadows: lift if too compressed
+  let shadows = 0;
+  if (clippingShadows > 0.005) {
+    shadows = Math.min(30, clippingShadows * 400);
+  } else if (p1 < 0.03 && stdDev < 0.22) {
+    shadows = Math.min(20, 15);
+  }
+
+  return {
+    exposure: Math.round(exposure),
+    contrast: Math.round(contrast),
+    highlights: Math.round(highlights),
+    shadows: Math.round(shadows),
+    whites: Math.round(whites),
+    blacks: Math.round(blacks),
+  };
+};
+
 export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEditorProps) => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [processedImage, setProcessedImage] = useState<ImageData | null>(null);
@@ -85,8 +288,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [processingStep, setProcessingStep] = useState('');
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [rotation, setRotation] = useState(0);
-  const [offsetX, setOffsetX] = useState(0); // Horizontal offset in percentage (-30 to +30)
-  const [scale, setScale] = useState(100); // Zoom/scale in percentage (60 to 160)
+  const [offsetX, setOffsetX] = useState(0);
+  const [scale, setScale] = useState(100);
   const [rotationInput, setRotationInput] = useState("0");
   const [scaleInput, setScaleInput] = useState("100");
   const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('original');
@@ -95,57 +298,40 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const [showComparison, setShowComparison] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isAnimatingReset, setIsAnimatingReset] = useState(false);
+  const [isAnimatingAuto, setIsAnimatingAuto] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
+  const autoAnimationRef = useRef<number | null>(null);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
   const isMobile = useIsMobile();
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-md';
   
-  // Rotation, offset, and scale step values based on device
   const rotationStep = isMobile ? 0.5 : 0.1;
   const offsetStep = isMobile ? 1 : 0.5;
   const scaleStep = isMobile ? 2 : 1;
 
-  // Soft-clamp: calculate visibility factor based on current transforms
   const calculateVisibilityFactor = useCallback((currentScale: number, currentOffsetX: number): number => {
-    // Calculate how much of the product remains visible
-    // At scale 100% and offset 0%, visibility = 100%
-    // As we push towards limits, visibility decreases
-    
     const scaleFactor = currentScale / 100;
     const canvasWidth = canvasRef.current?.width || 800;
     const productVisibleWidth = canvasWidth * scaleFactor;
     const offsetPixels = Math.abs(currentOffsetX / 100) * canvasWidth;
-    
-    // How much of the scaled product is still within frame
     const visiblePortion = Math.max(0, productVisibleWidth - offsetPixels) / productVisibleWidth;
-    
     return Math.max(0, Math.min(1, visiblePortion));
   }, []);
 
-  // Soft-clamp multiplier: reduces sensitivity as we approach visibility limit (60%)
   const getSoftClampMultiplier = useCallback((visibility: number): number => {
-    const minVisibility = 0.60; // 60% minimum visibility
-    
-    if (visibility >= 0.80) {
-      return 1; // Full sensitivity above 80% visibility
-    } else if (visibility <= minVisibility) {
-      return 0.05; // Almost stopped at 60%
-    } else {
-      // Gradual reduction between 80% and 60%
-      const range = 0.80 - minVisibility;
-      const position = (visibility - minVisibility) / range;
-      // Ease-out curve for smooth braking
-      return 0.05 + (position * position) * 0.95;
-    }
+    const minVisibility = 0.60;
+    if (visibility >= 0.80) return 1;
+    if (visibility <= minVisibility) return 0.05;
+    const range = 0.80 - minVisibility;
+    const position = (visibility - minVisibility) / range;
+    return 0.05 + (position * position) * 0.95;
   }, []);
 
-  // Load original image when dialog opens
   useEffect(() => {
     if (open && imageUrl) {
       loadImage();
@@ -170,7 +356,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setIsProcessing(false);
       setProcessingStep('');
       
-      // Draw initial image
       drawImage(img);
     } catch (error) {
       console.error('Error loading image:', error);
@@ -183,8 +368,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  const drawImage = useCallback((img: HTMLImageElement, imgData?: ImageData) => {
-    // Cancel any pending animation frame
+  // Unified draw function that applies both transforms and adjustments
+  const drawImage = useCallback((img: HTMLImageElement, imgData?: ImageData, currentAdjustments?: ImageAdjustments) => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
@@ -196,45 +381,52 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Set canvas size to image size
       canvas.width = img.width;
       canvas.height = img.height;
-
-      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Calculate offset in pixels based on percentage
       const offsetPixels = (offsetX / 100) * canvas.width;
-      // Calculate scale factor
       const scaleFactor = scale / 100;
+      const adj = currentAdjustments || adjustments;
+      const hasAdjustments = Object.values(adj).some(v => v !== 0);
 
-      // Apply transformations: translate for offset, then rotate around center, then scale
+      // Create source image data (either from imgData or from original image)
+      let sourceData: ImageData;
+      
+      if (imgData) {
+        sourceData = imgData;
+      } else {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+        tempCtx.drawImage(img, 0, 0);
+        sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      }
+
+      // Apply adjustments if any
+      const adjustedData = hasAdjustments ? applyAdjustmentsToImageData(sourceData, adj) : sourceData;
+
+      // Create temp canvas with adjusted data
+      const adjustedCanvas = document.createElement('canvas');
+      adjustedCanvas.width = adjustedData.width;
+      adjustedCanvas.height = adjustedData.height;
+      const adjustedCtx = adjustedCanvas.getContext('2d');
+      if (!adjustedCtx) return;
+      adjustedCtx.putImageData(adjustedData, 0, 0);
+
+      // Apply transforms and draw
       ctx.save();
       ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(scaleFactor, scaleFactor);
       ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-      if (imgData) {
-        // putImageData doesn't respect canvas transformations, so we need to
-        // draw to a temp canvas first, then drawImage from that
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imgData.width;
-        tempCanvas.height = imgData.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (tempCtx) {
-          tempCtx.putImageData(imgData, 0, 0);
-          ctx.drawImage(tempCanvas, 0, 0);
-        }
-      } else {
-        ctx.drawImage(img, 0, 0);
-      }
-
+      ctx.drawImage(adjustedCanvas, 0, 0);
       ctx.restore();
     });
-  }, [rotation, offsetX, scale]);
+  }, [rotation, offsetX, scale, adjustments]);
 
-  // Handle background removal
   const handleRemoveBackground = async () => {
     if (!originalImage) return;
 
@@ -243,7 +435,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setProcessingProgress(10);
 
     try {
-      // Create canvas with original image
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = originalImage.width;
       tempCanvas.height = originalImage.height;
@@ -255,7 +446,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setProcessingStep('Removendo fundo...');
       setProcessingProgress(30);
 
-      // Use @huggingface/transformers for background removal
       const resultBlob = await removeBackground(originalImage, (progress) => {
         setProcessingProgress(30 + progress * 60);
       });
@@ -263,7 +453,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       setProcessingStep('Processando resultado...');
       setProcessingProgress(90);
 
-      // Convert blob to ImageData
       const resultImg = new Image();
       resultImg.src = URL.createObjectURL(resultBlob);
       
@@ -306,8 +495,8 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  // Apply background to removed image
-  const applyBackground = useCallback(() => {
+  // Apply background with all effects including adjustments
+  const applyBackground = useCallback((currentAdjustments?: ImageAdjustments) => {
     if (!backgroundRemovedImage || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -316,63 +505,57 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
     canvas.width = backgroundRemovedImage.width;
     canvas.height = backgroundRemovedImage.height;
-
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw background first (before transformations)
+    // Draw background first
     if (selectedBackground !== 'transparent' && selectedBackground !== 'original') {
       const preset = backgroundPresets[selectedBackground];
       
       if (preset.pattern) {
-        // Draw texture pattern
         drawTextureBackground(ctx, canvas.width, canvas.height, preset.pattern);
       } else if (preset.color) {
         ctx.fillStyle = preset.color;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       } else if (selectedBackground === 'auto-contrast') {
-        // Calculate auto contrast color based on image
         const avgColor = calculateAverageColor(backgroundRemovedImage);
         const contrastColor = getContrastingColor(avgColor);
         ctx.fillStyle = contrastColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
     } else if (selectedBackground === 'transparent') {
-      // Draw checkerboard for transparency
       drawCheckerboard(ctx, canvas.width, canvas.height);
     }
 
-    // Calculate offset in pixels based on percentage
     const offsetPixels = (offsetX / 100) * canvas.width;
-    // Calculate scale factor
     const scaleFactor = scale / 100;
+    const adj = currentAdjustments || adjustments;
+    const hasAdj = Object.values(adj).some(v => v !== 0);
 
-    // Apply transformations for the image layer: translate -> rotate -> scale
+    // Apply adjustments to the background-removed image
+    const adjustedData = hasAdj ? applyAdjustmentsToImageData(backgroundRemovedImage, adj) : backgroundRemovedImage;
+
     ctx.save();
     ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(scaleFactor, scaleFactor);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    // Apply shadow if needed (with transformations)
+    // Apply shadow if needed
     if (shadowType !== 'none' && isBackgroundRemoved) {
-      applyShadow(ctx, backgroundRemovedImage, shadowType);
+      applyShadow(ctx, adjustedData, shadowType);
     }
 
-    // Draw the image using temp canvas (putImageData doesn't respect transformations)
+    // Draw the adjusted image
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = backgroundRemovedImage.width;
-    tempCanvas.height = backgroundRemovedImage.height;
+    tempCanvas.width = adjustedData.width;
+    tempCanvas.height = adjustedData.height;
     const tempCtx = tempCanvas.getContext('2d');
     if (tempCtx) {
-      tempCtx.putImageData(backgroundRemovedImage, 0, 0);
+      tempCtx.putImageData(adjustedData, 0, 0);
       ctx.drawImage(tempCanvas, 0, 0);
     }
 
     ctx.restore();
-
-    // Apply adjustments
-    applyAdjustments(ctx, canvas.width, canvas.height);
   }, [backgroundRemovedImage, selectedBackground, shadowType, adjustments, isBackgroundRemoved, rotation, offsetX, scale]);
 
   useEffect(() => {
@@ -382,7 +565,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   }, [applyBackground, isBackgroundRemoved, backgroundRemovedImage]);
 
   const drawTextureBackground = (ctx: CanvasRenderingContext2D, width: number, height: number, pattern: string) => {
-    // Create texture patterns
     switch (pattern) {
       case 'wood':
         const woodGradient = ctx.createLinearGradient(0, 0, width, height);
@@ -396,7 +578,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       case 'marble':
         ctx.fillStyle = '#F5F5F5';
         ctx.fillRect(0, 0, width, height);
-        // Add marble veins
         ctx.strokeStyle = 'rgba(180, 180, 180, 0.3)';
         ctx.lineWidth = 2;
         for (let i = 0; i < 5; i++) {
@@ -417,7 +598,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       case 'light':
         ctx.fillStyle = '#FAFAFA';
         ctx.fillRect(0, 0, width, height);
-        // Add subtle noise
         const imageData = ctx.getImageData(0, 0, width, height);
         for (let i = 0; i < imageData.data.length; i += 4) {
           const noise = (Math.random() - 0.5) * 10;
@@ -444,20 +624,17 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     ctx.save();
     
     if (type === 'base') {
-      // Base shadow
       ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
       ctx.shadowBlur = 20;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 10;
     } else if (type === 'around') {
-      // Around shadow
       ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
       ctx.shadowBlur = 30;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
     }
     
-    // Draw shadow layer
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
@@ -474,7 +651,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     let r = 0, g = 0, b = 0, count = 0;
     
     for (let i = 0; i < imageData.data.length; i += 4) {
-      if (imageData.data[i + 3] > 128) { // Only count non-transparent pixels
+      if (imageData.data[i + 3] > 128) {
         r += imageData.data[i];
         g += imageData.data[i + 1];
         b += imageData.data[i + 2];
@@ -494,74 +671,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     return luminance > 0.5 ? '#2D2D2D' : '#F5F5F5';
   };
 
-  const applyAdjustments = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    if (Object.values(adjustments).every(v => v === 0)) return;
-
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-      let r = data[i];
-      let g = data[i + 1];
-      let b = data[i + 2];
-
-      // Exposure
-      const exposureFactor = Math.pow(2, adjustments.exposure / 100);
-      r *= exposureFactor;
-      g *= exposureFactor;
-      b *= exposureFactor;
-
-      // Contrast
-      const contrastFactor = (100 + adjustments.contrast) / 100;
-      r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255;
-      g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255;
-      b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255;
-
-      // Highlights (affect bright areas)
-      const luminance = (r + g + b) / 3;
-      if (luminance > 128) {
-        const highlightEffect = ((luminance - 128) / 127) * (adjustments.highlights / 100);
-        r += highlightEffect * 50;
-        g += highlightEffect * 50;
-        b += highlightEffect * 50;
-      }
-
-      // Shadows (affect dark areas)
-      if (luminance < 128) {
-        const shadowEffect = ((128 - luminance) / 128) * (adjustments.shadows / 100);
-        r += shadowEffect * 50;
-        g += shadowEffect * 50;
-        b += shadowEffect * 50;
-      }
-
-      // Whites
-      if (luminance > 200) {
-        const whiteEffect = adjustments.whites / 100;
-        r += whiteEffect * 30;
-        g += whiteEffect * 30;
-        b += whiteEffect * 30;
-      }
-
-      // Blacks
-      if (luminance < 55) {
-        const blackEffect = adjustments.blacks / 100;
-        r -= blackEffect * 30;
-        g -= blackEffect * 30;
-        b -= blackEffect * 30;
-      }
-
-      // Clamp values
-      data[i] = Math.max(0, Math.min(255, r));
-      data[i + 1] = Math.max(0, Math.min(255, g));
-      data[i + 2] = Math.max(0, Math.min(255, b));
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-  };
-
-  // Rotation handlers with fine control
   const handleRotationChange = useCallback((value: number) => {
-    // Clamp to -180 to +180
     const clampedValue = Math.max(-180, Math.min(180, value));
     setRotation(clampedValue);
     setRotationInput(clampedValue.toFixed(1));
@@ -579,7 +689,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   const handleRotationInputBlur = () => {
-    // On blur, ensure input shows the valid clamped value
     setRotationInput(rotation.toFixed(1));
   };
 
@@ -597,39 +706,31 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     handleRotationChange(rotation + degrees);
   };
 
-  // Offset handlers with soft-clamp
   const handleOffsetChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
-    // Calculate current visibility
     const visibility = calculateVisibilityFactor(scale, value);
     const clampMultiplier = getSoftClampMultiplier(visibility);
     
-    // Apply soft-clamp: reduce the delta as we approach limit
     const delta = value - offsetX;
     const softDelta = delta * clampMultiplier;
     const newValue = offsetX + softDelta;
     
-    // Hard clamp to -30 to +30
     const clampedValue = Math.max(-30, Math.min(30, newValue));
     setOffsetX(clampedValue);
     setHasChanges(true);
   }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier]);
 
-  // Scale/Zoom handlers with soft-clamp
   const handleScaleChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
-    // Calculate visibility with new scale value
     const visibility = calculateVisibilityFactor(value, offsetX);
     const clampMultiplier = getSoftClampMultiplier(visibility);
     
-    // Apply soft-clamp: reduce the delta as we approach limit
     const delta = value - scale;
     const softDelta = delta * clampMultiplier;
     const newValue = scale + softDelta;
     
-    // Hard clamp to 60 to 160
     const clampedValue = Math.max(60, Math.min(160, newValue));
     setScale(clampedValue);
     setScaleInput(Math.round(clampedValue).toString());
@@ -647,15 +748,13 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   const handleScaleInputBlur = () => {
-    // On blur, ensure input shows the valid clamped value
     setScaleInput(Math.round(scale).toString());
   };
 
-  // Animated reset with ease-out
+  // Animated reset with ease-out (includes adjustments)
   const handleResetTransform = useCallback(() => {
     if (isAnimatingReset) return;
     
-    // Cancel any existing reset animation
     if (resetAnimationRef.current) {
       cancelAnimationFrame(resetAnimationRef.current);
     }
@@ -665,50 +764,126 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     const startRotation = rotation;
     const startOffsetX = offsetX;
     const startScale = scale;
-    const duration = 180; // 180ms
+    const startAdjustments = { ...adjustments };
+    const duration = 180;
     const startTime = performance.now();
     
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(1, elapsed / duration);
-      
-      // Ease-out cubic: 1 - (1 - t)^3
       const easeOut = 1 - Math.pow(1 - progress, 3);
       
       const newRotation = startRotation * (1 - easeOut);
       const newOffsetX = startOffsetX * (1 - easeOut);
       const newScale = startScale + (100 - startScale) * easeOut;
       
+      // Animate adjustments to 0
+      const newAdjustments: ImageAdjustments = {
+        exposure: Math.round(startAdjustments.exposure * (1 - easeOut)),
+        contrast: Math.round(startAdjustments.contrast * (1 - easeOut)),
+        highlights: Math.round(startAdjustments.highlights * (1 - easeOut)),
+        shadows: Math.round(startAdjustments.shadows * (1 - easeOut)),
+        whites: Math.round(startAdjustments.whites * (1 - easeOut)),
+        blacks: Math.round(startAdjustments.blacks * (1 - easeOut)),
+      };
+      
       setRotation(newRotation);
       setRotationInput(newRotation.toFixed(1));
       setOffsetX(newOffsetX);
       setScale(newScale);
       setScaleInput(Math.round(newScale).toString());
+      setAdjustments(newAdjustments);
       
       if (progress < 1) {
         resetAnimationRef.current = requestAnimationFrame(animate);
       } else {
-        // Ensure final values are exact
         setRotation(0);
         setRotationInput("0");
         setOffsetX(0);
         setScale(100);
         setScaleInput("100");
+        setAdjustments(defaultAdjustments);
         setIsAnimatingReset(false);
         resetAnimationRef.current = null;
       }
     };
     
     resetAnimationRef.current = requestAnimationFrame(animate);
-  }, [rotation, offsetX, scale, isAnimatingReset]);
+  }, [rotation, offsetX, scale, adjustments, isAnimatingReset]);
 
-  // Adjustment handlers
+  // Auto button: analyze image and set optimal adjustments
+  const handleAutoAdjust = useCallback(() => {
+    if (isAnimatingAuto || !originalImage) return;
+
+    // Get source image data
+    let sourceData: ImageData;
+    
+    if (isBackgroundRemoved && backgroundRemovedImage) {
+      sourceData = backgroundRemovedImage;
+    } else {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = originalImage.width;
+      tempCanvas.height = originalImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      tempCtx.drawImage(originalImage, 0, 0);
+      sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    }
+
+    // Analyze histogram
+    const analysis = analyzeImageHistogram(sourceData);
+    const targetAdjustments = calculateAutoAdjustments(analysis);
+
+    // Cancel any existing animation
+    if (autoAnimationRef.current) {
+      cancelAnimationFrame(autoAnimationRef.current);
+    }
+
+    setIsAnimatingAuto(true);
+    
+    const startAdjustments = { ...adjustments };
+    const duration = 180;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      const newAdjustments: ImageAdjustments = {
+        exposure: Math.round(startAdjustments.exposure + (targetAdjustments.exposure - startAdjustments.exposure) * easeOut),
+        contrast: Math.round(startAdjustments.contrast + (targetAdjustments.contrast - startAdjustments.contrast) * easeOut),
+        highlights: Math.round(startAdjustments.highlights + (targetAdjustments.highlights - startAdjustments.highlights) * easeOut),
+        shadows: Math.round(startAdjustments.shadows + (targetAdjustments.shadows - startAdjustments.shadows) * easeOut),
+        whites: Math.round(startAdjustments.whites + (targetAdjustments.whites - startAdjustments.whites) * easeOut),
+        blacks: Math.round(startAdjustments.blacks + (targetAdjustments.blacks - startAdjustments.blacks) * easeOut),
+      };
+
+      setAdjustments(newAdjustments);
+      setHasChanges(true);
+
+      if (progress < 1) {
+        autoAnimationRef.current = requestAnimationFrame(animate);
+      } else {
+        setAdjustments(targetAdjustments);
+        setIsAnimatingAuto(false);
+        autoAnimationRef.current = null;
+        
+        toast({
+          title: "Auto ajuste aplicado",
+          description: "Ajustes otimizados para e-commerce foram aplicados",
+        });
+      }
+    };
+
+    autoAnimationRef.current = requestAnimationFrame(animate);
+  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast]);
+
   const handleAdjustmentChange = (key: keyof ImageAdjustments, value: number) => {
     setAdjustments((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
-  // Undo all changes
   const handleUndo = () => {
     setAdjustments(defaultAdjustments);
     setRotation(0);
@@ -729,7 +904,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  // Save edited image
   const handleSave = async () => {
     if (!canvasRef.current) return;
 
@@ -738,17 +912,54 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setProcessingProgress(50);
 
     try {
-      const canvas = canvasRef.current;
-      
-      // If we have a background removed image, render it with all effects
+      // Re-render with final state
       if (isBackgroundRemoved && backgroundRemovedImage) {
-        applyBackground();
+        applyBackground(adjustments);
       } else if (originalImage) {
-        drawImage(originalImage);
+        // Synchronous final render
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = originalImage.width;
+          canvas.height = originalImage.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const offsetPixels = (offsetX / 100) * canvas.width;
+          const scaleFactor = scale / 100;
+
+          // Get source data
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = originalImage.width;
+          tempCanvas.height = originalImage.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          if (tempCtx) {
+            tempCtx.drawImage(originalImage, 0, 0);
+            const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Apply adjustments
+            const hasAdj = Object.values(adjustments).some(v => v !== 0);
+            const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
+
+            const adjustedCanvas = document.createElement('canvas');
+            adjustedCanvas.width = adjustedData.width;
+            adjustedCanvas.height = adjustedData.height;
+            const adjustedCtx = adjustedCanvas.getContext('2d');
+            if (adjustedCtx) {
+              adjustedCtx.putImageData(adjustedData, 0, 0);
+
+              ctx.save();
+              ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+              ctx.rotate((rotation * Math.PI) / 180);
+              ctx.scale(scaleFactor, scaleFactor);
+              ctx.translate(-canvas.width / 2, -canvas.height / 2);
+              ctx.drawImage(adjustedCanvas, 0, 0);
+              ctx.restore();
+            }
+          }
+        }
       }
 
-      // Export as PNG to preserve transparency
-      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      const dataUrl = canvasRef.current.toDataURL('image/png', 1.0);
       
       setProcessingProgress(100);
       
@@ -772,49 +983,27 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   };
 
-  // Update canvas when rotation, offset, or scale changes
+  // Update canvas when transforms or adjustments change
   useEffect(() => {
     if (originalImage && !isBackgroundRemoved) {
-      drawImage(originalImage);
+      drawImage(originalImage, undefined, adjustments);
     }
-  }, [rotation, offsetX, scale, originalImage, isBackgroundRemoved, drawImage]);
+  }, [rotation, offsetX, scale, adjustments, originalImage, isBackgroundRemoved, drawImage]);
 
-  // Cleanup animation frames on unmount
+  // Update background-removed canvas when adjustments change
+  useEffect(() => {
+    if (isBackgroundRemoved && backgroundRemovedImage) {
+      applyBackground(adjustments);
+    }
+  }, [adjustments, isBackgroundRemoved, backgroundRemovedImage, rotation, offsetX, scale, selectedBackground, shadowType]);
+
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (resetAnimationRef.current) {
-        cancelAnimationFrame(resetAnimationRef.current);
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (resetAnimationRef.current) cancelAnimationFrame(resetAnimationRef.current);
+      if (autoAnimationRef.current) cancelAnimationFrame(autoAnimationRef.current);
     };
   }, []);
-
-  // Apply adjustments in real-time
-  useEffect(() => {
-    if (!canvasRef.current || !originalImage) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    if (isBackgroundRemoved && backgroundRemovedImage) {
-      applyBackground();
-    } else {
-      drawImage(originalImage);
-      applyAdjustments(ctx, canvas.width, canvas.height);
-    }
-  }, [adjustments, originalImage, isBackgroundRemoved, backgroundRemovedImage, applyBackground, drawImage]);
-
-  const getHoverColor = (color: string) => {
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    const factor = 0.85;
-    return `rgb(${Math.floor(r * factor)}, ${Math.floor(g * factor)}, ${Math.floor(b * factor)})`;
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -827,7 +1016,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
             </DialogTitle>
           </DialogHeader>
 
-          {/* Processing Overlay */}
           {isProcessing && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin" style={{ color: buttonBgColor }} />
@@ -839,15 +1027,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
           )}
 
           <div className="flex flex-1 overflow-hidden">
-            {/* Main Canvas Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Info Banner */}
               <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
                 <Info className="h-4 w-4 flex-shrink-0" />
                 <span>Para melhores resultados na remoção de fundo, utilize fotos com fundo contrastante e sem outros objetos além do produto.</span>
               </div>
 
-              {/* Canvas Container */}
               <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto">
                 {showComparison && originalImage ? (
                   <div className="flex gap-4 items-center">
@@ -864,10 +1049,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                       <canvas
                         ref={canvasRef}
                         className="max-w-[200px] max-h-[300px] object-contain border rounded"
-                        style={{ 
-                          maxWidth: '200px',
-                          maxHeight: '300px'
-                        }}
+                        style={{ maxWidth: '200px', maxHeight: '300px' }}
                       />
                     </div>
                   </div>
@@ -880,7 +1062,6 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                 )}
               </div>
 
-              {/* Bottom Controls - Rotation & Position */}
               <div className="px-4 py-3 border-t space-y-4 flex-shrink-0">
                 {/* Rotation Control */}
                 <div className="space-y-2">
@@ -981,7 +1162,11 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium flex items-center gap-1">
-                      <Move className="h-3 w-3" />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8L22 12L18 16" />
+                        <path d="M6 8L2 12L6 16" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                      </svg>
                       Posição horizontal (X)
                     </label>
                     <span className="text-xs text-muted-foreground">
@@ -1124,34 +1309,53 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
 
                   {/* Adjustments Tab */}
                   <TabsContent value="adjustments" className="space-y-4">
-                    {[
-                      { key: 'exposure', label: 'Exposição', icon: Sun },
-                      { key: 'contrast', label: 'Contraste', icon: Contrast },
-                      { key: 'highlights', label: 'Realces', icon: Sparkles },
-                      { key: 'shadows', label: 'Sombras', icon: Cloud },
-                      { key: 'whites', label: 'Brancos', icon: CircleDot },
-                      { key: 'blacks', label: 'Pretos', icon: Square },
-                    ].map(({ key, label, icon: Icon }) => (
-                      <div key={key} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-medium flex items-center gap-1">
-                            <Icon className="h-3 w-3" />
-                            {label}
-                          </label>
-                          <span className="text-xs text-muted-foreground">
-                            {adjustments[key as keyof ImageAdjustments]}
-                          </span>
+                    {/* Auto Button */}
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleAutoAdjust}
+                        disabled={isProcessing || isAnimatingAuto || !originalImage}
+                        variant="outline"
+                        className={`w-full ${buttonRadius}`}
+                        style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                      >
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Auto
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                        Auto usa IA para analisar a imagem e sugerir ajustes profissionais para e-commerce.
+                      </p>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      {[
+                        { key: 'exposure', label: 'Exposição', icon: Sun },
+                        { key: 'contrast', label: 'Contraste', icon: Contrast },
+                        { key: 'highlights', label: 'Realces', icon: Sparkles },
+                        { key: 'shadows', label: 'Sombras', icon: Cloud },
+                        { key: 'whites', label: 'Brancos', icon: CircleDot },
+                        { key: 'blacks', label: 'Pretos', icon: Square },
+                      ].map(({ key, label, icon: Icon }) => (
+                        <div key={key} className="space-y-2 mb-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium flex items-center gap-1">
+                              <Icon className="h-3 w-3" />
+                              {label}
+                            </label>
+                            <span className="text-xs text-muted-foreground">
+                              {adjustments[key as keyof ImageAdjustments]}
+                            </span>
+                          </div>
+                          <Slider
+                            value={[adjustments[key as keyof ImageAdjustments]]}
+                            onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
+                            min={-100}
+                            max={100}
+                            step={1}
+                            className="w-full"
+                          />
                         </div>
-                        <Slider
-                          value={[adjustments[key as keyof ImageAdjustments]]}
-                          onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
-                          min={-100}
-                          max={100}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </TabsContent>
 
                   {/* Shadows Tab */}
