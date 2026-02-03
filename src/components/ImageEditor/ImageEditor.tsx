@@ -524,6 +524,11 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   // History stack for undo functionality
   const [historyStack, setHistoryStack] = useState<EditorHistoryState[]>([]);
   
+  // Track if we're currently in an interaction (slider drag, etc.)
+  const isInteractingRef = useRef(false);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingHistoryStateRef = useRef<EditorHistoryState | null>(null);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
@@ -578,8 +583,48 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     }
   }, []);
 
-  // Push current state to history before making changes
-  const pushToHistory = useCallback(() => {
+  // Capture state BEFORE an interaction begins (called once at start of interaction)
+  const captureStateBeforeInteraction = useCallback(() => {
+    // Only capture if we're not already in an interaction
+    if (!isInteractingRef.current) {
+      isInteractingRef.current = true;
+      pendingHistoryStateRef.current = {
+        adjustments: { ...adjustments },
+        rotation,
+        offsetX,
+        scale,
+        selectedBackground,
+        shadowType,
+        isBackgroundRemoved,
+        backgroundRemovedImage,
+      };
+    }
+    
+    // Clear any existing timeout
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    
+    // Set a timeout to commit the state after interaction ends
+    interactionTimeoutRef.current = setTimeout(() => {
+      if (pendingHistoryStateRef.current) {
+        setHistoryStack(prev => {
+          const newStack = [...prev, pendingHistoryStateRef.current!];
+          // Limit stack size
+          if (newStack.length > MAX_HISTORY_SIZE) {
+            return newStack.slice(-MAX_HISTORY_SIZE);
+          }
+          return newStack;
+        });
+        pendingHistoryStateRef.current = null;
+      }
+      isInteractingRef.current = false;
+      interactionTimeoutRef.current = null;
+    }, 300); // 300ms debounce - commits after user stops interacting
+  }, [adjustments, rotation, offsetX, scale, selectedBackground, shadowType, isBackgroundRemoved, backgroundRemovedImage]);
+
+  // Immediate push for discrete actions (button clicks, etc.)
+  const pushToHistoryImmediate = useCallback(() => {
     const currentState: EditorHistoryState = {
       adjustments: { ...adjustments },
       rotation,
@@ -700,7 +745,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     if (!originalImage) return;
 
     // Push current state to history before removing background
-    pushToHistory();
+    pushToHistoryImmediate();
 
     setIsProcessing(true);
     setProcessingStep('Preparando imagem...');
@@ -944,12 +989,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   };
 
   const handleRotationChange = useCallback((value: number) => {
-    pushToHistory();
+    captureStateBeforeInteraction();
     const clampedValue = Math.max(-180, Math.min(180, value));
     setRotation(clampedValue);
     setRotationInput(clampedValue.toFixed(1));
     setHasChanges(true);
-  }, [pushToHistory]);
+  }, [captureStateBeforeInteraction]);
 
   const handleRotationInputChange = (inputValue: string) => {
     setRotationInput(inputValue);
@@ -982,7 +1027,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
   const handleOffsetChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
-    pushToHistory();
+    captureStateBeforeInteraction();
     
     const visibility = calculateVisibilityFactor(scale, value);
     const clampMultiplier = getSoftClampMultiplier(visibility);
@@ -994,13 +1039,13 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     const clampedValue = Math.max(-30, Math.min(30, newValue));
     setOffsetX(clampedValue);
     setHasChanges(true);
-  }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, pushToHistory]);
+  }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
 
   // Handler for bipolar scale slider
   const handleScaleSliderChange = useCallback((pos: number) => {
     if (isAnimatingReset) return;
     
-    pushToHistory();
+    captureStateBeforeInteraction();
     
     const targetScale = sliderPosToScale(pos);
     const visibility = calculateVisibilityFactor(targetScale, offsetX);
@@ -1014,12 +1059,12 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleSliderPos(scaleToSliderPos(newScale));
     setScaleInput(Math.round(newScale).toString());
     setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos, pushToHistory]);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, sliderPosToScale, scaleToSliderPos, captureStateBeforeInteraction]);
 
   const handleScaleChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
     
-    pushToHistory();
+    captureStateBeforeInteraction();
     
     const visibility = calculateVisibilityFactor(value, offsetX);
     const clampMultiplier = getSoftClampMultiplier(visibility);
@@ -1033,7 +1078,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     setScaleSliderPos(scaleToSliderPos(clampedValue));
     setScaleInput(Math.round(clampedValue).toString());
     setHasChanges(true);
-  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos, pushToHistory]);
+  }, [scale, offsetX, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, scaleToSliderPos, captureStateBeforeInteraction]);
 
   const handleScaleInputChange = (inputValue: string) => {
     setScaleInput(inputValue);
@@ -1129,7 +1174,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     if (isAnimatingAuto || !originalImage) return;
 
     // Push current state to history before auto adjustment
-    pushToHistory();
+    pushToHistoryImmediate();
 
     // Get source image data
     let sourceData: ImageData;
@@ -1193,10 +1238,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
     };
 
     autoAnimationRef.current = requestAnimationFrame(animate);
-  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast, pushToHistory]);
+  }, [originalImage, isBackgroundRemoved, backgroundRemovedImage, adjustments, isAnimatingAuto, toast, pushToHistoryImmediate]);
 
   const handleAdjustmentChange = (key: keyof ImageAdjustments, value: number) => {
-    pushToHistory();
+    captureStateBeforeInteraction();
     setAdjustments((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -1338,6 +1383,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (resetAnimationRef.current) cancelAnimationFrame(resetAnimationRef.current);
       if (autoAnimationRef.current) cancelAnimationFrame(autoAnimationRef.current);
+      if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
     };
   }, []);
 
@@ -1573,7 +1619,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['original', 'white', 'black', 'transparent'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1601,7 +1647,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['neutral-light', 'pastel-pink', 'pastel-blue', 'pastel-green', 'auto-contrast'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1622,7 +1668,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                             {(['wood', 'marble', 'neutral-surface', 'light-texture'] as BackgroundType[]).map((bg) => (
                               <button
                                 key={bg}
-                                onClick={() => { pushToHistory(); setSelectedBackground(bg); setHasChanges(true); }}
+                                onClick={() => { pushToHistoryImmediate(); setSelectedBackground(bg); setHasChanges(true); }}
                                 className={`w-full aspect-square rounded border-2 transition-all ${
                                   selectedBackground === bg ? 'ring-2 ring-offset-2' : ''
                                 }`}
@@ -1709,7 +1755,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                         ].map(({ value, label }) => (
                           <button
                             key={value}
-                            onClick={() => { pushToHistory(); setShadowType(value as ShadowType); setHasChanges(true); }}
+                            onClick={() => { pushToHistoryImmediate(); setShadowType(value as ShadowType); setHasChanges(true); }}
                             className={`w-full p-3 text-left rounded border-2 transition-all text-sm ${
                               shadowType === value ? 'bg-muted' : ''
                             }`}
