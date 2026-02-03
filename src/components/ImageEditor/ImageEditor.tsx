@@ -1130,7 +1130,7 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                   </div>
                 </div>
 
-                {/* Zoom/Scale Control */}
+                {/* Zoom/Scale Control - centered at 100% */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium flex items-center gap-1">
@@ -1149,10 +1149,10 @@ export const ImageEditor = ({ open, onOpenChange, imageUrl, onSave }: ImageEdito
                     </div>
                   </div>
                   <Slider
-                    value={[scale]}
-                    onValueChange={([value]) => handleScaleChange(value)}
-                    min={60}
-                    max={160}
+                    value={[scale - 100]}
+                    onValueChange={([delta]) => handleScaleChange(100 + delta)}
+                    min={-40}
+                    max={60}
                     step={scaleStep}
                     className="w-full"
                   />
