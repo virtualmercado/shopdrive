@@ -69,6 +69,7 @@ import AdminBrandTemplates from "./pages/admin/AdminBrandTemplates";
 import AdminBrandTemplateEdit from "./pages/admin/AdminBrandTemplateEdit";
 import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
+import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +112,7 @@ function App() {
             <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />
             <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
+            <Route path="/gestor/configuracoes" element={<AdminRoute><AdminPlatformSettings /></AdminRoute>} />
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
