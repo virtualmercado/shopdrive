@@ -1497,10 +1497,10 @@ export const ImageEditor = ({
               
               {/* Preview Area */}
               <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto relative">
-                {/* Grid Toggle Button - overlaid on preview area */}
+                {/* Grid Toggle Button - positioned at top-left of preview area to avoid overlapping image */}
                 <button
                   onClick={() => setShowGuides(!showGuides)}
-                  className="absolute top-6 right-6 z-10 px-2 py-1 text-[10px] font-medium rounded shadow-md transition-all hover:scale-105"
+                  className="absolute top-4 left-4 z-10 px-2 py-1 text-[10px] font-medium rounded shadow-md transition-all hover:scale-105"
                   style={{
                     backgroundColor: showGuides ? buttonBgColor : 'rgba(0, 0, 0, 0.6)',
                     color: showGuides ? buttonTextColor : 'white',
