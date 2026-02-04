@@ -145,6 +145,13 @@ const Products = () => {
     setSelectedProduct(null);
   };
 
+  // Keep local list in sync when images are auto-persisted from the Image Editor.
+  const handleImagesPersisted = (productId: string, images: string[], mainImage: string | null) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, images, image_url: mainImage } : p))
+    );
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
@@ -311,6 +318,7 @@ const Products = () => {
           onOpenChange={setFormOpen}
           product={selectedProduct}
           onSuccess={handleFormSuccess}
+          onImagesPersisted={handleImagesPersisted}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
