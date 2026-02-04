@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
@@ -41,7 +41,11 @@ const Financeiro = () => {
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+
+  // Read contextual highlight from URL parameter (e.g., ?highlight=premium)
+  const highlightPlan = searchParams.get("highlight");
 
   // Smooth navigation with page transition animation
   const handleSmoothNavigation = useCallback((path: string) => {
@@ -204,6 +208,7 @@ const Financeiro = () => {
           <PlansSection 
             currentPlan={currentPlan} 
             onPlanAction={handlePlanAction}
+            highlightPlan={highlightPlan}
           />
         </Card>
 
