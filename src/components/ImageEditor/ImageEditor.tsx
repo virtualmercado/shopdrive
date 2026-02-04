@@ -82,6 +82,7 @@ export interface EditorSettings {
   adjustments: ImageAdjustments;
   rotation: number;
   offsetX: number;
+  offsetY: number;
   scale: number;
   cropPreset: CropPreset;
 }
@@ -91,6 +92,7 @@ interface EditorHistoryState {
   adjustments: ImageAdjustments;
   rotation: number;
   offsetX: number;
+  offsetY: number;
   scale: number;
   cropPreset: CropPreset;
 }
@@ -99,6 +101,7 @@ interface EditorHistoryState {
 interface OriginalImageState {
   rotation: number;
   offsetX: number;
+  offsetY: number;
   scale: number;
 }
 
@@ -590,6 +593,7 @@ export const ImageEditor = ({
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(initialAdjustments ?? defaultAdjustments);
   const [rotation, setRotation] = useState(0);
   const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
   const [scale, setScale] = useState(100);
   const [scaleSliderPos, setScaleSliderPos] = useState(0); // Bipolar slider position: -100 to +100, 0 = 100%
   const [rotationInput, setRotationInput] = useState("0");
@@ -601,10 +605,15 @@ export const ImageEditor = ({
   const [showGuides, setShowGuides] = useState(true);
   const [isTransitioningPreset, setIsTransitioningPreset] = useState(false);
   
+  // Drag/pan state
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  
   // Memory per image: store original state for returning to "original" preset
   const [originalImageState, setOriginalImageState] = useState<OriginalImageState>({
     rotation: 0,
     offsetX: 0,
+    offsetY: 0,
     scale: 100,
   });
   
@@ -769,6 +778,7 @@ export const ImageEditor = ({
         adjustments: { ...adjustments },
         rotation,
         offsetX,
+        offsetY,
         scale,
         cropPreset,
       };
@@ -795,7 +805,7 @@ export const ImageEditor = ({
       isInteractingRef.current = false;
       interactionTimeoutRef.current = null;
     }, 300); // 300ms debounce - commits after user stops interacting
-  }, [adjustments, rotation, offsetX, scale, cropPreset]);
+  }, [adjustments, rotation, offsetX, offsetY, scale, cropPreset]);
 
   // Immediate push for discrete actions (button clicks, etc.)
   const pushToHistoryImmediate = useCallback(() => {
@@ -803,6 +813,7 @@ export const ImageEditor = ({
       adjustments: { ...adjustments },
       rotation,
       offsetX,
+      offsetY,
       scale,
       cropPreset,
     };
@@ -815,7 +826,7 @@ export const ImageEditor = ({
       }
       return newStack;
     });
-  }, [adjustments, rotation, offsetX, scale, cropPreset]);
+  }, [adjustments, rotation, offsetX, offsetY, scale, cropPreset]);
 
   useEffect(() => {
     if (open && imageUrl) {
@@ -875,7 +886,8 @@ export const ImageEditor = ({
       canvas.height = crop.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const offsetPixels = (offsetX / 100) * canvas.width;
+      const offsetPixelsX = (offsetX / 100) * canvas.width;
+      const offsetPixelsY = (offsetY / 100) * canvas.height;
       const scaleFactor = scale / 100;
       const adj = currentAdjustments || adjustments;
       const hasAdjustments = Object.values(adj).some(v => v !== 0);
@@ -900,9 +912,9 @@ export const ImageEditor = ({
       if (!adjustedCtx) return;
       adjustedCtx.putImageData(adjustedData, 0, 0);
 
-      // Apply transforms and draw
+      // Apply transforms and draw (translateX + translateY)
       ctx.save();
-      ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+      ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(scaleFactor, scaleFactor);
       ctx.translate(-img.width / 2, -img.height / 2);
@@ -912,7 +924,7 @@ export const ImageEditor = ({
       // Draw guides
       drawGuides(canvas.width, canvas.height);
     });
-  }, [rotation, offsetX, scale, adjustments, cropPreset, getCropDimensions, drawGuides]);
+  }, [rotation, offsetX, offsetY, scale, adjustments, cropPreset, getCropDimensions, drawGuides]);
 
   const handleRotationChange = useCallback((value: number) => {
     if (isAnimatingReset) return;
@@ -970,6 +982,76 @@ export const ImageEditor = ({
     setHasChanges(true);
   }, [offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
 
+  // Handler for vertical position (Y)
+  const handleOffsetYChange = useCallback((value: number) => {
+    if (isAnimatingReset) return;
+    
+    captureStateBeforeInteraction();
+    
+    const visibility = calculateVisibilityFactor(scale, offsetX);
+    const clampMultiplier = getSoftClampMultiplier(visibility);
+    
+    const delta = value - offsetY;
+    const softDelta = delta * clampMultiplier;
+    const newValue = offsetY + softDelta;
+    
+    const clampedValue = Math.max(-30, Math.min(30, newValue));
+    setOffsetY(clampedValue);
+    setHasChanges(true);
+  }, [offsetY, offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
+
+  // Check if drag/pan should be enabled (zoom > 100% OR crop preset is not "original")
+  const isDragEnabled = scale > 100 || cropPreset !== 'original';
+
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragEnabled) return;
+    
+    captureStateBeforeInteraction();
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      startOffsetX: offsetX,
+      startOffsetY: offsetY,
+    };
+  }, [isDragEnabled, offsetX, offsetY, captureStateBeforeInteraction]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !dragStartRef.current) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const deltaX = e.clientX - dragStartRef.current.x;
+    const deltaY = e.clientY - dragStartRef.current.y;
+    
+    // Convert pixel delta to percentage
+    const percentDeltaX = (deltaX / canvas.width) * 100;
+    const percentDeltaY = (deltaY / canvas.height) * 100;
+    
+    const newOffsetX = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetX + percentDeltaX));
+    const newOffsetY = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetY + percentDeltaY));
+    
+    setOffsetX(newOffsetX);
+    setOffsetY(newOffsetY);
+    setHasChanges(true);
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    }
+  }, [isDragging]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    }
+  }, [isDragging]);
+
   // Handler for bipolar scale slider
   const handleScaleSliderChange = useCallback((pos: number) => {
     if (isAnimatingReset) return;
@@ -1016,6 +1098,7 @@ export const ImageEditor = ({
       setOriginalImageState({
         rotation,
         offsetX,
+        offsetY,
         scale,
       });
     }
@@ -1028,6 +1111,7 @@ export const ImageEditor = ({
       setRotation(originalImageState.rotation);
       setRotationInput(originalImageState.rotation.toFixed(1));
       setOffsetX(originalImageState.offsetX);
+      setOffsetY(originalImageState.offsetY);
       setScale(originalImageState.scale);
       setScaleSliderPos(scaleToSliderPos(originalImageState.scale));
       setScaleInput(Math.round(originalImageState.scale).toString());
@@ -1059,6 +1143,7 @@ export const ImageEditor = ({
     
     const startRotation = rotation;
     const startOffsetX = offsetX;
+    const startOffsetY = offsetY;
     const startScale = scale;
     const startAdjustments = { ...adjustments };
     const duration = 180;
@@ -1071,6 +1156,7 @@ export const ImageEditor = ({
       
       const newRotation = startRotation * (1 - easeOut);
       const newOffsetX = startOffsetX * (1 - easeOut);
+      const newOffsetY = startOffsetY * (1 - easeOut);
       const newScale = startScale + (100 - startScale) * easeOut;
       
       // Animate adjustments to 0
@@ -1087,6 +1173,7 @@ export const ImageEditor = ({
       setRotation(newRotation);
       setRotationInput(newRotation.toFixed(1));
       setOffsetX(newOffsetX);
+      setOffsetY(newOffsetY);
       setScale(newScale);
       setScaleSliderPos(scaleToSliderPos(newScale));
       setScaleInput(Math.round(newScale).toString());
@@ -1098,6 +1185,7 @@ export const ImageEditor = ({
         setRotation(0);
         setRotationInput("0");
         setOffsetX(0);
+        setOffsetY(0);
         setScale(100);
         setScaleSliderPos(0);
         setScaleInput("100");
@@ -1115,7 +1203,7 @@ export const ImageEditor = ({
     };
     
     resetAnimationRef.current = requestAnimationFrame(animate);
-  }, [rotation, offsetX, scale, adjustments, isAnimatingReset, originalImage, drawImage, scaleToSliderPos]);
+  }, [rotation, offsetX, offsetY, scale, adjustments, isAnimatingReset, originalImage, drawImage, scaleToSliderPos]);
 
   // Auto button: analyze image and set optimal adjustments
   const handleAutoAdjust = useCallback(() => {
@@ -1201,6 +1289,7 @@ export const ImageEditor = ({
       setRotation(previousState.rotation);
       setRotationInput(previousState.rotation.toFixed(1));
       setOffsetX(previousState.offsetX);
+      setOffsetY(previousState.offsetY);
       setScale(previousState.scale);
       setScaleSliderPos(scaleToSliderPos(previousState.scale));
       setScaleInput(Math.round(previousState.scale).toString());
@@ -1233,6 +1322,7 @@ export const ImageEditor = ({
       adjustments: { ...adjustments },
       rotation,
       offsetX,
+      offsetY,
       scale,
       cropPreset,
     };
@@ -1247,7 +1337,7 @@ export const ImageEditor = ({
         variant: "destructive",
       });
     }
-  }, [adjustments, rotation, offsetX, scale, cropPreset, onApplyToOthers, otherProductImages.length, toast]);
+  }, [adjustments, rotation, offsetX, offsetY, scale, cropPreset, onApplyToOthers, otherProductImages.length, toast]);
 
   // Share image using native Web Share API
   const handleShare = useCallback(async () => {
@@ -1269,7 +1359,8 @@ export const ImageEditor = ({
       canvas.height = crop.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      const offsetPixels = (offsetX / 100) * canvas.width;
+      const offsetPixelsX = (offsetX / 100) * canvas.width;
+      const offsetPixelsY = (offsetY / 100) * canvas.height;
       const scaleFactor = scale / 100;
       
       // Get source data and apply adjustments
@@ -1292,7 +1383,7 @@ export const ImageEditor = ({
           adjustedCtx.putImageData(adjustedData, 0, 0);
           
           ctx.save();
-          ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+          ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
           ctx.rotate((rotation * Math.PI) / 180);
           ctx.scale(scaleFactor, scaleFactor);
           ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
@@ -1385,7 +1476,8 @@ export const ImageEditor = ({
         canvas.height = crop.height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const offsetPixels = (offsetX / 100) * canvas.width;
+        const offsetPixelsX = (offsetX / 100) * canvas.width;
+        const offsetPixelsY = (offsetY / 100) * canvas.height;
         const scaleFactor = scale / 100;
 
         // Get source data
@@ -1409,7 +1501,7 @@ export const ImageEditor = ({
             adjustedCtx.putImageData(adjustedData, 0, 0);
 
             ctx.save();
-            ctx.translate(canvas.width / 2 + offsetPixels, canvas.height / 2);
+            ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
             ctx.rotate((rotation * Math.PI) / 180);
             ctx.scale(scaleFactor, scaleFactor);
             ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
@@ -1510,39 +1602,51 @@ export const ImageEditor = ({
 
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Crop Presets */}
-              <div className="px-4 py-2 border-b flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
-                  <Crop className="h-3 w-3" />
-                  Corte:
-                </span>
-                {(Object.keys(cropPresets) as CropPreset[]).map((preset) => {
-                  const isActive = cropPreset === preset;
-                  return (
-                    <Button
-                      key={preset}
-                      variant={isActive ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleCropPresetChange(preset)}
-                      className={`text-xs px-3 h-7 ${buttonRadius} transition-all duration-100`}
-                      style={isActive 
-                        ? { 
-                            backgroundColor: buttonBgColor, 
-                            color: buttonTextColor,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                            transform: 'scale(1.02)',
-                          } 
-                        : { 
-                            borderColor: buttonBgColor, 
-                            color: buttonBgColor,
-                            opacity: 0.8,
-                          }
-                      }
-                    >
-                      {cropPresets[preset].label}
-                    </Button>
-                  );
-                })}
+              {/* Crop Presets + Reset Button */}
+              <div className="px-4 py-2 border-b flex items-center gap-2 flex-wrap justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
+                    <Crop className="h-3 w-3" />
+                    Corte:
+                  </span>
+                  {(Object.keys(cropPresets) as CropPreset[]).map((preset) => {
+                    const isActive = cropPreset === preset;
+                    return (
+                      <Button
+                        key={preset}
+                        variant={isActive ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleCropPresetChange(preset)}
+                        className={`text-xs px-3 h-7 ${buttonRadius} transition-all duration-100`}
+                        style={isActive 
+                          ? { 
+                              backgroundColor: buttonBgColor, 
+                              color: buttonTextColor,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              transform: 'scale(1.02)',
+                            } 
+                          : { 
+                              borderColor: buttonBgColor, 
+                              color: buttonBgColor,
+                              opacity: 0.8,
+                            }
+                        }
+                      >
+                        {cropPresets[preset].label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {/* Reset Button - moved to header, right aligned */}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleResetTransform}
+                  className={`text-xs h-7 ${buttonRadius}`}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Resetar
+                </Button>
               </div>
               
               {/* Preview Area */}
@@ -1564,7 +1668,14 @@ export const ImageEditor = ({
                   <canvas
                     ref={canvasRef}
                     className={`max-w-full max-h-full object-contain border rounded shadow-sm transition-opacity duration-100 ${isTransitioningPreset ? 'opacity-80' : 'opacity-100'}`}
-                    style={{ maxHeight: '400px' }}
+                    style={{ 
+                      maxHeight: '400px',
+                      cursor: isDragEnabled ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                    }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseLeave}
                   />
                   {/* Guides overlay canvas */}
                   {showGuides && (
@@ -1698,17 +1809,29 @@ export const ImageEditor = ({
                   />
                 </div>
 
-                {/* Reset Button - Red visual style for destructive action */}
-                <div className="flex justify-center">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleResetTransform}
-                    className={buttonRadius}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    Resetar
-                  </Button>
+                {/* Vertical Position Control (Y) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 6L12 2L16 6" />
+                        <path d="M8 18L12 22L16 18" />
+                        <line x1="12" y1="2" x2="12" y2="22" />
+                      </svg>
+                      Posição vertical (Y)
+                    </label>
+                    <span className="text-xs text-muted-foreground">
+                      {offsetY > 0 ? '+' : ''}{offsetY.toFixed(1)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[offsetY]}
+                    onValueChange={([value]) => handleOffsetYChange(value)}
+                    min={-30}
+                    max={30}
+                    step={offsetStep}
+                    className="w-full"
+                  />
                 </div>
               </div>
             </div>
