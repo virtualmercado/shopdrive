@@ -1001,11 +1001,15 @@ export const ImageEditor = ({
   }, [offsetY, offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
 
   // Check if drag/pan should be enabled (zoom > 100% OR crop preset is not "original")
-  const isDragEnabled = scale > 100 || cropPreset !== 'original';
+  // Using > 1.001 internally (scale is 100 = 100%, so compare > 100.1 to avoid float issues)
+  const isDragEnabled = scale > 100.1 || cropPreset !== 'original';
 
-  // Mouse drag handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Pointer Event handlers (more robust than mouse events, especially inside modals)
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragEnabled) return;
+    
+    // Capture pointer to receive all subsequent events even if pointer leaves element
+    e.currentTarget.setPointerCapture(e.pointerId);
     
     captureStateBeforeInteraction();
     setIsDragging(true);
@@ -1017,18 +1021,24 @@ export const ImageEditor = ({
     };
   }, [isDragEnabled, offsetX, offsetY, captureStateBeforeInteraction]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging || !dragStartRef.current) return;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
     
+    // Calculate delta from drag start
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
     
-    // Convert pixel delta to percentage
-    const percentDeltaX = (deltaX / canvas.width) * 100;
-    const percentDeltaY = (deltaY / canvas.height) * 100;
+    // Get canvas display size (CSS size) for accurate percentage calculation
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width || canvas.width;
+    const displayHeight = rect.height || canvas.height;
+    
+    // Convert pixel delta to percentage based on display size
+    const percentDeltaX = (deltaX / displayWidth) * 100;
+    const percentDeltaY = (deltaY / displayHeight) * 100;
     
     const newOffsetX = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetX + percentDeltaX));
     const newOffsetY = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetY + percentDeltaY));
@@ -1038,15 +1048,18 @@ export const ImageEditor = ({
     setHasChanges(true);
   }, [isDragging]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging) {
+      // Release pointer capture
+      e.currentTarget.releasePointerCapture(e.pointerId);
       setIsDragging(false);
       dragStartRef.current = null;
     }
   }, [isDragging]);
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerCancel = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
       setIsDragging(false);
       dragStartRef.current = null;
     }
@@ -1664,18 +1677,29 @@ export const ImageEditor = ({
                   Grade: {showGuides ? 'ON' : 'OFF'}
                 </button>
                 
-                <div className="relative">
+                {/* Preview container - receives pointer events for drag/pan */}
+                <div 
+                  className="relative"
+                  style={{ 
+                    cursor: isDragEnabled ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                    touchAction: 'none', // Prevent browser gestures interfering with drag
+                  }}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerCancel}
+                >
                   <canvas
                     ref={canvasRef}
                     className={`max-w-full max-h-full object-contain border rounded shadow-sm transition-opacity duration-100 ${isTransitioningPreset ? 'opacity-80' : 'opacity-100'}`}
                     style={{ 
                       maxHeight: '400px',
-                      cursor: isDragEnabled ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                    }}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
+                      // Disable native image/canvas drag
+                      userSelect: 'none',
+                      WebkitUserDrag: 'none',
+                      pointerEvents: 'auto',
+                    } as React.CSSProperties}
+                    draggable={false}
                   />
                   {/* Guides overlay canvas */}
                   {showGuides && (
