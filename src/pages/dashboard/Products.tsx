@@ -18,6 +18,7 @@ import { Plus, Search, Edit, Trash2, Package, Tag } from "lucide-react";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { ImageAdjustments } from "@/components/ImageEditor";
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ interface Product {
   image_url: string | null;
   images: any;
   category_id: string | null;
+  image_adjustments?: ImageAdjustments[];
 }
 
 interface Category {
@@ -71,7 +73,8 @@ const Products = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      // Cast data via unknown to satisfy TS (image_adjustments type is Json in generated types)
+      setProducts((data ?? []) as unknown as Product[]);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({

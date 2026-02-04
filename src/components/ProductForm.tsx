@@ -9,10 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus, Sparkles, Bot } from "lucide-react";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ImageEditor, EditorSettings } from "@/components/ImageEditor";
+import { ImageEditor, EditorSettings, ImageAdjustments } from "@/components/ImageEditor";
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
-import { persistEditedProductImage } from "@/lib/persistEditedProductImage";
+import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -52,6 +52,8 @@ interface Product {
   length?: number | null;
   height?: number | null;
   width?: number | null;
+  /** Tonal adjustments per image (one entry per images slot). */
+  image_adjustments?: ImageAdjustments[];
 }
 
 interface Category {
@@ -82,6 +84,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const initialImages = Array.isArray(product?.images) ? (product?.images as string[]) : [];
   const [imagePreviews, setImagePreviews] = useState<string[]>(initialImages);
   const imagePreviewsRef = useRef<string[]>(initialImages);
+  // Adjustments per image slot (hydrated from DB)
+  const initialAdj = Array.isArray(product?.image_adjustments) ? product.image_adjustments : [];
+  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments[]>(initialAdj);
+  const imageAdjustmentsRef = useRef<ImageAdjustments[]>(initialAdj);
   // Incremented on every local mutation (add/remove/edit) to prevent async persists
   // from overwriting newer user changes (race-condition proof).
   const imagesMutationRef = useRef(0);
@@ -124,6 +130,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   useEffect(() => {
     imagePreviewsRef.current = imagePreviews;
   }, [imagePreviews]);
+
+  useEffect(() => {
+    imageAdjustmentsRef.current = imageAdjustments;
+  }, [imageAdjustments]);
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-none';
   
@@ -153,6 +163,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       const nextImages = Array.isArray(product.images) ? (product.images as string[]) : [];
       setImagePreviews(nextImages);
       imagePreviewsRef.current = nextImages;
+      const nextAdj = Array.isArray(product.image_adjustments) ? product.image_adjustments : [];
+      setImageAdjustments(nextAdj);
+      imageAdjustmentsRef.current = nextAdj;
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(product.variations || []);
@@ -606,6 +619,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setBrandId(null);
     setImagePreviews([]);
     imagePreviewsRef.current = [];
+    setImageAdjustments([]);
+    imageAdjustmentsRef.current = [];
     setNewCategoryName("");
     setShowNewCategory(false);
     setIsFeatured(false);
@@ -632,6 +647,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     contentType: string;
     width: number;
     height: number;
+    adjustments: ImageAdjustments;
   }) => {
     if (editingImageIndex === null) throw new Error("Imagem inválida para edição");
     const imageIndex = editingImageIndex;
@@ -644,6 +660,12 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       const next = current.map((img, i) => (i === imageIndex ? tempUrl : img));
       setImagePreviews(next);
       imagePreviewsRef.current = next;
+      // Also keep adjustments locally
+      const nextAdj = [...imageAdjustmentsRef.current];
+      while (nextAdj.length < next.length) nextAdj.push({ exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0, sharpness: 0 });
+      nextAdj[imageIndex] = payload.adjustments;
+      setImageAdjustments(nextAdj);
+      imageAdjustmentsRef.current = nextAdj;
       imagesMutationRef.current += 1;
       return;
     }
@@ -659,15 +681,17 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       console.log("blob.bytes", payload.blob.size);
       console.log("blob.type", payload.blob.type || payload.contentType);
       console.log("export", { width: payload.width, height: payload.height });
+      console.log("adjustments", payload.adjustments);
       console.groupEnd();
     }
 
-    // Persist: upload (unique filename) -> update DB -> re-fetch -> hydrate local state
+    // Persist: upload (unique filename) -> update DB with adjustments -> re-fetch -> hydrate local state
     const result = await persistEditedProductImage({
       userId: user.id,
       productId: product.id,
       imageIndex,
       blob: payload.blob,
+      adjustments: payload.adjustments,
     });
 
     const finalImages = result.images;
@@ -675,6 +699,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
     setImagePreviews(finalImages);
     imagePreviewsRef.current = finalImages;
+    setImageAdjustments(result.imageAdjustments);
+    imageAdjustmentsRef.current = result.imageAdjustments;
     imagesMutationRef.current += 1;
 
     onImagesPersisted?.(product.id, finalImages, finalMain);
@@ -1368,6 +1394,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         open={imageEditorOpen}
         onOpenChange={setImageEditorOpen}
         imageUrl={imagePreviews[editingImageIndex] || ''}
+        initialAdjustments={imageAdjustments[editingImageIndex] ?? undefined}
         onSave={handlePersistEditedImage}
         otherProductImages={imagePreviews.filter((_, idx) => idx !== editingImageIndex)}
         onApplyToOthers={handleApplyToOtherImages}

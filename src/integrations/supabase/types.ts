@@ -2718,6 +2718,7 @@ export type Database = {
           description: string | null
           height: number | null
           id: string
+          image_adjustments: Json
           image_url: string | null
           images: Json | null
           is_featured: boolean | null
@@ -2740,6 +2741,7 @@ export type Database = {
           description?: string | null
           height?: number | null
           id?: string
+          image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
           is_featured?: boolean | null
@@ -2762,6 +2764,7 @@ export type Database = {
           description?: string | null
           height?: number | null
           id?: string
+          image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
           is_featured?: boolean | null
