@@ -12,6 +12,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor, EditorSettings } from "@/components/ImageEditor";
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
+import { persistEditedProductImage } from "@/lib/persistEditedProductImage";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -624,23 +625,59 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   };
 
   // Handle saving edited image from ImageEditor
-  // IMPORTANT: persist immediately for existing products so reabrir o editor não volta ao original.
-  const handleSaveEditedImage = (editedImageUrl: string) => {
-    if (editingImageIndex === null) return;
-    const index = editingImageIndex;
+  // CRITICAL: This is the ONLY place we persist the "Salvar imagem processada" action.
+  // The editor must NOT close nor show success until storage + DB + re-fetch are confirmed.
+  const handlePersistEditedImage = async (payload: {
+    blob: Blob;
+    contentType: string;
+    width: number;
+    height: number;
+  }) => {
+    if (editingImageIndex === null) throw new Error("Imagem inválida para edição");
+    const imageIndex = editingImageIndex;
 
-    const current = imagePreviewsRef.current;
-    const next = current.map((img, i) => (i === index ? editedImageUrl : img));
-    setImagePreviews(next);
-    imagePreviewsRef.current = next;
+    // For new products without ID, we can only keep a local preview.
+    // (Persistence will happen when the merchant creates the product and submits.)
+    if (!product?.id) {
+      const tempUrl = URL.createObjectURL(payload.blob);
+      const current = imagePreviewsRef.current;
+      const next = current.map((img, i) => (i === imageIndex ? tempUrl : img));
+      setImagePreviews(next);
+      imagePreviewsRef.current = next;
+      imagesMutationRef.current += 1;
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+
+    // Instrumentation required: log click context + blob info
+    if (import.meta.env.DEV) {
+      console.groupCollapsed("[VM][ImageSave] Salvar imagem processada");
+      console.log("productId", product.id);
+      console.log("imageIndex", imageIndex);
+      console.log("blob.bytes", payload.blob.size);
+      console.log("blob.type", payload.blob.type || payload.contentType);
+      console.log("export", { width: payload.width, height: payload.height });
+      console.groupEnd();
+    }
+
+    // Persist: upload (unique filename) -> update DB -> re-fetch -> hydrate local state
+    const result = await persistEditedProductImage({
+      userId: user.id,
+      productId: product.id,
+      imageIndex,
+      blob: payload.blob,
+    });
+
+    const finalImages = result.images;
+    const finalMain = result.mainImage;
+
+    setImagePreviews(finalImages);
+    imagePreviewsRef.current = finalImages;
     imagesMutationRef.current += 1;
 
-    setImageEditorOpen(false);
-    setEditingImageIndex(null);
-
-    if (product?.id) {
-      requestPersistImages();
-    }
+    onImagesPersisted?.(product.id, finalImages, finalMain);
   };
 
   // Handle applying editor settings to other images (batch standardization)
@@ -1331,7 +1368,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         open={imageEditorOpen}
         onOpenChange={setImageEditorOpen}
         imageUrl={imagePreviews[editingImageIndex] || ''}
-        onSave={handleSaveEditedImage}
+        onSave={handlePersistEditedImage}
         otherProductImages={imagePreviews.filter((_, idx) => idx !== editingImageIndex)}
         onApplyToOthers={handleApplyToOtherImages}
       />

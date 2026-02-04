@@ -33,7 +33,7 @@ interface ImageEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageUrl: string;
-  onSave: (editedImageUrl: string) => void;
+  onSave: (payload: { blob: Blob; contentType: string; width: number; height: number }) => Promise<void>;
   otherProductImages?: string[];
   onApplyToOthers?: (settings: EditorSettings) => void;
 }
@@ -1397,13 +1397,41 @@ export const ImageEditor = ({
         }
       }
 
-      const dataUrl = canvasRef.current.toDataURL('image/png', 1.0);
-      
+      // Export + compress + standardize to JPEG (max width 1800px, quality 0.85)
+      setProcessingProgress(70);
+
+      const baseCanvas = canvasRef.current;
+      const MAX_WIDTH = 1800;
+      const JPEG_QUALITY = 0.85;
+
+      const scaleDown = baseCanvas.width > MAX_WIDTH ? MAX_WIDTH / baseCanvas.width : 1;
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = Math.max(1, Math.round(baseCanvas.width * scaleDown));
+      outCanvas.height = Math.max(1, Math.round(baseCanvas.height * scaleDown));
+      const outCtx = outCanvas.getContext("2d");
+      if (!outCtx) throw new Error("Falha ao preparar exportação da imagem");
+
+      // Composite on white to avoid black backgrounds in JPEG when transparency exists.
+      outCtx.fillStyle = "#ffffff";
+      outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+      outCtx.drawImage(baseCanvas, 0, 0, outCanvas.width, outCanvas.height);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        outCanvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar o arquivo da imagem"))),
+          "image/jpeg",
+          JPEG_QUALITY,
+        );
+      });
+
+      setProcessingProgress(85);
+
+      // IMPORTANT: await persistence (storage + DB + re-fetch) before declaring success.
+      await onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height });
+
       setProcessingProgress(100);
-      
-      onSave(dataUrl);
       onOpenChange(false);
-      
+
       toast({
         title: "Sucesso",
         description: "Imagem salva com sucesso!",
@@ -1412,7 +1440,7 @@ export const ImageEditor = ({
       console.error('Error saving image:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a imagem",
+        description: (error as any)?.message || "Não foi possível salvar a imagem",
         variant: "destructive",
       });
     } finally {
