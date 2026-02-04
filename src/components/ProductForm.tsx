@@ -81,6 +81,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const initialImages = Array.isArray(product?.images) ? (product?.images as string[]) : [];
   const [imagePreviews, setImagePreviews] = useState<string[]>(initialImages);
   const imagePreviewsRef = useRef<string[]>(initialImages);
+  // Incremented on every local mutation (add/remove/edit) to prevent async persists
+  // from overwriting newer user changes (race-condition proof).
+  const imagesMutationRef = useRef(0);
+  const persistInFlightRef = useRef(false);
+  const persistQueuedRef = useRef(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -233,28 +238,78 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     return resolved;
   };
 
-  const persistImagesIfEditingExistingProduct = async (nextPreviews: string[]) => {
+  /**
+   * Persist images for existing products in a serialized way.
+   * This avoids out-of-order PATCH writes when the user does multiple quick actions
+   * (edit + delete + add), which previously could make edits "disappear".
+   */
+  const requestPersistImages = () => {
     if (!product?.id) return;
+    persistQueuedRef.current = true;
+    if (persistInFlightRef.current) return;
+    void runPersistQueue();
+  };
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuário não autenticado");
+  const runPersistQueue = async () => {
+    if (!product?.id) return;
+    persistInFlightRef.current = true;
 
-    const resolvedUrls = await resolveImagePreviewsToUrls(user.id, nextPreviews, product.id);
-    const mainImage = resolvedUrls[0] || null;
+    try {
+      while (persistQueuedRef.current) {
+        persistQueuedRef.current = false;
 
-    const { error } = await supabase
-      .from("products")
-      .update({
-        images: resolvedUrls,
-        image_url: mainImage,
-      })
-      .eq("id", product.id);
+        const mutationId = imagesMutationRef.current;
+        const snapshot = imagePreviewsRef.current;
 
-    if (error) throw error;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Usuário não autenticado");
 
-    setImagePreviews(resolvedUrls);
-    imagePreviewsRef.current = resolvedUrls;
-    onImagesPersisted?.(product.id, resolvedUrls, mainImage);
+        const resolvedUrls = await resolveImagePreviewsToUrls(user.id, snapshot, product.id);
+        const mainImage = resolvedUrls[0] || null;
+
+        const { data, error } = await supabase
+          .from("products")
+          .update({ images: resolvedUrls, image_url: mainImage })
+          .eq("id", product.id)
+          .select("images,image_url")
+          .maybeSingle();
+
+        if (error) throw error;
+
+        // If user changed images while we were persisting, do NOT overwrite local state.
+        // A newer persist is already queued and will run next.
+        if (imagesMutationRef.current !== mutationId) {
+          continue;
+        }
+
+        // Revoke temporary blob previews only once they are replaced by persistent URLs.
+        snapshot
+          .filter((u) => u.startsWith("blob:"))
+          .forEach((u) => {
+            try {
+              URL.revokeObjectURL(u);
+            } catch {
+              // ignore
+            }
+          });
+
+        const finalImages = (Array.isArray(data?.images) ? data?.images : resolvedUrls) as string[];
+        const finalMain = (data?.image_url ?? mainImage) as string | null;
+
+        setImagePreviews(finalImages);
+        imagePreviewsRef.current = finalImages;
+        onImagesPersisted?.(product.id, finalImages, finalMain);
+      }
+    } catch (error: any) {
+      console.error("Error persisting product images:", error);
+      toast({
+        title: "Erro",
+        description: error?.message || "Não foi possível salvar as imagens",
+        variant: "destructive",
+      });
+    } finally {
+      persistInFlightRef.current = false;
+    }
   };
 
   const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,22 +335,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     const next = [...imagePreviewsRef.current, ...tempUrls];
     setImagePreviews(next);
     imagePreviewsRef.current = next;
+    imagesMutationRef.current += 1;
 
     // Persist immediately for existing products (edits/additions must survive reabrir).
     if (product?.id) {
-      void persistImagesIfEditingExistingProduct(next)
-        .then(() => {
-          // Revoke temporary blob URLs only after a successful persist.
-          tempUrls.forEach((u) => URL.revokeObjectURL(u));
-        })
-        .catch((error: any) => {
-          console.error("Error persisting added images:", error);
-          toast({
-            title: "Erro",
-            description: error?.message || "Não foi possível salvar as imagens",
-            variant: "destructive",
-          });
-        });
+      requestPersistImages();
     }
   };
 
@@ -304,16 +348,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     const next = current.filter((_, i) => i !== index);
     setImagePreviews(next);
     imagePreviewsRef.current = next;
+    imagesMutationRef.current += 1;
 
     if (product?.id) {
-      void persistImagesIfEditingExistingProduct(next).catch((error: any) => {
-        console.error("Error persisting removed image:", error);
-        toast({
-          title: "Erro",
-          description: error?.message || "Não foi possível salvar a remoção da imagem",
-          variant: "destructive",
-        });
-      });
+      requestPersistImages();
     }
   };
 
@@ -595,19 +633,13 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     const next = current.map((img, i) => (i === index ? editedImageUrl : img));
     setImagePreviews(next);
     imagePreviewsRef.current = next;
+    imagesMutationRef.current += 1;
 
     setImageEditorOpen(false);
     setEditingImageIndex(null);
 
     if (product?.id) {
-      void persistImagesIfEditingExistingProduct(next).catch((error: any) => {
-        console.error("Error persisting edited image:", error);
-        toast({
-          title: "Erro",
-          description: error?.message || "Não foi possível salvar a imagem editada",
-          variant: "destructive",
-        });
-      });
+      requestPersistImages();
     }
   };
 
