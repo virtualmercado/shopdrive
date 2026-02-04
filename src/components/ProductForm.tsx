@@ -13,6 +13,7 @@ import { ImageEditor, EditorSettings, ImageAdjustments } from "@/components/Imag
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
+import { exportEditedProductImageJpeg } from "@/lib/batchExportProductImage";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -117,6 +118,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+
+  // Batch apply state (padronização em lote)
+  const [batchApplyStatus, setBatchApplyStatus] = useState({ inProgress: false, completed: 0, total: 0, failed: 0 });
+  const batchApplyInFlightRef = useRef(false);
   
   // AI Assistant state
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -708,25 +713,129 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
   // Handle applying editor settings to other images (batch standardization)
   const handleApplyToOtherImages = async (settings: EditorSettings) => {
-    if (editingImageIndex === null || imagePreviews.length <= 1) return;
-    
-    const otherIndices = imagePreviews
+    if (editingImageIndex === null || imagePreviewsRef.current.length <= 1) return;
+    if (batchApplyInFlightRef.current) return;
+
+    // Avoid race-condition with the image persistence queue (add/remove uploads)
+    if (persistInFlightRef.current || persistQueuedRef.current) {
+      toast({
+        title: "Aguarde",
+        description: "Há um salvamento de imagens em andamento. Tente novamente em alguns segundos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!product?.id) {
+      toast({
+        title: "Padronização em lote",
+        description: "Crie o produto primeiro para salvar as imagens no backend.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const otherIndices = imagePreviewsRef.current
       .map((_, idx) => idx)
-      .filter(idx => idx !== editingImageIndex);
-    
+      .filter((idx) => idx !== editingImageIndex);
+
+    if (otherIndices.length === 0) return;
+
+    batchApplyInFlightRef.current = true;
+    setBatchApplyStatus({ inProgress: true, completed: 0, total: otherIndices.length, failed: 0 });
+
     toast({
       title: "Padronização em lote",
-      description: `Aplicando ajustes a ${otherIndices.length} imagem(ns)...`,
+      description: `Aplicando e salvando ${otherIndices.length} imagem(ns)...`,
     });
-    
-    // For now, just show a success message - the actual processing would need canvas manipulation
-    // This is a placeholder for the batch processing logic
-    setTimeout(() => {
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      let completed = 0;
+      let failed = 0;
+
+      for (const imageIndex of otherIndices) {
+        try {
+          const sourceUrl = imagePreviewsRef.current[imageIndex];
+          if (!sourceUrl) throw new Error("Imagem inválida para processamento");
+
+          if (import.meta.env.DEV) {
+            console.groupCollapsed("[VM][BatchApply] process image");
+            console.log({ productId: product.id, imageIndex, sourceUrl, settings });
+            console.groupEnd();
+          }
+
+          const { blob } = await exportEditedProductImageJpeg(sourceUrl, settings);
+
+          const result = await persistEditedProductImage({
+            userId: user.id,
+            productId: product.id,
+            imageIndex,
+            blob,
+            adjustments: settings.adjustments as unknown as PersistAdjustments,
+          });
+
+          // Update UI immediately after each persisted item
+          setImagePreviews(result.images);
+          imagePreviewsRef.current = result.images;
+          setImageAdjustments(result.imageAdjustments);
+          imageAdjustmentsRef.current = result.imageAdjustments;
+          imagesMutationRef.current += 1;
+
+          onImagesPersisted?.(product.id, result.images, result.mainImage);
+        } catch (err: any) {
+          failed += 1;
+          console.error("[VM][BatchApply] error", err);
+          toast({
+            title: "Falha ao aplicar em lote",
+            description: err?.message || "Não foi possível processar uma das imagens",
+            variant: "destructive",
+          });
+        } finally {
+          completed += 1;
+          setBatchApplyStatus({ inProgress: true, completed, total: otherIndices.length, failed });
+        }
+      }
+
+      // Final re-fetch to ensure local state matches persisted truth
+      const { data, error } = await supabase
+        .from("products")
+        .select("images,image_url,image_adjustments")
+        .eq("id", product.id)
+        .maybeSingle();
+      if (error) throw error;
+
+      const finalImagesRaw = (data as any)?.images;
+      const finalImages = Array.isArray(finalImagesRaw) ? (finalImagesRaw as string[]) : imagePreviewsRef.current;
+      const finalAdjRaw = (data as any)?.image_adjustments;
+      const finalAdj = Array.isArray(finalAdjRaw) ? (finalAdjRaw as ImageAdjustments[]) : imageAdjustmentsRef.current;
+      const finalMain = ((data as any)?.image_url ?? finalImages[0] ?? null) as string | null;
+
+      setImagePreviews(finalImages);
+      imagePreviewsRef.current = finalImages;
+      setImageAdjustments(finalAdj);
+      imageAdjustmentsRef.current = finalAdj;
+      imagesMutationRef.current += 1;
+      onImagesPersisted?.(product.id, finalImages, finalMain);
+
       toast({
-        title: "Sucesso",
-        description: `Ajustes aplicados a ${otherIndices.length} imagem(ns) com sucesso!`,
+        title: failed === 0 ? "Padronização concluída" : "Padronização concluída com falhas",
+        description: `${otherIndices.length - failed}/${otherIndices.length} imagem(ns) salvas com sucesso`,
+        ...(failed > 0 ? { variant: "destructive" as const } : {}),
       });
-    }, 500);
+    } catch (error: any) {
+      console.error("[VM][BatchApply] fatal", error);
+      toast({
+        title: "Erro",
+        description: error?.message || "Não foi possível aplicar a padronização em lote",
+        variant: "destructive",
+      });
+    } finally {
+      batchApplyInFlightRef.current = false;
+      setBatchApplyStatus((prev) => ({ ...prev, inProgress: false }));
+    }
   };
 
   return (
@@ -1398,6 +1507,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         onSave={handlePersistEditedImage}
         otherProductImages={imagePreviews.filter((_, idx) => idx !== editingImageIndex)}
         onApplyToOthers={handleApplyToOtherImages}
+        batchApplyStatus={batchApplyStatus}
       />
     )}
 
