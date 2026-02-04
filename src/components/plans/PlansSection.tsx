@@ -115,9 +115,11 @@ interface PlansSectionProps {
   currentPlan?: string;
   isLandingPage?: boolean;
   onPlanAction?: (planId: string, action: "free" | "current" | "upgrade") => void;
+  /** Contextual highlight for a specific plan (e.g., from banner navigation) */
+  highlightPlan?: string | null;
 }
 
-export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction }: PlansSectionProps) => {
+export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction, highlightPlan = null }: PlansSectionProps) => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
   const { data: cmsContent } = useCMSContent();
   const navigate = useNavigate();
@@ -254,6 +256,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
           const price = getDisplayPrice(plan.monthly_price);
           const isProPlan = plan.id === "pro";
           const showBadge = plan.badge_active && plan.badge_text;
+          const isHighlighted = highlightPlan === plan.id;
 
           return (
             <div
@@ -265,7 +268,9 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                   ? "border-2 shadow-lg scale-[1.02]"
                   : (showBadge && isLandingPage)
                     ? "border-[3px] shadow-lg"
-                    : "border border-gray-200"
+                    : "border border-gray-200",
+                // Contextual highlight class (glow/halo effect)
+                isHighlighted && `highlight-contextual-${plan.id}`
               )}
               style={{
                 borderColor: isCurrent ? VM_PRIMARY : (showBadge && isLandingPage ? VM_PRIMARY : undefined),

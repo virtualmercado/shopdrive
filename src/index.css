@@ -499,3 +499,74 @@ All colors MUST be HSL.
   min-height: calc(100vh - 300px);
   background-color: inherit;
 }
+
+/* ========================================
+   CONTEXTUAL HIGHLIGHT - GLOW/HALO EFFECT
+   Used for promotional highlights on plan cards
+   ======================================== */
+
+@keyframes highlight-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsla(276, 76%, 35%, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 8px hsla(276, 76%, 35%, 0.4), 
+                0 0 40px 16px hsla(276, 76%, 35%, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 15px 6px hsla(276, 76%, 35%, 0.3), 
+                0 0 30px 12px hsla(276, 76%, 35%, 0.15);
+  }
+}
+
+@keyframes highlight-fade-in {
+  from {
+    opacity: 0;
+    box-shadow: 0 0 0 0 hsla(276, 76%, 35%, 0);
+  }
+  to {
+    opacity: 1;
+    box-shadow: 0 0 15px 6px hsla(276, 76%, 35%, 0.3), 
+                0 0 30px 12px hsla(276, 76%, 35%, 0.15);
+  }
+}
+
+.highlight-contextual-premium {
+  animation: highlight-fade-in 400ms ease-out forwards,
+             highlight-glow-pulse 2s ease-in-out 400ms 1;
+  position: relative;
+}
+
+.highlight-contextual-premium::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: calc(var(--radius) + 4px);
+  background: linear-gradient(
+    135deg, 
+    hsla(276, 76%, 35%, 0.15), 
+    hsla(276, 76%, 45%, 0.08)
+  );
+  z-index: -1;
+  pointer-events: none;
+  animation: highlight-fade-in 400ms ease-out forwards;
+}
+
+/* Support for future highlight types */
+.highlight-contextual-pro {
+  animation: highlight-fade-in 400ms ease-out forwards;
+}
+
+.highlight-contextual-pro::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: calc(var(--radius) + 4px);
+  background: linear-gradient(
+    135deg, 
+    hsla(32, 100%, 49%, 0.15), 
+    hsla(32, 100%, 59%, 0.08)
+  );
+  z-index: -1;
+  pointer-events: none;
+}
