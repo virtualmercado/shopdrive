@@ -1000,14 +1000,31 @@ export const ImageEditor = ({
     setHasChanges(true);
   }, [offsetY, offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
 
-  // Check if drag/pan should be enabled (zoom > 100% OR crop preset is not "original")
-  // Using > 1.001 internally (scale is 100 = 100%, so compare > 100.1 to avoid float issues)
-  const isDragEnabled = scale > 100.1 || cropPreset !== 'original';
+  // Calculate safe clamp limits based on current scale and crop
+  // At 100% zoom + Original, allow minimal movement; at higher zoom, allow more
+  const calculateDragClamp = useCallback(() => {
+    const scaleFactor = scale / 100;
+    const isOriginal = cropPreset === 'original';
+    
+    // Base clamp: at 100% zoom + original, very limited movement (keeps image in frame)
+    // As zoom increases, allow more movement proportionally
+    if (isOriginal && scaleFactor <= 1.01) {
+      // At 100% original: allow only ±5% to keep image centered but still draggable
+      return { minX: -5, maxX: 5, minY: -5, maxY: 5 };
+    }
+    
+    // For zoom > 100% or non-original crop: calculate based on overflow
+    // More zoom = more allowed movement
+    const extraSpace = Math.max(0, (scaleFactor - 1) * 50); // Each 100% zoom adds 50% movement
+    const baseLimit = isOriginal ? 10 : 20; // Crop presets need more room
+    const limit = Math.min(30, baseLimit + extraSpace);
+    
+    return { minX: -limit, maxX: limit, minY: -limit, maxY: limit };
+  }, [scale, cropPreset]);
 
   // Pointer Event handlers (more robust than mouse events, especially inside modals)
+  // Drag is ALWAYS allowed, but clamp limits vary based on zoom/crop
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragEnabled) return;
-    
     // Capture pointer to receive all subsequent events even if pointer leaves element
     e.currentTarget.setPointerCapture(e.pointerId);
     
@@ -1019,7 +1036,7 @@ export const ImageEditor = ({
       startOffsetX: offsetX,
       startOffsetY: offsetY,
     };
-  }, [isDragEnabled, offsetX, offsetY, captureStateBeforeInteraction]);
+  }, [offsetX, offsetY, captureStateBeforeInteraction]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging || !dragStartRef.current) return;
@@ -1040,13 +1057,15 @@ export const ImageEditor = ({
     const percentDeltaX = (deltaX / displayWidth) * 100;
     const percentDeltaY = (deltaY / displayHeight) * 100;
     
-    const newOffsetX = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetX + percentDeltaX));
-    const newOffsetY = Math.max(-30, Math.min(30, dragStartRef.current.startOffsetY + percentDeltaY));
+    // Apply safe clamp based on current zoom/crop state
+    const clamp = calculateDragClamp();
+    const newOffsetX = Math.max(clamp.minX, Math.min(clamp.maxX, dragStartRef.current.startOffsetX + percentDeltaX));
+    const newOffsetY = Math.max(clamp.minY, Math.min(clamp.maxY, dragStartRef.current.startOffsetY + percentDeltaY));
     
     setOffsetX(newOffsetX);
     setOffsetY(newOffsetY);
     setHasChanges(true);
-  }, [isDragging]);
+  }, [isDragging, calculateDragClamp]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging) {
@@ -1677,11 +1696,12 @@ export const ImageEditor = ({
                   Grade: {showGuides ? 'ON' : 'OFF'}
                 </button>
                 
-                {/* Preview container - receives pointer events for drag/pan */}
+                {/* Preview container - receives pointer events for drag/pan (always enabled) */}
                 <div 
                   className="relative"
                   style={{ 
-                    cursor: isDragEnabled ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                    // Normal cursor on hover, grabbing only during active drag
+                    cursor: isDragging ? 'grabbing' : 'default',
                     touchAction: 'none', // Prevent browser gestures interfering with drag
                   }}
                   onPointerDown={handlePointerDown}
