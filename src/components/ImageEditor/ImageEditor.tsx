@@ -683,48 +683,50 @@ export const ImageEditor = ({
     
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
-    // Frame (outer border) - thin, semi-transparent
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.lineWidth = 1;
+    // Helper function to draw line with shadow for contrast on any background
+    const drawLineWithShadow = (x1: number, y1: number, x2: number, y2: number) => {
+      // Shadow (dark) for contrast on light backgrounds
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1 + 0.5, y1 + 0.5);
+      ctx.lineTo(x2 + 0.5, y2 + 0.5);
+      ctx.stroke();
+      
+      // Main line (white) for contrast on dark backgrounds
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+    
+    // Frame (outer border) - with shadow for visibility
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.lineWidth = 2;
     ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.rect(1, 1, canvasWidth - 2, canvasHeight - 2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.rect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
     ctx.stroke();
     
-    // Rule of Thirds grid lines - 2 vertical + 2 horizontal
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([]);
-    
     // Calculate 1/3 and 2/3 positions
-    const oneThirdX = canvasWidth / 3;
-    const twoThirdsX = (canvasWidth * 2) / 3;
-    const oneThirdY = canvasHeight / 3;
-    const twoThirdsY = (canvasHeight * 2) / 3;
+    const oneThirdX = Math.round(canvasWidth / 3);
+    const twoThirdsX = Math.round((canvasWidth * 2) / 3);
+    const oneThirdY = Math.round(canvasHeight / 3);
+    const twoThirdsY = Math.round((canvasHeight * 2) / 3);
     
-    // Vertical line at 1/3
-    ctx.beginPath();
-    ctx.moveTo(oneThirdX, 0);
-    ctx.lineTo(oneThirdX, canvasHeight);
-    ctx.stroke();
-    
-    // Vertical line at 2/3
-    ctx.beginPath();
-    ctx.moveTo(twoThirdsX, 0);
-    ctx.lineTo(twoThirdsX, canvasHeight);
-    ctx.stroke();
-    
-    // Horizontal line at 1/3
-    ctx.beginPath();
-    ctx.moveTo(0, oneThirdY);
-    ctx.lineTo(canvasWidth, oneThirdY);
-    ctx.stroke();
-    
-    // Horizontal line at 2/3
-    ctx.beginPath();
-    ctx.moveTo(0, twoThirdsY);
-    ctx.lineTo(canvasWidth, twoThirdsY);
-    ctx.stroke();
+    // Rule of Thirds grid lines - 2 vertical + 2 horizontal (with shadow)
+    drawLineWithShadow(oneThirdX, 0, oneThirdX, canvasHeight);
+    drawLineWithShadow(twoThirdsX, 0, twoThirdsX, canvasHeight);
+    drawLineWithShadow(0, oneThirdY, canvasWidth, oneThirdY);
+    drawLineWithShadow(0, twoThirdsY, canvasWidth, twoThirdsY);
   }, [showGuides]);
 
   // Capture state BEFORE an interaction begins (called once at start of interaction)
@@ -1437,6 +1439,19 @@ export const ImageEditor = ({
               
               {/* Preview Area */}
               <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto relative">
+                {/* Grid Toggle Button - overlaid on preview area */}
+                <button
+                  onClick={() => setShowGuides(!showGuides)}
+                  className="absolute top-6 right-6 z-10 px-2 py-1 text-[10px] font-medium rounded shadow-md transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: showGuides ? buttonBgColor : 'rgba(0, 0, 0, 0.6)',
+                    color: showGuides ? buttonTextColor : 'white',
+                    border: `1px solid ${showGuides ? buttonBgColor : 'rgba(255, 255, 255, 0.3)'}`,
+                  }}
+                >
+                  Grade: {showGuides ? 'ON' : 'OFF'}
+                </button>
+                
                 <div className="relative">
                   <canvas
                     ref={canvasRef}
