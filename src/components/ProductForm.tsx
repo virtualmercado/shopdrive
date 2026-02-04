@@ -359,14 +359,79 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         return;
       }
 
-      // Upload new images
+      // Upload new images (from files) and edited images (data URLs)
       let uploadedImages: string[] = [];
+      
+      // Separate existing http URLs from data URLs (edited/new images)
+      const existingHttpUrls: string[] = [];
+      const dataUrlsToUpload: { index: number; dataUrl: string }[] = [];
+      
+      imagePreviews.forEach((preview, index) => {
+        if (preview.startsWith('http')) {
+          existingHttpUrls.push(preview);
+        } else if (preview.startsWith('data:')) {
+          // This is an edited image or a new image that needs uploading
+          dataUrlsToUpload.push({ index, dataUrl: preview });
+        }
+      });
+      
+      // Upload data URLs as new files
+      for (const { dataUrl } of dataUrlsToUpload) {
+        try {
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `edited-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`, { type: 'image/png' });
+          
+          const fileExt = 'png';
+          const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from("product-images")
+            .upload(fileName, file);
+          
+          if (uploadError) throw uploadError;
+          
+          const { data } = supabase.storage
+            .from("product-images")
+            .getPublicUrl(fileName);
+          
+          uploadedImages.push(data.publicUrl);
+        } catch (err) {
+          console.error('Error uploading edited image:', err);
+        }
+      }
+      
+      // Also upload any new files from file picker
       if (imageFiles.length > 0) {
-        uploadedImages = await uploadImages(user.id, imageFiles);
+        // Only upload files that haven't been converted to data URLs
+        const remainingFiles = imageFiles.filter((_, idx) => {
+          // Check if this file index corresponds to a data URL we already processed
+          return !dataUrlsToUpload.some(d => d.index === existingHttpUrls.length + idx);
+        });
+        
+        if (remainingFiles.length > 0) {
+          const newUploads = await uploadImages(user.id, remainingFiles);
+          uploadedImages = [...uploadedImages, ...newUploads];
+        }
       }
 
-      // Combine existing and new images
-      const allImages = [...imagePreviews.filter(p => p.startsWith('http')), ...uploadedImages];
+      // Combine: keep order by rebuilding from imagePreviews
+      const allImages: string[] = [];
+      let httpIndex = 0;
+      let uploadedIndex = 0;
+      
+      for (const preview of imagePreviews) {
+        if (preview.startsWith('http')) {
+          allImages.push(existingHttpUrls[httpIndex]);
+          httpIndex++;
+        } else if (preview.startsWith('data:')) {
+          if (uploadedIndex < uploadedImages.length) {
+            allImages.push(uploadedImages[uploadedIndex]);
+            uploadedIndex++;
+          }
+        }
+      }
+      
       const mainImage = allImages[0] || null;
 
       // Validate input data
