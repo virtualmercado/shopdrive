@@ -29,16 +29,10 @@ import {
 } from "lucide-react";
 import { loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
-interface ImageEditorProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  imageUrl: string;
-  onSave: (payload: { blob: Blob; contentType: string; width: number; height: number }) => Promise<void>;
-  otherProductImages?: string[];
-  onApplyToOthers?: (settings: EditorSettings) => void;
-}
-
-interface ImageAdjustments {
+/**
+ * Tonal adjustments stored per image (7 sliders).
+ */
+export interface ImageAdjustments {
   exposure: number;
   contrast: number;
   highlights: number;
@@ -46,6 +40,19 @@ interface ImageAdjustments {
   whites: number;
   blacks: number;
   sharpness: number;
+}
+
+interface ImageEditorProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  imageUrl: string;
+  /**
+   * Tonal adjustments previously saved for this image (hydrate sliders).
+   */
+  initialAdjustments?: ImageAdjustments;
+  onSave: (payload: { blob: Blob; contentType: string; width: number; height: number; adjustments: ImageAdjustments }) => Promise<void>;
+  otherProductImages?: string[];
+  onApplyToOthers?: (settings: EditorSettings) => void;
 }
 
 // Crop preset definition
@@ -562,7 +569,8 @@ const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments
 export const ImageEditor = ({ 
   open, 
   onOpenChange, 
-  imageUrl, 
+  imageUrl,
+  initialAdjustments,
   onSave,
   otherProductImages = [],
   onApplyToOthers
@@ -571,7 +579,8 @@ export const ImageEditor = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState('');
-  const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
+  // Hydrate from persisted adjustments (if any), otherwise defaults.
+  const [adjustments, setAdjustments] = useState<ImageAdjustments>(initialAdjustments ?? defaultAdjustments);
   const [rotation, setRotation] = useState(0);
   const [offsetX, setOffsetX] = useState(0);
   const [scale, setScale] = useState(100);
@@ -803,9 +812,11 @@ export const ImageEditor = ({
 
   useEffect(() => {
     if (open && imageUrl) {
+      // Rehydrate adjustments from persisted value (or defaults) each time the editor opens.
+      setAdjustments(initialAdjustments ?? defaultAdjustments);
       loadImage();
     }
-  }, [open, imageUrl]);
+  }, [open, imageUrl, initialAdjustments]);
 
   const loadImage = async () => {
     try {
@@ -1427,7 +1438,7 @@ export const ImageEditor = ({
       setProcessingProgress(85);
 
       // IMPORTANT: await persistence (storage + DB + re-fetch) before declaring success.
-      await onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height });
+      await onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height, adjustments });
 
       setProcessingProgress(100);
       onOpenChange(false);

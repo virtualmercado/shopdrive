@@ -1,16 +1,33 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Tonal adjustments stored per image (7 sliders).
+ */
+export interface ImageAdjustments {
+  exposure: number;
+  contrast: number;
+  highlights: number;
+  shadows: number;
+  whites: number;
+  blacks: number;
+  sharpness: number;
+}
+
 export type PersistEditedProductImageParams = {
   userId: string;
   productId: string;
   imageIndex: number;
   blob: Blob;
+  /** Tonal adjustments to persist (so sliders rehydrate on reopen). */
+  adjustments?: ImageAdjustments;
 };
 
 export type PersistEditedProductImageResult = {
   publicUrl: string;
   images: string[];
   mainImage: string | null;
+  /** Current adjustments array (one entry per image). */
+  imageAdjustments: ImageAdjustments[];
   debug: {
     filePath: string;
     uploadData: unknown;
@@ -28,15 +45,26 @@ const genId = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+const defaultAdjustments: ImageAdjustments = {
+  exposure: 0,
+  contrast: 0,
+  highlights: 0,
+  shadows: 0,
+  whites: 0,
+  blacks: 0,
+  sharpness: 0,
+};
+
 /**
  * Uploads an edited image blob and persists it to the product in the database.
- * This is used ONLY by the "Salvar imagem processada" flow.
+ * Also stores tonal adjustments for this image index so sliders rehydrate correctly.
  */
 export async function persistEditedProductImage({
   userId,
   productId,
   imageIndex,
   blob,
+  adjustments,
 }: PersistEditedProductImageParams): Promise<PersistEditedProductImageResult> {
   const debugEnabled = import.meta.env.DEV;
   const id = genId();
@@ -47,7 +75,7 @@ export async function persistEditedProductImage({
 
   if (debugEnabled) {
     console.groupCollapsed("[VM][ImageSave] persistEditedProductImage");
-    console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath });
+    console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath, adjustments });
   }
 
   const file = new File([blob], `product-${productId}-${imageIndex}.jpg`, { type: "image/jpeg" });
@@ -72,10 +100,10 @@ export async function persistEditedProductImage({
     throw new Error("Não foi possível obter a URL pública da imagem");
   }
 
-  // Fetch current persisted images (do NOT trust local state; requirement: rehydrate).
+  // Fetch current persisted images + adjustments (do NOT trust local state; requirement: rehydrate).
   const fetchResponse = await supabase
     .from("products")
-    .select("images,image_url")
+    .select("images,image_url,image_adjustments")
     .eq("id", productId)
     .maybeSingle();
 
@@ -91,6 +119,8 @@ export async function persistEditedProductImage({
 
   const currentImagesRaw = (fetchResponse.data as any)?.images;
   const currentImages = Array.isArray(currentImagesRaw) ? (currentImagesRaw as string[]) : [];
+  const currentAdjRaw = (fetchResponse.data as any)?.image_adjustments;
+  const currentAdj: ImageAdjustments[] = Array.isArray(currentAdjRaw) ? currentAdjRaw : [];
 
   const nextImages = [...currentImages];
   if (nextImages.length === 0) {
@@ -103,11 +133,27 @@ export async function persistEditedProductImage({
 
   const nextMain = nextImages[0] || null;
 
+  // Build adjustments array (one entry per image slot)
+  const nextAdj = [...currentAdj];
+  while (nextAdj.length < nextImages.length) {
+    nextAdj.push({ ...defaultAdjustments });
+  }
+  // Update the slot with new values
+  nextAdj[imageIndex] = adjustments ?? { ...defaultAdjustments };
+  // Trim to match images length (just in case)
+  const finalAdj = nextAdj.slice(0, nextImages.length);
+
+  // Cast adjustments to any to avoid TS Json type issues.
   const updateResponse = await supabase
     .from("products")
-    .update({ images: nextImages, image_url: nextMain })
+    .update({
+      images: nextImages,
+      image_url: nextMain,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      image_adjustments: finalAdj as any,
+    })
     .eq("id", productId)
-    .select("images,image_url")
+    .select("images,image_url,image_adjustments")
     .maybeSingle();
 
   if (debugEnabled) {
@@ -123,7 +169,7 @@ export async function persistEditedProductImage({
   // Mandatory re-fetch after update (proof of persistence)
   const refetchResponse = await supabase
     .from("products")
-    .select("images,image_url")
+    .select("images,image_url,image_adjustments")
     .eq("id", productId)
     .maybeSingle();
 
@@ -140,11 +186,14 @@ export async function persistEditedProductImage({
   const finalMain = ((refetchResponse.data as any)?.image_url ?? (updateResponse.data as any)?.image_url ?? nextMain) as
     | string
     | null;
+  const finalImageAdj: ImageAdjustments[] =
+    (refetchResponse.data as any)?.image_adjustments ?? (updateResponse.data as any)?.image_adjustments ?? finalAdj;
 
   return {
     publicUrl,
     images: finalImages,
     mainImage: finalMain,
+    imageAdjustments: finalImageAdj,
     debug: {
       filePath,
       uploadData: uploadResponse.data,
