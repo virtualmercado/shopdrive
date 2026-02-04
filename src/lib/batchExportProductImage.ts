@@ -203,11 +203,12 @@ export async function exportEditedProductImageJpeg(
   baseCtx.fillStyle = "#ffffff";
   baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
 
-  const offsetPixels = (settings.offsetX / 100) * baseCanvas.width;
+  const offsetPixelsX = (settings.offsetX / 100) * baseCanvas.width;
+  const offsetPixelsY = ((settings.offsetY ?? 0) / 100) * baseCanvas.height;
   const scaleFactor = settings.scale / 100;
 
   baseCtx.save();
-  baseCtx.translate(baseCanvas.width / 2 + offsetPixels, baseCanvas.height / 2);
+  baseCtx.translate(baseCanvas.width / 2 + offsetPixelsX, baseCanvas.height / 2 + offsetPixelsY);
   baseCtx.rotate((settings.rotation * Math.PI) / 180);
   baseCtx.scale(scaleFactor, scaleFactor);
   baseCtx.translate(-img.width / 2, -img.height / 2);
