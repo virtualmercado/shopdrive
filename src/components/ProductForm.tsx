@@ -226,6 +226,43 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     return uploadedUrls;
   };
 
+  const uploadDataUrlImage = async (userId: string, dataUrl: string): Promise<string> => {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? (crypto as Crypto).randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const filePath = `${userId}/products/${id}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, blob, { contentType: "image/png" });
+
+    if (uploadError) throw uploadError;
+
+    return supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath).data.publicUrl;
+  };
+
+  const resolveImagePreviewsToUrls = async (userId: string, previews: string[]): Promise<string[]> => {
+    const resolved: string[] = [];
+    for (const preview of previews) {
+      if (preview.startsWith("http")) {
+        resolved.push(preview);
+        continue;
+      }
+
+      if (preview.startsWith("data:")) {
+        resolved.push(await uploadDataUrlImage(userId, preview));
+        continue;
+      }
+    }
+    return resolved;
+  };
+
   const createCategory = async () => {
     if (!newCategoryName.trim()) return;
 
@@ -359,79 +396,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         return;
       }
 
-      // Upload new images (from files) and edited images (data URLs)
-      let uploadedImages: string[] = [];
-      
-      // Separate existing http URLs from data URLs (edited/new images)
-      const existingHttpUrls: string[] = [];
-      const dataUrlsToUpload: { index: number; dataUrl: string }[] = [];
-      
-      imagePreviews.forEach((preview, index) => {
-        if (preview.startsWith('http')) {
-          existingHttpUrls.push(preview);
-        } else if (preview.startsWith('data:')) {
-          // This is an edited image or a new image that needs uploading
-          dataUrlsToUpload.push({ index, dataUrl: preview });
-        }
-      });
-      
-      // Upload data URLs as new files
-      for (const { dataUrl } of dataUrlsToUpload) {
-        try {
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
-          const file = new File([blob], `edited-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`, { type: 'image/png' });
-          
-          const fileExt = 'png';
-          const fileName = `${user.id}/${Math.random()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from("product-images")
-            .upload(fileName, file);
-          
-          if (uploadError) throw uploadError;
-          
-          const { data } = supabase.storage
-            .from("product-images")
-            .getPublicUrl(fileName);
-          
-          uploadedImages.push(data.publicUrl);
-        } catch (err) {
-          console.error('Error uploading edited image:', err);
-        }
-      }
-      
-      // Also upload any new files from file picker
-      if (imageFiles.length > 0) {
-        // Only upload files that haven't been converted to data URLs
-        const remainingFiles = imageFiles.filter((_, idx) => {
-          // Check if this file index corresponds to a data URL we already processed
-          return !dataUrlsToUpload.some(d => d.index === existingHttpUrls.length + idx);
-        });
-        
-        if (remainingFiles.length > 0) {
-          const newUploads = await uploadImages(user.id, remainingFiles);
-          uploadedImages = [...uploadedImages, ...newUploads];
-        }
-      }
-
-      // Combine: keep order by rebuilding from imagePreviews
-      const allImages: string[] = [];
-      let httpIndex = 0;
-      let uploadedIndex = 0;
-      
-      for (const preview of imagePreviews) {
-        if (preview.startsWith('http')) {
-          allImages.push(existingHttpUrls[httpIndex]);
-          httpIndex++;
-        } else if (preview.startsWith('data:')) {
-          if (uploadedIndex < uploadedImages.length) {
-            allImages.push(uploadedImages[uploadedIndex]);
-            uploadedIndex++;
-          }
-        }
-      }
-      
+      // Resolve ALL images to public URLs (never store data: URLs in the database)
+      const allImages = await resolveImagePreviewsToUrls(user.id, imagePreviews);
       const mainImage = allImages[0] || null;
 
       // Validate input data
@@ -551,47 +517,60 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   };
 
   // Handle saving edited image from ImageEditor
+  // IMPORTANT: persist immediately for existing products so reabrir o editor não volta ao original.
   const handleSaveEditedImage = (editedImageUrl: string) => {
     if (editingImageIndex === null) return;
-    
-    // Update the preview at the editing index
-    setImagePreviews(prev => {
+    const index = editingImageIndex;
+
+    // Optimistic: keep the edited preview in-place immediately
+    setImagePreviews((prev) => {
       const updated = [...prev];
-      updated[editingImageIndex] = editedImageUrl;
+      updated[index] = editedImageUrl;
       return updated;
     });
-    
-    // If the original was a file (data URL), we need to convert the edited image to a file
-    // For remote URLs that were edited, we need to create a new file from the data URL
-    if (editedImageUrl.startsWith('data:')) {
-      // Convert data URL to File
-      fetch(editedImageUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], `edited-image-${editingImageIndex}.png`, { type: 'image/png' });
-          setImageFiles(prev => {
-            const updated = [...prev];
-            // If this was an existing file, replace it
-            // If it was a remote URL, add a new file
-            if (prev.length > editingImageIndex) {
-              updated[editingImageIndex] = file;
-            } else {
-              // This was a remote URL, we need to mark it for replacement
-              // The preview will be the data URL, and we need to track this separately
-              updated.push(file);
-            }
-            return updated;
-          });
-        });
-    }
-    
+
     setImageEditorOpen(false);
     setEditingImageIndex(null);
-    
-    toast({
-      title: "Sucesso",
-      description: "Imagem editada salva com sucesso!",
-    });
+
+    // If it isn't a data URL, nothing to persist.
+    if (!editedImageUrl.startsWith("data:")) return;
+
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Usuário não autenticado");
+
+        // Upload edited image now and swap preview to stable public URL
+        const publicUrl = await uploadDataUrlImage(user.id, editedImageUrl);
+
+        let imagesForDb: string[] | null = null;
+        setImagePreviews((prev) => {
+          const updated = [...prev];
+          updated[index] = publicUrl;
+          imagesForDb = updated;
+          return updated;
+        });
+
+        // Persist to backend only when editing an existing product.
+        if (product?.id && imagesForDb) {
+          const { error } = await supabase
+            .from("products")
+            .update({
+              images: imagesForDb,
+              image_url: imagesForDb[0] || null,
+            })
+            .eq("id", product.id);
+          if (error) throw error;
+        }
+      } catch (error: any) {
+        console.error("Error persisting edited image:", error);
+        toast({
+          title: "Erro",
+          description: error?.message || "Não foi possível persistir a imagem editada",
+          variant: "destructive",
+        });
+      }
+    })();
   };
 
   // Handle applying editor settings to other images (batch standardization)
