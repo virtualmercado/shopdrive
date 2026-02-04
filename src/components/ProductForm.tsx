@@ -63,9 +63,14 @@ interface ProductFormProps {
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
   onSuccess: () => void;
+  /**
+   * Called after images are persisted for an existing product.
+   * Used by the parent list to keep in-memory product data in sync.
+   */
+  onImagesPersisted?: (productId: string, images: string[], mainImage: string | null) => void;
 }
 
-export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductFormProps) => {
+export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPersisted }: ProductFormProps) => {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price.toString() || "");
@@ -73,8 +78,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const [stock, setStock] = useState(product?.stock.toString() || "");
   const [categoryId, setCategoryId] = useState(product?.category_id || "");
   const [brandId, setBrandId] = useState<string | null>(product?.brand_id || null);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
+  const initialImages = Array.isArray(product?.images) ? (product?.images as string[]) : [];
+  const [imagePreviews, setImagePreviews] = useState<string[]>(initialImages);
+  const imagePreviewsRef = useRef<string[]>(initialImages);
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -108,6 +114,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
+
+  useEffect(() => {
+    imagePreviewsRef.current = imagePreviews;
+  }, [imagePreviews]);
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-none';
   
@@ -134,8 +144,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
       setStock(product.stock.toString());
       setCategoryId(product.category_id || "");
       setBrandId(product.brand_id || null);
-      setImagePreviews(product.images || []);
-      setImageFiles([]);
+      const nextImages = Array.isArray(product.images) ? (product.images as string[]) : [];
+      setImagePreviews(nextImages);
+      imagePreviewsRef.current = nextImages;
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(product.variations || []);
@@ -161,8 +172,96 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     if (data) setCategories(data);
   };
 
+  const mimeToExt = (mime: string) => {
+    const m = (mime || "").toLowerCase();
+    if (m.includes("jpeg") || m.includes("jpg")) return "jpg";
+    if (m.includes("png")) return "png";
+    if (m.includes("webp")) return "webp";
+    if (m.includes("gif")) return "gif";
+    return "png";
+  };
+
+  const uploadPreviewUrlImage = async (
+    userId: string,
+    previewUrl: string,
+    productFolder: string
+  ): Promise<string> => {
+    const response = await fetch(previewUrl);
+    const blob = await response.blob();
+    const contentType = blob.type || "image/png";
+
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? (crypto as Crypto).randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // IMPORTANT: keep uploads inside the merchant folder for storage RLS isolation.
+    const filePath = `brands/${userId}/products/${productFolder}/${id}.${mimeToExt(contentType)}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, blob, { contentType, upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    return supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath).data.publicUrl;
+  };
+
+  const resolveImagePreviewsToUrls = async (
+    userId: string,
+    previews: string[],
+    productFolder: string
+  ): Promise<string[]> => {
+    const resolved: string[] = [];
+
+    for (const preview of previews) {
+      if (!preview) continue;
+
+      if (preview.startsWith("http")) {
+        resolved.push(preview);
+        continue;
+      }
+
+      // data: and blob: previews must be uploaded to become persistent.
+      if (preview.startsWith("data:") || preview.startsWith("blob:")) {
+        resolved.push(await uploadPreviewUrlImage(userId, preview, productFolder));
+        continue;
+      }
+    }
+
+    return resolved;
+  };
+
+  const persistImagesIfEditingExistingProduct = async (nextPreviews: string[]) => {
+    if (!product?.id) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+
+    const resolvedUrls = await resolveImagePreviewsToUrls(user.id, nextPreviews, product.id);
+    const mainImage = resolvedUrls[0] || null;
+
+    const { error } = await supabase
+      .from("products")
+      .update({
+        images: resolvedUrls,
+        image_url: mainImage,
+      })
+      .eq("id", product.id);
+
+    if (error) throw error;
+
+    setImagePreviews(resolvedUrls);
+    imagePreviewsRef.current = resolvedUrls;
+    onImagesPersisted?.(product.id, resolvedUrls, mainImage);
+  };
+
   const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Allow selecting the same file again
+    e.target.value = "";
+
     const totalImages = imagePreviews.length + files.length;
     
     if (totalImages > 7) {
@@ -175,20 +274,47 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     }
 
     const newFiles = files.slice(0, 7 - imagePreviews.length);
-    setImageFiles([...imageFiles, ...newFiles]);
 
-    newFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    // Use blob: previews for immediate UI feedback; they will be persisted by uploading.
+    const tempUrls = newFiles.map((file) => URL.createObjectURL(file));
+    const next = [...imagePreviewsRef.current, ...tempUrls];
+    setImagePreviews(next);
+    imagePreviewsRef.current = next;
+
+    // Persist immediately for existing products (edits/additions must survive reabrir).
+    if (product?.id) {
+      void persistImagesIfEditingExistingProduct(next)
+        .then(() => {
+          // Revoke temporary blob URLs only after a successful persist.
+          tempUrls.forEach((u) => URL.revokeObjectURL(u));
+        })
+        .catch((error: any) => {
+          console.error("Error persisting added images:", error);
+          toast({
+            title: "Erro",
+            description: error?.message || "Não foi possível salvar as imagens",
+            variant: "destructive",
+          });
+        });
+    }
   };
 
   const removeImage = (index: number) => {
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    const current = imagePreviewsRef.current;
+    const next = current.filter((_, i) => i !== index);
+    setImagePreviews(next);
+    imagePreviewsRef.current = next;
+
+    if (product?.id) {
+      void persistImagesIfEditingExistingProduct(next).catch((error: any) => {
+        console.error("Error persisting removed image:", error);
+        toast({
+          title: "Erro",
+          description: error?.message || "Não foi possível salvar a remoção da imagem",
+          variant: "destructive",
+        });
+      });
+    }
   };
 
   const handleCameraCapture = () => {
@@ -203,65 +329,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     }
   };
 
-  const uploadImages = async (userId: string, files: File[]): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
-
-    for (const file of files) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}/${Math.random()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(fileName);
-
-      uploadedUrls.push(data.publicUrl);
-    }
-
-    return uploadedUrls;
-  };
-
-  const uploadDataUrlImage = async (userId: string, dataUrl: string): Promise<string> => {
-    const response = await fetch(dataUrl);
-    const blob = await response.blob();
-
-    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? (crypto as Crypto).randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    const filePath = `${userId}/products/${id}.png`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(filePath, blob, { contentType: "image/png" });
-
-    if (uploadError) throw uploadError;
-
-    return supabase.storage
-      .from("product-images")
-      .getPublicUrl(filePath).data.publicUrl;
-  };
-
-  const resolveImagePreviewsToUrls = async (userId: string, previews: string[]): Promise<string[]> => {
-    const resolved: string[] = [];
-    for (const preview of previews) {
-      if (preview.startsWith("http")) {
-        resolved.push(preview);
-        continue;
-      }
-
-      if (preview.startsWith("data:")) {
-        resolved.push(await uploadDataUrlImage(userId, preview));
-        continue;
-      }
-    }
-    return resolved;
-  };
+  // (uploadImages was previously used; we now persist from previews only)
 
   const createCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -396,8 +464,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
         return;
       }
 
-      // Resolve ALL images to public URLs (never store data: URLs in the database)
-      const allImages = await resolveImagePreviewsToUrls(user.id, imagePreviews);
+      // Resolve ALL images to public URLs (never store data:/blob: URLs in the database)
+      const productFolder = product?.id || "draft";
+      const allImages = await resolveImagePreviewsToUrls(user.id, imagePreviews, productFolder);
       const mainImage = allImages[0] || null;
 
       // Validate input data
@@ -496,8 +565,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     setStock("");
     setCategoryId("");
     setBrandId(null);
-    setImageFiles([]);
     setImagePreviews([]);
+    imagePreviewsRef.current = [];
     setNewCategoryName("");
     setShowNewCategory(false);
     setIsFeatured(false);
@@ -522,55 +591,24 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess }: ProductF
     if (editingImageIndex === null) return;
     const index = editingImageIndex;
 
-    // Optimistic: keep the edited preview in-place immediately
-    setImagePreviews((prev) => {
-      const updated = [...prev];
-      updated[index] = editedImageUrl;
-      return updated;
-    });
+    const current = imagePreviewsRef.current;
+    const next = current.map((img, i) => (i === index ? editedImageUrl : img));
+    setImagePreviews(next);
+    imagePreviewsRef.current = next;
 
     setImageEditorOpen(false);
     setEditingImageIndex(null);
 
-    // If it isn't a data URL, nothing to persist.
-    if (!editedImageUrl.startsWith("data:")) return;
-
-    void (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Usuário não autenticado");
-
-        // Upload edited image now and swap preview to stable public URL
-        const publicUrl = await uploadDataUrlImage(user.id, editedImageUrl);
-
-        let imagesForDb: string[] | null = null;
-        setImagePreviews((prev) => {
-          const updated = [...prev];
-          updated[index] = publicUrl;
-          imagesForDb = updated;
-          return updated;
-        });
-
-        // Persist to backend only when editing an existing product.
-        if (product?.id && imagesForDb) {
-          const { error } = await supabase
-            .from("products")
-            .update({
-              images: imagesForDb,
-              image_url: imagesForDb[0] || null,
-            })
-            .eq("id", product.id);
-          if (error) throw error;
-        }
-      } catch (error: any) {
+    if (product?.id) {
+      void persistImagesIfEditingExistingProduct(next).catch((error: any) => {
         console.error("Error persisting edited image:", error);
         toast({
           title: "Erro",
-          description: error?.message || "Não foi possível persistir a imagem editada",
+          description: error?.message || "Não foi possível salvar a imagem editada",
           variant: "destructive",
         });
-      }
-    })();
+      });
+    }
   };
 
   // Handle applying editor settings to other images (batch standardization)
