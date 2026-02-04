@@ -52,7 +52,13 @@ interface ImageEditorProps {
   initialAdjustments?: ImageAdjustments;
   onSave: (payload: { blob: Blob; contentType: string; width: number; height: number; adjustments: ImageAdjustments }) => Promise<void>;
   otherProductImages?: string[];
-  onApplyToOthers?: (settings: EditorSettings) => void;
+  onApplyToOthers?: (settings: EditorSettings) => Promise<void> | void;
+  batchApplyStatus?: {
+    inProgress: boolean;
+    completed: number;
+    total: number;
+    failed: number;
+  };
 }
 
 // Crop preset definition
@@ -573,7 +579,8 @@ export const ImageEditor = ({
   initialAdjustments,
   onSave,
   otherProductImages = [],
-  onApplyToOthers
+  onApplyToOthers,
+  batchApplyStatus,
 }: ImageEditorProps) => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1212,7 +1219,7 @@ export const ImageEditor = ({
   }, [historyStack, originalImage, drawImage, scaleToSliderPos]);
 
   // Apply settings to other product images
-  const handleApplyToOthers = useCallback(() => {
+  const handleApplyToOthers = useCallback(async () => {
     if (!onApplyToOthers) {
       toast({
         title: "Indisponível",
@@ -1230,12 +1237,16 @@ export const ImageEditor = ({
       cropPreset,
     };
     
-    onApplyToOthers(settings);
-    
-    toast({
-      title: "Ajustes aplicados",
-      description: `Configurações aplicadas às outras ${otherProductImages.length} imagens do produto`,
-    });
+    try {
+      await onApplyToOthers(settings);
+    } catch (error: any) {
+      console.error("[VM][BatchApply] onApplyToOthers failed", error);
+      toast({
+        title: "Erro",
+        description: error?.message || "Não foi possível aplicar a padronização em lote",
+        variant: "destructive",
+      });
+    }
   }, [adjustments, rotation, offsetX, scale, cropPreset, onApplyToOthers, otherProductImages.length, toast]);
 
   // Share image using native Web Share API
@@ -1776,7 +1787,7 @@ export const ImageEditor = ({
                 {otherProductImages && otherProductImages.length > 0 && onApplyToOthers && (
                   <Button
                     onClick={handleApplyToOthers}
-                    disabled={isProcessing}
+                    disabled={isProcessing || !!batchApplyStatus?.inProgress}
                     variant="outline"
                     className={`w-full ${buttonRadius} text-xs`}
                     style={{ borderColor: buttonBgColor, color: buttonBgColor }}
@@ -1784,6 +1795,20 @@ export const ImageEditor = ({
                     <Copy className="h-4 w-4 mr-2" />
                     Padronização em lote
                   </Button>
+                )}
+
+                {batchApplyStatus?.inProgress && batchApplyStatus.total > 0 && (
+                  <div className="space-y-1">
+                    <Progress
+                      value={Math.round((batchApplyStatus.completed / batchApplyStatus.total) * 100)}
+                      className="h-2"
+                      merchantStyled
+                    />
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                      Aplicando em lote… {batchApplyStatus.completed}/{batchApplyStatus.total} concluídas
+                      {batchApplyStatus.failed > 0 ? ` • ${batchApplyStatus.failed} falha(s)` : ""}
+                    </p>
+                  </div>
                 )}
                 
                 <Button
