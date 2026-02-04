@@ -670,7 +670,7 @@ export const ImageEditor = ({
     };
   }, []);
 
-  // Draw safe area guides
+  // Draw safe area guides - Rule of Thirds (3x3 grid) + Frame (Lightroom style)
   const drawGuides = useCallback((canvasWidth: number, canvasHeight: number) => {
     const guidesCanvas = guidesCanvasRef.current;
     if (!guidesCanvas || !showGuides) return;
@@ -683,40 +683,48 @@ export const ImageEditor = ({
     
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
-    // Guide line style
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    // Frame (outer border) - thin, semi-transparent
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    
-    const centerX = canvasWidth / 2;
-    const centerY = canvasHeight / 2;
-    
-    // Vertical center line
-    ctx.beginPath();
-    ctx.moveTo(centerX, 0);
-    ctx.lineTo(centerX, canvasHeight);
-    ctx.stroke();
-    
-    // Horizontal center line
-    ctx.beginPath();
-    ctx.moveTo(0, centerY);
-    ctx.lineTo(canvasWidth, centerY);
-    ctx.stroke();
-    
-    // Safe margin (10% from each edge)
-    const margin = 0.10;
-    const safeLeft = canvasWidth * margin;
-    const safeTop = canvasHeight * margin;
-    const safeRight = canvasWidth * (1 - margin);
-    const safeBottom = canvasHeight * (1 - margin);
-    
-    ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
-    ctx.setLineDash([10, 5]);
-    ctx.beginPath();
-    ctx.rect(safeLeft, safeTop, safeRight - safeLeft, safeBottom - safeTop);
-    ctx.stroke();
-    
     ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.rect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
+    ctx.stroke();
+    
+    // Rule of Thirds grid lines - 2 vertical + 2 horizontal
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    
+    // Calculate 1/3 and 2/3 positions
+    const oneThirdX = canvasWidth / 3;
+    const twoThirdsX = (canvasWidth * 2) / 3;
+    const oneThirdY = canvasHeight / 3;
+    const twoThirdsY = (canvasHeight * 2) / 3;
+    
+    // Vertical line at 1/3
+    ctx.beginPath();
+    ctx.moveTo(oneThirdX, 0);
+    ctx.lineTo(oneThirdX, canvasHeight);
+    ctx.stroke();
+    
+    // Vertical line at 2/3
+    ctx.beginPath();
+    ctx.moveTo(twoThirdsX, 0);
+    ctx.lineTo(twoThirdsX, canvasHeight);
+    ctx.stroke();
+    
+    // Horizontal line at 1/3
+    ctx.beginPath();
+    ctx.moveTo(0, oneThirdY);
+    ctx.lineTo(canvasWidth, oneThirdY);
+    ctx.stroke();
+    
+    // Horizontal line at 2/3
+    ctx.beginPath();
+    ctx.moveTo(0, twoThirdsY);
+    ctx.lineTo(canvasWidth, twoThirdsY);
+    ctx.stroke();
   }, [showGuides]);
 
   // Capture state BEFORE an interaction begins (called once at start of interaction)
