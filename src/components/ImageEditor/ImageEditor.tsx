@@ -82,6 +82,13 @@ interface EditorHistoryState {
   cropPreset: CropPreset;
 }
 
+// Original state memory per image (for returning to "original" preset)
+interface OriginalImageState {
+  rotation: number;
+  offsetX: number;
+  scale: number;
+}
+
 const MAX_HISTORY_SIZE = 20;
 
 const defaultAdjustments: ImageAdjustments = {
@@ -576,6 +583,14 @@ export const ImageEditor = ({
   const [isAnimatingAuto, setIsAnimatingAuto] = useState(false);
   const [cropPreset, setCropPreset] = useState<CropPreset>('original');
   const [showGuides, setShowGuides] = useState(true);
+  const [isTransitioningPreset, setIsTransitioningPreset] = useState(false);
+  
+  // Memory per image: store original state for returning to "original" preset
+  const [originalImageState, setOriginalImageState] = useState<OriginalImageState>({
+    rotation: 0,
+    offsetX: 0,
+    scale: 100,
+  });
   
   // History stack for undo functionality
   const [historyStack, setHistoryStack] = useState<EditorHistoryState[]>([]);
@@ -972,19 +987,47 @@ export const ImageEditor = ({
     setScaleInput(Math.round(scale).toString());
   };
 
-  // Handle crop preset change with auto-adjustment
+  // Handle crop preset change with smooth transition and memory restoration for "original"
   const handleCropPresetChange = useCallback((preset: CropPreset) => {
-    if (cropPreset === preset) return;
+    if (cropPreset === preset || isTransitioningPreset) return;
     
     pushToHistoryImmediate();
+    
+    // If leaving "original" preset, save current state as the original state for this image
+    if (cropPreset === 'original' && preset !== 'original') {
+      setOriginalImageState({
+        rotation,
+        offsetX,
+        scale,
+      });
+    }
+    
+    // Start transition animation
+    setIsTransitioningPreset(true);
+    
+    // If returning to "original", restore the original image state
+    if (preset === 'original') {
+      setRotation(originalImageState.rotation);
+      setRotationInput(originalImageState.rotation.toFixed(1));
+      setOffsetX(originalImageState.offsetX);
+      setScale(originalImageState.scale);
+      setScaleSliderPos(scaleToSliderPos(originalImageState.scale));
+      setScaleInput(Math.round(originalImageState.scale).toString());
+    }
+    
     setCropPreset(preset);
     setHasChanges(true);
+    
+    // End transition after animation duration
+    setTimeout(() => {
+      setIsTransitioningPreset(false);
+    }, 120);
     
     toast({
       title: `Corte ${cropPresets[preset].label}`,
       description: cropPresets[preset].description,
     });
-  }, [cropPreset, pushToHistoryImmediate, toast]);
+  }, [cropPreset, pushToHistoryImmediate, toast, rotation, offsetX, scale, originalImageState, scaleToSliderPos, isTransitioningPreset]);
 
   // Animated reset with ease-out (includes adjustments) - clears history
   const handleResetTransform = useCallback(() => {
@@ -1423,18 +1466,33 @@ export const ImageEditor = ({
                   <Crop className="h-3 w-3" />
                   Corte:
                 </span>
-                {(Object.keys(cropPresets) as CropPreset[]).map((preset) => (
-                  <Button
-                    key={preset}
-                    variant={cropPreset === preset ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleCropPresetChange(preset)}
-                    className={`text-xs px-3 h-7 ${buttonRadius}`}
-                    style={cropPreset === preset ? { backgroundColor: buttonBgColor, color: buttonTextColor } : { borderColor: buttonBgColor, color: buttonBgColor }}
-                  >
-                    {cropPresets[preset].label}
-                  </Button>
-                ))}
+                {(Object.keys(cropPresets) as CropPreset[]).map((preset) => {
+                  const isActive = cropPreset === preset;
+                  return (
+                    <Button
+                      key={preset}
+                      variant={isActive ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleCropPresetChange(preset)}
+                      className={`text-xs px-3 h-7 ${buttonRadius} transition-all duration-100`}
+                      style={isActive 
+                        ? { 
+                            backgroundColor: buttonBgColor, 
+                            color: buttonTextColor,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            transform: 'scale(1.02)',
+                          } 
+                        : { 
+                            borderColor: buttonBgColor, 
+                            color: buttonBgColor,
+                            opacity: 0.8,
+                          }
+                      }
+                    >
+                      {cropPresets[preset].label}
+                    </Button>
+                  );
+                })}
               </div>
               
               {/* Preview Area */}
@@ -1455,7 +1513,7 @@ export const ImageEditor = ({
                 <div className="relative">
                   <canvas
                     ref={canvasRef}
-                    className="max-w-full max-h-full object-contain border rounded shadow-sm"
+                    className={`max-w-full max-h-full object-contain border rounded shadow-sm transition-opacity duration-100 ${isTransitioningPreset ? 'opacity-80' : 'opacity-100'}`}
                     style={{ maxHeight: '400px' }}
                   />
                   {/* Guides overlay canvas */}
@@ -1660,23 +1718,6 @@ export const ImageEditor = ({
                     ))}
                   </div>
                   
-                  {/* Apply to other images */}
-                  {otherProductImages.length > 0 && onApplyToOthers && (
-                    <div className="border-t pt-4">
-                      <Button
-                        onClick={handleApplyToOthers}
-                        variant="outline"
-                        className={`w-full ${buttonRadius}`}
-                        style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Aplicar às outras imagens
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground text-center leading-tight mt-2">
-                        Aplica estes ajustes às outras {otherProductImages.length} imagens do produto.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1691,6 +1732,20 @@ export const ImageEditor = ({
                   <Save className="h-4 w-4 mr-2" />
                   Salvar imagem processada
                 </Button>
+                
+                {/* Discrete batch apply action - positioned below Save */}
+                {otherProductImages.length > 0 && onApplyToOthers && (
+                  <button
+                    onClick={handleApplyToOthers}
+                    disabled={isProcessing}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] hover:underline transition-all disabled:opacity-50"
+                    style={{ color: buttonBgColor }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Aplicar estes ajustes às outras imagens do produto
+                  </button>
+                )}
+                
                 <Button
                   variant="outline"
                   onClick={handleShare}
