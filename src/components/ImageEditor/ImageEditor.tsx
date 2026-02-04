@@ -1000,31 +1000,95 @@ export const ImageEditor = ({
     setHasChanges(true);
   }, [offsetY, offsetX, scale, isAnimatingReset, calculateVisibilityFactor, getSoftClampMultiplier, captureStateBeforeInteraction]);
 
-  // Calculate safe clamp limits based on current scale and crop
-  // At 100% zoom + Original, allow minimal movement; at higher zoom, allow more
-  const calculateDragClamp = useCallback(() => {
+  // Calculate clamp limits for drag/pan
+  // "safe" = final limits for persistence; "extended" = allows extra margin during drag
+  const calculateDragClamp = useCallback((extended: boolean = false) => {
     const scaleFactor = scale / 100;
     const isOriginal = cropPreset === 'original';
     
-    // Base clamp: at 100% zoom + original, very limited movement (keeps image in frame)
-    // As zoom increases, allow more movement proportionally
+    // Pan margin: 10% extra during drag for more comfortable movement
+    const panMargin = extended ? 10 : 0;
+    
+    // Base safe limits based on zoom and crop state
+    let safeLimit: number;
+    
     if (isOriginal && scaleFactor <= 1.01) {
-      // At 100% original: allow only ±5% to keep image centered but still draggable
-      return { minX: -5, maxX: 5, minY: -5, maxY: 5 };
+      // At 100% original: allow ±15% safe (more comfortable than ±5%)
+      safeLimit = 15;
+    } else {
+      // For zoom > 100% or non-original crop: calculate based on overflow
+      // More zoom = more allowed movement
+      const extraSpace = Math.max(0, (scaleFactor - 1) * 60); // Each 100% zoom adds 60% movement
+      const baseLimit = isOriginal ? 20 : 30; // Crop presets need more room
+      safeLimit = Math.min(50, baseLimit + extraSpace);
     }
     
-    // For zoom > 100% or non-original crop: calculate based on overflow
-    // More zoom = more allowed movement
-    const extraSpace = Math.max(0, (scaleFactor - 1) * 50); // Each 100% zoom adds 50% movement
-    const baseLimit = isOriginal ? 10 : 20; // Crop presets need more room
-    const limit = Math.min(30, baseLimit + extraSpace);
+    // Total limit = safe + pan margin during drag
+    const totalLimit = safeLimit + panMargin;
     
-    return { minX: -limit, maxX: limit, minY: -limit, maxY: limit };
+    return { 
+      minX: -totalLimit, 
+      maxX: totalLimit, 
+      minY: -totalLimit, 
+      maxY: totalLimit,
+      safeMinX: -safeLimit,
+      safeMaxX: safeLimit,
+      safeMinY: -safeLimit,
+      safeMaxY: safeLimit,
+    };
   }, [scale, cropPreset]);
 
+  // State for snap-back animation
+  const [isSnappingBack, setIsSnappingBack] = useState(false);
+
+  // Smooth snap-back to safe limits when releasing outside bounds
+  const snapToSafeLimits = useCallback((currentX: number, currentY: number) => {
+    const clamp = calculateDragClamp(false); // Get safe limits
+    
+    const targetX = Math.max(clamp.safeMinX, Math.min(clamp.safeMaxX, currentX));
+    const targetY = Math.max(clamp.safeMinY, Math.min(clamp.safeMaxY, currentY));
+    
+    // Check if snap-back is needed
+    if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
+      setIsSnappingBack(true);
+      
+      // Animate to safe position over 180ms
+      const startX = currentX;
+      const startY = currentY;
+      const startTime = performance.now();
+      const duration = 180;
+      
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        
+        // Ease-out curve for smooth deceleration
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        const newX = startX + (targetX - startX) * eased;
+        const newY = startY + (targetY - startY) * eased;
+        
+        setOffsetX(newX);
+        setOffsetY(newY);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setOffsetX(targetX);
+          setOffsetY(targetY);
+          setIsSnappingBack(false);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    }
+  }, [calculateDragClamp]);
+
   // Pointer Event handlers (more robust than mouse events, especially inside modals)
-  // Drag is ALWAYS allowed, but clamp limits vary based on zoom/crop
+  // Drag is ALWAYS allowed, with extended limits during drag and snap-back on release
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (isSnappingBack) return; // Don't start new drag during snap animation
+    
     // Capture pointer to receive all subsequent events even if pointer leaves element
     e.currentTarget.setPointerCapture(e.pointerId);
     
@@ -1036,10 +1100,10 @@ export const ImageEditor = ({
       startOffsetX: offsetX,
       startOffsetY: offsetY,
     };
-  }, [offsetX, offsetY, captureStateBeforeInteraction]);
+  }, [offsetX, offsetY, captureStateBeforeInteraction, isSnappingBack]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStartRef.current) return;
+    if (!isDragging || !dragStartRef.current || isSnappingBack) return;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1057,15 +1121,15 @@ export const ImageEditor = ({
     const percentDeltaX = (deltaX / displayWidth) * 100;
     const percentDeltaY = (deltaY / displayHeight) * 100;
     
-    // Apply safe clamp based on current zoom/crop state
-    const clamp = calculateDragClamp();
+    // Apply EXTENDED clamp during drag (allows extra margin for comfort)
+    const clamp = calculateDragClamp(true);
     const newOffsetX = Math.max(clamp.minX, Math.min(clamp.maxX, dragStartRef.current.startOffsetX + percentDeltaX));
     const newOffsetY = Math.max(clamp.minY, Math.min(clamp.maxY, dragStartRef.current.startOffsetY + percentDeltaY));
     
     setOffsetX(newOffsetX);
     setOffsetY(newOffsetY);
     setHasChanges(true);
-  }, [isDragging, calculateDragClamp]);
+  }, [isDragging, calculateDragClamp, isSnappingBack]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging) {
@@ -1073,16 +1137,22 @@ export const ImageEditor = ({
       e.currentTarget.releasePointerCapture(e.pointerId);
       setIsDragging(false);
       dragStartRef.current = null;
+      
+      // Snap back to safe limits if outside bounds (with smooth animation)
+      snapToSafeLimits(offsetX, offsetY);
     }
-  }, [isDragging]);
+  }, [isDragging, offsetX, offsetY, snapToSafeLimits]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging) {
       e.currentTarget.releasePointerCapture(e.pointerId);
       setIsDragging(false);
       dragStartRef.current = null;
+      
+      // Snap back on cancel too
+      snapToSafeLimits(offsetX, offsetY);
     }
-  }, [isDragging]);
+  }, [isDragging, offsetX, offsetY, snapToSafeLimits]);
 
   // Handler for bipolar scale slider
   const handleScaleSliderChange = useCallback((pos: number) => {
