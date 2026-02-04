@@ -1550,11 +1550,11 @@ export const ImageEditor = ({
                 {/* Grid Toggle Button - positioned at top-left of preview area to avoid overlapping image */}
                 <button
                   onClick={() => setShowGuides(!showGuides)}
-                  className="absolute top-4 left-4 z-10 px-2 py-1 text-[10px] font-medium rounded shadow-md transition-all hover:scale-105"
+                  className="absolute top-3 left-3 z-10 px-1.5 py-0.5 text-[9px] font-medium rounded shadow-sm transition-all hover:scale-105"
                   style={{
-                    backgroundColor: showGuides ? buttonBgColor : 'rgba(0, 0, 0, 0.6)',
+                    backgroundColor: showGuides ? buttonBgColor : 'rgba(0, 0, 0, 0.5)',
                     color: showGuides ? buttonTextColor : 'white',
-                    border: `1px solid ${showGuides ? buttonBgColor : 'rgba(255, 255, 255, 0.3)'}`,
+                    border: `1px solid ${showGuides ? buttonBgColor : 'rgba(255, 255, 255, 0.25)'}`,
                   }}
                 >
                   Grade: {showGuides ? 'ON' : 'OFF'}
