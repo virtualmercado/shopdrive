@@ -1664,7 +1664,7 @@ export const ImageEditor = ({
             </div>
 
             {/* Side Panel - Adjustments Only */}
-            <div className="w-72 border-l flex flex-col overflow-hidden bg-background flex-shrink-0">
+            <div className="w-80 border-l flex flex-col overflow-hidden bg-background flex-shrink-0">
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Ajustes</h3>
@@ -1721,8 +1721,8 @@ export const ImageEditor = ({
                 </div>
               </div>
 
-              {/* Save Actions */}
-              <div className="p-4 border-t space-y-2 flex-shrink-0">
+              {/* Save Actions - Increased padding for visibility */}
+              <div className="p-4 pt-5 border-t space-y-3 flex-shrink-0 bg-muted/20">
                 <Button
                   onClick={handleSave}
                   disabled={isProcessing || !hasChanges}
@@ -1733,17 +1733,18 @@ export const ImageEditor = ({
                   Salvar imagem processada
                 </Button>
                 
-                {/* Discrete batch apply action - positioned below Save */}
-                {otherProductImages.length > 0 && onApplyToOthers && (
-                  <button
+                {/* Batch Standardization Button - Always visible below Save */}
+                {otherProductImages && otherProductImages.length > 0 && onApplyToOthers && (
+                  <Button
                     onClick={handleApplyToOthers}
                     disabled={isProcessing}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] hover:underline transition-all disabled:opacity-50"
-                    style={{ color: buttonBgColor }}
+                    variant="outline"
+                    className={`w-full ${buttonRadius} text-xs`}
+                    style={{ borderColor: buttonBgColor, color: buttonBgColor }}
                   >
-                    <Copy className="h-3 w-3" />
-                    Aplicar estes ajustes às outras imagens do produto
-                  </button>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Padronização em lote
+                  </Button>
                 )}
                 
                 <Button
