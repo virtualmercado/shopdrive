@@ -234,38 +234,6 @@ const Support = () => {
               </div>
             </div>
 
-            {/* WhatsApp Support Block */}
-            {whatsappChannel && whatsappChannel.is_active && (
-              <div className="border-t pt-4 mt-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-                      <MessageCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-green-800">Suporte via WhatsApp</h4>
-                      <p className="text-sm text-green-700 mt-1">
-                        Atendimento direto com a equipe da VirtualMercado.
-                      </p>
-                      {whatsappChannel.operating_hours && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Horário: {whatsappChannel.operating_hours}
-                        </p>
-                      )}
-                      <Button
-                        onClick={handleWhatsAppClick}
-                        className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        Falar com atendimento no WhatsApp
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Tickets list */}
             {tickets.length > 0 && (
               <div className="border-t pt-4 mt-4">
@@ -350,6 +318,38 @@ const Support = () => {
                 <HeadphonesIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Nenhuma mensagem enviada ainda.</p>
                 <p className="text-sm">Envie sua primeira dúvida ou problema!</p>
+              </div>
+            )}
+
+            {/* WhatsApp Support Block */}
+            {whatsappChannel && whatsappChannel.is_active && (
+              <div className="border-t pt-4 mt-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                      <MessageCircle className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-800">Suporte via WhatsApp</h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        Atendimento direto com a equipe da VirtualMercado.
+                      </p>
+                      {whatsappChannel.operating_hours && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Horário: {whatsappChannel.operating_hours}
+                        </p>
+                      )}
+                      <Button
+                        onClick={handleWhatsAppClick}
+                        className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Falar com atendimento no WhatsApp
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
