@@ -17,7 +17,8 @@ import {
   Image,
   Globe,
   Megaphone,
-  LayoutTemplate
+  LayoutTemplate,
+  Settings
 } from "lucide-react";
 import logoVmMaster from "@/assets/logo-vm-master.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -49,6 +50,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: Layers, label: "Gerenciador CMS", path: "/gestor/cms" },
     { icon: Image, label: "Biblioteca de Mídia", path: "/gestor/biblioteca-midia" },
     { icon: BarChart3, label: "Relatórios", path: "/gestor/relatorios" },
+    { icon: Settings, label: "Configurações da\nPlataforma", path: "/gestor/configuracoes" },
     { icon: HeadphonesIcon, label: "Suporte / Tickets\nPainel Lojista", path: "/gestor/suporte" },
     { icon: Globe, label: "Suporte / Tickets\nLanding Page", path: "/gestor/suporte-landing" },
     { icon: Shield, label: "Logs e Segurança", path: "/gestor/seguranca" },

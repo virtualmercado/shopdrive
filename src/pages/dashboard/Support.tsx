@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { HeadphonesIcon, Send, GraduationCap, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { HeadphonesIcon, Send, GraduationCap, ChevronDown, ChevronUp, Trash2, MessageCircle, ExternalLink } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useWhatsAppChannel } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,18 +34,34 @@ interface FaqItem {
 const Support = () => {
   const { user } = useAuth();
   const { buttonBgColor, buttonTextColor } = useTheme();
+  const { channel: whatsappChannel, generateWhatsAppLink } = useWhatsAppChannel();
   const [message, setMessage] = useState("");
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ store_name?: string; email?: string } | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchTickets();
       fetchFaqItems();
+      fetchProfile();
     }
   }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("store_name")
+      .eq("id", user.id)
+      .single();
+    
+    if (data) {
+      setProfile({ store_name: data.store_name, email: user.email });
+    }
+  };
 
   const fetchTickets = async () => {
     if (!user) return;
@@ -156,6 +173,20 @@ const Support = () => {
     return ticket.status === 'read' && ticket.response !== null;
   };
 
+  const handleWhatsAppClick = () => {
+    const link = generateWhatsAppLink({
+      nome_da_loja: profile?.store_name || "Minha Loja",
+      email_do_assinante: profile?.email || user?.email || "",
+      plano_do_assinante: "Plano Atual",
+    });
+
+    if (link) {
+      window.open(link, "_blank");
+    } else {
+      toast.error("Canal de WhatsApp não configurado");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -202,6 +233,38 @@ const Support = () => {
                 </Button>
               </div>
             </div>
+
+            {/* WhatsApp Support Block */}
+            {whatsappChannel && whatsappChannel.is_active && (
+              <div className="border-t pt-4 mt-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                      <MessageCircle className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-800">Suporte via WhatsApp</h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        Atendimento direto com a equipe da VirtualMercado.
+                      </p>
+                      {whatsappChannel.operating_hours && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Horário: {whatsappChannel.operating_hours}
+                        </p>
+                      )}
+                      <Button
+                        onClick={handleWhatsAppClick}
+                        className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Falar com atendimento no WhatsApp
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Tickets list */}
             {tickets.length > 0 && (

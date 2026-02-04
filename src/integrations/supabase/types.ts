@@ -71,6 +71,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_user_permissions: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          permissions: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          permissions?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          permissions?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_product_logs: {
         Row: {
           benefits: string | null
@@ -2584,6 +2617,33 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_type: string | null
+          setting_value: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_stats: {
         Row: {
           active_subscriptions: number
@@ -3258,6 +3318,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      support_channels: {
+        Row: {
+          channel_name: string
+          channel_type: string
+          created_at: string
+          default_message: string | null
+          id: string
+          is_active: boolean | null
+          operating_hours: string | null
+          phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_name: string
+          channel_type?: string
+          created_at?: string
+          default_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          operating_hours?: string | null
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_name?: string
+          channel_type?: string
+          created_at?: string
+          default_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          operating_hours?: string | null
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       support_tickets: {
         Row: {
