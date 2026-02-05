@@ -46,6 +46,7 @@ import CustomerAuth from "./pages/CustomerAuth";
 import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
+import StoreSearchResults from "./pages/StoreSearchResults";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -138,6 +139,7 @@ function App() {
             <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
             
             {/* Public Store Routes */}
+            <Route path="/buscar" element={<StoreSearchResults />} />
             <Route path="/loja/:storeSlug" element={<OnlineStore />} />
             <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
             <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />

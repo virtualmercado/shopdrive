@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -74,15 +74,9 @@ interface StoreData {
 
 const OnlineStoreContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Initialize search term from URL parameter
-  const initialSearchTerm = searchParams.get("busca") || "";
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [activeSearchTerm, setActiveSearchTerm] = useState(initialSearchTerm);
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -103,12 +97,12 @@ const OnlineStoreContent = () => {
         return;
       }
 
-      const desktopUrls = Array.isArray(data.banner_desktop_urls) 
-        ? data.banner_desktop_urls.filter((url): url is string => typeof url === 'string')
+      const desktopUrls = Array.isArray(data.banner_desktop_urls)
+        ? data.banner_desktop_urls.filter((url): url is string => typeof url === "string")
         : [];
-      
+
       const mobileUrls = Array.isArray(data.banner_mobile_urls)
-        ? data.banner_mobile_urls.filter((url): url is string => typeof url === 'string')
+        ? data.banner_mobile_urls.filter((url): url is string => typeof url === "string")
         : [];
 
       setStoreData({
@@ -131,33 +125,6 @@ const OnlineStoreContent = () => {
 
     fetchStoreData();
   }, [storeSlug]);
-
-  const handleSearchChange = (term: string) => {
-    setSearchTerm(term);
-    // Update URL parameter for shareability
-    if (term.trim()) {
-      setSearchParams({ busca: term.trim() });
-    } else {
-      setSearchParams({});
-    }
-  };
-
-  // Sync search term when URL parameter changes (e.g., from navigation)
-  useEffect(() => {
-    const urlSearchTerm = searchParams.get("busca") || "";
-    if (urlSearchTerm !== searchTerm) {
-      setSearchTerm(urlSearchTerm);
-      setActiveSearchTerm(urlSearchTerm);
-    }
-  }, [searchParams]);
-
-  // Debounced search effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setActiveSearchTerm(searchTerm);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
@@ -228,7 +195,6 @@ const OnlineStoreContent = () => {
   const productTextAlignment = storeData.product_text_alignment || "left";
   const productButtonDisplay = storeData.product_button_display || "below";
 
-  const isSearching = activeSearchTerm.trim().length > 0;
   const isCatalogMode = storeData.store_model === "catalogo_digital";
 
   return (
@@ -256,8 +222,6 @@ const OnlineStoreContent = () => {
         cartItemCount={getItemCount()}
         buttonBgColor={buttonBgColor}
         buttonTextColor={buttonTextColor}
-        searchTerm={searchTerm}
-        onSearchChange={handleSearchChange}
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
@@ -302,26 +266,6 @@ const OnlineStoreContent = () => {
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
             selectedCategory={selectedCategory}
-            searchTerm={activeSearchTerm}
-          />
-        ) : isSearching ? (
-          // Show search results section when searching
-          <ProductCarousel
-            title={`Resultados para "${activeSearchTerm}"`}
-            subtitle="Produtos encontrados na busca"
-            storeOwnerId={storeData.id}
-            storeSlug={storeSlug}
-            primaryColor={storeData.primary_color}
-            buttonBgColor={buttonBgColor}
-            buttonTextColor={buttonTextColor}
-            buttonBorderStyle={buttonBorderStyle}
-            productImageFormat={productImageFormat}
-            productBorderStyle={productBorderStyle}
-            productTextAlignment={productTextAlignment}
-            productButtonDisplay={productButtonDisplay}
-            searchTerm={activeSearchTerm}
-            selectedCategory={selectedCategory}
-            showAllOnSearch={true}
           />
         ) : (
           // Show normal carousels based on selected layout
