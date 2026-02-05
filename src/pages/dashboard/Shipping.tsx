@@ -225,31 +225,31 @@ const Shipping = () => {
             {shippingMethods.map((method) => (
               <div
                 key={method.id}
-                className="bg-white rounded-lg border p-6 flex items-center justify-between hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg border p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-md transition-shadow overflow-hidden"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
                   <div 
-                    className="p-3 rounded-lg"
+                    className="p-2 md:p-3 rounded-lg flex-shrink-0"
                     style={{ backgroundColor: `${primaryColor}15` }}
                   >
                     <method.icon 
-                      className="h-6 w-6" 
+                      className="h-5 w-5 md:h-6 md:w-6" 
                       style={{ color: primaryColor }}
                     />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground flex items-center gap-2">
-                      {method.title}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                      <span className="truncate">{method.title}</span>
                       {method.active && (
                         <span 
-                          className="text-xs px-2 py-0.5 rounded-full text-white"
+                          className="text-xs px-2 py-0.5 rounded-full text-white flex-shrink-0"
                           style={{ backgroundColor: primaryColor }}
                         >
                           Ativo
                         </span>
                       )}
                     </h3>
-                    <p className="text-sm text-muted-foreground">{method.description}</p>
+                    <p className="text-sm text-muted-foreground break-words">{method.description}</p>
                   </div>
                 </div>
                 <Button
@@ -259,7 +259,7 @@ const Shipping = () => {
                     color: buttonTextColor,
                     borderColor: buttonBgColor 
                   }}
-                  className="hover:opacity-90 transition-opacity"
+                  className="hover:opacity-90 transition-opacity w-full sm:w-auto flex-shrink-0"
                 >
                   {method.action}
                 </Button>
@@ -409,56 +409,43 @@ const Shipping = () => {
             <div className="space-y-4 pt-4 border-t">
               <h3 className="font-semibold text-foreground">Horário de Entrega</h3>
               
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span>De segunda a sexta, das</span>
-                <Input
-                  type="time"
-                  value={pickupHoursWeekdayStart}
-                  onChange={(e) => setPickupHoursWeekdayStart(e.target.value)}
-                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
-                  style={{
-                    borderColor: `${primaryColor}40`,
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = primaryColor}
-                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
-                />
-                <span>às</span>
-                <Input
-                  type="time"
-                  value={pickupHoursWeekdayEnd}
-                  onChange={(e) => setPickupHoursWeekdayEnd(e.target.value)}
-                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
-                  style={{
-                    borderColor: `${primaryColor}40`,
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = primaryColor}
-                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
-                />
-                <span>, e aos sábados das</span>
-                <Input
-                  type="time"
-                  value={pickupHoursSaturdayStart}
-                  onChange={(e) => setPickupHoursSaturdayStart(e.target.value)}
-                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
-                  style={{
-                    borderColor: `${primaryColor}40`,
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = primaryColor}
-                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
-                />
-                <span>às</span>
-                <Input
-                  type="time"
-                  value={pickupHoursSaturdayEnd}
-                  onChange={(e) => setPickupHoursSaturdayEnd(e.target.value)}
-                  className="w-24 h-8 text-center focus-visible:ring-offset-0"
-                  style={{
-                    borderColor: `${primaryColor}40`,
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = primaryColor}
-                  onBlur={(e) => e.target.style.borderColor = `${primaryColor}40`}
-                />
-                <span>.</span>
+              <div className="flex flex-col gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex-shrink-0">De segunda a sexta, das</span>
+                  <Input
+                    type="time"
+                    value={pickupHoursWeekdayStart}
+                    onChange={(e) => setPickupHoursWeekdayStart(e.target.value)}
+                    className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                    style={{ borderColor: `${primaryColor}40` }}
+                  />
+                  <span>às</span>
+                  <Input
+                    type="time"
+                    value={pickupHoursWeekdayEnd}
+                    onChange={(e) => setPickupHoursWeekdayEnd(e.target.value)}
+                    className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                    style={{ borderColor: `${primaryColor}40` }}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex-shrink-0">E aos sábados das</span>
+                  <Input
+                    type="time"
+                    value={pickupHoursSaturdayStart}
+                    onChange={(e) => setPickupHoursSaturdayStart(e.target.value)}
+                    className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                    style={{ borderColor: `${primaryColor}40` }}
+                  />
+                  <span>às</span>
+                  <Input
+                    type="time"
+                    value={pickupHoursSaturdayEnd}
+                    onChange={(e) => setPickupHoursSaturdayEnd(e.target.value)}
+                    className="w-24 h-8 text-center focus-visible:ring-offset-0"
+                    style={{ borderColor: `${primaryColor}40` }}
+                  />
+                </div>
               </div>
               
               <p className="text-sm text-muted-foreground">
