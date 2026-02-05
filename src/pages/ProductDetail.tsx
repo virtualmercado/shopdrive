@@ -1,8 +1,8 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2 } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { useMiniCart, MiniCartProvider } from "@/contexts/MiniCartContext";
 import MiniCart from "@/components/store/MiniCart";
@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import useEmblaCarousel from "embla-carousel-react";
 
 interface Product {
   id: string;
@@ -89,6 +90,39 @@ const ProductDetailContent = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const isMobile = useIsMobile();
+
+  // Embla carousel for mobile
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const scrollTo = useCallback((index: number) => {
+    if (emblaApi) emblaApi.scrollTo(index);
+  }, [emblaApi]);
+
+  // Sync carousel slide with selected image index
+  useEffect(() => {
+    if (!emblaApi) return;
+    
+    const onSelect = () => {
+      setCurrentSlide(emblaApi.selectedScrollSnap());
+      setSelectedImageIndex(emblaApi.selectedScrollSnap());
+    };
+    
+    emblaApi.on("select", onSelect);
+    onSelect();
+    
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -421,38 +455,105 @@ const ProductDetailContent = () => {
         <div className="grid md:grid-cols-2 gap-8">
           {/* Product Image Section */}
           <div className="space-y-4">
-            <div className={`${aspectRatio} overflow-hidden bg-muted ${imageRadius}`}>
-              <img
-                src={allImages[selectedImageIndex] || "/placeholder.svg"}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            
-            {/* Thumbnail Gallery */}
-            {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {allImages.map((img, index) => (
-                  <button
-                    key={`thumb-${index}-${img}`}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`flex-shrink-0 w-16 h-16 overflow-hidden ${imageRadius} border-2 transition-all ${
-                      selectedImageIndex === index 
-                        ? 'border-opacity-100' 
-                        : 'border-transparent opacity-70 hover:opacity-100'
-                    }`}
-                    style={{ 
-                      borderColor: selectedImageIndex === index ? buttonBgColor : 'transparent' 
-                    }}
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} - ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+            {/* Mobile: Carousel with arrows and dots */}
+            {isMobile ? (
+              <div className="relative">
+                {/* Carousel container */}
+                <div className={`overflow-hidden ${imageRadius}`} ref={emblaRef}>
+                  <div className="flex">
+                    {allImages.map((img, index) => (
+                      <div 
+                        key={`slide-${index}-${img}`} 
+                        className={`flex-shrink-0 w-full ${aspectRatio}`}
+                      >
+                        <img
+                          src={img}
+                          alt={`${product.name} - ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Navigation Arrows - only show if multiple images */}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={scrollPrev}
+                      aria-label="Imagem anterior"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all active:scale-95"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={scrollNext}
+                      aria-label="Próxima imagem"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all active:scale-95"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Pagination Dots */}
+                {allImages.length > 1 && (
+                  <div className="flex justify-center gap-2 mt-3">
+                    {allImages.map((_, index) => (
+                      <button
+                        key={`dot-${index}`}
+                        onClick={() => scrollTo(index)}
+                        aria-label={`Ir para imagem ${index + 1}`}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          currentSlide === index 
+                            ? 'w-6' 
+                            : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                        }`}
+                        style={{
+                          backgroundColor: currentSlide === index ? buttonBgColor : undefined
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+            ) : (
+              /* Desktop: Original image + thumbnails */
+              <>
+                <div className={`${aspectRatio} overflow-hidden bg-muted ${imageRadius}`}>
+                  <img
+                    src={allImages[selectedImageIndex] || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                {/* Thumbnail Gallery - Desktop only */}
+                {allImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {allImages.map((img, index) => (
+                      <button
+                        key={`thumb-${index}-${img}`}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`flex-shrink-0 w-16 h-16 overflow-hidden ${imageRadius} border-2 transition-all ${
+                          selectedImageIndex === index 
+                            ? 'border-opacity-100' 
+                            : 'border-transparent opacity-70 hover:opacity-100'
+                        }`}
+                        style={{ 
+                          borderColor: selectedImageIndex === index ? buttonBgColor : 'transparent' 
+                        }}
+                      >
+                        <img
+                          src={img}
+                          alt={`${product.name} - ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Technical Info & Customer Actions - Desktop only (below thumbnails) */}
