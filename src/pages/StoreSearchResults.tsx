@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
@@ -41,10 +41,6 @@ interface Product {
   image_url: string | null;
   images: any;
   stock: number;
-  weight?: number | null;
-  height?: number | null;
-  width?: number | null;
-  length?: number | null;
 }
 
 const StoreSearchResultsContent = () => {
@@ -54,14 +50,13 @@ const StoreSearchResultsContent = () => {
 
   const q = useMemo(() => (searchParams.get("q") || "").trim(), [searchParams]);
 
+  // Get storeSlug from multiple sources for reliability
   const stateStoreSlug = (location.state as any)?.storeSlug as string | undefined;
   const storeSlug = useMemo(() => {
-    return (
-      stateStoreSlug ||
-      sessionStorage.getItem("vm_active_store_slug") ||
-      ""
-    );
-  }, [stateStoreSlug]);
+    const slug = stateStoreSlug || sessionStorage.getItem("vm_active_store_slug") || "";
+    console.log("[StoreSearchResults] storeSlug resolved:", slug, "| q:", q);
+    return slug;
+  }, [stateStoreSlug, q]);
 
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -71,25 +66,26 @@ const StoreSearchResultsContent = () => {
   useEffect(() => {
     const fetchStore = async () => {
       if (!storeSlug) {
+        console.warn("[StoreSearchResults] No storeSlug available");
         setStoreData(null);
         setLoadingStore(false);
         return;
       }
 
       setLoadingStore(true);
+      console.log("[StoreSearchResults] Fetching store for slug:", storeSlug);
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("store_slug", storeSlug)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
-        if (import.meta.env.DEV) {
-          console.error("Error fetching store for search:", error);
-        }
+        console.error("[StoreSearchResults] Error fetching store:", error);
         setStoreData(null);
       } else {
+        console.log("[StoreSearchResults] Store data loaded:", data.store_name);
         setStoreData(data as any);
       }
 
@@ -102,53 +98,56 @@ const StoreSearchResultsContent = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       if (!storeSlug) {
+        console.warn("[StoreSearchResults] Cannot search - no storeSlug");
         setProducts([]);
         setLoadingProducts(false);
         return;
       }
 
       if (!q) {
+        console.log("[StoreSearchResults] No search term provided");
         setProducts([]);
         setLoadingProducts(false);
         return;
       }
 
       setLoadingProducts(true);
+      console.log("[StoreSearchResults] Searching products with term:", q, "in store:", storeSlug);
 
       try {
-        // Cast to any to avoid TypeScript deep instantiation issues
-        const client = supabase as any;
+        // Normalize search term for better matching
+        const normalizedTerm = q.toLowerCase().trim();
+        const like = `%${normalizedTerm}%`;
+        
+        console.log("[StoreSearchResults] Query:", { storeSlug, like });
 
-        const like = `%${q}%`;
-        const response = await client
+        const { data, error } = await supabase
           .from("public_store_products")
-          .select("id,name,price,promotional_price,image_url,images,stock,weight,height,width,length")
+          .select("id,name,price,promotional_price,image_url,images,stock")
           .eq("store_slug", storeSlug)
           .ilike("name", like)
           .order("created_at", { ascending: false })
           .limit(60);
 
-        const data = (response.data as any[]) || [];
-
-        setProducts(
-          data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            promotional_price: item.promotional_price,
-            image_url: item.image_url,
-            images: item.images,
-            stock: item.stock ?? 999,
-            weight: item.weight,
-            height: item.height,
-            width: item.width,
-            length: item.length,
-          }))
-        );
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.error("Error searching products:", err);
+        if (error) {
+          console.error("[StoreSearchResults] Query error:", error);
+          setProducts([]);
+        } else {
+          console.log("[StoreSearchResults] Found", data?.length || 0, "products");
+          setProducts(
+            (data || []).map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              promotional_price: item.promotional_price,
+              image_url: item.image_url,
+              images: item.images,
+              stock: item.stock ?? 999,
+            }))
+          );
         }
+      } catch (err) {
+        console.error("[StoreSearchResults] Exception:", err);
         setProducts([]);
       } finally {
         setLoadingProducts(false);
