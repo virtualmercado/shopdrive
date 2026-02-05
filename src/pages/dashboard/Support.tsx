@@ -324,28 +324,28 @@ const Support = () => {
             {/* WhatsApp Support Block */}
             {whatsappChannel && whatsappChannel.is_active && (
               <div className="border-t pt-4 mt-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-start gap-3">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden box-border">
+                  <div className="flex flex-col sm:flex-row items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
                       <MessageCircle className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0 w-full">
                       <h4 className="font-semibold text-green-800">Suporte via WhatsApp</h4>
-                      <p className="text-sm text-green-700 mt-1">
+                      <p className="text-sm text-green-700 mt-1 break-words">
                         Atendimento direto com a equipe da VirtualMercado.
                       </p>
                       {whatsappChannel.operating_hours && (
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-xs text-green-600 mt-1 break-words">
                           Horário: {whatsappChannel.operating_hours}
                         </p>
                       )}
                       <Button
                         onClick={handleWhatsAppClick}
-                        className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2"
+                        className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto max-w-full whitespace-normal text-center h-auto py-2"
                       >
-                        <MessageCircle className="h-4 w-4" />
-                        Falar com atendimento no WhatsApp
-                        <ExternalLink className="h-3 w-3" />
+                        <MessageCircle className="h-4 w-4 flex-shrink-0" />
+                        <span className="break-words">Falar com atendimento no WhatsApp</span>
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
                       </Button>
                     </div>
                   </div>
