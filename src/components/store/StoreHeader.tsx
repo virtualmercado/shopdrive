@@ -114,18 +114,45 @@ const StoreHeader = ({
           .store-search-input:hover {
             border-color: var(--search-focus-color) !important;
           }
+          /* Mobile touch optimization */
+          .store-search-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: text;
+          }
+          .mobile-search-container {
+            position: relative;
+            z-index: 30;
+            isolation: isolate;
+          }
+          .mobile-search-container input {
+            position: relative;
+            z-index: 1;
+            pointer-events: auto !important;
+          }
+          /* Ensure desktop header is hidden on mobile */
+          @media (max-width: 767px) {
+            .desktop-header-grid {
+              display: none !important;
+            }
+          }
+          @media (min-width: 768px) {
+            .desktop-header-grid {
+              display: grid !important;
+            }
+          }
           .header-grid-left {
-            display: grid;
             grid-template-columns: auto 1fr auto;
             grid-template-areas: "logo search actions";
           }
           .header-grid-center {
-            display: grid;
             grid-template-columns: 1fr auto 1fr;
             grid-template-areas: "search logo actions";
           }
           .header-grid-right {
-            display: grid;
             grid-template-columns: auto 1fr auto;
             grid-template-areas: "actions search logo";
           }
@@ -137,7 +164,7 @@ const StoreHeader = ({
       <div className="container mx-auto px-4">
         {/* Desktop Header with Grid Layout */}
         <div 
-          className={`hidden md:grid items-center h-20 gap-6 ${
+          className={`desktop-header-grid items-center h-20 gap-6 ${
             logoPosition === "left" ? "header-grid-left" : 
             logoPosition === "center" ? "header-grid-center" : 
             "header-grid-right"
@@ -213,7 +240,7 @@ const StoreHeader = ({
         {/* Mobile Header - Two Lines Layout */}
         <div className="md:hidden">
           {/* Line 1: Logo + Actions */}
-          <div className={`flex items-center h-16 ${
+          <div className={`flex items-center h-16 relative ${
             logoPosition === "right" ? "flex-row-reverse" : ""
           }`}>
             {/* Logo */}
@@ -237,9 +264,7 @@ const StoreHeader = ({
             {logoPosition !== "center" && <div className="flex-1" />}
             
             {/* Mobile Actions */}
-            <div className={`flex items-center gap-2 ${
-              logoPosition === "center" ? "absolute right-4" : ""
-            }`}>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Link to={`/loja/${storeSlug}/checkout`}>
                 <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
                   <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
@@ -262,7 +287,7 @@ const StoreHeader = ({
           </div>
 
           {/* Line 2: Search - Mobile */}
-          <div className="pb-3 relative z-10">
+          <div className="pb-3 mobile-search-container">
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
@@ -270,9 +295,10 @@ const StoreHeader = ({
                   onSearchChange(localSearchTerm);
                 }
               }} 
-              className="relative w-full"
+              className="relative w-full" 
+              onClick={(e) => e.stopPropagation()}
             >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: backgroundColor }} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: backgroundColor, zIndex: 2 }} />
               <Input
                 type="text"
                 inputMode="search"
