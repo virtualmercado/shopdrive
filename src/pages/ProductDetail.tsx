@@ -482,16 +482,16 @@ const ProductDetailContent = () => {
                     <button
                       onClick={scrollPrev}
                       aria-label="Imagem anterior"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all active:scale-95"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center bg-transparent text-gray-500 transition-all active:scale-95"
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-6 w-6" />
                     </button>
                     <button
                       onClick={scrollNext}
                       aria-label="Próxima imagem"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all active:scale-95"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center bg-transparent text-gray-500 transition-all active:scale-95"
                     >
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-6 w-6" />
                     </button>
                   </>
                 )}
