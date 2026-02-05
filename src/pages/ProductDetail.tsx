@@ -426,6 +426,13 @@ const ProductDetailContent = () => {
     );
   }
 
+  // Handle search - redirect to store with search term
+  const handleSearchChange = (term: string) => {
+    if (term.trim()) {
+      navigate(`/loja/${storeSlug}?busca=${encodeURIComponent(term.trim())}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col" style={{ fontFamily, fontWeight }}>
       <StoreHeader
@@ -440,6 +447,7 @@ const ProductDetailContent = () => {
         buttonBgColor={buttonBgColor}
         buttonTextColor={buttonTextColor}
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
+        onSearchChange={handleSearchChange}
       />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">

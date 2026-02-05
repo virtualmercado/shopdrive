@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -74,11 +74,15 @@ interface StoreData {
 
 const OnlineStoreContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Initialize search term from URL parameter
+  const initialSearchTerm = searchParams.get("busca") || "";
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [activeSearchTerm, setActiveSearchTerm] = useState("");
+  const [activeSearchTerm, setActiveSearchTerm] = useState(initialSearchTerm);
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -130,7 +134,22 @@ const OnlineStoreContent = () => {
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
+    // Update URL parameter for shareability
+    if (term.trim()) {
+      setSearchParams({ busca: term.trim() });
+    } else {
+      setSearchParams({});
+    }
   };
+
+  // Sync search term when URL parameter changes (e.g., from navigation)
+  useEffect(() => {
+    const urlSearchTerm = searchParams.get("busca") || "";
+    if (urlSearchTerm !== searchTerm) {
+      setSearchTerm(urlSearchTerm);
+      setActiveSearchTerm(urlSearchTerm);
+    }
+  }, [searchParams]);
 
   // Debounced search effect
   useEffect(() => {
