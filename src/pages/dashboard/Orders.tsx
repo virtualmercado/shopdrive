@@ -506,40 +506,48 @@ const Orders = () => {
           ) : paginatedOrders && paginatedOrders.length > 0 ? (
             <>
               <div className="divide-y">
-                {paginatedOrders.map((order) => (
-                  <div key={order.id} className="p-6 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start gap-4">
+              {paginatedOrders.map((order) => (
+                  <div key={order.id} className="p-4 sm:p-6 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-start gap-3 sm:gap-4">
                       {/* Checkbox */}
-                      <div className="pt-1">
+                      <div className="pt-1 shrink-0">
                         <Checkbox
                           checked={selectedOrders.has(order.id)}
                           onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
                         />
                       </div>
 
-                      {/* Order Info */}
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <p className="font-semibold">
-                            Pedido {order.order_number || `#${order.id.slice(0, 8)}`}
-                          </p>
-                          <OrderStatusBadge status={order.status} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">{order.customer_name}</p>
-                        <p className="text-sm text-muted-foreground">{order.customer_email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
+                      {/* Order Content - Full width container */}
+                      <div className="flex-1 min-w-0 space-y-3">
+                        {/* Mobile: Stack vertically, Desktop: Side by side */}
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          {/* Order Info */}
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-sm sm:text-base break-words">
+                                Pedido {order.order_number || `#${order.id.slice(0, 8)}`}
+                              </p>
+                              <OrderStatusBadge status={order.status} />
+                            </div>
+                            <p className="text-sm text-muted-foreground break-words">{order.customer_name}</p>
+                            <p className="text-sm text-muted-foreground break-all">{order.customer_email}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
 
-                      {/* Total and Actions */}
-                      <div className="text-right space-y-3">
-                        <p className="text-xl font-bold" style={{ color: '#000000' }}>
-                          R$ {order.total_amount.toFixed(2)}
-                        </p>
-                        <div className="flex gap-2 flex-wrap justify-end items-center">
+                          {/* Total - Right aligned on desktop, left on mobile */}
+                          <div className="shrink-0">
+                            <p className="text-lg sm:text-xl font-bold" style={{ color: '#000000' }}>
+                              R$ {order.total_amount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions row - Always at bottom, responsive */}
+                        <div className="flex flex-wrap items-center gap-2">
                           {/* Action Icons */}
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 shrink-0">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -581,7 +589,7 @@ const Orders = () => {
                             value={order.status}
                             onValueChange={(value) => handleStatusChange(order.id, value)}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-[130px] sm:w-[140px] shrink-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -601,7 +609,7 @@ const Orders = () => {
                           {/* View Details Button */}
                           <Button
                             size="sm"
-                            className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
                             onClick={() => handleViewDetails(order.id)}
                           >
                             <Eye className="h-4 w-4" />
