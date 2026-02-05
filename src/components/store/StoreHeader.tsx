@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, User, ShoppingCart, Menu, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,12 +45,22 @@ const StoreHeader = ({
   onCategoryChange,
   logoPosition = "left",
 }: StoreHeaderProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const searchDebounceRef = useRef<number | null>(null);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-
   // Use button color or fall back to primary color for accents
   const accentColor = buttonBgColor || primaryColor || "#6a1b9a";
+
+  // Keep current store context for /buscar route
+  useEffect(() => {
+    if (storeSlug) {
+      sessionStorage.setItem("vm_active_store_slug", storeSlug);
+    }
+  }, [storeSlug]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -69,19 +79,44 @@ const StoreHeader = ({
     setLocalSearchTerm(searchTerm);
   }, [searchTerm]);
 
+  const executeSearch = (term: string, options?: { replace?: boolean }) => {
+    const q = term.trim();
+    if (!q) return;
+
+    if (storeSlug) {
+      sessionStorage.setItem("vm_active_store_slug", storeSlug);
+    }
+
+    navigate(`/buscar?q=${encodeURIComponent(q)}`, {
+      replace: options?.replace ?? false,
+      state: { storeSlug },
+    });
+  };
+
   const handleSearchChange = (value: string) => {
     setLocalSearchTerm(value);
-    // Trigger search immediately as user types
+
+    // Keep compatibility with pages that do local filtering while typing
     if (onSearchChange) {
       onSearchChange(value);
+    }
+
+    // Live update only on /buscar (update query param with replace)
+    if (location.pathname === "/buscar") {
+      if (searchDebounceRef.current) {
+        window.clearTimeout(searchDebounceRef.current);
+      }
+      searchDebounceRef.current = window.setTimeout(() => {
+        if (value.trim()) {
+          executeSearch(value, { replace: true });
+        }
+      }, 250);
     }
   };
 
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
-    if (onSearchChange) {
-      onSearchChange(localSearchTerm);
-    }
+    executeSearch(localSearchTerm);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -139,6 +174,10 @@ const StoreHeader = ({
           /* Ensure search icon doesn't block touches */
           .mobile-search-icon {
             pointer-events: none !important;
+            z-index: 20;
+          }
+          .mobile-search-container button {
+            z-index: 20;
           }
           /* Ensure desktop header is hidden on mobile */
           @media (max-width: 767px) {
@@ -210,16 +249,23 @@ const StoreHeader = ({
             "justify-self-center"
           }`}>
             <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: backgroundColor }} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: backgroundColor }} />
               <Input
                 type="search"
                 placeholder="Buscar produtos..."
                 value={localSearchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="pl-10 w-full store-search-input"
+                className="pl-10 pr-10 w-full store-search-input"
                 style={searchInputStyle}
               />
+              <button
+                type="submit"
+                aria-label="Buscar"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground"
+              >
+                <Search className="h-4 w-4" />
+              </button>
             </form>
           </div>
 
@@ -299,15 +345,7 @@ const StoreHeader = ({
 
           {/* Line 2: Search - Mobile */}
           <div className="pb-3 mobile-search-container">
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (onSearchChange) {
-                  onSearchChange(localSearchTerm);
-                }
-              }} 
-              className="relative w-full" 
-            >
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 mobile-search-icon" style={{ color: backgroundColor }} />
               <Input
                 type="text"
@@ -317,16 +355,13 @@ const StoreHeader = ({
                 value={localSearchTerm}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setLocalSearchTerm(value);
-                  if (onSearchChange) {
-                    onSearchChange(value);
-                  }
+                  handleSearchChange(value);
                 }}
                 onFocus={(e) => {
                   // Ensure input stays focused on mobile
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }}
-                className="pl-10 w-full store-search-input"
+                className="pl-10 pr-10 w-full store-search-input"
                 style={searchInputStyle}
                 autoComplete="off"
                 autoCorrect="off"
@@ -335,6 +370,13 @@ const StoreHeader = ({
                 readOnly={false}
                 disabled={false}
               />
+              <button
+                type="submit"
+                aria-label="Buscar"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground"
+              >
+                <Search className="h-4 w-4" />
+              </button>
             </form>
           </div>
         </div>

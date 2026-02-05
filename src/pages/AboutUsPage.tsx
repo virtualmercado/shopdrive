@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -44,17 +44,9 @@ interface StoreData {
 
 const AboutUsPageContent = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
-  const navigate = useNavigate();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const { getItemCount } = useCart();
-
-  // Handle search - redirect to store with search term
-  const handleSearchChange = (term: string) => {
-    if (term.trim()) {
-      navigate(`/loja/${storeSlug}?busca=${encodeURIComponent(term.trim())}`);
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,7 +108,6 @@ const AboutUsPageContent = () => {
         buttonBgColor={buttonBgColor}
         buttonTextColor={buttonTextColor}
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
-        onSearchChange={handleSearchChange}
       />
 
       <main className="container mx-auto px-4 py-8 flex-1">
