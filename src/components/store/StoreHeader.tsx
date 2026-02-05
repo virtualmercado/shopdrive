@@ -122,6 +122,10 @@ const StoreHeader = ({
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             cursor: text;
+            /* Ensure input is always interactive */
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
           }
           .mobile-search-container {
             position: relative;
@@ -130,13 +134,20 @@ const StoreHeader = ({
           }
           .mobile-search-container input {
             position: relative;
-            z-index: 1;
-            pointer-events: auto !important;
+            z-index: 10;
+          }
+          /* Ensure search icon doesn't block touches */
+          .mobile-search-icon {
+            pointer-events: none !important;
           }
           /* Ensure desktop header is hidden on mobile */
           @media (max-width: 767px) {
             .desktop-header-grid {
               display: none !important;
+              visibility: hidden !important;
+              pointer-events: none !important;
+              height: 0 !important;
+              overflow: hidden !important;
             }
           }
           @media (min-width: 768px) {
@@ -296,9 +307,8 @@ const StoreHeader = ({
                 }
               }} 
               className="relative w-full" 
-              onClick={(e) => e.stopPropagation()}
             >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: backgroundColor, zIndex: 2 }} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 mobile-search-icon" style={{ color: backgroundColor }} />
               <Input
                 type="text"
                 inputMode="search"
@@ -312,12 +322,18 @@ const StoreHeader = ({
                     onSearchChange(value);
                   }
                 }}
+                onFocus={(e) => {
+                  // Ensure input stays focused on mobile
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
                 className="pl-10 w-full store-search-input"
                 style={searchInputStyle}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                readOnly={false}
+                disabled={false}
               />
             </form>
           </div>
