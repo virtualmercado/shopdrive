@@ -283,16 +283,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar - Always uses VM official purple color */}
+      {/* Mobile: off-canvas overlay */}
       <aside 
         className={cn(
           "fixed left-0 top-0 h-full text-white z-50 transition-all duration-300 flex flex-col",
-          sidebarOpen ? "w-64" : "w-20"
+          // Mobile: full width when open, hidden when closed
+          "w-64 md:w-64",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-20"
         )}
         style={{ backgroundColor: VM_PRIMARY_COLOR }}
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
-            {sidebarOpen && (
+            {(sidebarOpen || window.innerWidth < 768) && (
               <Link to="/" className="flex items-center">
                 <img 
                   src={vmLogo} 
@@ -321,6 +324,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Link
                   key={item.path}
                   to={getNavPath(item.path)}
+                  onClick={() => {
+                    // Close sidebar on mobile after navigation
+                    if (window.innerWidth < 768) {
+                      setSidebarOpen(false);
+                    }
+                  }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
                     isActive 
@@ -329,7 +338,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                  {(sidebarOpen || window.innerWidth < 768) && <span className="text-sm">{item.label}</span>}
                 </Link>
               );
             })}
@@ -342,22 +351,42 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             onClick={handleLogout}
             className={cn(
               "w-full justify-start gap-3 text-white hover:bg-white/10",
-              !sidebarOpen && "justify-center"
+              !sidebarOpen && "md:justify-center"
             )}
           >
             <LogOut className="h-5 w-5" />
-            {sidebarOpen && <span>Sair</span>}
+            {(sidebarOpen || window.innerWidth < 768) && <span>Sair</span>}
           </Button>
         </div>
       </aside>
+      
+      {/* Mobile overlay backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
       <div 
         className={cn(
           "transition-all duration-300",
-          sidebarOpen ? "ml-64" : "ml-20"
+          // Mobile: no margin (sidebar is overlay)
+          // Desktop: margin based on sidebar state
+          "ml-0 md:ml-20",
+          sidebarOpen && "md:ml-64"
         )}
       >
+        {/* Mobile hamburger button when sidebar closed */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-4 left-4 z-40 md:hidden p-2 rounded-lg bg-white shadow-md border"
+          style={{ display: sidebarOpen ? 'none' : 'block' }}
+        >
+          <Menu className="h-5 w-5" style={{ color: VM_PRIMARY_COLOR }} />
+        </button>
+        
         {/* Template Editor Mode Banner */}
         {isTemplateEditorMode && (
           <div className="bg-amber-500 text-white px-6 py-3 flex items-center justify-between">
@@ -402,10 +431,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         )}
 
         {/* Header */}
-        <header className="bg-white border-b sticky top-0 z-40">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <h1 className="text-2xl font-bold text-foreground">
+        <header className="bg-white border-b sticky top-0 z-30">
+          <div className="px-4 md:px-6 py-3 md:py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              {/* Title with left padding on mobile for hamburger menu */}
+              <h1 className="text-lg md:text-2xl font-bold text-foreground pl-10 md:pl-0 truncate max-w-full">
                 {isTemplateEditorMode 
                   ? `Editando Template: ${templateName || '...'}` 
                   : menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
@@ -414,46 +444,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               
               {/* Store Link Badge - Uses VM official colors (hide in template mode) */}
               {storeUrl && !isTemplateEditorMode && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
-                  <span className="text-sm font-medium text-black">Seu Link:</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                  <span className="text-sm font-medium text-black flex-shrink-0">Seu Link:</span>
                   <a 
                     href={storeUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm hover:opacity-70 font-medium transition-opacity text-primary"
+                    className="text-xs sm:text-sm hover:opacity-70 font-medium transition-opacity text-primary truncate max-w-[200px] sm:max-w-none"
                   >
                     {storeUrl}
                   </a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCopyLink}
-                    className="h-8 w-8 hover:bg-gray-100 transition-colors"
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4 text-gray-600" />
-                    )}
-                  </Button>
-                  <button
-                    onClick={() => setDomainWizardOpen(true)}
-                    className="text-xs flex items-center gap-1 hover:underline text-primary"
-                  >
-                    <Globe className="h-3 w-3" />
-                    Conectar domínio próprio
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleCopyLink}
+                      className="h-8 w-8 hover:bg-gray-100 transition-colors flex-shrink-0"
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4 text-gray-600" />
+                      )}
+                    </Button>
+                    <button
+                      onClick={() => setDomainWizardOpen(true)}
+                      className="text-xs flex items-center gap-1 hover:underline text-primary whitespace-nowrap"
+                    >
+                      <Globe className="h-3 w-3" />
+                      <span className="hidden sm:inline">Conectar domínio próprio</span>
+                      <span className="sm:hidden">Domínio</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {storeUrl && !isTemplateEditorMode && (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
                   <Link to={`/loja/${storeUrl.split('/loja/')[1]}`}>
                     <Button 
-                      className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
                     >
                       <Store className="h-4 w-4" />
-                      Ver Loja
+                      <span className="hidden sm:inline">Ver Loja</span>
+                      <span className="sm:hidden">Loja</span>
                     </Button>
                   </Link>
                 </div>
