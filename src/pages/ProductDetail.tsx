@@ -12,6 +12,7 @@ import WhatsAppButton from "@/components/store/WhatsAppButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   id: string;
@@ -87,6 +88,7 @@ const ProductDetailContent = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -299,6 +301,71 @@ const ProductDetailContent = () => {
     [...new Set([product.image_url, ...(product.images || [])].filter(Boolean))] as string[] 
     : [];
 
+  // Technical Info Block - reusable
+  const TechnicalInfoBlock = () => {
+    if (!(product?.weight || product?.length || product?.height || product?.width)) {
+      return null;
+    }
+    return (
+      <div className="pt-4 border-t md:pt-4 md:border-t">
+        <h2 className="text-sm font-semibold text-foreground/90 mb-3 flex items-center gap-2">
+          <Ruler className="h-4 w-4" />
+          Informações Técnicas
+        </h2>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {product.weight && (
+            <div className="flex justify-between">
+              <span className="text-foreground/90">Peso:</span>
+              <span className="text-foreground">{product.weight} kg</span>
+            </div>
+          )}
+          {product.length && (
+            <div className="flex justify-between">
+              <span className="text-foreground/90">Comprimento:</span>
+              <span className="text-foreground">{product.length} cm</span>
+            </div>
+          )}
+          {product.width && (
+            <div className="flex justify-between">
+              <span className="text-foreground/90">Largura:</span>
+              <span className="text-foreground">{product.width} cm</span>
+            </div>
+          )}
+          {product.height && (
+            <div className="flex justify-between">
+              <span className="text-foreground/90">Altura:</span>
+              <span className="text-foreground">{product.height} cm</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Customer Actions Block - reusable
+  const CustomerActionsBlock = () => (
+    <div className="flex items-center gap-4 pt-2">
+      <button
+        onClick={handleToggleFavorite}
+        disabled={favoriteLoading}
+        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+      >
+        <Heart 
+          className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
+        />
+        <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
+      </button>
+      
+      <button
+        onClick={handleShareProduct}
+        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+      >
+        <Share2 className="h-5 w-5" />
+        <span>Compartilhar produto</span>
+      </button>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background" style={{ fontFamily, fontWeight }}>
@@ -388,63 +455,13 @@ const ProductDetailContent = () => {
               </div>
             )}
 
-            {/* Technical Info - Moved below thumbnails */}
-            {(product.weight || product.length || product.height || product.width) && (
-              <div className="pt-4 border-t">
-                <h2 className="text-sm font-semibold text-foreground/90 mb-3 flex items-center gap-2">
-                  <Ruler className="h-4 w-4" />
-                  Informações Técnicas
-                </h2>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {product.weight && (
-                    <div className="flex justify-between">
-                      <span className="text-foreground/90">Peso:</span>
-                      <span className="text-foreground">{product.weight} kg</span>
-                    </div>
-                  )}
-                  {product.length && (
-                    <div className="flex justify-between">
-                      <span className="text-foreground/90">Comprimento:</span>
-                      <span className="text-foreground">{product.length} cm</span>
-                    </div>
-                  )}
-                  {product.width && (
-                    <div className="flex justify-between">
-                      <span className="text-foreground/90">Largura:</span>
-                      <span className="text-foreground">{product.width} cm</span>
-                    </div>
-                  )}
-                  {product.height && (
-                    <div className="flex justify-between">
-                      <span className="text-foreground/90">Altura:</span>
-                      <span className="text-foreground">{product.height} cm</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+            {/* Technical Info & Customer Actions - Desktop only (below thumbnails) */}
+            {!isMobile && (
+              <>
+                <TechnicalInfoBlock />
+                <CustomerActionsBlock />
+              </>
             )}
-
-            {/* Customer Actions: Favorite & Share */}
-            <div className="flex items-center gap-4 pt-2">
-              <button
-                onClick={handleToggleFavorite}
-                disabled={favoriteLoading}
-                className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-              >
-                <Heart 
-                  className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-                />
-                <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
-              </button>
-              
-              <button
-                onClick={handleShareProduct}
-                className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-              >
-                <Share2 className="h-5 w-5" />
-                <span>Compartilhar produto</span>
-              </button>
-            </div>
           </div>
 
           {/* Product Info Section */}
@@ -486,6 +503,14 @@ const ProductDetailContent = () => {
                 </p>
               )}
             </div>
+
+            {/* Technical Info & Customer Actions - Mobile only (below price) */}
+            {isMobile && (
+              <div className="space-y-3">
+                <TechnicalInfoBlock />
+                <CustomerActionsBlock />
+              </div>
+            )}
 
             {/* Variations */}
             {product.variations && product.variations.length > 0 && (
