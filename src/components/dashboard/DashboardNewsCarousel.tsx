@@ -193,12 +193,7 @@ const DashboardNewsCarousel = () => {
         
         {/* Banner Cards */}
         <div 
-          className={cn(
-            "grid gap-4 px-8",
-            visibleCount === 1 && "grid-cols-1",
-            visibleCount === 2 && "grid-cols-2",
-            visibleCount === 3 && "grid-cols-3"
-          )}
+          className="grid gap-4 px-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
         >
           {visibleBanners.map((banner) => (
             <div
