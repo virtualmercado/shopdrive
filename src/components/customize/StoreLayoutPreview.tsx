@@ -113,7 +113,7 @@ export const StoreLayoutPreview = ({ layoutType, primaryColor }: StoreLayoutPrev
           <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
         </div>
         <div className="flex-1 bg-white rounded px-2 py-0.5 text-[10px] text-gray-400 text-center">
-          minhaloja.virtualmercado.com
+          minhaloja.shopdrive.com
         </div>
       </div>
 

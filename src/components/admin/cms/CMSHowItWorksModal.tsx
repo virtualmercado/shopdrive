@@ -30,7 +30,7 @@ const CMSHowItWorksModal = ({ isOpen, onClose, content, onSave }: CMSHowItWorksM
       { step: "3", title: "Comece a vender", description: "Compartilhe sua loja e seu catálogo PDF e receba pedidos online" },
     ] as Step[],
     cta_button: "Criar Loja Agora",
-    cta_text: "Junte-se a milhares de lojistas que já vendem com a VirtualMercado",
+    cta_text: "Junte-se a milhares de lojistas que já vendem com a ShopDrive",
   });
   const [isSaving, setIsSaving] = useState(false);
 

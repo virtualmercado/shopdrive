@@ -24,21 +24,21 @@ interface CMSTermsOfUseModalProps {
 
 const defaultTermsContent = `IDENTIFICAÇÃO DA PLATAFORMA
 
-A VirtualMercado ("VM") é operada por:
+A ShopDrive é operada por:
 Razão Social: [INSERIR RAZÃO SOCIAL]
 CNPJ: [INSERIR CNPJ]
 E-mail jurídico: [INSERIR E-MAIL JURÍDICO]
 
 DEFINIÇÕES
 
-"VM" significa a plataforma VirtualMercado.
+"ShopDrive" significa a plataforma ShopDrive.
 "Lojista" é a pessoa física ou jurídica que cria uma loja na plataforma.
-"Loja" é a página de vendas criada pelo lojista dentro da VM.
+"Loja" é a página de vendas criada pelo lojista dentro da ShopDrive.
 "Cliente final" é o consumidor que compra diretamente do lojista.
 
 SERVIÇOS OFERECIDOS
 
-A VM fornece:
+A ShopDrive fornece:
 
 - Plataforma de criação de lojas online
 - Catálogo de produtos
@@ -46,9 +46,9 @@ A VM fornece:
 - Hospedagem das páginas
 - Ferramentas de gestão e automação
 
-O QUE A VM NÃO FAZ
+O QUE A SHOPDRIVE NÃO FAZ
 
-A VM não:
+A ShopDrive não:
 
 - Vende produtos ao consumidor final
 - Possui estoque
@@ -70,14 +70,14 @@ O lojista é o único responsável por:
 
 PAGAMENTOS E PLANOS
 
-A VM opera por meio de planos de assinatura.
+A ShopDrive opera por meio de planos de assinatura.
 O lojista paga para utilizar a plataforma, independentemente de suas vendas.
-A VM não garante volume de vendas, faturamento ou lucro.
+A ShopDrive não garante volume de vendas, faturamento ou lucro.
 
 CANCELAMENTO E ENCERRAMENTO
 
 O lojista pode cancelar sua conta a qualquer momento conforme regras do painel.
-A VM pode encerrar contas que:
+A ShopDrive pode encerrar contas que:
 
 - Violem a lei
 - Vendam produtos proibidos
@@ -86,21 +86,21 @@ A VM pode encerrar contas que:
 
 LIMITAÇÃO DE RESPONSABILIDADE
 
-A VM não se responsabiliza por:
+A ShopDrive não se responsabiliza por:
 
 - Perdas financeiras do lojista
 - Problemas entre lojista e cliente final
 - Chargebacks, fraudes ou disputas
 - Erros causados por integrações externas
 
-A responsabilidade da VM se limita ao valor pago pelo lojista à plataforma.
+A responsabilidade da ShopDrive se limita ao valor pago pelo lojista à plataforma.
 
 FORO JURÍDICO
 
 Fica eleito o foro da cidade de [INSERIR CIDADE] – [INSERIR ESTADO], para dirimir quaisquer conflitos.`;
 
 const defaultContent: TermsOfUseContent = {
-  title: "TERMOS DE USO — VIRTUALMERCADO",
+  title: "TERMOS DE USO — SHOPDRIVE",
   content: defaultTermsContent,
   is_active: true,
   display_order: 2,
@@ -181,7 +181,7 @@ const CMSTermsOfUseModal = ({ isOpen, onClose, content, onSave }: CMSTermsOfUseM
                 id="terms-title"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: TERMOS DE USO — VIRTUALMERCADO"
+                placeholder="Ex: TERMOS DE USO — SHOPDRIVE"
               />
             </div>
 

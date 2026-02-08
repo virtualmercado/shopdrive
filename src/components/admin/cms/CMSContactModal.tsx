@@ -36,7 +36,7 @@ const CMSContactModal = ({ open, onOpenChange }: CMSContactModalProps) => {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [content, setContent] = useState<ContactContent>({
-    title: "Fale com a VirtualMercado",
+    title: "Fale com a ShopDrive",
     subtitle: "Escolha o tipo de atendimento para que possamos ajudar mais rápido",
     support_title: "Suporte ao Lojista",
     support_text: "Problemas com sua loja, produtos, pedidos, pagamentos ou sistema",
@@ -44,11 +44,11 @@ const CMSContactModal = ({ open, onOpenChange }: CMSContactModalProps) => {
     financial_text: "Problemas com sua assinatura, cartão ou cobranças",
     privacy_title: "Privacidade e Dados (LGPD)",
     privacy_text: "Solicitações sobre dados pessoais, exclusão ou privacidade",
-    dpo_email: "dpo@virtualmercado.com.br",
+    dpo_email: "dpo@shopdrive.com.br",
     commercial_title: "Comercial e Parcerias",
     commercial_text: "Parcerias, revenda, integrações ou negócios",
-    financial_email: "financeiro@virtualmercado.com.br",
-    commercial_email: "comercial@virtualmercado.com.br",
+    financial_email: "financeiro@shopdrive.com.br",
+    commercial_email: "comercial@shopdrive.com.br",
   });
 
   useEffect(() => {

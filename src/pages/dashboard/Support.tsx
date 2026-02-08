@@ -332,7 +332,7 @@ const Support = () => {
                     <div className="flex-1 min-w-0 w-full">
                       <h4 className="font-semibold text-green-800">Suporte via WhatsApp</h4>
                       <p className="text-sm text-green-700 mt-1 break-words">
-                        Atendimento direto com a equipe da VirtualMercado.
+                        Atendimento direto com a equipe da ShopDrive.
                       </p>
                       {whatsappChannel.operating_hours && (
                         <p className="text-xs text-green-600 mt-1 break-words">

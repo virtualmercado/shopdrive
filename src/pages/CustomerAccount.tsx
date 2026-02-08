@@ -257,7 +257,7 @@ const CustomerAccount = () => {
           }}
         >
           <p>© {new Date().getFullYear()} {storeProfile.store_name}. Todos os direitos reservados.</p>
-          <p className="text-xs mt-2 opacity-70">Desenvolvido com VirtualMercado</p>
+          <p className="text-xs mt-2 opacity-70">Desenvolvido com ShopDrive</p>
         </footer>
       )}
     </div>

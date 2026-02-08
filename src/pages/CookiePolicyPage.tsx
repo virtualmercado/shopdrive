@@ -7,7 +7,7 @@ const CookiePolicyPage = () => {
 
   // Cookie Policy content from CMS
   const cookieContent = {
-    title: getContent(cmsContent, "cookie_policy", "title", "POLÍTICA DE COOKIES — VIRTUALMERCADO"),
+    title: getContent(cmsContent, "cookie_policy", "title", "POLÍTICA DE COOKIES — SHOPDRIVE"),
     content: getContent(cmsContent, "cookie_policy", "content", defaultCookieContent),
     is_active: cmsContent?.cookie_policy?.is_active ?? true,
   };
@@ -131,7 +131,7 @@ Cookies são pequenos arquivos armazenados no seu navegador que permitem reconhe
 
 QUAIS COOKIES UTILIZAMOS
 
-A VirtualMercado utiliza:
+A ShopDrive utiliza:
 
 - Cookies necessários: funcionamento da plataforma
 - Cookies de desempenho: análise de uso

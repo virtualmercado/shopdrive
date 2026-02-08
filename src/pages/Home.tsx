@@ -110,7 +110,7 @@ const Home = () => {
     description: getContent(cmsContent, "products", "description", "Adicione o link da sua loja em todas as suas redes sociais, e envie para seus clientes a qualquer hora em qualquer lugar."),
   };
 
-  const socialProofText = getContent(cmsContent, "social_proof_1", "text", "Mais de 10 mil empreendedores já criaram suas lojas com a VirtualMercado");
+  const socialProofText = getContent(cmsContent, "social_proof_1", "text", "Mais de 10 mil empreendedores já criaram suas lojas com a ShopDrive");
 
   const salesPaymentsContent = {
     title: getContent(cmsContent, "sales_payments", "title", "Venda através do WhatsApp ou aceite pagamentos no site."),
@@ -160,7 +160,7 @@ const Home = () => {
       { step: "3", title: "Comece a vender", description: "Compartilhe sua loja e seu catálogo PDF e receba pedidos online" },
     ]),
     ctaButton: getContent(cmsContent, "how_it_works", "cta_button", "Criar Loja Agora"),
-    ctaText: getContent(cmsContent, "how_it_works", "cta_text", "Junte-se a milhares de lojistas que já vendem com a VirtualMercado"),
+    ctaText: getContent(cmsContent, "how_it_works", "cta_text", "Junte-se a milhares de lojistas que já vendem com a ShopDrive"),
   };
 
   // FAQ Content
@@ -168,21 +168,21 @@ const Home = () => {
     title: getContent(cmsContent, "faq", "title", "Dúvidas Frequentes"),
     subtitle: getContent(cmsContent, "faq", "subtitle", "Encontre aqui as respostas para as perguntas mais comuns."),
     items: getContentArray(cmsContent, "faq", "items", [
-      { question: "A VirtualMercado é grátis mesmo?", answer: "Sim! Você pode ter uma loja totalmente gratuita, e caso queira recursos exclusivos, pode assinar um plano pago." },
+      { question: "A ShopDrive é grátis mesmo?", answer: "Sim! Você pode ter uma loja totalmente gratuita, e caso queira recursos exclusivos, pode assinar um plano pago." },
       { question: "Preciso ter CNPJ para começar?", answer: "Não! Você pode começar a vender usando apenas seu CPF e, quando seu negócio crescer, pode migrar para um CNPJ facilmente." },
       { question: "Como funciona o recebimento das minhas vendas?", answer: "Você pode receber via PIX, que cai na hora na sua conta, ou integrar com outras soluções de pagamento para aceitar cartão e boleto. Tudo de forma segura." },
       { question: "Posso usar um domínio que já tenho?", answer: "Sim! No plano PREMIUM, você pode conectar seu próprio domínio (ex: www.sualoja.com.br) para deixar sua loja ainda mais profissional." },
       { question: "Posso cancelar a assinatura quando quiser?", answer: "Sim, você pode cancelar sua assinatura a qualquer momento." },
       { question: "Posso usar meu site na plataforma como catálogo de produtos?", answer: "Sim! Você pode usar sua loja como um catálogo digital em PDF, exibindo fotos, descrições e preços dos produtos mesmo sem ativar o sistema de vendas online." },
-      { question: "Como faço o pagamento da minha assinatura aqui na VirtualMercado?", answer: "Você paga uma mensalidade ou anuidade diretamente pela plataforma. Aceitamos PIX, cartão de crédito, cartão de débito e boleto bancário." },
+      { question: "Como faço o pagamento da minha assinatura aqui na ShopDrive?", answer: "Você paga uma mensalidade ou anuidade diretamente pela plataforma. Aceitamos PIX, cartão de crédito, cartão de débito e boleto bancário." },
     ]),
   };
 
   // Footer Content
   const footerContent = {
     logo_url: getContent(cmsContent, "footer", "logo_url", ""),
-    logo_alt: getContent(cmsContent, "footer", "logo_alt", "VirtualMercado"),
-    subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja virtual em minutos."),
+    logo_alt: getContent(cmsContent, "footer", "logo_alt", "ShopDrive"),
+    subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja no digital."),
     social_links: getContentArray(cmsContent, "footer", "social_links", [
       { id: "1", name: "Instagram", icon: "Instagram", url: "https://instagram.com", open_new_tab: true, is_active: true },
       { id: "2", name: "Facebook", icon: "Facebook", url: "https://facebook.com", open_new_tab: true, is_active: true },
@@ -204,7 +204,7 @@ const Home = () => {
         { id: "3", text: "Política de Cookies", type: "internal", route: "/politica-de-cookies", is_active: true },
       ]},
     ]),
-    copyright: getContent(cmsContent, "footer", "copyright", "© 2025 VirtualMercado. Todos os direitos reservados."),
+    copyright: getContent(cmsContent, "footer", "copyright", "© 2025 ShopDrive. Todos os direitos reservados."),
   };
 
   // Helper to render footer link with smooth navigation
@@ -250,7 +250,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src={logoMenu} alt="VirtualMercado" className="h-8 md:h-10" />
+              <img src={logoMenu} alt="ShopDrive" className="h-8 md:h-10" />
             </div>
             
             {/* Desktop Navigation */}
