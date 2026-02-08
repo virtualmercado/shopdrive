@@ -8,9 +8,9 @@ const LandingAboutUs = () => {
   // About Us content from CMS
   const aboutUsContent = {
     title: getContent(cmsContent, "about_us", "title", "Sobre Nós"),
-    content: getContent(cmsContent, "about_us", "content", "Informações sobre a VirtualMercado..."),
+    content: getContent(cmsContent, "about_us", "content", "Informações sobre a ShopDrive..."),
     image_url: getContent(cmsContent, "about_us", "image_url", ""),
-    image_alt: getContent(cmsContent, "about_us", "image_alt", "Sobre a VirtualMercado"),
+    image_alt: getContent(cmsContent, "about_us", "image_alt", "Sobre a ShopDrive"),
     is_active: cmsContent?.about_us?.is_active ?? true,
   };
 

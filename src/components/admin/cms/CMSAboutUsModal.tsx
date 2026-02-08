@@ -27,9 +27,9 @@ interface CMSAboutUsModalProps {
 
 const defaultContent: AboutUsContent = {
   title: "Sobre Nós",
-  content: "Informações sobre a VirtualMercado...",
+  content: "Informações sobre a ShopDrive...",
   image_url: "",
-  image_alt: "Sobre a VirtualMercado",
+  image_alt: "Sobre a ShopDrive",
   is_active: true,
   display_order: 1,
 };

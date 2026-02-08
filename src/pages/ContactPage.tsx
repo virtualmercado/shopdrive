@@ -58,7 +58,7 @@ const ContactPage = () => {
 
   // Get CMS content
   const content = {
-    title: getContentValue("title", "Fale com a VirtualMercado"),
+    title: getContentValue("title", "Fale com a ShopDrive"),
     subtitle: getContentValue("subtitle", "Escolha o tipo de atendimento para que possamos ajudar mais rápido"),
     supportTitle: getContentValue("support_title", "Suporte ao Lojista"),
     supportText: getContentValue("support_text", "Problemas com sua loja, produtos, pedidos, pagamentos ou sistema"),
@@ -66,7 +66,7 @@ const ContactPage = () => {
     financialText: getContentValue("financial_text", "Problemas com sua assinatura, cartão ou cobranças"),
     privacyTitle: getContentValue("privacy_title", "Privacidade e Dados (LGPD)"),
     privacyText: getContentValue("privacy_text", "Solicitações sobre dados pessoais, exclusão ou privacidade"),
-    dpoEmail: getContentValue("dpo_email", "dpo@virtualmercado.com.br"),
+    dpoEmail: getContentValue("dpo_email", "dpo@shopdrive.com.br"),
     commercialTitle: getContentValue("commercial_title", "Comercial e Parcerias"),
     commercialText: getContentValue("commercial_text", "Parcerias, revenda, integrações ou negócios"),
   };
@@ -311,7 +311,7 @@ const ContactPage = () => {
                   <FormItem>
                     <FormLabel>URL ou nome da loja (opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="minhaloja.virtualmercado.com" {...field} />
+                      <Input placeholder="minhaloja.shopdrive.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

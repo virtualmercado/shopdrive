@@ -28,7 +28,7 @@ Cookies são pequenos arquivos armazenados no seu navegador que permitem reconhe
 
 QUAIS COOKIES UTILIZAMOS
 
-A VirtualMercado utiliza:
+A ShopDrive utiliza:
 
 - Cookies necessários: funcionamento da plataforma
 - Cookies de desempenho: análise de uso
@@ -62,7 +62,7 @@ CONFORMIDADE LGPD
 O uso de cookies respeita a Lei Geral de Proteção de Dados. Nenhum cookie não essencial é ativado sem consentimento.`;
 
 const defaultContent: CookiePolicyContent = {
-  title: "POLÍTICA DE COOKIES — VIRTUALMERCADO",
+  title: "POLÍTICA DE COOKIES — SHOPDRIVE",
   content: defaultCookieContent,
   is_active: true,
   display_order: 4,
@@ -143,7 +143,7 @@ const CMSCookiePolicyModal = ({ isOpen, onClose, content, onSave }: CMSCookiePol
                 id="cookie-title"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: POLÍTICA DE COOKIES — VIRTUALMERCADO"
+                placeholder="Ex: POLÍTICA DE COOKIES — SHOPDRIVE"
               />
             </div>
 

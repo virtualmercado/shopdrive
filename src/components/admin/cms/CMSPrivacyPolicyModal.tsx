@@ -24,13 +24,13 @@ interface CMSPrivacyPolicyModalProps {
 
 const defaultPrivacyContent = `INTRODUÇÃO
 
-A VirtualMercado ("VM") respeita a privacidade e a proteção dos dados pessoais de seus usuários e opera em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).
+A ShopDrive respeita a privacidade e a proteção dos dados pessoais de seus usuários e opera em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).
 
 Esta Política descreve como os dados são coletados, utilizados, armazenados e protegidos.
 
 DADOS COLETADOS
 
-A VM pode coletar os seguintes dados:
+A ShopDrive pode coletar os seguintes dados:
 
 - Nome completo
 - E-mail
@@ -72,7 +72,7 @@ Sempre apenas na medida necessária para execução do serviço.
 
 ARMAZENAMENTO E SEGURANÇA
 
-A VM utiliza:
+A ShopDrive utiliza:
 
 - Servidores seguros
 - Criptografia de dados
@@ -100,7 +100,7 @@ Para exercer seus direitos ou esclarecer dúvidas:
 E-mail do DPO: [INSERIR E-MAIL DE PRIVACIDADE]`;
 
 const defaultContent: PrivacyPolicyContent = {
-  title: "POLÍTICA DE PRIVACIDADE — VIRTUALMERCADO",
+  title: "POLÍTICA DE PRIVACIDADE — SHOPDRIVE",
   content: defaultPrivacyContent,
   is_active: true,
   display_order: 3,
@@ -181,7 +181,7 @@ const CMSPrivacyPolicyModal = ({ isOpen, onClose, content, onSave }: CMSPrivacyP
                 id="privacy-title"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: POLÍTICA DE PRIVACIDADE — VIRTUALMERCADO"
+                placeholder="Ex: POLÍTICA DE PRIVACIDADE — SHOPDRIVE"
               />
             </div>
 

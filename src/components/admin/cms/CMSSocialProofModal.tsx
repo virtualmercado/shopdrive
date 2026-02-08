@@ -15,7 +15,7 @@ interface CMSSocialProofModalProps {
 
 const CMSSocialProofModal = ({ isOpen, onClose, content, onSave }: CMSSocialProofModalProps) => {
   const [formData, setFormData] = useState({
-    text: "Mais de 10 mil empreendedores já criaram suas lojas com a VirtualMercado",
+    text: "Mais de 10 mil empreendedores já criaram suas lojas com a ShopDrive",
   });
   const [isSaving, setIsSaving] = useState(false);
 

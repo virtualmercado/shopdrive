@@ -201,7 +201,7 @@ const HelpCenterPage = () => {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-              Central de Ajuda VirtualMercado
+              Central de Ajuda ShopDrive
             </h1>
             <p className="text-lg text-muted-foreground">
               Encontre respostas e aprenda a usar sua loja

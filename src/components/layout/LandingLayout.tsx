@@ -47,8 +47,8 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
   // Footer Content
   const footerContent = {
     logo_url: getContent(cmsContent, "footer", "logo_url", ""),
-    logo_alt: getContent(cmsContent, "footer", "logo_alt", "VirtualMercado"),
-    subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja virtual em minutos."),
+    logo_alt: getContent(cmsContent, "footer", "logo_alt", "ShopDrive"),
+    subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja no digital."),
     social_links: getContentArray(cmsContent, "footer", "social_links", [
       { id: "1", name: "Instagram", icon: "Instagram", url: "https://instagram.com", open_new_tab: true, is_active: true },
       { id: "2", name: "Facebook", icon: "Facebook", url: "https://facebook.com", open_new_tab: true, is_active: true },
@@ -69,7 +69,7 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
         { id: "4", text: "Gerenciar Cookies", type: "action", action: "open_cookie_settings", is_active: true },
       ]},
     ]),
-    copyright: getContent(cmsContent, "footer", "copyright", "© 2025 VirtualMercado. Todos os direitos reservados."),
+    copyright: getContent(cmsContent, "footer", "copyright", "© 2025 ShopDrive. Todos os direitos reservados."),
   };
 
   // Preload route on hover
@@ -184,7 +184,7 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src={logoMenu} alt="VirtualMercado" className="h-8 md:h-10" />
+              <img src={logoMenu} alt="ShopDrive" className="h-8 md:h-10" />
             </Link>
             
             {/* Desktop Navigation */}

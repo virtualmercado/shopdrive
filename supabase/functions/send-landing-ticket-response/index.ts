@@ -130,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
       </head>
       <body>
         <div class="header">
-          <h1 style="margin: 0; font-size: 24px;">Virtual Mercado</h1>
+          <h1 style="margin: 0; font-size: 24px;">ShopDrive</h1>
           <p style="margin: 5px 0 0 0; opacity: 0.9;">Suporte ao Cliente</p>
         </div>
         <div class="content">
@@ -139,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
           <div class="message-body">${message.replace(/\n/g, '<br>')}</div>
           <div class="footer">
-            <p>Este é um e-mail automático enviado pelo sistema Virtual Mercado.</p>
+            <p>Este é um e-mail automático enviado pelo sistema ShopDrive.</p>
             <p>Se você não solicitou este contato, por favor desconsidere esta mensagem.</p>
           </div>
         </div>
@@ -155,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Virtual Mercado <suporte@virtualmercado.com.br>",
+        from: "ShopDrive <suporte@shopdrive.com.br>",
         to: [to],
         subject: subject,
         html: htmlContent,

@@ -28,8 +28,8 @@ interface TutorialData {
 
 const tutorials: Record<string, TutorialData> = {
   'instagram-shopping': {
-    title: 'Como ativar o Instagram Shopping na VM',
-    subtitle: 'Conecte sua loja da VM à sacolinha do Instagram para marcar produtos nas suas postagens e stories.',
+    title: 'Como ativar o Instagram Shopping na ShopDrive',
+    subtitle: 'Conecte sua loja da ShopDrive à sacolinha do Instagram para marcar produtos nas suas postagens e stories.',
     version: '2026.01',
     requirements: [
       'Conta comercial no Instagram',
@@ -53,7 +53,7 @@ const tutorials: Record<string, TutorialData> = {
       },
       {
         title: 'Verificar o domínio da sua loja',
-        content: 'A Meta exige que o domínio da loja seja verificado. Siga o tutorial específico de verificação de domínio dentro da VM.',
+        content: 'A Meta exige que o domínio da loja seja verificado. Siga o tutorial específico de verificação de domínio dentro da ShopDrive.',
         warning: 'Sem a verificação do domínio, a sacolinha não será liberada.'
       },
       {
@@ -90,8 +90,8 @@ const tutorials: Record<string, TutorialData> = {
         tip: 'Copie somente o código fornecido (meta tag).'
       },
       {
-        title: 'Inserir o código na VM',
-        content: 'Volte ao painel da VM, acesse Marketing → Pixels de Conversão, clique em Inserir código HTML, cole o código copiado e salve.',
+        title: 'Inserir o código na ShopDrive',
+        content: 'Volte ao painel da ShopDrive, acesse Marketing → Pixels de Conversão, clique em Inserir código HTML, cole o código copiado e salve.',
       },
       {
         title: 'Confirmar verificação',
@@ -104,7 +104,7 @@ const tutorials: Record<string, TutorialData> = {
     }
   },
   'meta-pixel': {
-    title: 'Como encontrar e inserir o Pixel da Meta na VM',
+    title: 'Como encontrar e inserir o Pixel da Meta na ShopDrive',
     subtitle: 'O Pixel da Meta permite medir visitas, carrinhos e vendas do Facebook e Instagram.',
     version: '2026.01',
     steps: [
@@ -118,7 +118,7 @@ const tutorials: Record<string, TutorialData> = {
         warning: 'Não copie o código completo, apenas o ID numérico.'
       },
       {
-        title: 'Inserir o Pixel na VM',
+        title: 'Inserir o Pixel na ShopDrive',
         content: 'Vá em Marketing → Pixels de Conversão, cole o ID no campo Pixel da Meta e clique em Salvar.',
       }
     ],
@@ -133,7 +133,7 @@ const tutorials: Record<string, TutorialData> = {
     }
   },
   'tiktok-pixel': {
-    title: 'Como integrar o Pixel do TikTok na VM',
+    title: 'Como integrar o Pixel do TikTok na ShopDrive',
     subtitle: 'Configure o pixel para rastrear conversões das suas campanhas no TikTok Ads.',
     version: '2026.01',
     steps: [
@@ -147,8 +147,8 @@ const tutorials: Record<string, TutorialData> = {
         tip: 'O ID geralmente começa com letras e números.'
       },
       {
-        title: 'Inserir o Pixel na VM',
-        content: 'No painel da VM, acesse Marketing → Pixels de Conversão, cole o ID no campo TikTok Pixel e clique em Salvar.',
+        title: 'Inserir o Pixel na ShopDrive',
+        content: 'No painel da ShopDrive, acesse Marketing → Pixels de Conversão, cole o ID no campo TikTok Pixel e clique em Salvar.',
       }
     ],
     importantNotes: [
@@ -180,7 +180,7 @@ const tutorials: Record<string, TutorialData> = {
         tip: 'O código sempre começa com "AW-" seguido de números.'
       },
       {
-        title: 'Inserir na VM',
+        title: 'Inserir na ShopDrive',
         content: 'Acesse Marketing → Pixels de Conversão, cole o ID no campo Google Ads e clique em Salvar.',
       }
     ],
@@ -204,7 +204,7 @@ const tutorials: Record<string, TutorialData> = {
         tip: 'O código sempre começa com "GTM-" seguido de letras e números.'
       },
       {
-        title: 'Inserir na VM',
+        title: 'Inserir na ShopDrive',
         content: 'Vá em Marketing → Pixels de Conversão, cole o ID no campo Google Tag Manager e clique em Salvar.',
       }
     ],

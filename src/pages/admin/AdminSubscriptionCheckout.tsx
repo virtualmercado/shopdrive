@@ -32,7 +32,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import CheckoutIdentificationCard, { GuestData } from "@/components/checkout/CheckoutIdentificationCard";
 
-// Cores da VirtualMercado
+// Cores da ShopDrive
 const VM_PRIMARY = "#6a1b9a";
 const VM_ORANGE = "#f97316";
 
@@ -825,7 +825,7 @@ const AdminSubscriptionCheckout = () => {
                 <h1 className="text-xl font-bold" style={{ color: VM_PRIMARY }}>
                   Checkout de Assinatura
                 </h1>
-                <p className="text-sm text-muted-foreground">VirtualMercado</p>
+                <p className="text-sm text-muted-foreground">ShopDrive</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1133,7 +1133,7 @@ const AdminSubscriptionCheckout = () => {
                       onCheckedChange={(checked) => setRecurringConsent(checked as boolean)}
                     />
                     <Label htmlFor="recurring-consent" className="text-sm leading-relaxed cursor-pointer">
-                      Autorizo a VirtualMercado a realizar cobranças mensais recorrentes no cartão de crédito informado, 
+                      Autorizo a ShopDrive a realizar cobranças mensais recorrentes no cartão de crédito informado, 
                       no valor do plano escolhido, até que eu cancele a assinatura, conforme os{" "}
                       <a href="/termos-de-uso" target="_blank" className="text-[#6a1b9a] underline">
                         Termos de Uso

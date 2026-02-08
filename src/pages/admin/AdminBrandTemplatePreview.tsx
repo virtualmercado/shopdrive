@@ -190,7 +190,7 @@ const AdminBrandTemplatePreview = () => {
             <span className="font-semibold">{template.name}</span>
           </div>
           <p className="text-gray-400 text-sm">
-            Loja modelo criada com VirtualMercado
+            Loja modelo criada com ShopDrive
           </p>
           <div className="mt-4 pt-4 border-t border-gray-800">
             <Badge variant="outline" className="text-amber-400 border-amber-400">

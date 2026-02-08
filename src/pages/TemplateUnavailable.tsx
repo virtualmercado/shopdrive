@@ -26,7 +26,7 @@ const TemplateUnavailable = () => {
             <Button asChild variant="outline" className="flex-1">
               <Link to="/">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar para a VirtualMercado
+                Voltar para a ShopDrive
               </Link>
             </Button>
             

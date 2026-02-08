@@ -127,13 +127,13 @@ const PrivacyPolicyPage = () => {
 // Default privacy content in Portuguese
 const defaultPrivacyContent = `INTRODUÇÃO
 
-A VirtualMercado ("VM") respeita a privacidade e a proteção dos dados pessoais de seus usuários e opera em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).
+A ShopDrive respeita a privacidade e a proteção dos dados pessoais de seus usuários e opera em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).
 
 Esta Política descreve como os dados são coletados, utilizados, armazenados e protegidos.
 
 DADOS COLETADOS
 
-A VM pode coletar os seguintes dados:
+A ShopDrive pode coletar os seguintes dados:
 
 - Nome completo
 - E-mail
@@ -175,7 +175,7 @@ Sempre apenas na medida necessária para execução do serviço.
 
 ARMAZENAMENTO E SEGURANÇA
 
-A VM utiliza:
+A ShopDrive utiliza:
 
 - Servidores seguros
 - Criptografia de dados

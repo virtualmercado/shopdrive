@@ -280,7 +280,7 @@ const AdminMediaLibrary = () => {
         {/* Page Header */}
         <div>
           <p className="text-muted-foreground">
-            Gerencie todas as imagens, arquivos e mídias utilizadas pela plataforma VirtualMercado.
+            Gerencie todas as imagens, arquivos e mídias utilizadas pela plataforma ShopDrive.
           </p>
         </div>
 

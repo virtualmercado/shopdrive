@@ -338,7 +338,7 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
             <div className="flex items-center">
               <p className="text-xs opacity-70">
                 Criado com{" "}
-                <span className="font-semibold text-[#333]">VirtualMercado</span>
+                <span className="font-semibold text-[#333]">ShopDrive</span>
               </p>
             </div>
           </div>

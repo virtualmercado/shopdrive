@@ -117,7 +117,7 @@ const AdminLogin = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Painel Master</CardTitle>
           <CardDescription>
-            Acesso exclusivo para administradores da VirtualMercado
+            Acesso exclusivo para administradores da ShopDrive
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -134,7 +134,7 @@ const AdminLogin = () => {
               <Input
                 id="login-email"
                 type="email"
-                placeholder="admin@virtualmercado.com"
+                placeholder="admin@shopdrive.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
