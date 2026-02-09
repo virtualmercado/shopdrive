@@ -313,7 +313,7 @@ const Marketing = () => {
                   <div>
                     <CardTitle className="text-lg">Instagram Shopping</CardTitle>
                     <CardDescription className="text-[#515151]">
-                      Conecte sua loja da VM ao Instagram para marcar produtos nas publicações (sacolinha).
+                      Conecte sua loja virtual ao Instagram para marcar produtos nas publicações (sacolinha).
                     </CardDescription>
                   </div>
                 </div>
