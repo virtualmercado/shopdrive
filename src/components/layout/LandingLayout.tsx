@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Instagram, Facebook, Youtube, Linkedin, Twitter, MessageCircle } from "lucide-react";
 import { useState, useCallback } from "react";
-import logoMenu from "@/assets/logo-menu.png";
+import logoMenu from "@/assets/logo-header-sd.png";
 import logoRodape from "@/assets/logo-footer.png";
 import { useCMSContent, getContent, getContentArray } from "@/hooks/useCMSContent";
 
