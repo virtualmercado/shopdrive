@@ -361,7 +361,7 @@ const Support = () => {
             <div className="flex items-center gap-3">
               <GraduationCap className="h-6 w-6 text-primary" />
               <div>
-                <CardTitle>Academia VM</CardTitle>
+                <CardTitle>Academia SD</CardTitle>
                 <CardDescription>
                   Principais dúvidas, perguntas e respostas sobre a sua plataforma.
                 </CardDescription>
