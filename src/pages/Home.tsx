@@ -5,7 +5,7 @@ import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, 
 import { PlansSection } from "@/components/plans/PlansSection";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useCallback } from "react";
-import logoMenu from "@/assets/logo-menu.png";
+import logoMenu from "@/assets/logo-header-sd.png";
 import logoRodape from "@/assets/logo-footer.png";
 import benefitsImageDefault from "@/assets/benefits-handshake.jpg";
 import benefitsMobileDefault from "@/assets/benefits-mobile.jpg";
