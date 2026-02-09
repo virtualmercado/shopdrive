@@ -250,7 +250,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src={logoMenu} alt="ShopDrive" className="h-8 md:h-10" />
+              <img src={logoMenu} alt="ShopDrive" className="h-5 md:h-6" />
             </div>
             
             {/* Desktop Navigation */}
@@ -514,9 +514,9 @@ const Home = () => {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img 
-                  src={footerContent.logo_url || logoRodape} 
+                  src={footerContent.logo_url || logoMenu} 
                   alt={footerContent.logo_alt} 
-                  className="h-8" 
+                  className="h-5" 
                 />
               </div>
               <p className="mb-6" style={{ color: '#6A1B9A' }}>{footerContent.subtitle}</p>
