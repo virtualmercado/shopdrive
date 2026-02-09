@@ -36,8 +36,8 @@ import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
 
-// VM Official Logo for Dashboard
-import vmLogo from "@/assets/logo-vm-dashboard.png";
+// ShopDrive Official Logo for Dashboard
+import sdLogo from "@/assets/logo-header-menu-sd.png";
 
 // VM Official Colors - Fixed for the dashboard
 const VM_PRIMARY_COLOR = '#6a1b9a';
@@ -298,9 +298,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             {(sidebarOpen || window.innerWidth < 768) && (
               <Link to="/" className="flex items-center">
                 <img 
-                  src={vmLogo} 
-                  alt="VirtualMercado" 
-                  className="h-10 w-auto object-contain max-w-[180px]"
+                  src={sdLogo} 
+                  alt="ShopDrive" 
+                  className="h-5 md:h-6"
                 />
               </Link>
             )}

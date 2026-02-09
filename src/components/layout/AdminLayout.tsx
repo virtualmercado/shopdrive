@@ -20,7 +20,7 @@ import {
   LayoutTemplate,
   Settings
 } from "lucide-react";
-import logoVmMaster from "@/assets/logo-vm-master.png";
+import sdLogo from "@/assets/logo-header-menu-sd.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -80,9 +80,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {sidebarOpen && (
               <Link to="/gestor" className="flex items-center">
                 <img 
-                  src={logoVmMaster} 
-                  alt="Virtual Mercado" 
-                  className="h-7 w-auto"
+                  src={sdLogo} 
+                  alt="ShopDrive" 
+                  className="h-5 md:h-6"
                 />
               </Link>
             )}
