@@ -306,7 +306,7 @@ const CMSHelpCenterModal = ({ isOpen, onClose }: CMSHelpCenterModalProps) => {
                           <Input
                             value={categoryForm.name}
                             onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Ex: Começando na VM"
+                            placeholder="Ex: Começando na SD"
                           />
                         </div>
                         <div className="space-y-2">
@@ -314,7 +314,7 @@ const CMSHelpCenterModal = ({ isOpen, onClose }: CMSHelpCenterModalProps) => {
                           <Input
                             value={categoryForm.slug}
                             onChange={(e) => setCategoryForm(prev => ({ ...prev, slug: e.target.value }))}
-                            placeholder="comecando-na-vm"
+                            placeholder="comecando-na-sd"
                           />
                         </div>
                       </div>
