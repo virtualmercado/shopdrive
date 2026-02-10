@@ -10,6 +10,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { CreateOrderModal } from "@/components/orders/CreateOrderModal";
 import { printOrderA4 } from "@/components/orders/OrderPrintA4";
+import PrintFormatDialog from "@/components/orders/PrintFormatDialog";
 import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -50,6 +51,8 @@ const Orders = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [storeData, setStoreData] = useState<any>(null);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [printOrder, setPrintOrder] = useState<any>(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -216,9 +219,15 @@ const Orders = () => {
     setCreateOrderOpen(true);
   };
 
-  const handlePrintOrder = async (order: any) => {
+  const handlePrintClick = (order: any) => {
+    setPrintOrder(order);
+    setPrintDialogOpen(true);
+  };
+
+  const handlePrintA4 = async () => {
+    const order = printOrder;
+    if (!order) return;
     try {
-      // Fetch complete order data with items
       const { data: orderData } = await supabase
         .from("orders")
         .select("*")
@@ -230,10 +239,8 @@ const Orders = () => {
         .select("*")
         .eq("order_id", order.id);
 
-      // Fetch store data
       const store = await fetchStoreData();
 
-      // Fetch customer data if exists
       let customer = undefined;
       if (orderData?.customer_id) {
         const { data: customerData } = await supabase
@@ -243,7 +250,6 @@ const Orders = () => {
           .single();
         
         if (customerData) {
-          // Get customer code
           const { data: storeCustomer } = await supabase
             .from("store_customers")
             .select("customer_code")
@@ -271,6 +277,18 @@ const Orders = () => {
     }
   };
 
+  const handlePrintThermal = () => {
+    if (!printOrder) return;
+    const url = `/print/thermal?orderId=${printOrder.id}`;
+    const win = window.open(url, "_blank");
+    if (!win) {
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Seu navegador bloqueou a janela de impressão. Permita pop-ups para imprimir em cupom.",
+        variant: "destructive",
+      });
+    }
+  };
   const handlePrintShippingLabel = async (order: any) => {
     try {
       // Fetch store data
@@ -561,7 +579,7 @@ const Orders = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handlePrintOrder(order)}
+                              onClick={() => handlePrintClick(order)}
                               title="Imprimir pedido"
                             >
                               <Printer className="h-4 w-4 text-primary" />
@@ -686,6 +704,13 @@ const Orders = () => {
         onOpenChange={setCreateOrderOpen}
         onOrderCreated={handleOrderCreated}
         editOrder={editOrder}
+      />
+
+      <PrintFormatDialog
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        onSelectA4={handlePrintA4}
+        onSelectThermal={handlePrintThermal}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

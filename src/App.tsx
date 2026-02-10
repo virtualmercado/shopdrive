@@ -45,6 +45,7 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import CustomerAuth from "./pages/CustomerAuth";
 import CustomerAccount from "./pages/CustomerAccount";
 import NotFound from "./pages/NotFound";
+import PrintThermalOrder from "./pages/PrintThermalOrder";
 import ComingSoon from "./pages/ComingSoon";
 import StoreSearchResults from "./pages/StoreSearchResults";
 import { MerchantRoute } from "./components/MerchantRoute";
@@ -164,6 +165,9 @@ function App() {
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
             <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />
+            
+            {/* Print Routes (no layout) */}
+            <Route path="/print/thermal" element={<PrintThermalOrder />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
