@@ -59,17 +59,45 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      // Wait for Supabase session to be restored (critical for new tab/window)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Listen for session restoration (localStorage may take a moment)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            if (newSession) {
+              subscription.unsubscribe();
+              await loadOrder();
+            }
+          }
+        );
+        // Timeout: if no session after 3s, show auth error
+        setTimeout(() => {
+          subscription.unsubscribe();
+          setAuthError(true);
+          setLoading(false);
+        }, 3000);
+        return;
+      }
+
+      await loadOrder();
+    };
+
+    const loadOrder = async () => {
       // Fetch order
-      const { data: orderData } = await supabase
+      const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
-        .single();
+        .maybeSingle();
 
-      if (!orderData) {
+      if (orderError || !orderData) {
+        console.error("THERMAL_RECEIPT_ORDER_FETCH", { orderError, orderId });
         setLoading(false);
         return;
       }
@@ -90,7 +118,7 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
           .from("profiles")
           .select("*")
           .eq("id", orderData.store_owner_id)
-          .single();
+          .maybeSingle();
 
         setStore(storeData);
       }
@@ -114,7 +142,15 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
   if (loading) {
     return (
       <div className="thermal-receipt">
-        <p>Carregando...</p>
+        <p>Carregando pedido...</p>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="thermal-receipt">
+        <p>Sessão expirada. Faça login novamente e tente imprimir.</p>
       </div>
     );
   }
@@ -122,7 +158,7 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
   if (!order) {
     return (
       <div className="thermal-receipt">
-        <p>Pedido não encontrado.</p>
+        <p>Pedido não encontrado. Verifique se você está logado como o lojista dono deste pedido.</p>
       </div>
     );
   }
