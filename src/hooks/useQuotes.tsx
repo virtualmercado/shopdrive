@@ -200,8 +200,9 @@ export const useSaveQuote = () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast({ title: "Sucesso", description: "Orçamento salvo com sucesso!" });
     },
-    onError: () => {
-      toast({ title: "Erro", description: "Erro ao salvar orçamento.", variant: "destructive" });
+    onError: (err: any) => {
+      console.error("QUOTE_SAVE_ERROR", { message: err?.message, details: err?.details, hint: err?.hint, code: err?.code });
+      toast({ title: "Erro ao salvar orçamento", description: err?.message || "Erro desconhecido. Tente novamente.", variant: "destructive" });
     },
   });
 };
