@@ -3150,6 +3150,186 @@ export type Database = {
           },
         ]
       }
+      quote_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number
+          name: string
+          product_id: string | null
+          quantity: number
+          quote_id: string
+          sku: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          name: string
+          product_id?: string | null
+          quantity?: number
+          quote_id: string
+          sku?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          name?: string
+          product_id?: string | null
+          quantity?: number
+          quote_id?: string
+          sku?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_public_links: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_enabled: boolean
+          public_token: string
+          quote_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          public_token?: string
+          quote_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          public_token?: string
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_public_links_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          converted_at: string | null
+          converted_order_id: string | null
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          delivery_address: string | null
+          discount: number
+          id: string
+          issued_at: string
+          notes: string | null
+          payment_method_hint: string | null
+          quote_number: string | null
+          shipping_fee: number
+          status: string
+          store_owner_id: string
+          subtotal: number
+          total: number
+          updated_at: string
+          valid_until: string
+        }
+        Insert: {
+          converted_at?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          delivery_address?: string | null
+          discount?: number
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          payment_method_hint?: string | null
+          quote_number?: string | null
+          shipping_fee?: number
+          status?: string
+          store_owner_id: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string
+        }
+        Update: {
+          converted_at?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          delivery_address?: string | null
+          discount?: number
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          payment_method_hint?: string | null
+          quote_number?: string | null
+          shipping_fee?: number
+          status?: string
+          store_owner_id?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_rules: {
         Row: {
           created_at: string
@@ -4139,6 +4319,10 @@ export type Database = {
       }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
+      generate_quote_number: {
+        Args: { p_store_owner_id: string }
+        Returns: string
+      }
       generate_template_slug: {
         Args: { template_name: string }
         Returns: string

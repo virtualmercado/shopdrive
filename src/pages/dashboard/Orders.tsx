@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Package, Eye, Pencil, Printer, Trash2 } from "lucide-react";
+import { Package, Eye, Pencil, Printer, Trash2, FileText, Plus } from "lucide-react";
 import { useOrders, useOrderStats, useUpdateOrderStatus, useOrderDetails } from "@/hooks/useOrders";
 import { OrderDetailsDialog } from "@/components/orders/OrderDetailsDialog";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
@@ -38,10 +39,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { CreateQuoteModal } from "@/components/quotes/CreateQuoteModal";
+import { QuoteList } from "@/components/quotes/QuoteList";
 
 const ITEMS_PER_PAGE = 50;
 
 const Orders = () => {
+  const [activeTab, setActiveTab] = useState("orders");
+  const [createQuoteOpen, setCreateQuoteOpen] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -426,6 +431,25 @@ const Orders = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Tabs: Pedidos / Orçamentos */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <TabsList>
+              <TabsTrigger value="orders" className="gap-1">
+                <Package className="h-4 w-4" /> Pedidos
+              </TabsTrigger>
+              <TabsTrigger value="quotes" className="gap-1">
+                <FileText className="h-4 w-4" /> Orçamentos
+              </TabsTrigger>
+            </TabsList>
+            {activeTab === "quotes" && (
+              <Button onClick={() => setCreateQuoteOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Criar Orçamento
+              </Button>
+            )}
+          </div>
+
+          <TabsContent value="orders">
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="p-6">
@@ -685,6 +709,17 @@ const Orders = () => {
             </div>
           )}
         </Card>
+          </TabsContent>
+
+          <TabsContent value="quotes">
+            <Card className="overflow-hidden">
+              <div className="p-6 border-b">
+                <h2 className="text-xl font-bold">Orçamentos</h2>
+              </div>
+              <QuoteList />
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modals */}
@@ -714,6 +749,11 @@ const Orders = () => {
           onClose={() => setThermalPrintOrderId(null)}
         />
       )}
+
+      <CreateQuoteModal
+        open={createQuoteOpen}
+        onOpenChange={setCreateQuoteOpen}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

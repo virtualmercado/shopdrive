@@ -48,6 +48,7 @@ import NotFound from "./pages/NotFound";
 import PrintThermalOrder from "./pages/PrintThermalOrder";
 import ComingSoon from "./pages/ComingSoon";
 import StoreSearchResults from "./pages/StoreSearchResults";
+import PublicQuote from "./pages/PublicQuote";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -168,6 +169,9 @@ function App() {
             
             {/* Print Routes (no layout) */}
             <Route path="/print/thermal" element={<PrintThermalOrder />} />
+            
+            {/* Public Quote Route */}
+            <Route path="/public/orcamento/:token" element={<PublicQuote />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
