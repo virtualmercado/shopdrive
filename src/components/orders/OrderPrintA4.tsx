@@ -75,9 +75,8 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   const contentWidth = pageWidth - margin * 2;
   let yPos = margin;
 
-  // Get primary color
-  const primaryColor = store.primary_color || "#6a1b9a";
-  const rgb = hexToRgb(primaryColor);
+  // Fixed black color for professional print output (ERP standard)
+  const rgb = { r: 0, g: 0, b: 0 };
 
   // ==================== HEADER ====================
   
