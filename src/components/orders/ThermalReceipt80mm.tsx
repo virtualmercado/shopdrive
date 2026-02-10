@@ -62,57 +62,38 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
   const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Wait for Supabase session to be restored (critical for new tab/window)
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Listen for session restoration (localStorage may take a moment)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            if (newSession) {
-              subscription.unsubscribe();
-              await loadOrder();
-            }
-          }
-        );
-        // Timeout: if no session after 3s, show auth error
-        setTimeout(() => {
-          subscription.unsubscribe();
-          setAuthError(true);
-          setLoading(false);
-        }, 3000);
-        return;
-      }
-
-      await loadOrder();
-    };
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const loadOrder = async () => {
-      // Fetch order
+      if (cancelled) return;
+      
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
         .maybeSingle();
 
+      if (cancelled) return;
+
       if (orderError || !orderData) {
-        console.error("THERMAL_RECEIPT_ORDER_FETCH", { orderError, orderId });
+        if (process.env.NODE_ENV !== "production") {
+          console.error("THERMAL_RECEIPT_ORDER_FETCH", { orderError, orderId });
+        }
         setLoading(false);
         return;
       }
 
       setOrder(orderData);
 
-      // Fetch items
       const { data: itemsData } = await supabase
         .from("order_items")
         .select("*")
         .eq("order_id", orderId);
 
+      if (cancelled) return;
       setItems(itemsData || []);
 
-      // Fetch store
       if (orderData.store_owner_id) {
         const { data: storeData } = await supabase
           .from("profiles")
@@ -120,13 +101,49 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
           .eq("id", orderData.store_owner_id)
           .maybeSingle();
 
-        setStore(storeData);
+        if (!cancelled) setStore(storeData);
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
-    fetchData();
+    // Set up auth listener FIRST (before getSession) to catch INITIAL_SESSION event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (cancelled) return;
+        if (session) {
+          // Session available — load the order
+          if (timeoutId) clearTimeout(timeoutId);
+          subscription.unsubscribe();
+          loadOrder();
+        }
+      }
+    );
+
+    // Also check getSession in case session is already available synchronously
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      if (session) {
+        // Already have session, listener will also fire but loadOrder handles double-call via cancelled flag
+        if (timeoutId) clearTimeout(timeoutId);
+        subscription.unsubscribe();
+        loadOrder();
+      }
+    });
+
+    // Timeout: if no session after 4s, show auth error
+    timeoutId = setTimeout(() => {
+      if (cancelled) return;
+      subscription.unsubscribe();
+      setAuthError(true);
+      setLoading(false);
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, [orderId]);
 
   useEffect(() => {
