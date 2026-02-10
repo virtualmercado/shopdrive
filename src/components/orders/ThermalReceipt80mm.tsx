@@ -63,11 +63,13 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
 
   useEffect(() => {
     let cancelled = false;
+    let loaded = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const loadOrder = async () => {
-      if (cancelled) return;
-      
+      if (cancelled || loaded) return;
+      loaded = true;
+
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
@@ -77,9 +79,6 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
       if (cancelled) return;
 
       if (orderError || !orderData) {
-        if (process.env.NODE_ENV !== "production") {
-          console.error("THERMAL_RECEIPT_ORDER_FETCH", { orderError, orderId });
-        }
         setLoading(false);
         return;
       }
@@ -107,33 +106,28 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
       if (!cancelled) setLoading(false);
     };
 
-    // Set up auth listener FIRST (before getSession) to catch INITIAL_SESSION event
+    const triggerLoad = () => {
+      if (loaded || cancelled) return;
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+      loadOrder();
+    };
+
+    // Listen for session restoration (fires INITIAL_SESSION in new tabs)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (cancelled) return;
-        if (session) {
-          // Session available — load the order
-          if (timeoutId) clearTimeout(timeoutId);
-          subscription.unsubscribe();
-          loadOrder();
-        }
+      (_event, session) => {
+        if (session) triggerLoad();
       }
     );
 
-    // Also check getSession in case session is already available synchronously
+    // Also check immediately in case session is already available
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return;
-      if (session) {
-        // Already have session, listener will also fire but loadOrder handles double-call via cancelled flag
-        if (timeoutId) clearTimeout(timeoutId);
-        subscription.unsubscribe();
-        loadOrder();
-      }
+      if (session) triggerLoad();
     });
 
     // Timeout: if no session after 4s, show auth error
     timeoutId = setTimeout(() => {
-      if (cancelled) return;
+      if (cancelled || loaded) return;
       subscription.unsubscribe();
       setAuthError(true);
       setLoading(false);
