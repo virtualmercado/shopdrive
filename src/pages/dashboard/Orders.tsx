@@ -11,6 +11,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { CreateOrderModal } from "@/components/orders/CreateOrderModal";
 import { printOrderA4 } from "@/components/orders/OrderPrintA4";
 import PrintFormatDialog from "@/components/orders/PrintFormatDialog";
+import ThermalReceiptPrintDialog from "@/components/orders/ThermalReceiptPrintDialog";
 import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -277,17 +278,11 @@ const Orders = () => {
     }
   };
 
+  const [thermalPrintOrderId, setThermalPrintOrderId] = useState<string | null>(null);
+
   const handlePrintThermal = () => {
     if (!printOrder) return;
-    const url = `/print/thermal?orderId=${printOrder.id}`;
-    const win = window.open(url, "_blank");
-    if (!win) {
-      toast({
-        title: "Pop-up bloqueado",
-        description: "Seu navegador bloqueou a janela de impressão. Permita pop-ups para imprimir em cupom.",
-        variant: "destructive",
-      });
-    }
+    setThermalPrintOrderId(printOrder.id);
   };
   const handlePrintShippingLabel = async (order: any) => {
     try {
@@ -712,6 +707,13 @@ const Orders = () => {
         onSelectA4={handlePrintA4}
         onSelectThermal={handlePrintThermal}
       />
+
+      {thermalPrintOrderId && (
+        <ThermalReceiptPrintDialog
+          orderId={thermalPrintOrderId}
+          onClose={() => setThermalPrintOrderId(null)}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
