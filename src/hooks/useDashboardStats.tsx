@@ -41,7 +41,7 @@ export const useDashboardStats = () => {
       if (ordersError) throw ordersError;
 
       // Calculate monthly sales (only paid/delivered orders)
-      const paidStatuses = ["paid", "delivered", "shipped", "confirmed"];
+      const paidStatuses = ["paid", "delivered", "shipped", "confirmed", "completed"];
       const monthlySales = monthlyOrders
         ?.filter(order => paidStatuses.includes(order.status))
         .reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
