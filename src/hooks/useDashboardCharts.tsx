@@ -300,7 +300,7 @@ export const useRevenueStats = () => {
         .from("orders")
         .select("total_amount")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
+        .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (error) throw error;
@@ -339,12 +339,12 @@ export const useTopProducts = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Get paid orders from last 30 days
+      // Get finalized orders from last 30 days (all sources: online + manual)
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("id")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
+        .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (ordersError) throw ordersError;
@@ -408,7 +408,7 @@ export const useTopCustomers = () => {
         .from("orders")
         .select("customer_name, total_amount")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed"])
+        .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
         .gte("created_at", sixMonthsAgo.toISOString());
 
       if (ordersError) throw ordersError;
