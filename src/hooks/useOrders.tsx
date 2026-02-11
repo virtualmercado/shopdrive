@@ -169,6 +169,12 @@ export const useUpdateOrderStatus = () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["order-stats"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      // Invalidate dashboard chart queries so they reflect the new order status
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["top-products-30-days"] });
+      queryClient.invalidateQueries({ queryKey: ["top-customers-6-months"] });
+      queryClient.invalidateQueries({ queryKey: ["revenue-stats-30-days"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-orders"] });
       toast({
         title: "Status atualizado",
         description: "O status do pedido foi atualizado com sucesso.",
