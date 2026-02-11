@@ -408,6 +408,11 @@ const Orders = () => {
   const handleOrderCreated = () => {
     refetchOrders();
     queryClient.invalidateQueries({ queryKey: ["order-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["top-products-30-days"] });
+    queryClient.invalidateQueries({ queryKey: ["top-customers-6-months"] });
+    queryClient.invalidateQueries({ queryKey: ["revenue-stats-30-days"] });
+    queryClient.invalidateQueries({ queryKey: ["recent-orders"] });
   };
 
   const handleSelectOrder = (orderId: string, checked: boolean) => {
