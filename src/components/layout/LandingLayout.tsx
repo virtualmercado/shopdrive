@@ -125,6 +125,20 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
     setIsMobileMenuOpen(false);
   }, [navigate]);
 
+  // Normalize external URLs to ensure https:// prefix
+  const normalizeExternalUrl = (url: string): string => {
+    if (!url) return "";
+    let trimmed = url.trim();
+    // Block dangerous schemes
+    if (/^(javascript|data|vbscript):/i.test(trimmed)) return "";
+    // Add https:// if missing protocol
+    if (/^(www\.|youtube\.com|youtu\.be|instagram\.com|facebook\.com|twitter\.com|tiktok\.com|linkedin\.com|pinterest\.com)/i.test(trimmed)) {
+      trimmed = `https://${trimmed}`;
+    }
+    if (!/^https?:\/\//i.test(trimmed)) return "";
+    return trimmed;
+  };
+
   // Helper to render footer link with smooth navigation
   const renderFooterLink = (link: any) => {
     if (!link.is_active) return null;
@@ -303,11 +317,13 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
                   .map((link: any) => {
                     const IconComponent = socialIconMap[link.icon];
                     if (!IconComponent) return null;
+                    const normalizedUrl = normalizeExternalUrl(link.url);
+                    if (!normalizedUrl) return null;
                     return (
                       <a 
                         key={link.id}
-                        href={link.url} 
-                        target={link.open_new_tab ? "_blank" : "_self"}
+                        href={normalizedUrl} 
+                        target="_blank"
                         rel="noopener noreferrer" 
                         className="transition-all duration-300 hover:scale-110 hover:opacity-80" 
                         style={{ color: '#6A1B9A' }}
