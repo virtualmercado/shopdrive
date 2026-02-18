@@ -45,7 +45,7 @@ interface StoreProfile {
   primary_color: string | null;
 }
 
-type ProductsPerPage = 9 | 4 | 2;
+type ProductsPerPage = 12 | 9 | 4 | 2;
 
 const DEFAULT_PRIMARY_COLOR = "#6a1b9a";
 
@@ -623,13 +623,17 @@ const CatalogPDF = () => {
     const pageWidth = 210;
     const pageHeight = 297;
     const sidebarWidth = 12;
-    const margin = 8;
+    const margin = productsPerPage === 12 ? 6 : 8;
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
     // Calculate grid based on products per page
     let cols: number, rows: number;
     switch (productsPerPage) {
+      case 12:
+        cols = 4;
+        rows = 3;
+        break;
       case 4:
         cols = 2;
         rows = 2;
@@ -647,7 +651,7 @@ const CatalogPDF = () => {
     const contentWidth = pageWidth - sidebarWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    const cardGap = 6;
+    const cardGap = productsPerPage === 12 ? 4 : 6;
     const cardWidth = (contentWidth - (cardGap * (cols - 1))) / cols;
     const cardHeight = (contentHeight - (cardGap * (rows - 1))) / rows;
 
@@ -700,7 +704,7 @@ const CatalogPDF = () => {
 
         // Product name
         const nameY = y + imageAreaHeight + 10;
-        const fontSize = productsPerPage === 2 ? 12 : (productsPerPage === 4 ? 10 : 8);
+        const fontSize = productsPerPage === 2 ? 12 : (productsPerPage === 4 ? 10 : (productsPerPage === 12 ? 7 : 8));
         pdf.setFontSize(fontSize);
         pdf.setTextColor(40, 40, 40);
         pdf.setFont("helvetica", "bold");
@@ -717,7 +721,7 @@ const CatalogPDF = () => {
 
         // Price
         const price = product.promotional_price || product.price;
-        const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : 9);
+        const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9));
         pdf.setFontSize(priceSize);
         pdf.setTextColor(20, 20, 20);
         const priceY = y + cardHeight - 20;
@@ -725,14 +729,14 @@ const CatalogPDF = () => {
         pdf.setFont("helvetica", "normal");
 
         // "Ver produto" button
-        const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : 7);
+        const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7));
         const btnY = y + cardHeight - btnHeight - 3;
         const btnWidth = cardWidth - 8;
         
         pdf.setFillColor(r, g, b);
         pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
         
-        const btnFontSize = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : 7);
+        const btnFontSize = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 6 : 7));
         pdf.setFontSize(btnFontSize);
         pdf.setTextColor(255, 255, 255);
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
@@ -1002,6 +1006,7 @@ const CatalogPDF = () => {
     switch (productsPerPage) {
       case 2: return 'grid-cols-1';
       case 4: return 'grid-cols-2';
+      case 12: return 'grid-cols-4';
       default: return 'grid-cols-3';
     }
   };
@@ -1010,6 +1015,7 @@ const CatalogPDF = () => {
     switch (productsPerPage) {
       case 2: return 2;
       case 4: return 4;
+      case 12: return 12;
       default: return 9;
     }
   };
@@ -1162,11 +1168,32 @@ const CatalogPDF = () => {
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Produtos por página</Label>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setProductsPerPage(12)}
+                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 12 ? 'selected' : ''}`}
+                      >
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="3" width="4.5" height="5" rx="0.5" />
+                          <rect x="7.25" y="3" width="4.5" height="5" rx="0.5" />
+                          <rect x="13.5" y="3" width="4.5" height="5" rx="0.5" />
+                          <rect x="1" y="10" width="4.5" height="5" rx="0.5" />
+                          <rect x="7.25" y="10" width="4.5" height="5" rx="0.5" />
+                          <rect x="13.5" y="10" width="4.5" height="5" rx="0.5" />
+                          <rect x="1" y="17" width="4.5" height="5" rx="0.5" />
+                          <rect x="7.25" y="17" width="4.5" height="5" rx="0.5" />
+                          <rect x="13.5" y="17" width="4.5" height="5" rx="0.5" />
+                          <rect x="19.5" y="3" width="3.5" height="5" rx="0.5" />
+                          <rect x="19.5" y="10" width="3.5" height="5" rx="0.5" />
+                          <rect x="19.5" y="17" width="3.5" height="5" rx="0.5" />
+                        </svg>
+                        <span className="text-xs font-medium">12 produtos</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => setProductsPerPage(9)}
-                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 9 ? 'selected' : ''}`}
+                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 9 ? 'selected' : ''}`}
                       >
                         <Grid3X3 className="h-5 w-5" />
                         <span className="text-xs font-medium">9 produtos</span>
@@ -1174,7 +1201,7 @@ const CatalogPDF = () => {
                       <button
                         type="button"
                         onClick={() => setProductsPerPage(4)}
-                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 4 ? 'selected' : ''}`}
+                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 4 ? 'selected' : ''}`}
                       >
                         <Grid2X2 className="h-5 w-5" />
                         <span className="text-xs font-medium">4 produtos</span>
@@ -1182,7 +1209,7 @@ const CatalogPDF = () => {
                       <button
                         type="button"
                         onClick={() => setProductsPerPage(2)}
-                        className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 2 ? 'selected' : ''}`}
+                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 2 ? 'selected' : ''}`}
                       >
                         <LayoutList className="h-5 w-5" />
                         <span className="text-xs font-medium">2 produtos</span>
@@ -1427,7 +1454,7 @@ const CatalogPDF = () => {
                                   key={product.id} 
                                   className="bg-white border border-gray-200 rounded p-1 text-center"
                                 >
-                                  <div className="aspect-square rounded mb-1 overflow-hidden flex items-center justify-center bg-white">
+                                  <div className={`${productsPerPage === 12 ? 'aspect-[4/3]' : 'aspect-square'} rounded mb-1 overflow-hidden flex items-center justify-center bg-white`}>
                                     {product.image_url ? (
                                       <img 
                                         src={product.image_url} 
@@ -1440,12 +1467,12 @@ const CatalogPDF = () => {
                                       </div>
                                     )}
                                   </div>
-                                  <p className="text-[7px] font-medium truncate">{product.name}</p>
-                                  <p className="text-[8px] font-bold">
+                                  <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium truncate`}>{product.name}</p>
+                                  <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>
                                     {formatPrice(product.promotional_price || product.price)}
                                   </p>
                                   <div 
-                                    className="text-[6px] text-white rounded py-0.5 mt-0.5"
+                                    className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`}
                                     style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
                                   >
                                     Ver produto
