@@ -303,11 +303,11 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             <div>
-              <Link to="/" className="flex items-center gap-2 mb-4 group">
+              <Link to="/" className="flex items-center gap-2 mb-4">
                 <img 
                   src={footerContent.logo_url || logoRodape} 
                   alt={footerContent.logo_alt} 
-                  className="h-8 transition-all duration-300 ease-in-out group-hover:scale-110 group-active:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(106,27,154,0.4)] group-active:drop-shadow-[0_0_8px_rgba(106,27,154,0.4)]" 
+                  className="h-8 transition-all duration-300 ease-in-out hover:scale-110 active:scale-110 hover:drop-shadow-[0_0_8px_rgba(106,27,154,0.4)] active:drop-shadow-[0_0_8px_rgba(106,27,154,0.4)] cursor-pointer" 
                 />
               </Link>
               <p className="mb-6" style={{ color: '#6A1B9A' }}>{footerContent.subtitle}</p>
