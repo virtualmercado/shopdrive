@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMerchantBanners, useBannerTracking, DashboardBanner } from "@/hooks/useDashboardBanners";
 import { cn } from "@/lib/utils";
 
-const AUTOPLAY_INTERVAL = 3000; // 3 seconds
+const AUTOPLAY_INTERVAL = 7000; // 7 seconds
 const PAUSE_AFTER_INTERACTION = 10000; // 10 seconds
 
 const DashboardNewsCarousel = () => {
