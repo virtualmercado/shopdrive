@@ -23,8 +23,19 @@ import {
   HelpCircle,
   Phone,
   Globe,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +122,7 @@ const AdminCMS = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectedBannerId, setSelectedBannerId] = useState<string | null>(null);
   const [bannerDimensions, setBannerDimensions] = useState<Record<string, { width: number; height: number; format: string; aspectRatio: string }>>({});
+  const [deleteConfirmBannerId, setDeleteConfirmBannerId] = useState<string | null>(null);
   
   // Content modal states
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -167,6 +179,7 @@ const AdminCMS = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cms-banners"] });
+      queryClient.invalidateQueries({ queryKey: ["cms-banners-public"] });
       toast.success("Banner atualizado com sucesso! A alteração será refletida na landing page.");
     },
     onError: (error) => {
@@ -174,6 +187,43 @@ const AdminCMS = () => {
       toast.error("Erro ao atualizar banner.");
     },
   });
+
+  // Clear banner mutation (set to null = use default)
+  const clearBannerMutation = useMutation({
+    mutationFn: async (bannerId: string) => {
+      const { error } = await supabase
+        .from("cms_banners")
+        .update({
+          media_id: null,
+          media_url: null,
+          media_type: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", bannerId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cms-banners"] });
+      queryClient.invalidateQueries({ queryKey: ["cms-banners-public"] });
+      toast.success("Imagem removida. O banner padrão da plataforma será exibido.");
+      setDeleteConfirmBannerId(null);
+    },
+    onError: (error) => {
+      console.error("Error clearing banner:", error);
+      toast.error("Erro ao remover imagem do banner.");
+    },
+  });
+
+  const handleDeleteBanner = (bannerId: string) => {
+    setDeleteConfirmBannerId(bannerId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmBannerId) {
+      clearBannerMutation.mutate(deleteConfirmBannerId);
+    }
+  };
 
   // Calculate aspect ratio
   const calculateAspectRatio = (width: number, height: number): string => {
@@ -344,9 +394,18 @@ const AdminCMS = () => {
                           </div>
                         )}
                         {banner.hasCustomImage && (
-                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                            ✓
-                          </div>
+                          <>
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                              ✓
+                            </div>
+                            <button
+                              onClick={() => handleDeleteBanner(banner.id)}
+                              className="absolute top-2 right-2 z-10 bg-white/90 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-full p-1.5 shadow-sm border border-red-200 transition-colors"
+                              title="Excluir imagem"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -408,9 +467,18 @@ const AdminCMS = () => {
                             className="w-full h-full object-cover"
                           />
                           {banner.hasCustomImage && (
-                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                              Personalizado
-                            </div>
+                            <>
+                              <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                                Personalizado
+                              </div>
+                              <button
+                                onClick={() => handleDeleteBanner(banner.id)}
+                                className="absolute top-2 right-2 z-10 bg-white/90 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-full p-1.5 shadow-sm border border-red-200 transition-colors"
+                                title="Excluir imagem"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -449,9 +517,9 @@ const AdminCMS = () => {
                         </div>
 
                         {/* Media Selector Button */}
-                        <div>
+                        <div className="flex gap-3">
                           <Button
-                            className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white w-full sm:w-auto"
+                            className="bg-[#FB8C00] hover:bg-[#FB8C00]/90 text-white"
                             onClick={() => handleOpenSelector(banner.id)}
                             disabled={updateBannerMutation.isPending}
                           >
@@ -462,6 +530,17 @@ const AdminCMS = () => {
                             )}
                             Substituir Banner
                           </Button>
+                          {banner.hasCustomImage && (
+                            <Button
+                              variant="outline"
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => handleDeleteBanner(banner.id)}
+                              disabled={clearBannerMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -897,6 +976,32 @@ const AdminCMS = () => {
         open={activeModal === "billing_alerts"}
         onOpenChange={(open) => !open && setActiveModal(null)}
       />
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirmBannerId} onOpenChange={(open) => !open && setDeleteConfirmBannerId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja remover esta imagem?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A imagem padrão da plataforma será restaurada automaticamente. O arquivo original permanecerá disponível na biblioteca de mídia.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={clearBannerMutation.isPending}
+            >
+              {clearBannerMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
