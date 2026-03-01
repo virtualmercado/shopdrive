@@ -10,6 +10,7 @@ import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus, Sparkles, Bo
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor, EditorSettings, ImageAdjustments } from "@/components/ImageEditor";
+import { ProductGalleryUploader } from "@/components/ProductGalleryUploader";
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
@@ -1417,6 +1418,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               Calcular Frete Simulado
             </Button>
           </div>
+
+          {/* Product Gallery (MinIO) - only for existing products */}
+          {product?.id && (
+            <ProductGalleryUploader productId={product.id} />
+          )}
 
           {/* Product Features */}
           <div className="space-y-3 border-t pt-4">
