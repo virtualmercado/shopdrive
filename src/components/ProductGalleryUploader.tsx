@@ -106,10 +106,10 @@ export const ProductGalleryUploader = ({
     setReordering(true);
 
     try {
-      await setProductImagesOrder(
+      await setProductImagesOrder({
         productId,
-        reordered.map((img) => img.id)
-      );
+        orderedIds: reordered.map((img) => img.id),
+      });
     } catch (err: any) {
       console.error("Reorder error:", err);
       toast.error(err.message || "Erro ao reordenar");

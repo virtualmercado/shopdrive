@@ -91,10 +91,11 @@ export async function removeProductImage(params: {
 /**
  * Reorder images by updating display_order based on the new ordered array of IDs.
  */
-export async function setProductImagesOrder(
-  productId: string,
-  orderedIds: string[]
-): Promise<void> {
+export async function setProductImagesOrder(params: {
+  productId: string;
+  orderedIds: string[];
+}): Promise<void> {
+  const { productId, orderedIds } = params;
   const { error } = await supabase.rpc("reorder_product_images", {
     p_product_id: productId,
     p_ids: orderedIds,
