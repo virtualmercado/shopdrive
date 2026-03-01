@@ -1,29 +1,27 @@
 
 
-# Atualizar `removeProductImage` para deletar arquivo no MinIO
+# Usar RPC `reorder_product_images` para reordenar imagens
 
 ## Resumo
 
-Alterar a funcao `removeProductImage` para tambem chamar a Edge Function `media-delete`, removendo o arquivo fisico do MinIO alem do registro no banco. A chamada ao MinIO sera best-effort (nao quebra o fluxo se falhar).
+Substituir o loop sequencial de UPDATEs na funcao `setProductImagesOrder` por uma unica chamada ao RPC `reorder_product_images` que ja existe no banco de dados.
 
-## Alteracoes
+## Alteracao
 
-### 1. `src/lib/productGallery.ts`
+### `src/lib/productGallery.ts`
 
-Substituir a funcao `removeProductImage` (linhas 65-72):
+Substituir o corpo da funcao `setProductImagesOrder` (linhas 89-101):
 
-- **Antes:** recebe apenas `imageId: string`
-- **Depois:** recebe um objeto `{ imageId: string; publicUrl?: string | null }`
-- Remove o registro do banco primeiro (fonte de verdade)
-- Se `publicUrl` estiver presente, chama `supabase.functions.invoke("media-delete")` em modo best-effort (erro apenas logado no console, nao lanca excecao)
-- Mantém o import existente de `supabase` de `@/integrations/supabase/client` (nao usar `@/lib/supabase` como sugerido pelo usuario, pois o projeto usa o path padrao)
+**Antes:** Loop sequencial com N chamadas UPDATE individuais.
 
-### 2. `src/components/ProductGalleryUploader.tsx`
+**Depois:** Uma unica chamada:
+```typescript
+const { error } = await supabase.rpc("reorder_product_images", {
+  p_product_id: productId,
+  p_ids: orderedIds,
+});
+if (error) throw new Error(`Erro ao reordenar imagens: ${error.message}`);
+```
 
-Atualizar a chamada em `handleRemove` (linha 84):
-
-- **Antes:** `await removeProductImage(imageId)`
-- **Depois:** `await removeProductImage({ imageId, publicUrl: images.find(img => img.id === imageId)?.image_url })`
-
-Isso garante que a URL publica correta e passada para a funcao de delecao no MinIO.
+Isso reduz N queries para 1, usando a funcao SQL `reorder_product_images` que ja faz o UPDATE em batch via `unnest` + `generate_series`.
 
