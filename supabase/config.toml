@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.ai-product-writer]
 verify_jwt = false
+
+[functions.media-presign]
+verify_jwt = false
