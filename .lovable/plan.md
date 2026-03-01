@@ -1,109 +1,79 @@
 
 
-## Plano: Corrigir Centralização do Slider de Zoom
+# Edge Function `media-presign`
 
-### Problema Identificado
+## Resumo
 
-O slider de Zoom está configurado com `min={-40}` e `max={60}`, mas o Radix Slider posiciona o thumb **proporcionalmente ao range numérico**. Como o range é assimétrico, o valor `0` (representando 100%) aparece em **40% do track** ao invés de 50%.
+Criar uma Edge Function que gera URLs pre-assinadas (presigned PUT) para upload direto ao MinIO S3, sem salvar nada no banco.
 
-### Solução
+## O que sera criado
 
-Implementar um **mapeamento bipolar** onde:
-- O slider interno usa um range simétrico (-100 a +100)
-- A posição central (0) sempre representa 100%
-- Funções de conversão mapeiam a posição para o valor real de scale
+### 1. Arquivo `supabase/functions/media-presign/index.ts`
 
-### Mudanças Técnicas
+Edge Function POST que:
+- Recebe `{ product_id, mime_type, size_bytes }`
+- Valida mime_type (jpeg/png/webp) e size_bytes (max 10MB)
+- Gera objectKey: `products/{product_id}/{yyyy}/{mm}/{uuid}.{ext}`
+- Usa AWS SDK v3 (`npm:@aws-sdk/client-s3` + `npm:@aws-sdk/s3-request-presigner`) via specifier npm do Deno
+- Gera presigned PUT URL com expiracao de 5 minutos
+- Retorna `{ ok, uploadUrl, publicUrl, bucket, objectKey, headers }`
+- CORS completo com handler OPTIONS
 
-**Arquivo:** `src/components/ImageEditor/ImageEditor.tsx`
+### 2. Configuracao em `supabase/config.toml`
 
-1. **Adicionar estado para posição do slider:**
-   ```tsx
-   const [scaleSliderPos, setScaleSliderPos] = useState(0);
-   ```
+Adicionar entrada `[functions.media-presign]` com `verify_jwt = false`.
 
-2. **Criar funções de mapeamento:**
-   ```tsx
-   // Converte posição do slider (-100 a +100) para scale (60% a 160%)
-   const sliderPosToScale = (pos: number): number => {
-     if (pos <= 0) {
-       // -100 → 60%, 0 → 100%
-       return 100 + (pos / 100) * 40;
-     } else {
-       // 0 → 100%, +100 → 160%
-       return 100 + (pos / 100) * 60;
-     }
-   };
+### 3. Secrets necessarios
 
-   // Converte scale (60% a 160%) para posição do slider (-100 a +100)
-   const scaleToSliderPos = (s: number): number => {
-     if (s <= 100) {
-       // 60% → -100, 100% → 0
-       return ((s - 100) / 40) * 100;
-     } else {
-       // 100% → 0, 160% → +100
-       return ((s - 100) / 60) * 100;
-     }
-   };
-   ```
+Solicitar ao usuario que configure os seguintes secrets:
+- `MINIO_ENDPOINT` (https://s3storage.shopdrive.com.br)
+- `MINIO_REGION` (eu-south)
+- `MINIO_ACCESS_KEY` (credencial de acesso)
+- `MINIO_SECRET_KEY` (chave secreta)
+- `MINIO_BUCKET_PUBLIC` (media-public)
+- `PUBLIC_MEDIA_BASE_URL` (https://s3storage.shopdrive.com.br)
 
-3. **Atualizar handler do slider:**
-   ```tsx
-   const handleScaleSliderChange = useCallback((pos: number) => {
-     if (isAnimatingReset) return;
-     
-     const newScale = sliderPosToScale(pos);
-     // Aplicar soft-clamp existente
-     const visibility = calculateVisibilityFactor(newScale, offsetX);
-     const clampMultiplier = getSoftClampMultiplier(visibility);
-     
-     const delta = newScale - scale;
-     const softDelta = delta * clampMultiplier;
-     const finalScale = Math.max(60, Math.min(160, scale + softDelta));
-     
-     setScale(finalScale);
-     setScaleSliderPos(scaleToSliderPos(finalScale));
-     setScaleInput(Math.round(finalScale).toString());
-     setHasChanges(true);
-   }, [/* deps */]);
-   ```
+### Detalhes tecnicos
 
-4. **Atualizar o componente Slider:**
-   ```tsx
-   <Slider
-     value={[scaleSliderPos]}
-     onValueChange={([pos]) => handleScaleSliderChange(pos)}
-     min={-100}
-     max={100}
-     step={1}
-     className="w-full"
-   />
-   ```
+**Validacoes (retorna 400):**
+- `product_id` obrigatorio
+- `mime_type` deve ser `image/jpeg`, `image/png` ou `image/webp`
+- `size_bytes` deve ser <= 10.485.760 (10MB)
 
-5. **Sincronizar estados existentes:**
-   - Quando `handleScaleInputChange` altera o scale, também atualizar `scaleSliderPos`
-   - Na animação de reset, animar `scaleSliderPos` junto com `scale`
-   - No `handleUndo`, restaurar a posição do slider
-
-### Diagrama Visual
-
+**ObjectKey:**
 ```text
-    Slider Visual Track
-    ┌────────────────────────────────────────────────┐
-    │         ◀── Zoom Out    Zoom In ──▶           │
-    │    60%        80%    [100%]   130%       160% │
-    │     │          │       │        │          │  │
-    │   -100       -50       0       +50       +100 │
-    │              (posição interna do slider)      │
-    └────────────────────────────────────────────────┘
-                           ↑
-                    Centro Visual = 100%
+products/{product_id}/2026/03/{crypto.randomUUID()}.jpeg
 ```
 
-### Resultado Esperado
+**Resposta sucesso (200):**
+```json
+{
+  "ok": true,
+  "uploadUrl": "<presigned-put-url>",
+  "publicUrl": "https://s3storage.shopdrive.com.br/media-public/products/...",
+  "bucket": "media-public",
+  "objectKey": "products/...",
+  "headers": { "Content-Type": "image/jpeg" }
+}
+```
 
-- O thumb do slider fica **exatamente no centro** quando o zoom é 100%
-- Arrastar para esquerda reduz o zoom (até 60%)
-- Arrastar para direita aumenta o zoom (até 160%)
-- Comportamento consistente com os controles de Rotação e Posição X
+**Resposta erro (400/500):**
+```json
+{ "ok": false, "error": "descricao do erro" }
+```
+
+**Dependencias:** AWS SDK v3 importado via `npm:` specifier nativo do Deno (sem necessidade de esm.sh).
+
+### Como chamar do frontend
+
+```typescript
+const { data, error } = await supabase.functions.invoke("media-presign", {
+  body: {
+    product_id: "uuid-do-produto",
+    mime_type: "image/jpeg",
+    size_bytes: 500000
+  }
+});
+// data.uploadUrl -> usar com fetch PUT para enviar o arquivo
+```
 
