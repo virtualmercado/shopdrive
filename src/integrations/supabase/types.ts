@@ -4401,6 +4401,10 @@ export type Database = {
         }
         Returns: string
       }
+      reorder_product_images: {
+        Args: { p_ids: string[]; p_product_id: string }
+        Returns: undefined
+      }
       reset_template_password: {
         Args: { p_template_id: string }
         Returns: string

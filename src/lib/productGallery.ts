@@ -95,16 +95,9 @@ export async function setProductImagesOrder(
   productId: string,
   orderedIds: string[]
 ): Promise<void> {
-  // Run updates sequentially to avoid conflicts
-  for (let i = 0; i < orderedIds.length; i++) {
-    const { error } = await supabase
-      .from("product_images")
-      .update({ display_order: i + 1 })
-      .eq("id", orderedIds[i])
-      .eq("product_id", productId);
-
-    if (error) {
-      throw new Error(`Erro ao reordenar imagem: ${error.message}`);
-    }
-  }
+  const { error } = await supabase.rpc("reorder_product_images", {
+    p_product_id: productId,
+    p_ids: orderedIds,
+  });
+  if (error) throw new Error(`Erro ao reordenar imagens: ${error.message}`);
 }
