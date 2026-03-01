@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.media-presign]
 verify_jwt = false
+
+[functions.media-delete]
+verify_jwt = false
