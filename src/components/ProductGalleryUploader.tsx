@@ -81,7 +81,8 @@ export const ProductGalleryUploader = ({
   const handleRemove = async (imageId: string) => {
     try {
       setRemovingId(imageId);
-      await removeProductImage(imageId);
+      const imgToRemove = images.find((img) => img.id === imageId);
+      await removeProductImage({ imageId, publicUrl: imgToRemove?.image_url });
       setImages((prev) => prev.filter((img) => img.id !== imageId));
       toast.success("Imagem removida");
     } catch (err: any) {

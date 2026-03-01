@@ -62,13 +62,30 @@ export async function addProductImage(
 /**
  * Remove a product image record (does NOT delete the file from MinIO).
  */
-export async function removeProductImage(imageId: string): Promise<void> {
+export async function removeProductImage(params: {
+  imageId: string;
+  publicUrl?: string | null;
+}): Promise<void> {
+  const { imageId, publicUrl } = params;
+
+  // 1) Remove do banco primeiro (fonte de verdade)
   const { error } = await supabase
     .from("product_images")
     .delete()
     .eq("id", imageId);
 
   if (error) throw new Error(`Erro ao remover imagem: ${error.message}`);
+
+  // 2) Best-effort: tenta remover no MinIO
+  if (publicUrl) {
+    try {
+      await supabase.functions.invoke("media-delete", {
+        body: { publicUrl },
+      });
+    } catch (e) {
+      console.warn("[media-delete] failed", e);
+    }
+  }
 }
 
 /**
