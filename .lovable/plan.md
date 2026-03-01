@@ -1,27 +1,49 @@
 
 
-# Usar RPC `reorder_product_images` para reordenar imagens
+# Atualizar assinatura de `setProductImagesOrder` para objeto de parametros
 
 ## Resumo
 
-Substituir o loop sequencial de UPDATEs na funcao `setProductImagesOrder` por uma unica chamada ao RPC `reorder_product_images` que ja existe no banco de dados.
+Alterar a assinatura da funcao `setProductImagesOrder` de parametros posicionais para um objeto `{ productId, orderedIds }`, e atualizar o caller no componente.
 
-## Alteracao
+## Alteracoes
 
-### `src/lib/productGallery.ts`
+### 1. `src/lib/productGallery.ts` (linhas 94-103)
 
-Substituir o corpo da funcao `setProductImagesOrder` (linhas 89-101):
-
-**Antes:** Loop sequencial com N chamadas UPDATE individuais.
-
-**Depois:** Uma unica chamada:
+Substituir a assinatura atual:
 ```typescript
-const { error } = await supabase.rpc("reorder_product_images", {
-  p_product_id: productId,
-  p_ids: orderedIds,
-});
-if (error) throw new Error(`Erro ao reordenar imagens: ${error.message}`);
+export async function setProductImagesOrder(
+  productId: string,
+  orderedIds: string[]
+): Promise<void> {
 ```
 
-Isso reduz N queries para 1, usando a funcao SQL `reorder_product_images` que ja faz o UPDATE em batch via `unnest` + `generate_series`.
+Por:
+```typescript
+export async function setProductImagesOrder(params: {
+  productId: string;
+  orderedIds: string[];
+}): Promise<void> {
+  const { productId, orderedIds } = params;
+```
+
+O corpo da funcao (chamada ao RPC) permanece identico. Manter o import de `@/integrations/supabase/client` (nao `@/lib/supabase`).
+
+### 2. `src/components/ProductGalleryUploader.tsx` (linhas 109-112)
+
+Atualizar a chamada de:
+```typescript
+await setProductImagesOrder(
+  productId,
+  reordered.map((img) => img.id)
+);
+```
+
+Para:
+```typescript
+await setProductImagesOrder({
+  productId,
+  orderedIds: reordered.map((img) => img.id),
+});
+```
 
