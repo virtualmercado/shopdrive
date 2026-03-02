@@ -1,71 +1,66 @@
 import { StoreLayoutType } from "./StoreLayoutSelector";
 
-interface WireframeBlock {
-  id: string;
-  name: string;
-  heightClass: string;
-  shade: "black" | "dark" | "medium" | "light" | "lighter";
-}
-
 interface StoreLayoutPreviewProps {
   layoutType: StoreLayoutType;
-  primaryColor?: string;
 }
 
-// Fixed blocks (always first and last)
-const topbar: WireframeBlock = { id: "topbar", name: "Topbar", heightClass: "h-[30px]", shade: "black" };
-const header: WireframeBlock = { id: "header", name: "Header", heightClass: "h-[44px]", shade: "dark" };
-const footer: WireframeBlock = { id: "footer", name: "Rodapé", heightClass: "h-[52px]", shade: "dark" };
+// Module IDs for the dynamic middle section
+type ModuleId = "banner" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video";
 
-// Dynamic middle modules
-const modules: Record<string, WireframeBlock> = {
-  banner: { id: "banner", name: "Banner Principal", heightClass: "h-[100px]", shade: "medium" },
-  miniBanners: { id: "miniBanners", name: "Mini Banners", heightClass: "h-[60px]", shade: "medium" },
-  destaques: { id: "destaques", name: "Carrossel de Destaques", heightClass: "h-[65px]", shade: "lighter" },
-  promocoes: { id: "promocoes", name: "Carrossel de Promoções", heightClass: "h-[65px]", shade: "light" },
-  todos: { id: "todos", name: "Todos os Produtos", heightClass: "h-[78px]", shade: "lighter" },
-  video: { id: "video", name: "Vídeo YouTube", heightClass: "h-[90px]", shade: "dark" },
-};
-
-// Order of the dynamic middle section per layout
-const layoutMiddleOrder: Record<StoreLayoutType, string[]> = {
+const layoutMiddleOrder: Record<StoreLayoutType, ModuleId[]> = {
   layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video"],
   layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video"],
   layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos"],
 };
 
-const shadeColors: Record<WireframeBlock["shade"], string> = {
-  black: "#1a1a1a",
-  dark: "#374151",
-  medium: "#6b7280",
-  light: "#d1d5db",
-  lighter: "#e5e7eb",
-};
+/* ── Tiny reusable wireframe pieces ── */
 
-const textColors: Record<WireframeBlock["shade"], string> = {
-  black: "#a3a3a3",
-  dark: "#d1d5db",
-  medium: "#e5e7eb",
-  light: "#4b5563",
-  lighter: "#4b5563",
-};
-
-const WireframeBlockItem = ({ block }: { block: WireframeBlock }) => (
-  <div
-    className={`${block.heightClass} w-full rounded-lg flex items-center justify-center border border-gray-200/50`}
-    style={{
-      backgroundColor: shadeColors[block.shade],
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-    }}
-  >
-    <span
-      className="text-[11px] font-medium tracking-wide"
-      style={{ color: textColors[block.shade] }}
-    >
-      {block.name}
-    </span>
+const ProductCard = () => (
+  <div className="flex flex-col gap-1">
+    <div className="w-[60px] h-[52px] bg-[#b0b0b0] rounded" />
+    <div className="w-[34px] h-[7px] bg-[#888] rounded-sm" />
+    <div className="w-[24px] h-[7px] bg-[#999] rounded-sm" />
   </div>
 );
+
+const CarouselSection = ({ label }: { label: string }) => (
+  <div className="bg-[#f0f0f0] rounded-lg px-3 py-3 space-y-2">
+    <p className="text-[11px] font-semibold text-[#555] text-center">{label}</p>
+    <div className="flex justify-center gap-3">
+      <ProductCard />
+      <ProductCard />
+      <ProductCard />
+    </div>
+  </div>
+);
+
+/* ── Module renderers ── */
+
+const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
+  banner: () => (
+    <div className="bg-[#9a9a9a] rounded-lg h-[90px] flex items-center justify-center">
+      <span className="text-[12px] font-semibold text-white/90">Banner Principal</span>
+    </div>
+  ),
+  promocoes: () => <CarouselSection label="Carrossel de Promoções" />,
+  destaques: () => <CarouselSection label="Carrossel de Destaques" />,
+  miniBanners: () => (
+    <div className="flex gap-2">
+      <div className="flex-1 bg-[#8a8a8a] rounded-lg h-[48px] flex items-center justify-center">
+        <span className="text-[10px] font-medium text-white/90">Mini Banners</span>
+      </div>
+      <div className="flex-1 bg-[#8a8a8a] rounded-lg h-[48px] flex items-center justify-center">
+        <span className="text-[10px] font-medium text-white/90">Mini Banners</span>
+      </div>
+    </div>
+  ),
+  todos: () => <CarouselSection label="Todos os Produtos" />,
+  video: () => (
+    <div className="bg-[#a0a0a0] rounded-lg h-[80px] flex items-center justify-center">
+      <span className="text-[12px] font-semibold text-white/90">Vídeo YouTube</span>
+    </div>
+  ),
+};
 
 export const StoreLayoutPreview = ({ layoutType }: StoreLayoutPreviewProps) => {
   const middleOrder = layoutMiddleOrder[layoutType];
@@ -74,31 +69,29 @@ export const StoreLayoutPreview = ({ layoutType }: StoreLayoutPreviewProps) => {
     <div className="flex justify-center">
       {/* Mobile frame */}
       <div
-        className="w-[340px] h-[600px] bg-white rounded-2xl border-2 border-gray-300 overflow-hidden flex flex-col"
+        className="w-[340px] h-[620px] bg-[#f7f7f7] rounded-2xl border-2 border-gray-300 overflow-hidden flex flex-col"
         style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}
       >
-        {/* Topbar - always first */}
-        <div className="flex-shrink-0 px-2 pt-2">
-          <WireframeBlockItem block={topbar} />
+        {/* Topbar */}
+        <div className="bg-[#222] h-[28px] flex items-center justify-center flex-shrink-0">
+          <span className="text-[10px] font-medium text-gray-300">Top Bar</span>
         </div>
 
-        {/* Header - always second */}
-        <div className="flex-shrink-0 px-2 pt-1.5">
-          <WireframeBlockItem block={header} />
+        {/* Header */}
+        <div className="mx-2 mt-2 bg-[#555] h-[38px] rounded-lg flex items-center justify-center flex-shrink-0">
+          <span className="text-[11px] font-semibold text-gray-200">Header</span>
         </div>
 
         {/* Scrollable middle */}
-        <div className="flex-1 overflow-y-auto px-2 py-1.5 space-y-1.5 min-h-0">
-          {middleOrder.map((key) => {
-            const block = modules[key];
-            if (!block) return null;
-            return <WireframeBlockItem key={block.id} block={block} />;
-          })}
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2 min-h-0">
+          {middleOrder.map((key) => (
+            <div key={key}>{moduleRenderers[key]()}</div>
+          ))}
         </div>
 
-        {/* Footer - always last */}
-        <div className="flex-shrink-0 px-2 pb-2">
-          <WireframeBlockItem block={footer} />
+        {/* Footer */}
+        <div className="bg-[#333] h-[42px] flex items-center justify-center flex-shrink-0">
+          <span className="text-[11px] font-semibold text-gray-300">Rodapé</span>
         </div>
       </div>
     </div>
