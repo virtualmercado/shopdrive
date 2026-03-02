@@ -434,6 +434,27 @@ const AdminSubscriptionCheckout = () => {
           }, 2000);
           return;
         }
+
+        // Handle payment declined errors (400 responses with data)
+        if (data?.statusDetail || data?.declineType) {
+          const declineMessages: Record<string, string> = {
+            cc_rejected_high_risk: "Pagamento recusado por segurança. Entre em contato com seu banco ou tente outro cartão.",
+            cc_rejected_insufficient_amount: "Saldo insuficiente no cartão. Tente outro cartão.",
+            cc_rejected_bad_filled_card_number: "Número do cartão inválido. Verifique e tente novamente.",
+            cc_rejected_bad_filled_date: "Data de validade inválida. Verifique e tente novamente.",
+            cc_rejected_bad_filled_security_code: "Código de segurança inválido. Verifique e tente novamente.",
+            cc_rejected_bad_filled_other: "Dados do cartão inválidos. Verifique e tente novamente.",
+            cc_rejected_call_for_authorize: "Você precisa autorizar o pagamento junto ao seu banco.",
+            cc_rejected_card_disabled: "Cartão desabilitado. Entre em contato com seu banco.",
+            cc_rejected_duplicated_payment: "Pagamento duplicado. Aguarde alguns minutos antes de tentar novamente.",
+            cc_rejected_max_attempts: "Limite de tentativas atingido. Tente novamente mais tarde.",
+          };
+          const friendlyMessage = declineMessages[data.statusDetail] || data.error || "Pagamento recusado. Tente outro cartão.";
+          toast.error(friendlyMessage);
+          setIsProcessing(false);
+          return;
+        }
+
         throw new Error(error.message || "Erro ao processar assinatura");
       }
 
