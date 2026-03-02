@@ -206,10 +206,9 @@ export const StoreLayoutSelector = ({
         {/* Layout Preview */}
         <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground mb-4">Pré-visualização:</p>
-          <div className="border rounded-lg p-4 bg-gray-50 min-h-[400px]">
+          <div className="flex items-center justify-center min-h-[400px]">
             <StoreLayoutPreview 
               layoutType={selectedLayout} 
-              primaryColor={primaryColor}
             />
           </div>
         </div>
