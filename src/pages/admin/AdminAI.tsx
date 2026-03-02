@@ -15,8 +15,6 @@ import {
   Activity,
   Target
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -26,85 +24,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, subDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useAdminStats } from "@/hooks/useAdminStats";
 
 const AdminAI = () => {
-  // AI Analytics Query
-  const { data: aiData, isLoading } = useQuery({
-    queryKey: ['admin-ai-analytics'],
-    queryFn: async () => {
-      // Get subscriber engagement metrics
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, store_name, last_activity, created_at')
-        .not('store_slug', 'is', null)
-        .order('last_activity', { ascending: false })
-        .limit(20);
-
-      // Get subscription data
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select('*, subscription_plans(*)')
-        .eq('status', 'active');
-
-      // Calculate metrics
-      const activeSubscribers = subscriptions?.length || 0;
-      const totalMRR = subscriptions?.reduce((sum, sub) => {
-        const price = (sub.subscription_plans as any)?.price || 0;
-        return sum + price;
-      }, 0) || 0;
-
-      // Simulated AI metrics (in a real app, these would come from ML models)
-      const avgEngagement = 72;
-      const churnPrediction = 8.5;
-      const mrrProjection = totalMRR * 1.12;
-      const systemHealth = 98.5;
-
-      // Generate AI insights
-      const insights = [
-        {
-          type: 'warning',
-          title: 'Risco de cancelamento detectado',
-          description: '3 assinantes com engajamento abaixo de 30% nos últimos 14 dias',
-          action: 'Ativar automação de retenção'
-        },
-        {
-          type: 'opportunity',
-          title: 'Oportunidade de upgrade',
-          description: '5 assinantes do plano Básico atingiram 90% do limite de produtos',
-          action: 'Enviar oferta de upgrade'
-        },
-        {
-          type: 'info',
-          title: 'Tendência positiva',
-          description: 'MRR aumentou 12% em relação ao mês anterior',
-          action: 'Manter estratégia atual'
-        }
-      ];
-
-      // Subscriber behavior analysis
-      const behaviorData = profiles?.slice(0, 10).map((profile, index) => ({
-        id: profile.id,
-        storeName: profile.store_name || 'Loja sem nome',
-        engagementScore: Math.floor(Math.random() * 40) + 60,
-        status: index < 2 ? 'Risco' : index < 5 ? 'Atenção' : 'Saudável',
-        lastLogin: profile.last_activity 
-          ? format(new Date(profile.last_activity), "dd/MM/yyyy", { locale: ptBR })
-          : 'Nunca'
-      })) || [];
-
-      return {
-        avgEngagement,
-        churnPrediction,
-        mrrProjection,
-        systemHealth,
-        insights,
-        behaviorData,
-        totalMRR
-      };
-    }
-  });
+  const { data: stats, isLoading } = useAdminStats();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -113,15 +36,57 @@ const AdminAI = () => {
     }).format(value);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Risco':
-        return 'bg-red-100 text-red-800';
-      case 'Atenção':
-        return 'bg-amber-100 text-amber-800';
-      default:
-        return 'bg-green-100 text-green-800';
+  // Generate real insights based on actual data
+  const getInsights = () => {
+    if (!stats) return [];
+    const insights = [];
+
+    if (stats.churnRate > 5) {
+      insights.push({
+        type: 'warning',
+        title: 'Taxa de churn elevada',
+        description: `${stats.cancelledThisMonth} cancelamento(s) real(is) neste mês (${stats.churnRate}% de churn)`,
+        action: 'Verificar motivos de cancelamento'
+      });
     }
+
+    if (stats.overdueInvoices > 0) {
+      insights.push({
+        type: 'warning',
+        title: 'Faturas em atraso',
+        description: `${stats.overdueInvoices} fatura(s) vencida(s) — inadimplência de ${stats.inadimplenciaRate}%`,
+        action: 'Revisar cobranças pendentes'
+      });
+    }
+
+    if (stats.mrr > 0) {
+      insights.push({
+        type: 'info',
+        title: 'MRR atual',
+        description: `Receita recorrente mensal de ${formatCurrency(stats.mrr)} com ${stats.activeSubscribersCount} assinante(s) ativo(s)`,
+        action: 'Ver detalhes financeiros'
+      });
+    }
+
+    if (stats.newSubscribersToday > 0) {
+      insights.push({
+        type: 'opportunity',
+        title: 'Novos assinantes hoje',
+        description: `${stats.newSubscribersToday} novo(s) cadastro(s) hoje`,
+        action: 'Acompanhar onboarding'
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        type: 'info',
+        title: 'Sem alertas',
+        description: 'Nenhum ponto de atenção identificado no momento',
+        action: 'Continuar monitorando'
+      });
+    }
+
+    return insights;
   };
 
   const getInsightIcon = (type: string) => {
@@ -138,20 +103,24 @@ const AdminAI = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* AI Metrics Cards */}
+        {/* Metrics Cards - ALL REAL DATA */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Engajamento Médio</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">MRR (Receita Recorrente)</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-28" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{aiData?.avgEngagement}%</div>
-                  <Progress value={aiData?.avgEngagement} className="mt-2 h-2" />
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(stats?.mrr || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats?.activeSubscribersCount || 0} assinante(s) ativo(s)
+                  </p>
                 </>
               )}
             </CardContent>
@@ -159,7 +128,7 @@ const AdminAI = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Previsão de Churn</CardTitle>
+              <CardTitle className="text-sm font-medium">Churn Mensal</CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -168,12 +137,12 @@ const AdminAI = () => {
               ) : (
                 <>
                   <div className={`text-2xl font-bold ${
-                    (aiData?.churnPrediction || 0) > 10 ? 'text-red-600' : 'text-foreground'
+                    (stats?.churnRate || 0) > 10 ? 'text-red-600' : 'text-foreground'
                   }`}>
-                    {aiData?.churnPrediction}%
+                    {stats?.churnRate || 0}%
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Projeção próximos 30 dias
+                    {stats?.cancelledThisMonth || 0} cancelamento(s) real(is)
                   </p>
                 </>
               )}
@@ -182,21 +151,20 @@ const AdminAI = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Previsão MRR</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">LTV Médio</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <Skeleton className="h-8 w-28" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(aiData?.mrrProjection || 0)}
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(stats?.avgLTV || 0)}
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-600">+12% projetado</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Receita total: {formatCurrency(stats?.totalRevenue || 0)}
+                  </p>
                 </>
               )}
             </CardContent>
@@ -204,7 +172,7 @@ const AdminAI = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saúde do Sistema</CardTitle>
+              <CardTitle className="text-sm font-medium">Inadimplência</CardTitle>
               <Brain className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -212,11 +180,13 @@ const AdminAI = () => {
                 <Skeleton className="h-8 w-20" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold text-green-600">
-                    {aiData?.systemHealth}%
+                  <div className={`text-2xl font-bold ${
+                    parseFloat(stats?.inadimplenciaRate || '0') > 10 ? 'text-red-600' : 'text-foreground'
+                  }`}>
+                    {stats?.inadimplenciaRate || '0'}%
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Uptime últimos 30 dias
+                    {stats?.overdueInvoices || 0} fatura(s) vencida(s)
                   </p>
                 </>
               )}
@@ -225,135 +195,90 @@ const AdminAI = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* AI Insights */}
+          {/* Real Insights */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Insights da IA
-                </CardTitle>
-                <CardDescription>Recomendações automáticas</CardDescription>
-              </div>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lightbulb className="h-5 w-5" />
+                Insights (Dados Reais)
+              </CardTitle>
+              <CardDescription>Baseado em dados reais da plataforma</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {aiData?.insights.map((insight, index) => (
-                  <div 
-                    key={index}
-                    className="p-4 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-start gap-3">
-                      {getInsightIcon(insight.type)}
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{insight.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {insight.description}
-                        </p>
-                        <Button 
-                          variant="link" 
-                          size="sm" 
-                          className="p-0 h-auto mt-2 text-[#6a1b9a]"
-                        >
-                          {insight.action} →
-                        </Button>
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))
+                ) : (
+                  getInsights().map((insight, index) => (
+                    <div key={index} className="p-4 rounded-lg border bg-card">
+                      <div className="flex items-start gap-3">
+                        {getInsightIcon(insight.type)}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{insight.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {insight.description}
+                          </p>
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="p-0 h-auto mt-2 text-primary"
+                          >
+                            {insight.action} →
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Revenue Projection Chart Placeholder */}
+          {/* Summary Card */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Projeção de Receita
+                Resumo Financeiro
               </CardTitle>
-              <CardDescription>Próximos 6 meses</CardDescription>
+              <CardDescription>Dados consolidados do mês</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[250px] flex items-center justify-center border rounded-lg bg-muted/30">
-                <div className="text-center">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Gráfico de projeção será exibido aqui
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Baseado em análise de tendências com IA
-                  </p>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-6 w-full" />
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Assinantes ativos</span>
+                    <span className="font-medium">{stats?.activeSubscribersCount || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Total de lojas</span>
+                    <span className="font-medium">{stats?.totalSubscribers || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Faturas pagas (mês)</span>
+                    <span className="font-medium">{stats?.paidInvoices || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Faturas pendentes</span>
+                    <span className="font-medium">{stats?.pendingInvoices || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-muted-foreground">Novos hoje</span>
+                    <span className="font-medium">{stats?.newSubscribersToday || 0}</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Behavior Analysis Table */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Análise Comportamental
-              </CardTitle>
-              <CardDescription>Monitoramento de engajamento por assinante</CardDescription>
-            </div>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Loja</TableHead>
-                  <TableHead>Score de Engajamento</TableHead>
-                  <TableHead>Status IA</TableHead>
-                  <TableHead>Último Login</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  aiData?.behaviorData.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.storeName}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={row.engagementScore} className="w-20 h-2" />
-                          <span className="text-sm">{row.engagementScore}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(row.status)}>
-                          {row.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {row.lastLogin}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </div>
     </AdminLayout>
   );
