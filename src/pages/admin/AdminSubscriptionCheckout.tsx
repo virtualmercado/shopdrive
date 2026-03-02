@@ -427,7 +427,15 @@ const AdminSubscriptionCheckout = () => {
 
       if (error) {
         // Handle 409 conflict - existing subscription
-        if (error.message?.includes("409") || data?.existingSubscriptionId) {
+        // Supabase functions.invoke puts the response body in error.message for non-2xx
+        const errorMsg = error.message || "";
+        const hasExistingSubscription = 
+          errorMsg.includes("409") || 
+          errorMsg.includes("existingSubscriptionId") ||
+          errorMsg.includes("assinatura ativa") ||
+          data?.existingSubscriptionId;
+        
+        if (hasExistingSubscription) {
           toast.error("Você já possui uma assinatura ativa ou pendente. Acesse o painel para gerenciá-la.");
           setIsProcessing(false);
           setTimeout(() => {
@@ -437,7 +445,13 @@ const AdminSubscriptionCheckout = () => {
         }
 
         // Handle payment declined errors (400 responses with data)
-        if (data?.statusDetail || data?.declineType) {
+        // Try to parse error.message as JSON for decline details
+        let declineData = data;
+        if (!declineData && errorMsg.startsWith("{")) {
+          try { declineData = JSON.parse(errorMsg); } catch {}
+        }
+
+        if (declineData?.statusDetail || declineData?.declineType) {
           const declineMessages: Record<string, string> = {
             cc_rejected_high_risk: "Pagamento recusado por segurança. Entre em contato com seu banco ou tente outro cartão.",
             cc_rejected_insufficient_amount: "Saldo insuficiente no cartão. Tente outro cartão.",
@@ -450,13 +464,17 @@ const AdminSubscriptionCheckout = () => {
             cc_rejected_duplicated_payment: "Pagamento duplicado. Aguarde alguns minutos antes de tentar novamente.",
             cc_rejected_max_attempts: "Limite de tentativas atingido. Tente novamente mais tarde.",
           };
-          const friendlyMessage = declineMessages[data.statusDetail] || data.error || "Pagamento recusado. Tente outro cartão.";
+          const friendlyMessage = declineMessages[declineData.statusDetail] || declineData.error || "Pagamento recusado. Tente outro cartão.";
           toast.error(friendlyMessage);
           setIsProcessing(false);
           return;
         }
 
-        throw new Error(error.message || "Erro ao processar assinatura");
+        // Generic error - show friendly message instead of throwing
+        const friendlyError = declineData?.error || "Erro ao processar assinatura. Tente novamente.";
+        toast.error(friendlyError);
+        setIsProcessing(false);
+        return;
       }
 
       if (data?.error) {
