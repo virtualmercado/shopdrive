@@ -211,9 +211,9 @@ const AdminSubscriptionCheckout = () => {
   const totalAmount = billingCycle === "monthly" ? monthlyPrice : annualPrice;
   const savings = billingCycle === "annual" ? monthlyPrice * 12 - annualPrice : 0;
 
-  // Reset payment method quando mudar ciclo
+  // Reset payment method quando mudar ciclo (boleto only for annual)
   useEffect(() => {
-    if (billingCycle === "monthly" && paymentMethod !== "credit_card") {
+    if (billingCycle === "monthly" && paymentMethod === "boleto") {
       setPaymentMethod("credit_card");
     }
   }, [billingCycle]);
@@ -272,7 +272,7 @@ const AdminSubscriptionCheckout = () => {
     if (!isUserLoggedIn && !isIdentificationValid) return false;
     
     if (!termsAccepted) return false;
-    if (billingCycle === "monthly" && !recurringConsent) return false;
+    if (billingCycle === "monthly" && paymentMethod === "credit_card" && !recurringConsent) return false;
     if (paymentMethod === "credit_card") {
       const { cardNumber, holderName, expirationMonth, expirationYear, cvv } = cardForm;
       if (!cardNumber || !holderName || !expirationMonth || !expirationYear || !cvv) {
@@ -1132,40 +1132,38 @@ const AdminSubscriptionCheckout = () => {
                   </Label>
                 </div>
 
-                {billingCycle === "annual" && (
-                  <>
-                    <div 
-                      className={cn(
-                        "flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                        paymentMethod === "pix" 
-                          ? "border-[#6a1b9a] bg-purple-50" 
-                          : "border-gray-200 hover:border-gray-300"
-                      )}
-                      onClick={() => setPaymentMethod("pix")}
-                    >
-                      <RadioGroupItem value="pix" id="pix" />
-                      <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer">
-                        <QrCode className="h-5 w-5" />
-                        Pix
-                      </Label>
-                    </div>
+                <div 
+                  className={cn(
+                    "flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                    paymentMethod === "pix" 
+                      ? "border-[#6a1b9a] bg-purple-50" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                  onClick={() => setPaymentMethod("pix")}
+                >
+                  <RadioGroupItem value="pix" id="pix" />
+                  <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer">
+                    <QrCode className="h-5 w-5" />
+                    Pix
+                  </Label>
+                </div>
 
-                    <div 
-                      className={cn(
-                        "flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                        paymentMethod === "boleto" 
-                          ? "border-[#6a1b9a] bg-purple-50" 
-                          : "border-gray-200 hover:border-gray-300"
-                      )}
-                      onClick={() => setPaymentMethod("boleto")}
-                    >
-                      <RadioGroupItem value="boleto" id="boleto" />
-                      <Label htmlFor="boleto" className="flex items-center gap-2 cursor-pointer">
-                        <FileText className="h-5 w-5" />
-                        Boleto Bancário
-                      </Label>
-                    </div>
-                  </>
+                {billingCycle === "annual" && (
+                  <div 
+                    className={cn(
+                      "flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      paymentMethod === "boleto" 
+                        ? "border-[#6a1b9a] bg-purple-50" 
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onClick={() => setPaymentMethod("boleto")}
+                  >
+                    <RadioGroupItem value="boleto" id="boleto" />
+                    <Label htmlFor="boleto" className="flex items-center gap-2 cursor-pointer">
+                      <FileText className="h-5 w-5" />
+                      Boleto Bancário
+                    </Label>
+                  </div>
                 )}
               </RadioGroup>
 
@@ -1257,8 +1255,8 @@ const AdminSubscriptionCheckout = () => {
                 </div>
               )}
 
-              {/* Consentimento de Recorrência (apenas mensal) */}
-              {billingCycle === "monthly" && (
+              {/* Consentimento de Recorrência (apenas mensal + cartão) */}
+              {billingCycle === "monthly" && paymentMethod === "credit_card" && (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <Checkbox 
