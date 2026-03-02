@@ -564,12 +564,23 @@ serve(async (req) => {
 
     } else if (paymentMethod === "pix") {
       // Generate PIX for both monthly and annual payments
-      // Generate PIX for annual payment
       const pixExpiration = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+      const pixAmount = Math.round(totalAmount * 100) / 100; // Ensure 2 decimal places for Mercado Pago
+
+      if (!pixAmount || pixAmount <= 0 || isNaN(pixAmount)) {
+        return new Response(
+          JSON.stringify({ error: "Valor da assinatura inválido para gerar PIX" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
+      const pixDescription = billingCycle === "annual" 
+        ? `Assinatura Anual ${plan.display_name} - Virtual Mercado`
+        : `Assinatura Mensal ${plan.display_name} - Virtual Mercado`;
+
       const pixPayload = {
-        transaction_amount: totalAmount,
-        description: `Assinatura Anual ${plan.display_name} - Virtual Mercado`,
+        transaction_amount: pixAmount,
+        description: pixDescription,
         payment_method_id: "pix",
         payer: {
           email: userEmail,
