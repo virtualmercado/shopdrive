@@ -1376,9 +1376,12 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          mp_payment_id: string | null
           notes: string | null
           paid_at: string | null
           payment_link: string | null
+          payment_method: string | null
+          plan: string | null
           reference_period_end: string
           reference_period_start: string
           status: string
@@ -1391,9 +1394,12 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          mp_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
           payment_link?: string | null
+          payment_method?: string | null
+          plan?: string | null
           reference_period_end: string
           reference_period_start: string
           status?: string
@@ -1406,9 +1412,12 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          mp_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
           payment_link?: string | null
+          payment_method?: string | null
+          plan?: string | null
           reference_period_end?: string
           reference_period_start?: string
           status?: string

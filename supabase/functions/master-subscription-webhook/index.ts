@@ -232,6 +232,25 @@ serve(async (req) => {
       .update(paymentUpdate)
       .eq("id", payment.id);
 
+    // Sync invoice status based on payment gateway ID
+    if (paymentId) {
+      const invoiceStatus = newPaymentStatus === "paid" ? "paid" 
+        : newPaymentStatus === "failed" ? "rejected"
+        : newPaymentStatus === "cancelled" ? "cancelled"
+        : newPaymentStatus === "refunded" ? "refunded"
+        : "pending";
+      
+      const invoiceUpdate: any = { status: invoiceStatus };
+      if (invoiceStatus === "paid") {
+        invoiceUpdate.paid_at = mpPayment.date_approved || new Date().toISOString();
+      }
+
+      await supabase
+        .from("invoices")
+        .update(invoiceUpdate)
+        .eq("mp_payment_id", paymentId);
+    }
+
     // Update subscription if status changed
     if (newSubscriptionStatus && newSubscriptionStatus !== payment.master_subscriptions?.status) {
       const now = new Date();
