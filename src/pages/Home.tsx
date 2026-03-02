@@ -323,7 +323,7 @@ const Home = () => {
       {/* Main Content - Animated Container */}
       <main className="page-enter">
       {/* Hero Section - New Bling-style layout */}
-      <HeroSection heroContent={heroContent} />
+      <HeroSection heroContent={heroContent} demoVideoContent={cmsContent?.["demo_video"]} />
 
       {/* Products Section */}
       <section className="py-20 px-4 bg-background">
