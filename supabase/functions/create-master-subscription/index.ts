@@ -138,8 +138,8 @@ serve(async (req) => {
       );
     }
 
-    // Check recurring consent for monthly subscriptions
-    if (billingCycle === "monthly" && !recurringConsent) {
+    // Check recurring consent for monthly credit card subscriptions (PIX is one-time, no recurring consent needed)
+    if (billingCycle === "monthly" && paymentMethod === "credit_card" && !recurringConsent) {
       return new Response(
         JSON.stringify({ error: "Consentimento para cobrança recorrente é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
