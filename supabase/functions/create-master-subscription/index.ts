@@ -562,7 +562,8 @@ serve(async (req) => {
         subscriptionId: subscription.id,
       };
 
-    } else if (billingCycle === "annual" && paymentMethod === "pix") {
+    } else if (paymentMethod === "pix") {
+      // Generate PIX for both monthly and annual payments
       // Generate PIX for annual payment
       const pixExpiration = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
       
