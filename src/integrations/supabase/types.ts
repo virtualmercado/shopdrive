@@ -2781,6 +2781,7 @@ export type Database = {
           image_adjustments: Json
           image_url: string | null
           images: Json | null
+          is_active: boolean
           is_featured: boolean | null
           is_new: boolean | null
           length: number | null
@@ -2804,6 +2805,7 @@ export type Database = {
           image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
+          is_active?: boolean
           is_featured?: boolean | null
           is_new?: boolean | null
           length?: number | null
@@ -2827,6 +2829,7 @@ export type Database = {
           image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
+          is_active?: boolean
           is_featured?: boolean | null
           is_new?: boolean | null
           length?: number | null
@@ -4117,20 +4120,76 @@ export type Database = {
       }
       public_store_products: {
         Row: {
+          brand_id: string | null
           category_id: string | null
           created_at: string | null
           description: string | null
+          height: number | null
           id: string | null
           image_url: string | null
           images: Json | null
+          is_featured: boolean | null
+          is_new: boolean | null
+          length: number | null
           name: string | null
           price: number | null
           promotional_price: number | null
           stock: number | null
-          store_slug: string | null
-          updated_at: string | null
+          user_id: string | null
+          variations: Json | null
+          weight: number | null
+          width: number | null
+        }
+        Insert: {
+          brand_id?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          height?: number | null
+          id?: string | null
+          image_url?: string | null
+          images?: Json | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          length?: number | null
+          name?: string | null
+          price?: number | null
+          promotional_price?: number | null
+          stock?: number | null
+          user_id?: string | null
+          variations?: Json | null
+          weight?: number | null
+          width?: number | null
+        }
+        Update: {
+          brand_id?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          height?: number | null
+          id?: string | null
+          image_url?: string | null
+          images?: Json | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          length?: number | null
+          name?: string | null
+          price?: number | null
+          promotional_price?: number | null
+          stock?: number | null
+          user_id?: string | null
+          variations?: Json | null
+          weight?: number | null
+          width?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "product_brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
