@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreDomainTab } from "./StoreDomainTab";
+import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 interface StoreDetailsDialogProps {
   store: any;
@@ -33,14 +35,32 @@ export const StoreDetailsDialog = ({
   open,
   onOpenChange,
 }: StoreDetailsDialogProps) => {
-  const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ["store-payments", store?.id],
+  const queryClient = useQueryClient();
+
+  const { data: masterSub, isLoading: subLoading, refetch: refetchSub } = useQuery({
+    queryKey: ["store-master-subscription", store?.id],
+    queryFn: async () => {
+      if (!store?.id) return null;
+      const { data } = await supabase
+        .from("master_subscriptions")
+        .select("*")
+        .eq("user_id", store.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!store?.id && open,
+  });
+
+  const { data: invoices, isLoading: invoicesLoading, refetch: refetchInvoices } = useQuery({
+    queryKey: ["store-invoices", store?.id],
     queryFn: async () => {
       if (!store?.id) return [];
       const { data } = await supabase
-        .from("payments")
-        .select("*, invoices(*)")
-        .eq("invoices.subscriber_id", store.id)
+        .from("invoices")
+        .select("*")
+        .eq("subscriber_id", store.id)
         .order("created_at", { ascending: false })
         .limit(10);
       return data || [];
@@ -65,8 +85,37 @@ export const StoreDetailsDialog = ({
 
   if (!store) return null;
 
-  const subscription = store.subscriptions?.[0];
-  const plan = subscription?.subscription_plans;
+  const getPlanName = () => {
+    if (!masterSub) return "Grátis";
+    const pid = masterSub.plan_id;
+    if (pid === "premium") return "Premium";
+    if (pid === "pro") return "Pro";
+    if (pid === "gratis") return "Grátis";
+    return pid || "Grátis";
+  };
+
+  const getSubStatus = () => {
+    if (!masterSub) return "Inativo";
+    if (masterSub.plan_id === "gratis") return "Grátis";
+    if (masterSub.status === "cancelled" && masterSub.downgrade_reason === "payment_failed") return "Grátis";
+    if (masterSub.status === "active") return "Ativo";
+    if (masterSub.status === "past_due") return "Inadimplente";
+    if (masterSub.status === "pending") return "Pendente";
+    return "Inativo";
+  };
+
+  const getSubStatusVariant = () => {
+    const s = getSubStatus();
+    if (s === "Ativo") return "default" as const;
+    if (s === "Inadimplente") return "destructive" as const;
+    return "secondary" as const;
+  };
+
+  const handleRefresh = async () => {
+    await Promise.all([refetchSub(), refetchInvoices()]);
+    queryClient.invalidateQueries({ queryKey: ["admin-subscribers"] });
+    toast.success("Dados atualizados com sucesso");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +140,7 @@ export const StoreDetailsDialog = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Nome Completo</p>
-                <p className="text-base">{store.full_name}</p>
+                <p className="text-base">{store.full_name || store.store_name || "-"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">E-mail</p>
@@ -116,96 +165,92 @@ export const StoreDetailsDialog = ({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Data de Cadastro</p>
                 <p className="text-base">
-                  {format(new Date(store.created_at), "dd/MM/yyyy 'às' HH:mm")}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Última Atividade</p>
-                <p className="text-base">
-                  {store.last_activity
-                    ? format(new Date(store.last_activity), "dd/MM/yyyy 'às' HH:mm")
-                    : "-"}
+                  {store.created_at ? format(new Date(store.created_at), "dd/MM/yyyy 'às' HH:mm") : "-"}
                 </p>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="financeiro" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Plano Atual</p>
-                <p className="text-lg font-semibold">{plan?.name || "Grátis"}</p>
+            {subLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-6 w-24" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Status da Assinatura</p>
-                <Badge variant={subscription?.status === "active" ? "default" : "secondary"}>
-                  {subscription?.status || "Inativo"}
-                </Badge>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Plano Atual</p>
+                  <p className="text-lg font-semibold">{getPlanName()}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status da Assinatura</p>
+                  <Badge variant={getSubStatusVariant()}>
+                    {getSubStatus()}
+                  </Badge>
+                </div>
+                {masterSub && masterSub.plan_id !== "gratis" && (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Valor Mensal</p>
+                      <p className="text-base">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(masterSub.monthly_price || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Ciclo</p>
+                      <p className="text-base capitalize">{masterSub.billing_cycle || "-"}</p>
+                    </div>
+                  </>
+                )}
               </div>
-              {subscription && (
-                <>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Valor</p>
-                    <p className="text-base">
-                      {plan?.price
-                        ? new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(plan.price)
-                        : "Grátis"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Renovação</p>
-                    <p className="text-base">
-                      {format(new Date(subscription.current_period_end), "dd/MM/yyyy")}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="pt-4">
-              <Button variant="outline">Alterar Plano</Button>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="pagamentos" className="space-y-4 mt-4">
-            {paymentsLoading ? (
+            {invoicesLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : payments && payments.length > 0 ? (
+            ) : invoices && invoices.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
+                      <TableHead>Plano</TableHead>
                       <TableHead>Valor</TableHead>
-                      <TableHead>Gateway</TableHead>
+                      <TableHead>Método</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((payment: any) => (
-                      <TableRow key={payment.id}>
+                    {invoices.map((invoice: any) => (
+                      <TableRow key={invoice.id}>
                         <TableCell>
-                          {format(new Date(payment.created_at), "dd/MM/yyyy")}
+                          {format(new Date(invoice.created_at), "dd/MM/yyyy")}
                         </TableCell>
+                        <TableCell className="capitalize">{invoice.plan || "-"}</TableCell>
                         <TableCell>
                           {new Intl.NumberFormat("pt-BR", {
                             style: "currency",
                             currency: "BRL",
-                          }).format(payment.amount)}
+                          }).format(invoice.amount)}
                         </TableCell>
-                        <TableCell className="capitalize">{payment.gateway}</TableCell>
+                        <TableCell className="capitalize">{invoice.payment_method || "-"}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              payment.status === "completed" ? "default" : "secondary"
+                              invoice.status === "paid" ? "default" :
+                              invoice.status === "pending" ? "secondary" : "destructive"
                             }
                           >
-                            {payment.status}
+                            {invoice.status === "paid" ? "Pago" :
+                             invoice.status === "pending" ? "Pendente" : invoice.status}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -286,9 +331,13 @@ export const StoreDetailsDialog = ({
         </Tabs>
 
         <DialogFooter className="flex flex-row gap-2 justify-end">
-          <Button variant="outline">Editar Lojista</Button>
-          <Button variant="outline">Alterar Status</Button>
-          <Button variant="destructive">Suspender Conta</Button>
+          <Button variant="outline" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
