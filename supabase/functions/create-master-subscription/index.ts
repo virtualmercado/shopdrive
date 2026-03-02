@@ -147,9 +147,9 @@ serve(async (req) => {
     }
 
     // For monthly, only credit card is allowed
-    if (billingCycle === "monthly" && paymentMethod !== "credit_card") {
+    if (billingCycle === "monthly" && !["credit_card", "pix"].includes(paymentMethod)) {
       return new Response(
-        JSON.stringify({ error: "Plano mensal aceita apenas cartão de crédito" }),
+        JSON.stringify({ error: "Plano mensal aceita apenas cartão de crédito ou PIX" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
