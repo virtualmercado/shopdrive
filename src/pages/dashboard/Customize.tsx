@@ -11,6 +11,11 @@ import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
 import { TopBarConfigSection } from "@/components/customize/TopBarConfigSection";
 import { StoreLayoutSelector } from "@/components/customize/StoreLayoutSelector";
 
+// Fixed ShopDrive admin colors — never inherit from merchant theme
+const SD_PRIMARY = "#6A1B9A";
+const SD_PRIMARY_BG = "#6A1B9A40"; // 25% opacity for selected bg
+const SD_PRIMARY_HOVER = "#6A1B9A80"; // 50% opacity for hover border
+
 const Customize = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -275,7 +280,7 @@ const Customize = () => {
           </div>
         </Card>
 
-        {/* Top Bar Configuration - between Colors and AI Palette */}
+        {/* Top Bar Configuration */}
         <TopBarConfigSection
           userId={userId}
           primaryColor={colors.primary}
@@ -317,11 +322,9 @@ const Customize = () => {
                     asChild
                     className="transition-all"
                     onMouseEnter={(e) => {
-                      if (buttonBgColor) {
-                        e.currentTarget.style.backgroundColor = buttonBgColor;
-                        e.currentTarget.style.borderColor = buttonBgColor;
-                        e.currentTarget.style.color = buttonTextColor || '#FFFFFF';
-                      }
+                      e.currentTarget.style.backgroundColor = SD_PRIMARY;
+                      e.currentTarget.style.borderColor = SD_PRIMARY;
+                      e.currentTarget.style.color = '#FFFFFF';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '';
@@ -365,8 +368,8 @@ const Customize = () => {
                   }`}
                   style={{ 
                     ...(headerLogoPosition === "left" && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(headerLogoPosition !== "left" && {
                       borderColor: 'hsl(var(--input))'
@@ -374,7 +377,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (headerLogoPosition !== "left") {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -384,7 +387,7 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex items-center gap-1 w-full">
-                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "left" ? colors.primary : '#9ca3af' }} />
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "left" ? SD_PRIMARY : '#9ca3af' }} />
                     <div className="flex-1 h-2 bg-gray-200 rounded" />
                     <div className="w-6 h-2 bg-gray-200 rounded" />
                   </div>
@@ -400,8 +403,8 @@ const Customize = () => {
                   }`}
                   style={{ 
                     ...(headerLogoPosition === "center" && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(headerLogoPosition !== "center" && {
                       borderColor: 'hsl(var(--input))'
@@ -409,7 +412,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (headerLogoPosition !== "center") {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -420,7 +423,7 @@ const Customize = () => {
                 >
                   <div className="flex items-center gap-1 w-full">
                     <div className="w-6 h-2 bg-gray-200 rounded" />
-                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "center" ? colors.primary : '#9ca3af' }} />
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "center" ? SD_PRIMARY : '#9ca3af' }} />
                     <div className="w-6 h-2 bg-gray-200 rounded" />
                   </div>
                   <span className="text-sm">Centralizada</span>
@@ -435,8 +438,8 @@ const Customize = () => {
                   }`}
                   style={{ 
                     ...(headerLogoPosition === "right" && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(headerLogoPosition !== "right" && {
                       borderColor: 'hsl(var(--input))'
@@ -444,7 +447,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (headerLogoPosition !== "right") {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -456,7 +459,7 @@ const Customize = () => {
                   <div className="flex items-center gap-1 w-full">
                     <div className="w-6 h-2 bg-gray-200 rounded" />
                     <div className="flex-1 h-2 bg-gray-200 rounded" />
-                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "right" ? colors.primary : '#9ca3af' }} />
+                    <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "right" ? SD_PRIMARY : '#9ca3af' }} />
                   </div>
                   <span className="text-sm">Direita</span>
                 </button>
@@ -468,9 +471,6 @@ const Customize = () => {
         {/* Store Layout Selector */}
         <StoreLayoutSelector
           userId={userId}
-          primaryColor={colors.primary}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
         />
 
         {/* AI Color Palette */}
@@ -533,8 +533,8 @@ const Customize = () => {
                   style={{ 
                     fontWeight: 300,
                     ...(fontWeight === 300 && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(fontWeight !== 300 && {
                       borderColor: 'hsl(var(--input))'
@@ -542,7 +542,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (fontWeight !== 300) {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -564,8 +564,8 @@ const Customize = () => {
                   style={{ 
                     fontWeight: 500,
                     ...(fontWeight === 500 && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(fontWeight !== 500 && {
                       borderColor: 'hsl(var(--input))'
@@ -573,7 +573,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (fontWeight !== 500) {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -595,8 +595,8 @@ const Customize = () => {
                   style={{ 
                     fontWeight: 700,
                     ...(fontWeight === 700 && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(fontWeight !== 700 && {
                       borderColor: 'hsl(var(--input))'
@@ -604,7 +604,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (fontWeight !== 700) {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -647,8 +647,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productImageFormat === 'square' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productImageFormat !== 'square' && {
                       borderColor: 'hsl(var(--input))'
@@ -656,7 +656,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productImageFormat !== 'square') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -666,7 +666,7 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex flex-col gap-2 items-center">
-                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? colors.primary : '#ccc' }} />
+                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? SD_PRIMARY : '#ccc' }} />
                     <div className="space-y-1 w-12">
                       <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
                       <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
@@ -684,8 +684,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productImageFormat === 'rectangular' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productImageFormat !== 'rectangular' && {
                       borderColor: 'hsl(var(--input))'
@@ -693,7 +693,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productImageFormat !== 'rectangular') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -703,7 +703,7 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-14 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? colors.primary : '#ccc' }} />
+                    <div className="w-10 h-14 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? SD_PRIMARY : '#ccc' }} />
                     <div className="space-y-1 w-10">
                       <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
                       <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
@@ -728,8 +728,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productBorderStyle === 'straight' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productBorderStyle !== 'straight' && {
                       borderColor: 'hsl(var(--input))'
@@ -737,7 +737,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -747,7 +747,7 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'straight' ? colors.primary : '#ccc', borderRadius: '0' }} />
+                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'straight' ? SD_PRIMARY : '#ccc', borderRadius: '0' }} />
                     <div className="space-y-1 w-10">
                       <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
                       <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
@@ -765,8 +765,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productBorderStyle === 'rounded' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productBorderStyle !== 'rounded' && {
                       borderColor: 'hsl(var(--input))'
@@ -774,7 +774,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -784,7 +784,7 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? colors.primary : '#ccc', borderRadius: '8px' }} />
+                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? SD_PRIMARY : '#ccc', borderRadius: '8px' }} />
                     <div className="space-y-1 w-10">
                       <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
                       <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
@@ -812,8 +812,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productButtonDisplay === 'below' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productButtonDisplay !== 'below' && {
                       borderColor: 'hsl(var(--input))'
@@ -821,7 +821,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productButtonDisplay !== 'below') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -842,8 +842,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productButtonDisplay === 'none' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productButtonDisplay !== 'none' && {
                       borderColor: 'hsl(var(--input))'
@@ -851,7 +851,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productButtonDisplay !== 'none') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -879,8 +879,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productTextAlignment === 'left' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productTextAlignment !== 'left' && {
                       borderColor: 'hsl(var(--input))'
@@ -888,7 +888,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productTextAlignment !== 'left') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -897,7 +897,7 @@ const Customize = () => {
                     }
                   }}
                 >
-                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'left' ? colors.primary : '#ccc' }} />
+                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'left' ? SD_PRIMARY : '#ccc' }} />
                   <div className="flex flex-col gap-1 items-start" style={{ width: '40px' }}>
                     <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
                     <div className="h-1.5 bg-muted rounded" style={{ width: '75%' }} />
@@ -914,8 +914,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(productTextAlignment === 'center' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(productTextAlignment !== 'center' && {
                       borderColor: 'hsl(var(--input))'
@@ -923,7 +923,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (productTextAlignment !== 'center') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -932,7 +932,7 @@ const Customize = () => {
                     }
                   }}
                 >
-                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'center' ? colors.primary : '#ccc' }} />
+                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'center' ? SD_PRIMARY : '#ccc' }} />
                   <div className="flex flex-col gap-1 items-center" style={{ width: '40px' }}>
                     <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
                     <div className="h-1.5 bg-muted rounded" style={{ width: '75%' }} />
@@ -959,8 +959,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(buttonBorderStyle === 'rounded' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(buttonBorderStyle !== 'rounded' && {
                       borderColor: 'hsl(var(--input))'
@@ -968,7 +968,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (buttonBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -977,7 +977,7 @@ const Customize = () => {
                     }
                   }}
                 >
-                  <div className="w-14 h-7 border-2 rounded-lg" style={{ borderColor: buttonBorderStyle === 'rounded' ? colors.primary : '#ccc' }} />
+                  <div className="w-14 h-7 border-2 rounded-lg" style={{ borderColor: buttonBorderStyle === 'rounded' ? SD_PRIMARY : '#ccc' }} />
                   <span className="font-medium text-sm">Arredondada</span>
                 </button>
                 <button
@@ -990,8 +990,8 @@ const Customize = () => {
                   }`}
                   style={{
                     ...(buttonBorderStyle === 'straight' && {
-                      backgroundColor: `${colors.primary}40`,
-                      color: colors.primary
+                      backgroundColor: SD_PRIMARY_BG,
+                      color: SD_PRIMARY
                     }),
                     ...(buttonBorderStyle !== 'straight' && {
                       borderColor: 'hsl(var(--input))'
@@ -999,7 +999,7 @@ const Customize = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (buttonBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = `${colors.primary}80`;
+                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -1008,7 +1008,7 @@ const Customize = () => {
                     }
                   }}
                 >
-                  <div className="w-14 h-7 border-2" style={{ borderColor: buttonBorderStyle === 'straight' ? colors.primary : '#ccc' }} />
+                  <div className="w-14 h-7 border-2" style={{ borderColor: buttonBorderStyle === 'straight' ? SD_PRIMARY : '#ccc' }} />
                   <span className="font-medium text-sm">Reta</span>
                 </button>
               </div>

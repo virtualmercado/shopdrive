@@ -8,6 +8,11 @@ import { StoreLayoutPreview } from "./StoreLayoutPreview";
 
 export type StoreLayoutType = "layout_01" | "layout_02" | "layout_03";
 
+// Fixed ShopDrive admin colors
+const SD_PRIMARY = "#6A1B9A";
+const SD_PRIMARY_BG = "#6A1B9A08";
+const SD_PRIMARY_BADGE_BG = "#6A1B9A20";
+
 interface LayoutOption {
   id: StoreLayoutType;
   name: string;
@@ -38,16 +43,10 @@ const layoutOptions: LayoutOption[] = [
 
 interface StoreLayoutSelectorProps {
   userId: string | null;
-  primaryColor: string;
-  buttonBgColor: string;
-  buttonTextColor: string;
 }
 
 export const StoreLayoutSelector = ({ 
   userId, 
-  primaryColor,
-  buttonBgColor,
-  buttonTextColor 
 }: StoreLayoutSelectorProps) => {
   const { toast } = useToast();
   const [selectedLayout, setSelectedLayout] = useState<StoreLayoutType>("layout_01");
@@ -148,8 +147,8 @@ export const StoreLayoutSelector = ({
                     : 'border hover:border-gray-300'
                 }`}
                 style={{
-                  borderColor: isSelected ? primaryColor : undefined,
-                  backgroundColor: isSelected ? `${primaryColor}08` : undefined
+                  borderColor: isSelected ? SD_PRIMARY : undefined,
+                  backgroundColor: isSelected ? SD_PRIMARY_BG : undefined
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -159,8 +158,8 @@ export const StoreLayoutSelector = ({
                       <span 
                         className="text-[10px] px-1.5 py-0.5 rounded uppercase font-medium"
                         style={{ 
-                          backgroundColor: `${primaryColor}20`,
-                          color: primaryColor
+                          backgroundColor: SD_PRIMARY_BADGE_BG,
+                          color: SD_PRIMARY
                         }}
                       >
                         {layout.profile}
@@ -177,7 +176,7 @@ export const StoreLayoutSelector = ({
                   {isSelected && (
                     <div 
                       className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: primaryColor }}
+                      style={{ backgroundColor: SD_PRIMARY }}
                     >
                       <Check className="h-3 w-3 text-white" />
                     </div>
@@ -192,11 +191,7 @@ export const StoreLayoutSelector = ({
             <Button
               onClick={handleSaveLayout}
               disabled={!hasChanges || saving}
-              className="w-full transition-all"
-              style={{
-                backgroundColor: hasChanges ? buttonBgColor : undefined,
-                color: hasChanges ? buttonTextColor : undefined,
-              }}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving ? "Salvando..." : hasChanges ? "Salvar layout" : "Layout salvo"}
             </Button>
