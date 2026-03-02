@@ -552,93 +552,168 @@ const AdminSubscriptionCheckout = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copiado para a área de transferência!");
+    toast.success("Código Pix copiado com sucesso");
   };
 
-  const formatExpirationTime = (expiresAt: string) => {
-    const expires = new Date(expiresAt);
-    const now = new Date();
-    const diff = expires.getTime() - now.getTime();
-    
-    if (diff <= 0) return "Expirado";
-    
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  // Live PIX timer
+  const [pixTimeLeft, setPixTimeLeft] = useState<number>(0);
+  const [pixExpired, setPixExpired] = useState(false);
+
+  useEffect(() => {
+    if (step !== "pix" || !pixData?.expiresAt) return;
+    const calcRemaining = () => {
+      const diff = new Date(pixData.expiresAt).getTime() - Date.now();
+      if (diff <= 0) { setPixTimeLeft(0); setPixExpired(true); return; }
+      setPixTimeLeft(Math.floor(diff / 1000));
+    };
+    calcRemaining();
+    const iv = setInterval(calcRemaining, 1000);
+    return () => clearInterval(iv);
+  }, [step, pixData?.expiresAt]);
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Render PIX Step
+  // Render PIX Step — Loja Integrada style
   if (step === "pix" && pixData) {
+    // Expired state
+    if (pixExpired) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-10 pb-8 flex flex-col items-center text-center space-y-6">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+                <Clock className="h-8 w-8 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold mb-1">Código Pix expirado</h2>
+                <p className="text-sm text-muted-foreground">
+                  Este código expirou. Gere um novo para continuar.
+                </p>
+              </div>
+              <Button
+                className="w-full max-w-xs h-12 text-base"
+                style={{ backgroundColor: VM_PRIMARY }}
+                onClick={() => {
+                  setPixExpired(false);
+                  setPixData(null);
+                  setStep("form");
+                  // Auto-submit will be triggered by user clicking "Assinar Plano" again
+                }}
+              >
+                <RefreshCw className="h-5 w-5 mr-2" />
+                Gerar novo PIX
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep("form")}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Voltar ao checkout
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <QrCode className="h-12 w-12 mx-auto mb-2" style={{ color: VM_PRIMARY }} />
-            <CardTitle>Pague com Pix</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Escaneie o QR Code ou copie o código para pagar
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <Card className="max-w-lg w-full">
+          <CardContent className="pt-8 pb-8 space-y-6">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-7 w-7 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold">Pix gerado com sucesso!</h2>
+              <p className="text-sm text-muted-foreground">
+                Agora falta pouco pra você concluir seu pedido
+              </p>
+            </div>
+
+            {/* Timer */}
+            <div className="flex items-center justify-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Tempo restante:</span>
+              <span
+                className="font-mono font-bold text-base"
+                style={{ color: pixTimeLeft < 120 ? "#ef4444" : VM_PRIMARY }}
+              >
+                {formatTimer(pixTimeLeft)}
+              </span>
+            </div>
+
             {/* QR Code */}
             <div className="flex justify-center">
-              {pixData.qrCodeBase64 ? (
-                <img 
-                  src={`data:image/png;base64,${pixData.qrCodeBase64}`} 
-                  alt="QR Code Pix" 
-                  className="w-48 h-48"
-                />
-              ) : (
-                <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg">
-                  <QrCode className="h-24 w-24 text-gray-400" />
-                </div>
-              )}
-            </div>
-
-            {/* Código Copia e Cola */}
-            <div className="space-y-2">
-              <Label className="text-sm">Código Pix (Copia e Cola)</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={pixData.qrCode} 
-                  readOnly 
-                  className="text-xs"
-                />
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => copyToClipboard(pixData.qrCode)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div className="p-3 bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: VM_PRIMARY }}>
+                {pixData.qrCodeBase64 ? (
+                  <img
+                    src={pixData.qrCodeBase64.startsWith("data:") ? pixData.qrCodeBase64 : `data:image/png;base64,${pixData.qrCodeBase64}`}
+                    alt="QR Code Pix"
+                    className="w-56 h-56 md:w-64 md:h-64"
+                  />
+                ) : (
+                  <div className="w-56 h-56 md:w-64 md:h-64 flex items-center justify-center bg-gray-100 rounded">
+                    <QrCode className="h-24 w-24 text-gray-400" />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Timer e Valor */}
-            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4" />
-                <span>Expira em: {formatExpirationTime(pixData.expiresAt)}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-lg font-bold" style={{ color: VM_PRIMARY }}>
-                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
-                </span>
+            {/* Amount */}
+            <div className="text-center">
+              <span className="text-sm text-muted-foreground">Valor a pagar</span>
+              <p className="text-2xl font-bold" style={{ color: VM_PRIMARY }}>
+                R$ {pixData.amount.toFixed(2).replace(".", ",")}
+              </p>
+            </div>
+
+            {/* Copy Button */}
+            <Button
+              className="w-full h-12 text-base gap-2"
+              style={{ backgroundColor: VM_PRIMARY, color: "#fff" }}
+              onClick={() => copyToClipboard(pixData.qrCode)}
+            >
+              <Copy className="h-5 w-5" />
+              Copiar código Pix
+            </Button>
+
+            {/* Instructions */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <p className="text-sm font-medium">Como pagar:</p>
+              <div className="space-y-2">
+                {[
+                  "Abra o app do seu banco e escolha Pix",
+                  "Copie e cole o código ou escaneie o QR Code",
+                  "Confirme o pagamento"
+                ].map((text, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: VM_PRIMARY }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="text-sm text-muted-foreground pt-0.5">{text}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Aguardando pagamento */}
+            {/* Polling indicator */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" />
               <span>Aguardando confirmação do pagamento...</span>
             </div>
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="w-full"
               onClick={() => setStep("form")}
             >
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Voltar e escolher outro método
             </Button>
           </CardContent>
@@ -1161,10 +1236,13 @@ const AdminSubscriptionCheckout = () => {
 
               {/* Pix Info */}
               {paymentMethod === "pix" && (
-                <div className="p-4 bg-gray-50 rounded-lg text-center">
-                  <QrCode className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Após confirmar, você receberá um QR Code Pix para pagamento.
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center space-y-2">
+                  <QrCode className="h-10 w-10 mx-auto text-green-600" />
+                  <p className="text-sm font-medium text-green-800">
+                    Ao clicar em "Assinar Plano", um QR Code Pix será gerado automaticamente.
+                  </p>
+                  <p className="text-xs text-green-700">
+                    Você terá 10 minutos para realizar o pagamento.
                   </p>
                 </div>
               )}
