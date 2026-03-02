@@ -210,8 +210,8 @@ export const InvoiceHistorySection = () => {
               </TableRow>
             ) : currentInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Nenhuma fatura encontrada
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Seu histórico será exibido aqui após a primeira cobrança registrada.
                 </TableCell>
               </TableRow>
             ) : (
