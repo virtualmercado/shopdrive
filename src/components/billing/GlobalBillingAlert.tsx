@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Clock, Info, Loader2, CreditCard } from "lucide-react";
+import { AlertTriangle, Clock, Info, Loader2, CreditCard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useBannerDismiss } from "@/hooks/useBannerDismiss";
 import { 
   useBillingStatus, 
   useBillingAlertContent, 
@@ -77,6 +78,15 @@ export const GlobalBillingAlert = () => {
   const { data: alertContent } = useBillingAlertContent();
   const { data: settings } = useBillingSettings();
 
+  const status = billingInfo?.status || "active";
+
+  const { isVisible, dismiss } = useBannerDismiss({
+    bannerId: "global_billing",
+    status,
+    dismissHours: status === "in_grace_period" ? 2 : 6,
+    autoHideMs: status === "processing" ? undefined : undefined,
+  });
+
   // Don't show anything while loading
   if (billingLoading) {
     return null;
@@ -96,6 +106,8 @@ export const GlobalBillingAlert = () => {
   if (billingInfo.noCharge) {
     return null;
   }
+
+  if (!isVisible) return null;
 
   // Map billing status to alert key
   const getAlertKey = (status: BillingStatus): string => {
@@ -130,12 +142,12 @@ export const GlobalBillingAlert = () => {
   return (
     <div 
       className={cn(
-        "w-full px-4 py-3 border-b-2",
+        "w-full px-4 py-3 border-b-2 relative transition-all duration-300 animate-in fade-in slide-in-from-top-1",
         config.bgClass,
         config.borderClass
       )}
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 max-w-7xl mx-auto pr-8">
         <div className="flex items-start gap-3">
           <Icon 
             className={cn(
@@ -171,6 +183,17 @@ export const GlobalBillingAlert = () => {
           {content.cta_text}
         </Button>
       </div>
+
+      <button
+        onClick={dismiss}
+        className={cn(
+          "absolute top-3 right-3 p-1 rounded-md transition-colors hover:bg-black/5",
+          config.iconClass
+        )}
+        aria-label="Fechar alerta"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 };

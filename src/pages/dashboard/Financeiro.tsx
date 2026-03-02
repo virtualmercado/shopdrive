@@ -17,7 +17,6 @@ interface SubscriptionInfo {
   planId: string;
   cardToken?: string;
   paymentMethod?: string;
-  // New fields for status tracking
   declineType?: string | null;
   lastDeclineCode?: string | null;
   lastDeclineMessage?: string | null;
@@ -25,6 +24,7 @@ interface SubscriptionInfo {
   nextRetryAt?: string | null;
   retryCount?: number | null;
   requiresCardUpdate?: boolean;
+  updatedAt?: string | null;
 }
 
 interface SavedCard {
@@ -91,9 +91,10 @@ const Financeiro = () => {
           nextRetryAt: masterSub.next_retry_at,
           retryCount: masterSub.retry_count,
           requiresCardUpdate: masterSub.requires_card_update || false,
+          updatedAt: masterSub.updated_at,
         });
 
-        // Set saved card info if exists
+
         if (masterSub.card_last_four) {
           setSavedCard({
             holderName: "TITULAR DO CARTÃO", // Not stored for security
@@ -186,6 +187,7 @@ const Financeiro = () => {
             retryCount={subscription.retryCount}
             requiresCardUpdate={subscription.requiresCardUpdate}
             onUpdateCard={scrollToPaymentSection}
+            statusTimestamp={subscription.updatedAt}
           />
         )}
 
