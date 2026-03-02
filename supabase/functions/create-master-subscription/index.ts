@@ -441,6 +441,21 @@ serve(async (req) => {
         });
       }
 
+      // Create invoice record for monthly card payment
+      await supabase.from("invoices").insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: monthlyPrice,
+        status: mpData.status === "approved" ? "paid" : "pending",
+        due_date: new Date().toISOString(),
+        paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: "credit_card",
+        mp_payment_id: mpData.id?.toString(),
+        plan: planId,
+      });
+
       paymentResult = {
         success: mpData.status === "approved",
         status: mpData.status,
@@ -554,6 +569,21 @@ serve(async (req) => {
         });
       }
 
+      // Create invoice record for annual card payment
+      await supabase.from("invoices").insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: totalAmount,
+        status: mpData.status === "approved" ? "paid" : "pending",
+        due_date: new Date().toISOString(),
+        paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: "credit_card",
+        mp_payment_id: mpData.id?.toString(),
+        plan: planId,
+      });
+
       paymentResult = {
         success: mpData.status === "approved",
         status: mpData.status,
@@ -645,6 +675,20 @@ serve(async (req) => {
         event_type: "pix_generated",
         event_description: "PIX gerado, aguardando pagamento",
         metadata: { paymentId: mpData.id, expiresAt: pixExpiration.toISOString() }
+      });
+
+      // Create invoice record for PIX payment
+      await supabase.from("invoices").insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: totalAmount,
+        status: "pending",
+        due_date: pixExpiration.toISOString(),
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: "pix",
+        mp_payment_id: mpData.id?.toString(),
+        plan: planId,
       });
 
       paymentResult = {
@@ -739,6 +783,20 @@ serve(async (req) => {
         event_type: "boleto_generated",
         event_description: "Boleto gerado, aguardando pagamento",
         metadata: { paymentId: mpData.id, expiresAt: boletoExpiration.toISOString() }
+      });
+
+      // Create invoice record for boleto payment
+      await supabase.from("invoices").insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: totalAmount,
+        status: "pending",
+        due_date: boletoExpiration.toISOString(),
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: "boleto",
+        mp_payment_id: mpData.id?.toString(),
+        plan: planId,
       });
 
       paymentResult = {

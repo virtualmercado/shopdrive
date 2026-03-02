@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -17,22 +18,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Invoice {
   id: string;
-  dueDate: string;
+  due_date: string;
   amount: number;
-  plan: string;
-  status: "pending" | "paid" | "exempt";
+  plan: string | null;
+  status: string;
+  payment_method: string | null;
+  mp_payment_id: string | null;
+  paid_at: string | null;
+  created_at: string;
 }
 
-interface InvoiceHistorySectionProps {
-  invoices?: Invoice[];
-}
+const ITEMS_PER_PAGE = 12;
 
-const ITEMS_PER_PAGE = 50;
-
-const getStatusBadge = (status: Invoice["status"]) => {
+const getStatusBadge = (status: string) => {
   const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[140px] inline-block";
   
   switch (status) {
@@ -48,6 +52,25 @@ const getStatusBadge = (status: Invoice["status"]) => {
           Paga
         </Badge>
       );
+    case "rejected":
+      return (
+        <Badge className={`bg-red-500 hover:bg-red-500 ${baseClasses}`}>
+          Recusado
+        </Badge>
+      );
+    case "expired":
+    case "cancelled":
+      return (
+        <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>
+          Expirado
+        </Badge>
+      );
+    case "refunded":
+      return (
+        <Badge className={`bg-blue-500 hover:bg-blue-500 ${baseClasses}`}>
+          Reembolsado
+        </Badge>
+      );
     case "exempt":
       return (
         <Badge className={`bg-gray-400 hover:bg-gray-400 ${baseClasses}`}>
@@ -55,7 +78,11 @@ const getStatusBadge = (status: Invoice["status"]) => {
         </Badge>
       );
     default:
-      return null;
+      return (
+        <Badge className={`bg-gray-400 hover:bg-gray-400 ${baseClasses}`}>
+          {status}
+        </Badge>
+      );
   }
 };
 
@@ -71,41 +98,41 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString("pt-BR");
 };
 
-// Mock data for demonstration - will be replaced with real data from master panel
-const generateMockInvoices = (): Invoice[] => {
-  const invoicesData = [
-    { id: "2548925", date: "2026-11-01", amount: 49.97, plan: "PREMIUM", status: "pending" as const },
-    { id: "2533921", date: "2026-10-01", amount: 29.97, plan: "PRO", status: "paid" as const },
-    { id: "2437922", date: "2026-09-01", amount: 29.97, plan: "PRO", status: "paid" as const },
-    { id: "2433181", date: "2026-08-01", amount: 29.97, plan: "PRO", status: "paid" as const },
-    { id: "2333427", date: "2026-07-01", amount: 29.97, plan: "PRO", status: "paid" as const },
-    { id: "2236944", date: "2026-06-01", amount: 29.97, plan: "PRO", status: "paid" as const },
-    { id: "2233907", date: "2026-05-01", amount: 0, plan: "GRÁTIS", status: "exempt" as const },
-  ];
-
-  return invoicesData.map((inv) => ({
-    id: inv.id,
-    dueDate: inv.date,
-    amount: inv.amount,
-    plan: inv.plan,
-    status: inv.status,
-  }));
-};
-
-export const InvoiceHistorySection = ({
-  invoices: propInvoices,
-}: InvoiceHistorySectionProps) => {
+export const InvoiceHistorySection = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Use provided invoices or generate mock data
-    if (propInvoices && propInvoices.length > 0) {
-      setInvoices(propInvoices);
-    } else {
-      setInvoices(generateMockInvoices());
+    if (!user) return;
+    fetchInvoices();
+  }, [user]);
+
+  const fetchInvoices = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("id, due_date, amount, plan, status, payment_method, mp_payment_id, paid_at, created_at")
+        .eq("subscriber_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setInvoices((data as Invoice[]) || []);
+    } catch (error) {
+      console.error("Erro ao buscar faturas:", error);
+      toast({
+        title: "Erro ao carregar faturas",
+        description: "Não foi possível carregar o histórico de faturas.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [propInvoices]);
+  };
 
   const totalPages = Math.ceil(invoices.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -167,15 +194,21 @@ export const InvoiceHistorySection = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-gray-200">
-              <TableHead className="font-semibold text-gray-700 text-sm py-3">ID</TableHead>
               <TableHead className="font-semibold text-gray-700 text-sm py-3">Vencimento</TableHead>
               <TableHead className="font-semibold text-gray-700 text-sm py-3">Valor</TableHead>
               <TableHead className="font-semibold text-gray-700 text-sm py-3">Plano</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-sm py-3">Método</TableHead>
               <TableHead className="font-semibold text-gray-700 text-sm py-3 text-right">Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentInvoices.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Carregando faturas...
+                </TableCell>
+              </TableRow>
+            ) : currentInvoices.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Nenhuma fatura encontrada
@@ -187,17 +220,23 @@ export const InvoiceHistorySection = ({
                   key={invoice.id} 
                   className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
                 >
-                  <TableCell className="font-medium text-gray-800 py-3">
-                    {invoice.id}
-                  </TableCell>
                   <TableCell className="text-gray-600 py-3">
-                    {formatDate(invoice.dueDate)}
+                    {formatDate(invoice.due_date)}
                   </TableCell>
                   <TableCell className="text-gray-600 py-3">
                     {formatCurrency(invoice.amount)}
                   </TableCell>
+                  <TableCell className="text-gray-600 py-3 uppercase">
+                    {invoice.plan || "—"}
+                  </TableCell>
                   <TableCell className="text-gray-600 py-3">
-                    {invoice.plan}
+                    {invoice.payment_method === "credit_card"
+                      ? "Cartão"
+                      : invoice.payment_method === "pix"
+                      ? "PIX"
+                      : invoice.payment_method === "boleto"
+                      ? "Boleto"
+                      : "—"}
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     {getStatusBadge(invoice.status)}
@@ -207,13 +246,6 @@ export const InvoiceHistorySection = ({
             )}
           </TableBody>
         </Table>
-      </div>
-
-      {/* View All Link */}
-      <div className="text-center">
-        <button className="text-sm text-gray-500 hover:text-gray-700 hover:underline transition-colors">
-          Ver todo o histórico de faturas
-        </button>
       </div>
 
       {/* Pagination */}
