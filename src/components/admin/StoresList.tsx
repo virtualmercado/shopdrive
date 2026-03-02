@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MoreHorizontal, Eye, Edit, Ban, Trash2 } from "lucide-react";
-import { useStoresList } from "@/hooks/useStoresList";
+import { useStoresList, deriveSubscriberStatus } from "@/hooks/useStoresList";
 import { StoreFilters } from "./StoreFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreDetailsDialog } from "./StoreDetailsDialog";
@@ -51,23 +51,27 @@ export const StoresList = () => {
   );
 
   const getStatusBadge = (store: any) => {
-    const hasStoreSlug = store.store_slug;
-    const subscription = store.subscriptions?.[0];
-    const isPastDue = subscription?.status === "past_due";
+    const status = deriveSubscriberStatus(store.master_subscription);
 
-    if (isPastDue) {
-      return <Badge variant="destructive">Inadimplente</Badge>;
+    switch (status) {
+      case "Ativo":
+        return <Badge className="bg-green-600 hover:bg-green-700">Ativo</Badge>;
+      case "Inadimplente":
+        return <Badge variant="destructive">Inadimplente</Badge>;
+      case "Inativo":
+        return <Badge variant="outline">Inativo</Badge>;
+      case "Pendente":
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>;
+      case "Grátis":
+      default:
+        return <Badge variant="secondary">Grátis</Badge>;
     }
-    if (hasStoreSlug) {
-      return <Badge className="bg-green-600">Ativo</Badge>;
-    }
-    return <Badge variant="secondary">Inativo</Badge>;
   };
 
   const getPlanName = (store: any) => {
-    const subscription = store.subscriptions?.[0];
-    const planName = subscription?.subscription_plans?.name;
-    return planName || "Grátis";
+    const planId = store.master_subscription?.plan_id;
+    if (!planId || planId === "gratis") return "Grátis";
+    return planId.charAt(0).toUpperCase() + planId.slice(1);
   };
 
   if (isLoading) {
