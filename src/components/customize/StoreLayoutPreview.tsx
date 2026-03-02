@@ -1,161 +1,105 @@
 import { StoreLayoutType } from "./StoreLayoutSelector";
 
-interface ModuleBlock {
+interface WireframeBlock {
   id: string;
   name: string;
-  height: "sm" | "md" | "lg" | "xl";
-  width: "full" | "half";
-  icon?: string;
+  heightClass: string;
+  shade: "black" | "dark" | "medium" | "light" | "lighter";
 }
 
 interface StoreLayoutPreviewProps {
   layoutType: StoreLayoutType;
-  primaryColor: string;
+  primaryColor?: string;
 }
 
-// Define the order of modules for each layout
-const layoutModules: Record<StoreLayoutType, ModuleBlock[]> = {
-  layout_01: [
-    { id: "header", name: "Header", height: "sm", width: "full" },
-    { id: "banner", name: "Banner Principal", height: "lg", width: "full" },
-    { id: "mini-banners", name: "Mini Banners", height: "md", width: "full" },
-    { id: "destaques", name: "Carrossel de Destaques", height: "md", width: "full" },
-    { id: "promocoes", name: "Carrossel de Promoções", height: "md", width: "full" },
-    { id: "todos", name: "Todos os Produtos", height: "md", width: "full" },
-    { id: "video", name: "Vídeo YouTube", height: "lg", width: "full" },
-    { id: "footer", name: "Rodapé", height: "sm", width: "full" },
-  ],
-  layout_02: [
-    { id: "header", name: "Header", height: "sm", width: "full" },
-    { id: "banner", name: "Banner Principal", height: "lg", width: "full" },
-    { id: "promocoes", name: "Carrossel de Promoções", height: "md", width: "full" },
-    { id: "destaques", name: "Carrossel de Destaques", height: "md", width: "full" },
-    { id: "mini-banners", name: "Mini Banners", height: "md", width: "full" },
-    { id: "todos", name: "Todos os Produtos", height: "md", width: "full" },
-    { id: "video", name: "Vídeo YouTube", height: "lg", width: "full" },
-    { id: "footer", name: "Rodapé", height: "sm", width: "full" },
-  ],
-  layout_03: [
-    { id: "header", name: "Header", height: "sm", width: "full" },
-    { id: "banner", name: "Banner Principal", height: "lg", width: "full" },
-    { id: "video", name: "Vídeo YouTube", height: "lg", width: "full" },
-    { id: "mini-banners", name: "Mini Banners", height: "md", width: "full" },
-    { id: "destaques", name: "Carrossel de Destaques", height: "md", width: "full" },
-    { id: "promocoes", name: "Carrossel de Promoções", height: "md", width: "full" },
-    { id: "todos", name: "Todos os Produtos", height: "md", width: "full" },
-    { id: "footer", name: "Rodapé", height: "sm", width: "full" },
-  ],
+// Fixed blocks (always first and last)
+const topbar: WireframeBlock = { id: "topbar", name: "Topbar", heightClass: "h-[30px]", shade: "black" };
+const header: WireframeBlock = { id: "header", name: "Header", heightClass: "h-[44px]", shade: "dark" };
+const footer: WireframeBlock = { id: "footer", name: "Rodapé", heightClass: "h-[52px]", shade: "dark" };
+
+// Dynamic middle modules
+const modules: Record<string, WireframeBlock> = {
+  banner: { id: "banner", name: "Banner Principal", heightClass: "h-[100px]", shade: "medium" },
+  miniBanners: { id: "miniBanners", name: "Mini Banners", heightClass: "h-[60px]", shade: "medium" },
+  destaques: { id: "destaques", name: "Carrossel de Destaques", heightClass: "h-[65px]", shade: "lighter" },
+  promocoes: { id: "promocoes", name: "Carrossel de Promoções", heightClass: "h-[65px]", shade: "light" },
+  todos: { id: "todos", name: "Todos os Produtos", heightClass: "h-[78px]", shade: "lighter" },
+  video: { id: "video", name: "Vídeo YouTube", heightClass: "h-[90px]", shade: "dark" },
 };
 
-const heightClasses: Record<string, string> = {
-  sm: "h-6",
-  md: "h-10",
-  lg: "h-14",
-  xl: "h-20",
+// Order of the dynamic middle section per layout
+const layoutMiddleOrder: Record<StoreLayoutType, string[]> = {
+  layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video"],
+  layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video"],
+  layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos"],
 };
 
-const getModuleStyle = (moduleId: string, primaryColor: string): React.CSSProperties => {
-  switch (moduleId) {
-    case "header":
-      return { backgroundColor: primaryColor, opacity: 0.9 };
-    case "banner":
-      return { background: `linear-gradient(135deg, ${primaryColor}cc, ${primaryColor}88)` };
-    case "footer":
-      return { backgroundColor: "#1f2937" };
-    case "video":
-      return { backgroundColor: "#374151", border: "2px dashed #6b7280" };
-    case "mini-banners":
-      return { backgroundColor: "#e5e7eb" };
-    case "destaques":
-      return { backgroundColor: `${primaryColor}30` };
-    case "promocoes":
-      return { backgroundColor: "#fef3c7" };
-    case "todos":
-      return { backgroundColor: "#f3f4f6" };
-    default:
-      return { backgroundColor: "#f9fafb" };
-  }
+const shadeColors: Record<WireframeBlock["shade"], string> = {
+  black: "#1a1a1a",
+  dark: "#374151",
+  medium: "#6b7280",
+  light: "#d1d5db",
+  lighter: "#e5e7eb",
 };
 
-const getModuleIcon = (moduleId: string): string => {
-  switch (moduleId) {
-    case "header":
-      return "☰";
-    case "banner":
-      return "🖼️";
-    case "footer":
-      return "📍";
-    case "video":
-      return "▶️";
-    case "mini-banners":
-      return "◻◻";
-    case "destaques":
-      return "⭐";
-    case "promocoes":
-      return "🏷️";
-    case "todos":
-      return "📦";
-    default:
-      return "□";
-  }
+const textColors: Record<WireframeBlock["shade"], string> = {
+  black: "#a3a3a3",
+  dark: "#d1d5db",
+  medium: "#e5e7eb",
+  light: "#4b5563",
+  lighter: "#4b5563",
 };
 
-export const StoreLayoutPreview = ({ layoutType, primaryColor }: StoreLayoutPreviewProps) => {
-  const modules = layoutModules[layoutType];
+const WireframeBlockItem = ({ block }: { block: WireframeBlock }) => (
+  <div
+    className={`${block.heightClass} w-full rounded-lg flex items-center justify-center border border-gray-200/50`}
+    style={{
+      backgroundColor: shadeColors[block.shade],
+      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    }}
+  >
+    <span
+      className="text-[11px] font-medium tracking-wide"
+      style={{ color: textColors[block.shade] }}
+    >
+      {block.name}
+    </span>
+  </div>
+);
+
+export const StoreLayoutPreview = ({ layoutType }: StoreLayoutPreviewProps) => {
+  const middleOrder = layoutMiddleOrder[layoutType];
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm overflow-hidden border">
-      {/* Browser mockup header */}
-      <div className="bg-gray-100 px-3 py-2 flex items-center gap-2 border-b">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+    <div className="flex justify-center">
+      {/* Mobile frame */}
+      <div
+        className="w-[340px] h-[600px] bg-white rounded-2xl border-2 border-gray-300 overflow-hidden flex flex-col"
+        style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}
+      >
+        {/* Topbar - always first */}
+        <div className="flex-shrink-0 px-2 pt-2">
+          <WireframeBlockItem block={topbar} />
         </div>
-        <div className="flex-1 bg-white rounded px-2 py-0.5 text-[10px] text-gray-400 text-center">
-          minhaloja.shopdrive.com
+
+        {/* Header - always second */}
+        <div className="flex-shrink-0 px-2 pt-1.5">
+          <WireframeBlockItem block={header} />
         </div>
-      </div>
 
-      {/* Layout modules */}
-      <div className="p-2 space-y-1.5 max-h-[360px] overflow-y-auto">
-        {modules.map((module, index) => (
-          <div
-            key={`${module.id}-${index}`}
-            className={`${heightClasses[module.height]} ${
-              module.width === "full" ? "w-full" : "w-1/2"
-            } rounded flex items-center justify-center gap-1.5 transition-all`}
-            style={getModuleStyle(module.id, primaryColor)}
-          >
-            <span className="text-xs opacity-80">{getModuleIcon(module.id)}</span>
-            <span 
-              className={`text-[10px] font-medium truncate px-1 ${
-                module.id === "footer" || module.id === "video" 
-                  ? "text-white" 
-                  : module.id === "header" 
-                    ? "text-white" 
-                    : "text-gray-700"
-              }`}
-            >
-              {module.name}
-            </span>
-          </div>
-        ))}
-      </div>
+        {/* Scrollable middle */}
+        <div className="flex-1 overflow-y-auto px-2 py-1.5 space-y-1.5 min-h-0">
+          {middleOrder.map((key) => {
+            const block = modules[key];
+            if (!block) return null;
+            return <WireframeBlockItem key={block.id} block={block} />;
+          })}
+        </div>
 
-      {/* Layout name badge */}
-      <div className="bg-gray-50 px-3 py-2 border-t text-center">
-        <span 
-          className="text-xs font-medium px-2 py-0.5 rounded"
-          style={{ 
-            backgroundColor: `${primaryColor}20`,
-            color: primaryColor 
-          }}
-        >
-          {layoutType === "layout_01" && "Layout Clássico"}
-          {layoutType === "layout_02" && "Layout Conversão"}
-          {layoutType === "layout_03" && "Layout Marca & Conteúdo"}
-        </span>
+        {/* Footer - always last */}
+        <div className="flex-shrink-0 px-2 pb-2">
+          <WireframeBlockItem block={footer} />
+        </div>
       </div>
     </div>
   );
