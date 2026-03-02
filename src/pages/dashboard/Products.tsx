@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ interface Product {
   images: any;
   category_id: string | null;
   image_adjustments?: ImageAdjustments[];
+  is_active: boolean;
 }
 
 interface Category {
@@ -155,6 +157,37 @@ const Products = () => {
     );
   };
 
+  const handleToggleActive = async (productId: string, currentActive: boolean) => {
+    const newActive = !currentActive;
+    // Optimistic update
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, is_active: newActive } : p))
+    );
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: newActive })
+        .eq('id', productId);
+      if (error) throw error;
+      toast({
+        title: newActive ? "Produto ativado" : "Produto desativado",
+        description: newActive
+          ? "Produto visível na loja online"
+          : "Produto oculto da loja online",
+      });
+    } catch (error) {
+      // Revert on failure
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, is_active: currentActive } : p))
+      );
+      toast({
+        title: "Erro",
+        description: "Erro ao alterar status do produto",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
@@ -232,7 +265,21 @@ const Products = () => {
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-3">
             {filteredProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden">
+              <Card key={product.id} className={`overflow-hidden relative transition-opacity ${!product.is_active ? 'opacity-60' : ''}`}>
+                {/* Active Toggle */}
+                <div className="absolute top-2 right-2 z-10">
+                  <Switch
+                    checked={product.is_active}
+                    onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
+                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
+                  />
+                </div>
+                {/* Inactive badge */}
+                {!product.is_active && (
+                  <div className="absolute top-2 left-2 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
+                    Inativo
+                  </div>
+                )}
                 <div className="aspect-square bg-muted">
                   {product.image_url ? (
                     <img 
