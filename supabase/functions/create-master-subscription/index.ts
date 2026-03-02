@@ -189,13 +189,29 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingSubscription) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
-          existingSubscriptionId: existingSubscription.id
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // If existing subscription is just "pending" (incomplete checkout), cancel it and allow retry
+      if (existingSubscription.status === "pending") {
+        console.log("Cancelling stale pending subscription:", existingSubscription.id);
+        await supabase
+          .from("master_subscriptions")
+          .update({ status: "cancelled" })
+          .eq("id", existingSubscription.id);
+
+        await supabase.from("master_subscription_logs").insert({
+          subscription_id: existingSubscription.id,
+          user_id: userId,
+          event_type: "subscription_cancelled",
+          event_description: "Assinatura pendente cancelada automaticamente para nova tentativa",
+        });
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
+            existingSubscriptionId: existingSubscription.id
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Get master gateway credentials

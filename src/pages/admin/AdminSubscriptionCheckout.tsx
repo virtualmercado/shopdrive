@@ -528,7 +528,23 @@ const AdminSubscriptionCheckout = () => {
       }
     } catch (error: any) {
       console.error("Error processing subscription:", error);
-      toast.error(error.message || "Erro ao processar assinatura");
+      // Try to parse JSON from error message for structured error handling
+      let errorMessage = "Erro ao processar assinatura. Tente novamente.";
+      try {
+        const msg = error?.message || "";
+        if (msg.includes("existingSubscriptionId") || msg.includes("assinatura ativa")) {
+          toast.error("Você já possui uma assinatura ativa ou pendente. Acesse o painel para gerenciá-la.");
+          setTimeout(() => navigate("/lojista/financeiro"), 2000);
+          return;
+        }
+        if (msg.startsWith("{")) {
+          const parsed = JSON.parse(msg);
+          errorMessage = parsed.error || errorMessage;
+        } else if (msg) {
+          errorMessage = msg;
+        }
+      } catch {}
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
