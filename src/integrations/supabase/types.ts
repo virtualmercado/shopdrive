@@ -4135,52 +4135,11 @@ export type Database = {
           price: number | null
           promotional_price: number | null
           stock: number | null
+          store_slug: string | null
           user_id: string | null
           variations: Json | null
           weight: number | null
           width: number | null
-        }
-        Insert: {
-          brand_id?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          height?: number | null
-          id?: string | null
-          image_url?: string | null
-          images?: Json | null
-          is_featured?: boolean | null
-          is_new?: boolean | null
-          length?: number | null
-          name?: string | null
-          price?: number | null
-          promotional_price?: number | null
-          stock?: number | null
-          user_id?: string | null
-          variations?: Json | null
-          weight?: number | null
-          width?: number | null
-        }
-        Update: {
-          brand_id?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          height?: number | null
-          id?: string | null
-          image_url?: string | null
-          images?: Json | null
-          is_featured?: boolean | null
-          is_new?: boolean | null
-          length?: number | null
-          name?: string | null
-          price?: number | null
-          promotional_price?: number | null
-          stock?: number | null
-          user_id?: string | null
-          variations?: Json | null
-          weight?: number | null
-          width?: number | null
         }
         Relationships: [
           {

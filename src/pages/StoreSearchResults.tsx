@@ -124,10 +124,10 @@ const StoreSearchResultsContent = () => {
         const { data, error } = await supabase
           .from("public_store_products")
           .select("id,name,price,promotional_price,image_url,images,stock")
-          .eq("store_slug", storeSlug)
-          .ilike("name", like)
+          .eq("store_slug", storeSlug as string)
+          .ilike("name", like as string)
           .order("created_at", { ascending: false })
-          .limit(60);
+          .limit(60) as any;
 
         if (error) {
           console.error("[StoreSearchResults] Query error:", error);
