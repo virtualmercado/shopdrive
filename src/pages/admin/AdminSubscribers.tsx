@@ -103,23 +103,93 @@ const AdminSubscribers = () => {
 
       if (error) throw error;
 
+      // Fetch master_subscriptions for all profiles
+      const profileIds = (profiles || []).map(p => p.id);
+      
+      const { data: allMasterSubs } = await supabase
+        .from('master_subscriptions')
+        .select('user_id, status, plan_id, billing_cycle, monthly_price, total_amount, downgrade_reason')
+        .in('user_id', profileIds)
+        .order('created_at', { ascending: false });
+
+      // Build map: user_id -> latest master subscription
+      const masterSubMap = new Map<string, any>();
+      allMasterSubs?.forEach((sub) => {
+        if (!masterSubMap.has(sub.user_id)) {
+          masterSubMap.set(sub.user_id, sub);
+        }
+      });
+
+      // Fetch latest paid invoices per subscriber
+      const { data: allInvoices } = await supabase
+        .from('invoices')
+        .select('subscriber_id, status, paid_at, plan')
+        .in('subscriber_id', profileIds)
+        .order('created_at', { ascending: false });
+
+      const invoiceMap = new Map<string, any>();
+      allInvoices?.forEach((inv) => {
+        if (!invoiceMap.has(inv.subscriber_id)) {
+          invoiceMap.set(inv.subscriber_id, inv);
+        }
+      });
+
       const subscriberData = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('status, subscription_plans(name)')
-            .eq('user_id', profile.id)
-            .maybeSingle();
-
           const { count: productCount } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', profile.id);
 
+          const masterSub = masterSubMap.get(profile.id);
+          const latestInvoice = invoiceMap.get(profile.id);
+
+          // Derive plan name
+          let planName = 'Grátis';
+          if (masterSub) {
+            const pid = masterSub.plan_id;
+            if (pid === 'premium') planName = 'Premium';
+            else if (pid === 'pro') planName = 'Pro';
+            else if (pid === 'gratis') planName = 'Grátis';
+            else planName = pid || 'Grátis';
+          }
+
+          // Derive status using master_subscriptions + invoices
+          let subscriptionStatus = 'inactive';
+          if (masterSub) {
+            if (masterSub.plan_id === 'gratis') {
+              subscriptionStatus = 'inactive';
+              planName = 'Grátis';
+            } else if (masterSub.status === 'cancelled' && masterSub.downgrade_reason === 'payment_failed') {
+              subscriptionStatus = 'inactive';
+              planName = 'Grátis';
+            } else if (masterSub.status === 'active') {
+              subscriptionStatus = 'active';
+            } else if (masterSub.status === 'past_due') {
+              subscriptionStatus = 'past_due';
+            } else if (masterSub.status === 'pending') {
+              subscriptionStatus = 'pending';
+            } else {
+              subscriptionStatus = 'inactive';
+            }
+          }
+
+          // Override with invoice data if more recent
+          if (latestInvoice) {
+            if (latestInvoice.status === 'paid' && subscriptionStatus !== 'active') {
+              subscriptionStatus = 'active';
+              if (latestInvoice.plan) {
+                planName = latestInvoice.plan === 'premium' ? 'Premium' : latestInvoice.plan === 'pro' ? 'Pro' : latestInvoice.plan;
+              }
+            } else if (latestInvoice.status === 'pending' && subscriptionStatus === 'inactive') {
+              subscriptionStatus = 'pending';
+            }
+          }
+
           return {
             ...profile,
-            planName: (subscription?.subscription_plans as any)?.name || 'Grátis',
-            subscriptionStatus: subscription?.status || 'inactive',
+            planName,
+            subscriptionStatus,
             productCount: productCount || 0
           };
         })
@@ -137,6 +207,8 @@ const AdminSubscribers = () => {
         return <Badge variant="destructive">Cancelado</Badge>;
       case 'past_due':
         return <Badge className="bg-amber-100 text-amber-800">Inadimplente</Badge>;
+      case 'pending':
+        return <Badge className="bg-blue-100 text-blue-800">Pagamento pendente</Badge>;
       default:
         return <Badge variant="secondary">Inativo</Badge>;
     }
