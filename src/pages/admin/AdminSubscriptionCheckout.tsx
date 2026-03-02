@@ -427,8 +427,9 @@ const AdminSubscriptionCheckout = () => {
 
       if (error) {
         // Handle 409 conflict - existing subscription
-        if (error.message?.includes("409")) {
+        if (error.message?.includes("409") || data?.existingSubscriptionId) {
           toast.error("Você já possui uma assinatura ativa ou pendente. Acesse o painel para gerenciá-la.");
+          setIsProcessing(false);
           setTimeout(() => {
             navigate("/lojista/financeiro");
           }, 2000);
