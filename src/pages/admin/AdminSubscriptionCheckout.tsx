@@ -101,7 +101,8 @@ const AdminSubscriptionCheckout = () => {
 
   // Parâmetros da URL
   const planParam = (searchParams.get("plano") as PlanId) || "pro";
-  const cycleParam = (searchParams.get("ciclo") as BillingCycle) || "monthly";
+  const rawCycle = searchParams.get("ciclo") || "monthly";
+  const cycleParam: BillingCycle = rawCycle === "mensal" ? "monthly" : rawCycle === "anual" ? "annual" : (rawCycle as BillingCycle);
   const originParam = searchParams.get("origem") || "checkout";
 
   // Estados
