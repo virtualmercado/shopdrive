@@ -48,6 +48,7 @@ import benefitsMobile from "@/assets/benefits-mobile.jpg";
 // CMS Content Modals
 import CMSHeaderModal from "@/components/admin/cms/CMSHeaderModal";
 import CMSHeroModal from "@/components/admin/cms/CMSHeroModal";
+import CMSDemoVideoModal from "@/components/admin/cms/CMSDemoVideoModal";
 import CMSProductsModal from "@/components/admin/cms/CMSProductsModal";
 import CMSSocialProofModal from "@/components/admin/cms/CMSSocialProofModal";
 import CMSSalesPaymentsModal from "@/components/admin/cms/CMSSalesPaymentsModal";
@@ -107,6 +108,7 @@ const defaultImages: Record<string, string> = {
 const contentSections = [
   { key: "header", name: "Header da Landing Page", icon: Layout, description: "Menu de navegação e botões" },
   { key: "hero", name: "Hero da Landing Page", icon: Type, description: "Título, subtítulo e CTAs principais" },
+  { key: "demo_video", name: "Vídeo de Demonstração", icon: Globe, description: "Configuração do vídeo exibido no botão \"Ver Demonstração\" da Hero" },
   { key: "products", name: "Bloco Seus Produtos", icon: Box, description: "Seção de produtos disponíveis" },
   { key: "social_proof_1", name: "Prova Social 01", icon: TrendingUp, description: "Destaque de credibilidade" },
   { key: "sales_payments", name: "Bloco Vendas e Pagamentos", icon: CreditCard, description: "WhatsApp e métodos de pagamento" },
@@ -875,6 +877,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["hero"]}
         onSave={(content) => handleSaveContent("hero", content)}
+      />
+      <CMSDemoVideoModal
+        isOpen={activeModal === "demo_video"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["demo_video"]}
+        onSave={(content) => handleSaveContent("demo_video", content)}
       />
       <CMSProductsModal
         isOpen={activeModal === "products"}

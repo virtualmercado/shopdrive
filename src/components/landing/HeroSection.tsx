@@ -3,6 +3,22 @@ import HeroCarousel from "./HeroCarousel";
 import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
 import heroImageDefault from "@/assets/hero-banner.jpg";
 
+const extractYouTubeId = (url: string): string | null => {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/watch\?.*&v=)([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m?.[1]) return m[1];
+  }
+  return null;
+};
+
 interface HeroSectionProps {
   heroContent: {
     badge: string;
@@ -12,9 +28,10 @@ interface HeroSectionProps {
     buttonSecondary: string;
     infoText: string;
   };
+  demoVideoContent?: Record<string, any>;
 }
 
-const HeroSection = ({ heroContent }: HeroSectionProps) => {
+const HeroSection = ({ heroContent, demoVideoContent }: HeroSectionProps) => {
   const { data: cmsBanners, isLoading } = useCMSBanners();
 
   // Get hero carousel images from CMS - only when data is loaded
@@ -27,6 +44,14 @@ const HeroSection = ({ heroContent }: HeroSectionProps) => {
   const carouselImages = [heroImage1, heroImage2, heroImage3].filter(
     (url) => url && url.length > 0
   );
+
+  // Build demo video data
+  const demoVideo = demoVideoContent?.url ? {
+    url: demoVideoContent.url,
+    title: demoVideoContent.title || "",
+    behavior: (demoVideoContent.behavior || "modal") as "modal" | "new_tab",
+    videoId: extractYouTubeId(demoVideoContent.url),
+  } : undefined;
 
   return (
     <section className="relative py-16 md:py-24 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5 overflow-hidden">
@@ -41,6 +66,7 @@ const HeroSection = ({ heroContent }: HeroSectionProps) => {
               buttonPrimary={heroContent.buttonPrimary}
               buttonSecondary={heroContent.buttonSecondary}
               infoText={heroContent.infoText}
+              demoVideo={demoVideo}
             />
           </div>
 
