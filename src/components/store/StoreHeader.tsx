@@ -230,11 +230,12 @@ const StoreHeader = ({
             }`}
           >
             {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt={storeName} 
-                className="h-12 w-auto object-contain max-w-[250px] cursor-pointer hover:opacity-90 transition-opacity" 
-              />
+               <img 
+                 src={logoUrl} 
+                 alt={storeName} 
+                 style={{ maxHeight: '65px' }}
+                 className="w-auto object-contain max-w-[250px] cursor-pointer hover:opacity-90 transition-opacity" 
+               />
             ) : (
               <span className="text-2xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
                 {storeName}
@@ -305,11 +306,12 @@ const StoreHeader = ({
               logoPosition === "center" ? "flex-1 flex justify-center" : ""
             }`}>
               {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt={storeName} 
-                  className="h-8 w-auto object-contain max-w-[160px] cursor-pointer hover:opacity-90 transition-opacity" 
-                />
+                 <img 
+                   src={logoUrl} 
+                   alt={storeName} 
+                   style={{ maxHeight: '50px' }}
+                   className="w-auto object-contain max-w-[160px] cursor-pointer hover:opacity-90 transition-opacity" 
+                 />
               ) : (
                 <span className="text-xl font-bold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: backgroundColor }}>
                   {storeName}
