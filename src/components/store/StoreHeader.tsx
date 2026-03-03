@@ -46,6 +46,7 @@ const StoreHeader = ({
   selectedCategory,
   onCategoryChange,
   logoPosition = "left",
+  onContactClick,
 }: StoreHeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
