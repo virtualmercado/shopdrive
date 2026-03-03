@@ -155,6 +155,14 @@ serve(async (req) => {
 
     const data = JSON.parse(responseText);
     
+    if (!data || !Array.isArray(data)) {
+      console.error("Melhor Envio returned unexpected data:", typeof data);
+      return new Response(
+        JSON.stringify({ quotes: [] }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Map the response to our format
     const quotes = data
       .filter((quote: any) => !quote.error)
