@@ -53,7 +53,7 @@ const CustomerServiceDropdown = ({
   const hasEmail = !!contactData?.email;
   const hasAnyContact = hasPhone || hasWhatsApp || hasEmail;
 
-  if (!hasAnyContact && !onContactClick) return null;
+  if (!hasAnyContact) return null;
 
   const formatWhatsAppLink = (number: string) => {
     const clean = number.replace(/\D/g, "");
