@@ -65,7 +65,12 @@ const CustomerServiceDropdown = ({
 
   const handleContactClick = () => {
     setOpen(false);
-    onContactClick?.();
+    if (onContactClick) {
+      onContactClick();
+    } else {
+      // Dispatch custom event to trigger the WhatsApp contact dialog
+      window.dispatchEvent(new CustomEvent("open-store-contact-dialog"));
+    }
   };
 
   return (
