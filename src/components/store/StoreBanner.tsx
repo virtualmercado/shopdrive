@@ -132,7 +132,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                 style={{ width: `${100 / mobileBannerUrls.length}%` }}
               >
                 {/* Mobile banner container with 8:7 aspect ratio (800x700px) */}
-                <div className="w-full" style={{ aspectRatio: '8 / 7' }}>
+                <div className="w-full" style={{ aspectRatio: '800 / 700', minHeight: 0 }}>
                   <img
                     src={url}
                     alt={`Banner ${index + 1}`}
@@ -181,7 +181,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                   style={{ width: `${100 / desktopBannerUrls.length}%` }}
                 >
                   {/* Mobile fallback banner with 8:7 aspect ratio (800x700px) */}
-                  <div className="w-full" style={{ aspectRatio: '8 / 7' }}>
+                  <div className="w-full" style={{ aspectRatio: '800 / 700', minHeight: 0 }}>
                     <img
                       src={url}
                       alt={`Banner ${index + 1}`}
