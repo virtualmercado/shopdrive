@@ -13,6 +13,9 @@ import { Search, Filter, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, 
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useMerchantPlan } from '@/hooks/useMerchantPlan';
+import { PlanLimitReachedModal } from '@/components/plan';
+import { PLAN_DISPLAY_NAMES } from '@/lib/planLimits';
 
 interface Customer {
   id: string;
@@ -62,6 +65,8 @@ const Customers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerLimitModalOpen, setCustomerLimitModalOpen] = useState(false);
+  const { plan, limits, customerCount, canAddCustomer, refetch: refetchPlan } = useMerchantPlan();
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [groups, setGroups] = useState<CustomerGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -850,7 +855,13 @@ const Customers = () => {
               </div>
               <Button 
                 className="gap-2 text-white bg-primary hover:bg-primary/90"
-                onClick={() => setShowAddCustomerModal(true)}
+                onClick={() => {
+                  if (!canAddCustomer) {
+                    setCustomerLimitModalOpen(true);
+                    return;
+                  }
+                  setShowAddCustomerModal(true);
+                }}
               >
                 <Plus className="h-4 w-4" />
                 Incluir cadastro
@@ -1580,6 +1591,14 @@ const Customers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PlanLimitReachedModal
+        open={customerLimitModalOpen}
+        onOpenChange={setCustomerLimitModalOpen}
+        resourceName="clientes"
+        currentCount={customerCount}
+        maxAllowed={limits.maxCustomers ?? 0}
+        planName={PLAN_DISPLAY_NAMES[plan]}
+      />
     </DashboardLayout>
   );
 };

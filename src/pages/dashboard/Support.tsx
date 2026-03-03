@@ -12,6 +12,8 @@ import { useWhatsAppChannel } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanGateOverlay } from "@/components/plan";
 
 interface SupportTicket {
   id: string;
@@ -41,6 +43,9 @@ const Support = () => {
   const [loading, setLoading] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ store_name?: string; email?: string } | null>(null);
+
+  const { plan, limits, loading: planLoading } = useMerchantPlan();
+  const whatsAppBlocked = !limits.canUseWhatsAppSupport;
 
   useEffect(() => {
     if (user) {
@@ -124,10 +129,8 @@ const Support = () => {
 
   const handleToggleTicket = async (ticket: SupportTicket) => {
     if (expandedTicketId === ticket.id) {
-      // Closing the ticket
       setExpandedTicketId(null);
       
-      // If it was answered, mark as read
       if (ticket.status === 'answered') {
         await supabase
           .from("merchant_support_tickets")
@@ -137,18 +140,17 @@ const Support = () => {
         fetchTickets();
       }
     } else {
-      // Opening the ticket
       setExpandedTicketId(ticket.id);
     }
   };
 
   const getTicketStyle = (ticket: SupportTicket) => {
     if (ticket.status === 'pending') {
-      return "text-muted-foreground"; // Opaque - waiting for response
+      return "text-muted-foreground";
     } else if (ticket.status === 'answered') {
-      return "text-blue-800 font-medium"; // Dark blue - answered but not read
+      return "text-blue-800 font-medium";
     } else {
-      return "text-muted-foreground"; // Opaque - already read
+      return "text-muted-foreground";
     }
   };
 
@@ -169,7 +171,6 @@ const Support = () => {
   };
 
   const canDeleteTicket = (ticket: SupportTicket) => {
-    // Somente mensagens respondidas pela VM E lidas pelo lojista podem ser excluídas
     return ticket.status === 'read' && ticket.response !== null;
   };
 
@@ -280,7 +281,7 @@ const Support = () => {
                           disabled={!canDeleteTicket(ticket)}
                           className={`p-3 flex-shrink-0 transition-colors ${
                             canDeleteTicket(ticket)
-                              ? "text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                              ? "text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                               : "text-muted-foreground/40 cursor-not-allowed"
                           }`}
                           title={canDeleteTicket(ticket) ? "Excluir mensagem" : "Somente mensagens respondidas e lidas podem ser excluídas"}
@@ -324,7 +325,14 @@ const Support = () => {
             {/* WhatsApp Support Block */}
             {whatsappChannel && whatsappChannel.is_active && (
               <div className="border-t pt-4 mt-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden box-border">
+                <div className="relative p-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden box-border">
+                  {/* WhatsApp overlay for non-PREMIUM */}
+                  {whatsAppBlocked && !planLoading && (
+                    <PlanGateOverlay
+                      message={"Suporte dedicado via WhatsApp disponível apenas no Plano PREMIUM.\nFaça upgrade para ter atendimento prioritário."}
+                      buttonLabel="Upgrade para PREMIUM"
+                    />
+                  )}
                   <div className="flex flex-col sm:flex-row items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
                       <MessageCircle className="h-5 w-5 text-white" />

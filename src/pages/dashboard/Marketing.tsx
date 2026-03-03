@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanGateOverlay } from "@/components/plan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -272,6 +274,9 @@ const Marketing = () => {
   const validateGoogleAdsId = (id: string) => /^AW-\d{9,11}$/.test(id);
   const validateGtmId = (id: string) => /^GTM-[A-Z0-9]{6,8}$/i.test(id);
 
+  const { plan, limits, loading: planLoading } = useMerchantPlan();
+  const isMarketingBlocked = !limits.canUseMarketing;
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -285,7 +290,16 @@ const Marketing = () => {
   return (
     <DashboardLayout>
       <TooltipProvider>
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
+          {/* Plan gate overlay for FREE plan */}
+          {isMarketingBlocked && !planLoading && (
+            <PlanGateOverlay
+              message={"Recursos de Marketing disponíveis apenas nos planos PRO e PREMIUM.\nFaça upgrade para desbloquear campanhas e ferramentas avançadas."}
+              buttonLabel="Fazer Upgrade"
+              fixed
+            />
+          )}
+
           {/* Header */}
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">

@@ -10,11 +10,13 @@ import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal }
 import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
 import { TopBarConfigSection } from "@/components/customize/TopBarConfigSection";
 import { StoreLayoutSelector } from "@/components/customize/StoreLayoutSelector";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanGateOverlay } from "@/components/plan";
 
 // Fixed ShopDrive admin colors — never inherit from merchant theme
 const SD_PRIMARY = "#6A1B9A";
-const SD_PRIMARY_BG = "#6A1B9A40"; // 25% opacity for selected bg
-const SD_PRIMARY_HOVER = "#6A1B9A80"; // 50% opacity for hover border
+const SD_PRIMARY_BG = "#6A1B9A40";
+const SD_PRIMARY_HOVER = "#6A1B9A80";
 
 const Customize = () => {
   const { toast } = useToast();
@@ -37,6 +39,9 @@ const Customize = () => {
   const [buttonBgColor, setButtonBgColor] = useState("#6a1b9a");
   const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
   const [headerLogoPosition, setHeaderLogoPosition] = useState<"left" | "center" | "right">("left");
+
+  const { plan, limits, loading: planLoading } = useMerchantPlan();
+  const isBlocked = plan === 'free';
 
   useEffect(() => {
     fetchUserData();
@@ -209,13 +214,22 @@ const Customize = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 relative">
+        {/* Plan gate overlay for FREE plan */}
+        {isBlocked && !planLoading && (
+          <PlanGateOverlay
+            message={"Personalização completa disponível apenas nos planos PRO e PREMIUM.\nFaça upgrade para liberar logo, cores e identidade visual personalizada."}
+            buttonLabel="Ver Planos"
+            fixed
+          />
+        )}
+
         {/* Colors */}
         <Card className="p-6">
           <div className="space-y-1 mb-6">
             <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-                <Palette className="h-4 w-4 text-gray-600" />
+              <div className="flex items-center justify-center w-8 h-8 bg-muted rounded">
+                <Palette className="h-4 w-4 text-muted-foreground" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">Cores</h2>
             </div>
@@ -290,8 +304,8 @@ const Customize = () => {
         <Card className="p-6">
           <div className="space-y-1 mb-6">
             <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-                <Image className="h-4 w-4 text-gray-600" />
+              <div className="flex items-center justify-center w-8 h-8 bg-muted rounded">
+                <Image className="h-4 w-4 text-muted-foreground" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">Logo</h2>
             </div>
@@ -388,8 +402,8 @@ const Customize = () => {
                 >
                   <div className="flex items-center gap-1 w-full">
                     <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "left" ? SD_PRIMARY : '#9ca3af' }} />
-                    <div className="flex-1 h-2 bg-gray-200 rounded" />
-                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                    <div className="flex-1 h-2 bg-muted rounded" />
+                    <div className="w-6 h-2 bg-muted rounded" />
                   </div>
                   <span className="text-sm">Esquerda</span>
                 </button>
@@ -422,9 +436,9 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex items-center gap-1 w-full">
-                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                    <div className="w-6 h-2 bg-muted rounded" />
                     <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "center" ? SD_PRIMARY : '#9ca3af' }} />
-                    <div className="w-6 h-2 bg-gray-200 rounded" />
+                    <div className="w-6 h-2 bg-muted rounded" />
                   </div>
                   <span className="text-sm">Centralizada</span>
                 </button>
@@ -457,8 +471,8 @@ const Customize = () => {
                   }}
                 >
                   <div className="flex items-center gap-1 w-full">
-                    <div className="w-6 h-2 bg-gray-200 rounded" />
-                    <div className="flex-1 h-2 bg-gray-200 rounded" />
+                    <div className="w-6 h-2 bg-muted rounded" />
+                    <div className="flex-1 h-2 bg-muted rounded" />
                     <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: headerLogoPosition === "right" ? SD_PRIMARY : '#9ca3af' }} />
                   </div>
                   <span className="text-sm">Direita</span>
@@ -468,600 +482,33 @@ const Customize = () => {
           </div>
         </Card>
 
-        {/* Store Layout Selector */}
-        <StoreLayoutSelector
-          userId={userId}
-        />
-
-        {/* AI Color Palette */}
-        <AIPaletteSection
+        {/* AI Palette Section */}
+        <AIPaletteSection 
           currentColors={colors}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
           userId={userId}
-          onApplyPalette={(palette) => {
-            setColors({
-              primary: palette.primary,
-              secondary: palette.secondary,
-              background: palette.background,
-            });
-            setButtonBgColor(palette.buttonBg);
-            setButtonTextColor(palette.buttonText);
+          onApplyPalette={(newColors) => {
+            setColors(prev => ({
+              ...prev,
+              primary: newColors.primary || prev.primary,
+              secondary: newColors.secondary || prev.secondary,
+              background: newColors.background || prev.background,
+            }));
+            if (newColors.buttonBg) setButtonBgColor(newColors.buttonBg);
+            if (newColors.buttonText) setButtonTextColor(newColors.buttonText);
           }}
         />
 
-        {/* Typography */}
-        <Card className="p-6">
-          <div className="space-y-1 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-                <Type className="h-4 w-4 text-gray-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">Tipografia</h2>
-            </div>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Fonte Principal */}
-            <div className="space-y-2">
-              <Label htmlFor="font">Fonte Principal</Label>
-              <select 
-                id="font"
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter</option>
-                <option value="Roboto" style={{ fontFamily: 'Roboto' }}>Roboto</option>
-                <option value="Open Sans" style={{ fontFamily: 'Open Sans' }}>Open Sans</option>
-                <option value="Poppins" style={{ fontFamily: 'Poppins' }}>Poppins</option>
-                <option value="Montserrat" style={{ fontFamily: 'Montserrat' }}>Montserrat</option>
-              </select>
-            </div>
-
-            {/* Peso da Fonte */}
-            <div className="space-y-2">
-              <Label>Peso da Fonte</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFontWeight(300)}
-                  className={`border rounded-md p-3 text-center transition-all ${
-                    fontWeight === 300 
-                      ? 'border-transparent font-semibold' 
-                      : 'border-input'
-                  }`}
-                  style={{ 
-                    fontWeight: 300,
-                    ...(fontWeight === 300 && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(fontWeight !== 300 && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (fontWeight !== 300) {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (fontWeight !== 300) {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  Fina
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFontWeight(500)}
-                  className={`border rounded-md p-3 text-center transition-all ${
-                    fontWeight === 500 
-                      ? 'border-transparent font-semibold' 
-                      : 'border-input'
-                  }`}
-                  style={{ 
-                    fontWeight: 500,
-                    ...(fontWeight === 500 && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(fontWeight !== 500 && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (fontWeight !== 500) {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (fontWeight !== 500) {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  Média
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFontWeight(700)}
-                  className={`border rounded-md p-3 text-center transition-all ${
-                    fontWeight === 700 
-                      ? 'border-transparent font-semibold' 
-                      : 'border-input'
-                  }`}
-                  style={{ 
-                    fontWeight: 700,
-                    ...(fontWeight === 700 && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(fontWeight !== 700 && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (fontWeight !== 700) {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (fontWeight !== 700) {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  Grossa
-                </button>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Product Designer */}
-        <Card className="p-6">
-          <div className="space-y-1 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-                <LayoutGrid className="h-4 w-4 text-gray-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">Designer dos Produtos</h2>
-            </div>
-          </div>
-          
-          {/* Row 1: Formato das Imagens, Estilo das Bordas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            {/* Image Format */}
-            <div className="space-y-2">
-              <Label>Formato das Imagens</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProductImageFormat('square')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productImageFormat === 'square' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productImageFormat === 'square' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productImageFormat !== 'square' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productImageFormat !== 'square') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productImageFormat !== 'square') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="flex flex-col gap-2 items-center">
-                    <div className="w-12 h-12 border-2" style={{ borderColor: productImageFormat === 'square' ? SD_PRIMARY : '#ccc' }} />
-                    <div className="space-y-1 w-12">
-                      <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
-                      <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
-                    </div>
-                  </div>
-                  <span className="font-medium text-sm">Quadrada</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProductImageFormat('rectangular')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productImageFormat === 'rectangular' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productImageFormat === 'rectangular' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productImageFormat !== 'rectangular' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productImageFormat !== 'rectangular') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productImageFormat !== 'rectangular') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-14 border-2" style={{ borderColor: productImageFormat === 'rectangular' ? SD_PRIMARY : '#ccc' }} />
-                    <div className="space-y-1 w-10">
-                      <div className="h-2 bg-muted rounded" style={{ width: '100%' }} />
-                      <div className="h-2 bg-muted rounded" style={{ width: '70%' }} />
-                    </div>
-                  </div>
-                  <span className="font-medium text-sm">Retangular</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Border Style */}
-            <div className="space-y-2">
-              <Label>Estilo das Bordas</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProductBorderStyle('straight')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productBorderStyle === 'straight' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productBorderStyle === 'straight' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productBorderStyle !== 'straight' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'straight' ? SD_PRIMARY : '#ccc', borderRadius: '0' }} />
-                    <div className="space-y-1 w-10">
-                      <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
-                      <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
-                    </div>
-                  </div>
-                  <span className="font-medium text-sm">Retas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProductBorderStyle('rounded')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productBorderStyle === 'rounded' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productBorderStyle === 'rounded' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productBorderStyle !== 'rounded' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="flex flex-col gap-2 items-center">
-                    <div className="w-10 h-10 border-2" style={{ borderColor: productBorderStyle === 'rounded' ? SD_PRIMARY : '#ccc', borderRadius: '8px' }} />
-                    <div className="space-y-1 w-10">
-                      <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
-                      <div className="h-1.5 bg-muted rounded" style={{ width: '70%' }} />
-                    </div>
-                  </div>
-                  <span className="font-medium text-sm">Arredondadas</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Botão de Comprar, Alinhamento do Texto */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            {/* Button Display */}
-            <div className="space-y-2">
-              <Label>Botão de Comprar</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProductButtonDisplay('below')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    productButtonDisplay === 'below' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productButtonDisplay === 'below' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productButtonDisplay !== 'below' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productButtonDisplay !== 'below') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productButtonDisplay !== 'below') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <span className="font-medium text-sm text-center">Abaixo do produto</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProductButtonDisplay('none')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    productButtonDisplay === 'none' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productButtonDisplay === 'none' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productButtonDisplay !== 'none' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productButtonDisplay !== 'none') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productButtonDisplay !== 'none') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <span className="font-medium text-sm text-center">Sem botão</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Text Alignment */}
-            <div className="space-y-2">
-              <Label>Alinhamento do Texto</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProductTextAlignment('left')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productTextAlignment === 'left' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productTextAlignment === 'left' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productTextAlignment !== 'left' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productTextAlignment !== 'left') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productTextAlignment !== 'left') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'left' ? SD_PRIMARY : '#ccc' }} />
-                  <div className="flex flex-col gap-1 items-start" style={{ width: '40px' }}>
-                    <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
-                    <div className="h-1.5 bg-muted rounded" style={{ width: '75%' }} />
-                  </div>
-                  <span className="font-medium text-sm">Esquerda</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProductTextAlignment('center')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center gap-3 ${
-                    productTextAlignment === 'center' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(productTextAlignment === 'center' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(productTextAlignment !== 'center' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (productTextAlignment !== 'center') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (productTextAlignment !== 'center') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-10 h-12 border-2" style={{ borderColor: productTextAlignment === 'center' ? SD_PRIMARY : '#ccc' }} />
-                  <div className="flex flex-col gap-1 items-center" style={{ width: '40px' }}>
-                    <div className="h-1.5 bg-muted rounded" style={{ width: '100%' }} />
-                    <div className="h-1.5 bg-muted rounded" style={{ width: '75%' }} />
-                  </div>
-                  <span className="font-medium text-sm">Centro</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 3: Estilo dos Botões, Cor dos Botões */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Button Border Style */}
-            <div className="space-y-2">
-              <Label>Estilo dos Botões</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setButtonBorderStyle('rounded')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    buttonBorderStyle === 'rounded' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(buttonBorderStyle === 'rounded' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(buttonBorderStyle !== 'rounded' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (buttonBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (buttonBorderStyle !== 'rounded') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-14 h-7 border-2 rounded-lg" style={{ borderColor: buttonBorderStyle === 'rounded' ? SD_PRIMARY : '#ccc' }} />
-                  <span className="font-medium text-sm">Arredondada</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setButtonBorderStyle('straight')}
-                  className={`border rounded-md p-4 text-center transition-all flex flex-col items-center justify-center gap-3 ${
-                    buttonBorderStyle === 'straight' 
-                      ? 'border-transparent' 
-                      : 'border-input'
-                  }`}
-                  style={{
-                    ...(buttonBorderStyle === 'straight' && {
-                      backgroundColor: SD_PRIMARY_BG,
-                      color: SD_PRIMARY
-                    }),
-                    ...(buttonBorderStyle !== 'straight' && {
-                      borderColor: 'hsl(var(--input))'
-                    })
-                  }}
-                  onMouseEnter={(e) => {
-                    if (buttonBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = SD_PRIMARY_HOVER;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (buttonBorderStyle !== 'straight') {
-                      e.currentTarget.style.borderColor = 'hsl(var(--input))';
-                    }
-                  }}
-                >
-                  <div className="w-14 h-7 border-2" style={{ borderColor: buttonBorderStyle === 'straight' ? SD_PRIMARY : '#ccc' }} />
-                  <span className="font-medium text-sm">Reta</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Button Colors */}
-            <div className="space-y-2">
-              <Label>Cor dos Botões</Label>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">Cor de Fundo</span>
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={buttonBgColor}
-                      onChange={(e) => setButtonBgColor(e.target.value)}
-                      className="h-10 w-16 p-1"
-                    />
-                    <Input
-                      type="text"
-                      value={buttonBgColor}
-                      onChange={(e) => setButtonBgColor(e.target.value)}
-                      className="flex-1 h-10 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">Cor do Texto</span>
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={buttonTextColor}
-                      onChange={(e) => setButtonTextColor(e.target.value)}
-                      className="h-10 w-16 p-1"
-                    />
-                    <Input
-                      type="text"
-                      value={buttonTextColor}
-                      onChange={(e) => setButtonTextColor(e.target.value)}
-                      className="flex-1 h-10 text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
+        {/* Store Layout Selector */}
+        <StoreLayoutSelector userId={userId} />
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button 
+          <Button
             onClick={handleSave}
-            className="px-8 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="transition-all"
+            style={{ backgroundColor: SD_PRIMARY, color: '#FFFFFF' }}
           >
             Salvar Alterações
           </Button>
