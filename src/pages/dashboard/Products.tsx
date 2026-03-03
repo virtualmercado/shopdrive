@@ -20,6 +20,9 @@ import { BrandManagementModal } from "@/components/products/BrandManagementModal
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImageAdjustments } from "@/components/ImageEditor";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanLimitReachedModal } from "@/components/plan";
+import { PLAN_DISPLAY_NAMES } from "@/lib/planLimits";
 
 interface Product {
   id: string;
@@ -51,7 +54,10 @@ const Products = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const { toast } = useToast();
+
+  const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
 
   useEffect(() => {
     fetchProducts();
@@ -67,7 +73,6 @@ const Products = () => {
         return;
       }
 
-      // IMPORTANT: Filter by logged-in user's ID to ensure data isolation
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -75,7 +80,6 @@ const Products = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Cast data via unknown to satisfy TS (image_adjustments type is Json in generated types)
       setProducts((data ?? []) as unknown as Product[]);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -110,6 +114,15 @@ const Products = () => {
     setFormOpen(true);
   };
 
+  const handleNewProduct = () => {
+    if (!canAddProduct) {
+      setLimitModalOpen(true);
+      return;
+    }
+    setSelectedProduct(null);
+    setFormOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!productToDelete) return;
 
@@ -127,6 +140,7 @@ const Products = () => {
       });
 
       fetchProducts();
+      refetchPlan();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast({
@@ -147,10 +161,10 @@ const Products = () => {
 
   const handleFormSuccess = () => {
     fetchProducts();
+    refetchPlan();
     setSelectedProduct(null);
   };
 
-  // Keep local list in sync when images are auto-persisted from the Image Editor.
   const handleImagesPersisted = (productId: string, images: string[], mainImage: string | null) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, images, image_url: mainImage } : p))
@@ -159,7 +173,6 @@ const Products = () => {
 
   const handleToggleActive = async (productId: string, currentActive: boolean) => {
     const newActive = !currentActive;
-    // Optimistic update
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, is_active: newActive } : p))
     );
@@ -176,7 +189,6 @@ const Products = () => {
           : "Produto oculto da loja online",
       });
     } catch (error) {
-      // Revert on failure
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, is_active: currentActive } : p))
       );
@@ -197,6 +209,13 @@ const Products = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Plan limit indicator */}
+        {limits.maxProducts !== null && (
+          <div className="text-sm text-muted-foreground">
+            Produtos: <strong>{productCount}</strong> / {limits.maxProducts}
+          </div>
+        )}
+
         {/* Header Actions */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -220,10 +239,7 @@ const Products = () => {
               </Button>
               <Button 
                 className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setFormOpen(true);
-                }}
+                onClick={handleNewProduct}
               >
                 <Plus className="h-4 w-4" />
                 Novo Produto
@@ -266,7 +282,6 @@ const Products = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-3">
             {filteredProducts.map((product) => (
               <Card key={product.id} className={`overflow-hidden relative transition-opacity ${!product.is_active ? 'opacity-60' : ''}`}>
-                {/* Active Toggle */}
                 <div className="absolute top-2 right-2 z-10">
                   <Switch
                     checked={product.is_active}
@@ -274,7 +289,6 @@ const Products = () => {
                     className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
                   />
                 </div>
-                {/* Inactive badge */}
                 {!product.is_active && (
                   <div className="absolute top-2 left-2 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
                     Inativo
@@ -306,17 +320,17 @@ const Products = () => {
                         <p className="text-base font-bold text-muted-foreground line-through">
                           R$ {product.price.toFixed(2)}
                         </p>
-                        <p className="text-xl font-bold text-black">
+                        <p className="text-xl font-bold text-foreground">
                           R$ {product.promotional_price.toFixed(2)}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-xl font-bold text-black">
+                      <p className="text-xl font-bold text-foreground">
                         R$ {product.price.toFixed(2)}
                       </p>
                     )}
                   </div>
-                  <p className="text-sm text-black mb-4">
+                  <p className="text-sm text-foreground mb-4">
                     Estoque: <span className="font-bold">{product.stock}</span> unidades
                   </p>
                   <div className="flex gap-2">
@@ -354,7 +368,7 @@ const Products = () => {
             </p>
             {!searchTerm && (
               <Button 
-                onClick={() => setFormOpen(true)}
+                onClick={handleNewProduct}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Adicionar Produto
@@ -391,6 +405,15 @@ const Products = () => {
         <BrandManagementModal
           open={brandModalOpen}
           onOpenChange={setBrandModalOpen}
+        />
+
+        <PlanLimitReachedModal
+          open={limitModalOpen}
+          onOpenChange={setLimitModalOpen}
+          resourceName="produtos"
+          currentCount={productCount}
+          maxAllowed={limits.maxProducts ?? 0}
+          planName={PLAN_DISPLAY_NAMES[plan]}
         />
       </div>
     </DashboardLayout>
