@@ -142,21 +142,19 @@ const CustomerServiceDropdown = ({
             </div>
           )}
 
-          {onContactClick && (
-            <div className="pt-2 border-t">
-              <Button
-                onClick={handleContactClick}
-                className="w-full"
-                variant="outline"
-                style={{
-                  borderColor: effectiveAccent,
-                  color: effectiveAccent,
-                }}
-              >
-                FALE CONOSCO
-              </Button>
-            </div>
-          )}
+          <div className="pt-2 border-t">
+            <Button
+              onClick={handleContactClick}
+              className="w-full"
+              variant="outline"
+              style={{
+                borderColor: effectiveAccent,
+                color: effectiveAccent,
+              }}
+            >
+              FALE CONOSCO
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
