@@ -14,6 +14,7 @@ import { printOrderA4 } from "@/components/orders/OrderPrintA4";
 import PrintFormatDialog from "@/components/orders/PrintFormatDialog";
 import ThermalReceiptPrintDialog from "@/components/orders/ThermalReceiptPrintDialog";
 import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
+import { WhatsAppOrderModal } from "@/components/orders/WhatsAppOrderModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
@@ -59,6 +60,9 @@ const Orders = () => {
   const [storeData, setStoreData] = useState<any>(null);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printOrder, setPrintOrder] = useState<any>(null);
+  const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
+  const [whatsAppOrder, setWhatsAppOrder] = useState<any>(null);
+  const [merchantStoreName, setMerchantStoreName] = useState("");
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -201,6 +205,19 @@ const Orders = () => {
       const order = orders?.find((o) => o.id === orderId);
       if (order) {
         handlePrintShippingLabel(order);
+      }
+      return;
+    }
+    // WhatsApp send action
+    if (newStatus === "send_whatsapp") {
+      const order = orders?.find((o) => o.id === orderId);
+      if (order) {
+        // Fetch store name for message
+        fetchStoreData().then((store) => {
+          setMerchantStoreName(store?.store_name || "Nossa Loja");
+          setWhatsAppOrder(order);
+          setWhatsAppModalOpen(true);
+        });
       }
       return;
     }
@@ -645,6 +662,9 @@ const Orders = () => {
                               <SelectItem value="print_shipping_label" className="leading-tight whitespace-pre-line">
                                 {"Imprimir etiqueta\nde envio"}
                               </SelectItem>
+                              <SelectItem value="send_whatsapp" className="leading-tight">
+                                Enviar por WhatsApp
+                              </SelectItem>
                             </SelectContent>
                           </Select>
 
@@ -758,6 +778,13 @@ const Orders = () => {
       <CreateQuoteModal
         open={createQuoteOpen}
         onOpenChange={setCreateQuoteOpen}
+      />
+
+      <WhatsAppOrderModal
+        open={whatsAppModalOpen}
+        onOpenChange={setWhatsAppModalOpen}
+        order={whatsAppOrder}
+        storeName={merchantStoreName}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
