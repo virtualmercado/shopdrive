@@ -4,6 +4,7 @@ import { Search, User, ShoppingCart, Menu, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import CustomerServiceDropdown from "@/components/store/CustomerServiceDropdown";
 
 interface StoreHeaderProps {
   storeName: string;
@@ -21,6 +22,7 @@ interface StoreHeaderProps {
   selectedCategory?: string | null;
   onCategoryChange?: (categoryId: string | null) => void;
   logoPosition?: "left" | "center" | "right";
+  onContactClick?: () => void;
 }
 
 interface Category {
@@ -44,6 +46,7 @@ const StoreHeader = ({
   selectedCategory,
   onCategoryChange,
   logoPosition = "left",
+  onContactClick,
 }: StoreHeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -271,9 +274,17 @@ const StoreHeader = ({
           </div>
 
           {/* Actions */}
-          <div className={`header-actions flex items-center gap-4 ${
+          <div className={`header-actions flex items-center gap-2 ${
             logoPosition === "right" ? "justify-self-start" : "justify-self-end"
           }`}>
+            <CustomerServiceDropdown
+              storeOwnerId={storeOwnerId}
+              storeName={storeName}
+              primaryColor={primaryColor}
+              textColor={backgroundColor}
+              accentColor={accentColor}
+              onContactClick={onContactClick}
+            />
             <Link 
               to={`/loja/${storeSlug}/conta`}
               className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
@@ -441,19 +452,29 @@ const StoreHeader = ({
                 {category.name}
               </Link>
             ))}
-            <div className="pt-4 border-t flex gap-4">
-              <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
-                <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors">
-                  <User className="h-4 w-4 mr-2" />
-                  Minha Conta
-                </Button>
-              </Link>
-              <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
-                <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors relative">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Carrinho ({cartItemCount})
-                </Button>
-              </Link>
+            <div className="pt-4 border-t space-y-3">
+              <CustomerServiceDropdown
+                storeOwnerId={storeOwnerId}
+                storeName={storeName}
+                primaryColor={primaryColor}
+                textColor={backgroundColor}
+                accentColor={accentColor}
+                onContactClick={onContactClick}
+              />
+              <div className="flex gap-4">
+                <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
+                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors">
+                    <User className="h-4 w-4 mr-2" />
+                    Minha Conta
+                  </Button>
+                </Link>
+                <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
+                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors relative">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Carrinho ({cartItemCount})
+                  </Button>
+                </Link>
+              </div>
             </div>
           </nav>
         </div>
