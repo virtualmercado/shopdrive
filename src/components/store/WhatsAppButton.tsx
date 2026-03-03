@@ -47,6 +47,13 @@ const WhatsAppButton = ({
     setDialogOpen(true);
   };
 
+  // Listen for custom event from CustomerServiceDropdown "Fale Conosco" button
+  useEffect(() => {
+    const handler = () => handleOpenDialog();
+    window.addEventListener("open-store-contact-dialog", handler);
+    return () => window.removeEventListener("open-store-contact-dialog", handler);
+  }, []);
+
   const normalizeMessageWithPrefix = (next: string) => {
     if (next.startsWith(defaultMessage)) return next;
 
