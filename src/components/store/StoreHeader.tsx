@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import CustomerServiceDropdown from "@/components/store/CustomerServiceDropdown";
+import { useMiniCart } from "@/contexts/MiniCartContext";
 
 interface StoreHeaderProps {
   storeName: string;
@@ -48,6 +49,7 @@ const StoreHeader = ({
   logoPosition = "left",
   onContactClick,
 }: StoreHeaderProps) => {
+  const { openMiniCart } = useMiniCart();
   const navigate = useNavigate();
   const location = useLocation();
   const searchDebounceRef = useRef<number | null>(null);
@@ -292,17 +294,15 @@ const StoreHeader = ({
               <User className="h-5 w-5" style={{ color: backgroundColor }} />
               <span className="text-sm font-medium" style={{ color: backgroundColor }}>Entrar</span>
             </Link>
-            <Link to={`/loja/${storeSlug}/checkout`}>
-              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
-                <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                    style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
-                    {cartItemCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
+              <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                  style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
+                  {cartItemCount}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -335,17 +335,15 @@ const StoreHeader = ({
             
             {/* Mobile Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Link to={`/loja/${storeSlug}/checkout`}>
-                <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative">
-                  <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                      style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
-                      {cartItemCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
+              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
+                <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                    style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
+                    {cartItemCount}
+                  </span>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -468,12 +466,12 @@ const StoreHeader = ({
                     Minha Conta
                   </Button>
                 </Link>
-                <Link to={`/loja/${storeSlug}/checkout`} className="flex-1">
-                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors relative">
+                <div className="flex-1">
+                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Carrinho ({cartItemCount})
                   </Button>
-                </Link>
+                </div>
               </div>
             </div>
           </nav>
