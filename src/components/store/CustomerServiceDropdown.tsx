@@ -145,12 +145,11 @@ const CustomerServiceDropdown = ({
           <div className="pt-2 border-t">
             <Button
               onClick={handleContactClick}
-              className="w-full"
+              className="w-full merchant-btn-outline-accent"
               variant="outline"
               style={{
-                borderColor: effectiveAccent,
-                color: effectiveAccent,
-              }}
+                '--accent-color': effectiveAccent,
+              } as React.CSSProperties}
             >
               FALE CONOSCO
             </Button>

@@ -274,6 +274,30 @@ All colors MUST be HSL.
     outline: none !important;
   }
 
+  /* Outline accent buttons: colored text, white text on hover with accent bg */
+  .merchant-btn-outline-accent {
+    color: var(--accent-color, var(--merchant-primary)) !important;
+    border-color: var(--accent-color, var(--merchant-primary)) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .merchant-btn-outline-accent:hover {
+    background-color: var(--accent-color, var(--merchant-primary)) !important;
+    color: #FFFFFF !important;
+    border-color: var(--accent-color, var(--merchant-primary)) !important;
+  }
+
+  .merchant-btn-outline-accent:focus,
+  .merchant-btn-outline-accent:focus-visible {
+    box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
+    outline: none !important;
+    color: #FFFFFF !important;
+  }
+
+  .merchant-btn-outline-accent:active {
+    color: #FFFFFF !important;
+  }
+
   /* ==========================================
      INPUTS & FORM CONTROLS - Global Merchant Styling
      Focus states for inputs, selects, textareas

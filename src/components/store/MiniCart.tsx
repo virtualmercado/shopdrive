@@ -154,11 +154,10 @@ const MiniCart = ({
               <Button
                 onClick={handleCheckout}
                 variant="outline"
-                className={`w-full ${buttonRadius} transition-all`}
+                className={`w-full ${buttonRadius} transition-all merchant-btn-outline-accent`}
                 style={{ 
-                  borderColor: buttonBgColor, 
-                  color: buttonBgColor,
-                }}
+                  '--accent-color': buttonBgColor,
+                } as React.CSSProperties}
               >
                 Finalizar Compra
               </Button>
