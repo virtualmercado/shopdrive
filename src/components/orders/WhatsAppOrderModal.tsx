@@ -96,8 +96,8 @@ export function WhatsAppOrderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="w-[92%] max-w-[560px] sm:max-w-[560px] gap-0 p-6 overflow-hidden">
+        <DialogHeader className="mb-6">
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-600" />
             Enviar por WhatsApp
@@ -108,7 +108,7 @@ export function WhatsAppOrderModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 mb-6">
           {/* Phone */}
           <div className="space-y-2">
             <Label htmlFor="wa-phone">WhatsApp</Label>
@@ -117,6 +117,7 @@ export function WhatsAppOrderModal({
               placeholder="+55 11 99999-9999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              className="w-full box-border"
             />
           </div>
 
@@ -128,15 +129,16 @@ export function WhatsAppOrderModal({
               rows={5}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              className="w-full box-border"
             />
           </div>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-4">
             Dica: no WhatsApp, você pode apagar a mensagem manualmente após enviar, se desejar.
           </p>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
