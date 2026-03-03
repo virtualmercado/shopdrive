@@ -22,6 +22,7 @@ interface StoreHeaderProps {
   selectedCategory?: string | null;
   onCategoryChange?: (categoryId: string | null) => void;
   logoPosition?: "left" | "center" | "right";
+  onContactClick?: () => void;
 }
 
 interface Category {
