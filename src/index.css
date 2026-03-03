@@ -291,11 +291,11 @@ All colors MUST be HSL.
   .merchant-btn-outline-accent:focus-visible {
     box-shadow: 0 0 0 2px var(--merchant-primary-ring) !important;
     outline: none !important;
-    color: #FFFFFF !important;
+    color: var(--accent-color, var(--merchant-primary)) !important;
   }
 
   .merchant-btn-outline-accent:active {
-    color: #FFFFFF !important;
+    color: var(--accent-color, var(--merchant-primary)) !important;
   }
 
   /* ==========================================
