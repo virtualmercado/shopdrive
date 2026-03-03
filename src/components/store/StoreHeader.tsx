@@ -274,9 +274,17 @@ const StoreHeader = ({
           </div>
 
           {/* Actions */}
-          <div className={`header-actions flex items-center gap-4 ${
+          <div className={`header-actions flex items-center gap-2 ${
             logoPosition === "right" ? "justify-self-start" : "justify-self-end"
           }`}>
+            <CustomerServiceDropdown
+              storeOwnerId={storeOwnerId}
+              storeName={storeName}
+              primaryColor={primaryColor}
+              textColor={backgroundColor}
+              accentColor={accentColor}
+              onContactClick={onContactClick}
+            />
             <Link 
               to={`/loja/${storeSlug}/conta`}
               className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
