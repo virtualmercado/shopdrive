@@ -4049,6 +4049,33 @@ export type Database = {
         }
         Relationships: []
       }
+      master_gateway_public_keys: {
+        Row: {
+          display_name: string | null
+          environment: string | null
+          gateway_name: string | null
+          id: string | null
+          is_active: boolean | null
+          mercadopago_public_key: string | null
+        }
+        Insert: {
+          display_name?: string | null
+          environment?: string | null
+          gateway_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          mercadopago_public_key?: string | null
+        }
+        Update: {
+          display_name?: string | null
+          environment?: string | null
+          gateway_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          mercadopago_public_key?: string | null
+        }
+        Relationships: []
+      }
       melhor_envio_settings_public: {
         Row: {
           environment: string | null

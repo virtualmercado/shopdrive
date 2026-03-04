@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,20 +61,19 @@ export const CardForm = ({
     const initMP = async () => {
       if (window.MercadoPago && !mpRef.current) {
         try {
-          // Get public key from master_payment_gateways
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/master_payment_gateways?is_active=eq.true&is_default=eq.true&select=mercadopago_public_key`,
-            {
-              headers: {
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              },
-            }
-          );
-          const data = await response.json();
+          // Get public key from secure view (no secret tokens exposed)
+          const { data, error: gwError } = await (supabase as any)
+            .from("master_gateway_public_keys")
+            .select("mercadopago_public_key")
+            .maybeSingle();
           
-          if (data?.[0]?.mercadopago_public_key) {
-            mpRef.current = new window.MercadoPago(data[0].mercadopago_public_key, {
+          if (gwError) {
+            console.error("Erro ao buscar public key:", gwError);
+            return;
+          }
+          
+          if (data?.mercadopago_public_key) {
+            mpRef.current = new window.MercadoPago(data.mercadopago_public_key, {
               locale: "pt-BR",
             });
           }
