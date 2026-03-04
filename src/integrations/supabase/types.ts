@@ -485,7 +485,6 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_template_status"]
           store_name: string | null
           stores_created: number
-          template_password: string | null
           template_slug: string | null
           updated_at: string
           whatsapp_number: string | null
@@ -519,7 +518,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["brand_template_status"]
           store_name?: string | null
           stores_created?: number
-          template_password?: string | null
           template_slug?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -553,7 +551,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["brand_template_status"]
           store_name?: string | null
           stores_created?: number
-          template_password?: string | null
           template_slug?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -4440,13 +4437,6 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_template_status"]
         }[]
       }
-      get_template_credentials: {
-        Args: { p_template_id: string }
-        Returns: {
-          email: string
-          password: string
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4465,19 +4455,10 @@ export type Database = {
         Args: { p_quote_id: string }
         Returns: boolean
       }
-      link_template_to_profile:
-        | {
-            Args: { p_profile_id: string; p_template_id: string }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              p_profile_id: string
-              p_template_id: string
-              p_template_password?: string
-            }
-            Returns: boolean
-          }
+      link_template_to_profile: {
+        Args: { p_profile_id: string; p_template_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_action: string
@@ -4491,10 +4472,6 @@ export type Database = {
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
         Returns: undefined
-      }
-      reset_template_password: {
-        Args: { p_template_id: string }
-        Returns: string
       }
       sync_template_from_profile: {
         Args: { p_template_id: string }

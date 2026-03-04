@@ -65,12 +65,11 @@ export const useCreateTemplateProfile = () => {
         throw new Error('Falha ao criar perfil temporário');
       }
 
-      // Use secure RPC function to link template to profile and store password (bypasses RLS issues)
+      // Use secure RPC function to link template to profile (bypasses RLS issues)
       const { error: linkError } = await supabase
         .rpc('link_template_to_profile', {
           p_template_id: template.id,
           p_profile_id: authData.user.id,
-          p_template_password: templatePassword,
         });
 
       if (linkError) {
@@ -171,22 +170,14 @@ export const useOpenTemplateEditor = () => {
       
       // If no credentials provided, get them from the edge function
       if (!loginCredentials) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        
-        const response = await fetch(`${supabaseUrl}/functions/v1/reset-template-auth`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ templateId }),
+        const { data, error } = await supabase.functions.invoke('reset-template-auth', {
+          body: { templateId },
         });
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to get credentials');
+        if (error || !data?.email) {
+          throw new Error(data?.error || error?.message || 'Failed to get credentials');
         }
         
-        const data = await response.json();
         loginCredentials = {
           email: data.email,
           password: data.password,
