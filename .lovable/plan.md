@@ -2,17 +2,37 @@
 
 ## Analysis
 
-After reviewing `StoreBanner.tsx`, the mobile banner code already contains `aspect-ratio: '8 / 7'` with proper `object-cover` and `object-center` styling (lines 135-142). However, the user reports the mobile banner still appears compressed.
+The database linter reports **1 ERROR-level issue**: the `public_store_products` view is a **Security Definer View** — it lacks `security_invoker = on`, meaning it bypasses RLS policies on the underlying `products` and `profiles` tables, executing with the owner's (postgres) privileges instead of the querying user's.
 
-The likely cause: the aspect-ratio value `'8 / 7'` may not be rendering as expected in all mobile browsers. Using the explicit pixel ratio `'800 / 700'` is identical mathematically but more explicit. Additionally, I will ensure no conflicting constraints exist.
+All other 6 views already have `security_invoker = on/true`. Only `public_store_products` is missing it.
 
-## Plan
+## What This Means
 
-**File: `src/components/store/StoreBanner.tsx`** — Two targeted changes (mobile sections only, desktop untouched):
+Currently, any query through `public_store_products` ignores Row Level Security on `products` and `profiles`. While the view itself filters for `is_active = true` and `store_slug IS NOT NULL`, it still bypasses other RLS controls (e.g., admin-only policies, merchant isolation).
 
-1. **Primary mobile carousel (lines 134-142)**: Change `aspect-ratio: '8 / 7'` to `aspect-ratio: '800 / 700'` for explicit clarity, and add `min-height: 0` to the container to prevent any flex/grid compression.
+## Fix
 
-2. **Fallback mobile section (lines 183-191)**: Apply the same fix for consistency.
+Create a database migration that recreates the `public_store_products` view with `security_invoker = on`:
 
-No changes to: desktop banner, carousel logic, autoplay, dots navigation, or banner ordering.
+```sql
+CREATE OR REPLACE VIEW public.public_store_products
+WITH (security_invoker = on) AS
+SELECT 
+  p.id, p.name, p.description, p.price, p.promotional_price,
+  p.image_url, p.images, p.stock, p.user_id, p.category_id,
+  p.brand_id, p.is_featured, p.is_new, p.weight, p.height,
+  p.width, p.length, p.variations, p.created_at,
+  pr.store_slug
+FROM products p
+JOIN profiles pr ON pr.id = p.user_id
+WHERE p.is_active = true AND pr.store_slug IS NOT NULL;
+```
+
+This is a single-migration fix. No application code changes are needed since the view name and columns remain identical. The only difference is that queries will now respect RLS policies — which already include "Anyone can view products from public stores" via `is_public_store(user_id)`, so public store functionality continues working.
+
+## Impact
+
+- No breaking changes to frontend queries
+- Public store products remain visible (existing SELECT policy covers this)
+- Merchant isolation and admin policies are now properly enforced through the view
 
