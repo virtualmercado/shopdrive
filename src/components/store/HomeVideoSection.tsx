@@ -17,11 +17,19 @@ const HomeVideoSection = ({
 }: HomeVideoSectionProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isMobile = useIsMobile();
   
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
+  
+  // Set initial thumbnail with quality optimization
+  useEffect(() => {
+    if (videoId) {
+      // Start with maxresdefault for best quality
+      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+    }
+  }, [videoId]);
 
   const handlePlay = () => {
     setIsPlaying(true);
@@ -126,6 +134,14 @@ const HomeVideoSection = ({
                   alt="Vídeo do YouTube da loja" 
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  onError={(e) => {
+                    const currentSrc = (e.currentTarget as HTMLImageElement).src;
+                    if (currentSrc.includes('maxresdefault')) {
+                      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/sddefault.jpg`);
+                    } else if (currentSrc.includes('sddefault')) {
+                      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
+                    }
+                  }}
                 />
                 
                 {/* Dark Overlay - Always visible on mobile, hover-controlled on desktop */}
