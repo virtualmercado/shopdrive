@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -69,6 +69,7 @@ const YouTubeVideoCard = ({
 }: YouTubeVideoCardProps) => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   
   const [enabled, setEnabled] = useState(initialData?.home_video_enabled || false);
   const [videoUrl, setVideoUrl] = useState(initialData?.home_video_url_original || "");
@@ -77,7 +78,15 @@ const YouTubeVideoCard = ({
   const [urlError, setUrlError] = useState<string | null>(null);
 
   const videoId = extractYouTubeVideoId(videoUrl);
-  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+  
+  // Update thumbnail with quality optimization
+  useEffect(() => {
+    if (videoId) {
+      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+    } else {
+      setThumbnailUrl(null);
+    }
+  }, [videoId]);
 
   const validateUrl = (url: string): boolean => {
     if (!url.trim()) {
@@ -283,24 +292,32 @@ const YouTubeVideoCard = ({
               <div className="space-y-2 p-4 rounded-lg bg-muted/30">
                 <Label className="text-sm font-medium">Pré-visualização do vídeo</Label>
                 <div className="relative aspect-video w-full max-w-sm rounded-lg overflow-hidden bg-black/10">
-                  {thumbnailUrl ? (
-                    <>
-                      <img 
-                        src={thumbnailUrl} 
-                        alt="Thumbnail do vídeo" 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
-                          <Play className="w-8 h-8 text-white fill-white ml-1" />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-12 h-12 text-muted-foreground" />
-                    </div>
-                  )}
+                   {thumbnailUrl ? (
+                     <>
+                       <img 
+                         src={thumbnailUrl} 
+                         alt="Thumbnail do vídeo" 
+                         className="w-full h-full object-cover"
+                         onError={(e) => {
+                           const currentSrc = (e.currentTarget as HTMLImageElement).src;
+                           if (currentSrc.includes('maxresdefault')) {
+                             setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/sddefault.jpg`);
+                           } else if (currentSrc.includes('sddefault')) {
+                             setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
+                           }
+                         }}
+                       />
+                       <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                         <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
+                           <Play className="w-8 h-8 text-white fill-white ml-1" />
+                         </div>
+                       </div>
+                     </>
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center">
+                       <Play className="w-12 h-12 text-muted-foreground" />
+                     </div>
+                   )}
                 </div>
                 <Button
                   type="button"
