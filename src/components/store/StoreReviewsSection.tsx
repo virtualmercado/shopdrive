@@ -81,7 +81,7 @@ const StoreReviewsSection = ({ storeOwnerId, storeSlug, primaryColor, sectionTit
         {displayReviews.map((review) => (
           <div
             key={review.id}
-            className="bg-card border rounded-xl p-5 flex flex-col gap-3"
+            className="bg-card border rounded-xl p-5 flex flex-col gap-3 glass-hover"
             style={{
               boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
               transition: 'transform 0.25s ease, box-shadow 0.25s ease',
