@@ -144,34 +144,49 @@ const HomeVideoSection = ({
                   }}
                 />
                 
-                {/* Dark Overlay - Always visible on mobile, hover-controlled on desktop */}
+            {/* Dark Overlay */}
                 <div 
-                  className={`absolute inset-0 transition-all duration-300 ease-in-out ${
-                    isMobile 
-                      ? 'bg-black/30' 
+                  className="absolute inset-0 rounded-xl transition-all duration-300 ease-in-out"
+                  style={{ 
+                    background: isMobile 
+                      ? 'rgba(0,0,0,0.35)' 
                       : isHovered 
-                        ? 'bg-black/45' 
-                        : 'bg-black/20'
-                  }`}
+                        ? 'rgba(0,0,0,0.45)' 
+                        : 'rgba(0,0,0,0.35)'
+                  }}
                 />
                 
                 {/* Centered Content */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  {/* YouTube Play Button */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                  {/* Play Button - white bg, red icon */}
                   <div 
-                    className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-xl transition-transform duration-300 ease-in-out ${
-                      !isMobile && isHovered ? 'scale-110' : 'scale-100'
-                    }`}
-                    style={{ backgroundColor: '#FF0000' }}
+                    className="rounded-full flex items-center justify-center transition-transform duration-300 ease-in-out"
+                    style={{ 
+                      width: isMobile ? 80 : 70,
+                      height: isMobile ? 80 : 70,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      transform: !isMobile && isHovered ? 'scale(1.08)' : 'scale(1)',
+                    }}
                   >
-                    <Play className="w-7 h-7 md:w-9 md:h-9 text-white fill-white ml-1" />
+                    <Play 
+                      className="ml-1"
+                      style={{ 
+                        width: isMobile ? 36 : 30, 
+                        height: isMobile ? 36 : 30, 
+                        color: '#FF0000', 
+                        fill: '#FF0000' 
+                      }} 
+                    />
                   </div>
                   
-                  {/* "Click to watch" text - visible on hover (desktop) or always (mobile) */}
+                  {/* Text */}
                   <span 
-                    className={`text-white font-medium text-sm md:text-base drop-shadow-lg transition-opacity duration-300 ${
-                      isMobile || isHovered ? 'opacity-100' : 'opacity-0'
-                    }`}
+                    className="text-white font-medium text-sm md:text-base transition-opacity duration-300"
+                    style={{ 
+                      textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                      opacity: isMobile || isHovered ? 1 : 0 
+                    }}
                   >
                     Clique para assistir o vídeo
                   </span>
