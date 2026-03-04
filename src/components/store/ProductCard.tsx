@@ -110,7 +110,15 @@ const ProductCard = ({
   const productLink = storeSlug ? `/loja/${storeSlug}/produto/${product.id}` : '#';
 
   return (
-    <div className={`bg-card overflow-hidden shadow-md hover:shadow-lg transition-shadow ${borderRadius}`}>
+    <div 
+      className={`bg-card overflow-hidden ${borderRadius}`}
+      style={{ 
+        boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+      }}
+      onMouseEnter={(e) => { if (window.innerWidth >= 768) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.15)'; }}}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)'; }}
+    >
       <Link 
         to={productLink} 
         className={`block ${aspectRatio} overflow-hidden bg-muted relative group`}

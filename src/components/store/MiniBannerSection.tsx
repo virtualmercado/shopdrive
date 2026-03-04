@@ -32,8 +32,12 @@ const MiniBannerItem = ({ img1Url, img2Url }: MiniBannerData) => {
   return (
     <div 
       className="relative w-full h-[400px] rounded-lg overflow-hidden cursor-pointer group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+      }}
+      onMouseEnter={(e) => { if (window.innerWidth >= 768) { setIsHovered(true); e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.15)'; }}}
+      onMouseLeave={(e) => { setIsHovered(false); e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)'; }}
       onTouchStart={() => setIsHovered(true)}
       onTouchEnd={() => setIsHovered(false)}
     >

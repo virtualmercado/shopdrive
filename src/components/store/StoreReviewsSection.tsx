@@ -81,7 +81,13 @@ const StoreReviewsSection = ({ storeOwnerId, storeSlug, primaryColor, sectionTit
         {displayReviews.map((review) => (
           <div
             key={review.id}
-            className="bg-card border rounded-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-card border rounded-xl p-5 flex flex-col gap-3"
+            style={{
+              boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+              transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+            }}
+            onMouseEnter={(e) => { if (window.innerWidth >= 768) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.15)'; }}}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)'; }}
           >
             {/* Stars */}
             <div className="flex gap-0.5">
