@@ -143,11 +143,9 @@ const AdminSubscriptionCheckout = () => {
   useEffect(() => {
     const loadMercadoPagoSDK = async () => {
       // Buscar public key do gateway master
-      const { data: gateway, error } = await supabase
-        .from("master_payment_gateways")
+      const { data: gateway, error } = await (supabase as any)
+        .from("master_gateway_public_keys")
         .select("mercadopago_public_key")
-        .eq("is_active", true)
-        .eq("is_default", true)
         .maybeSingle();
 
       if (error) {
