@@ -31,7 +31,7 @@ const MiniBannerItem = ({ img1Url, img2Url }: MiniBannerData) => {
   
   return (
     <div 
-      className="relative w-full h-[400px] rounded-lg overflow-hidden cursor-pointer group"
+      className="relative w-full h-[400px] rounded-lg overflow-hidden cursor-pointer group glass-hover"
       style={{
         boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
         transition: 'transform 0.25s ease, box-shadow 0.25s ease',

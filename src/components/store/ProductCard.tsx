@@ -111,7 +111,7 @@ const ProductCard = ({
 
   return (
     <div 
-      className={`bg-card overflow-hidden ${borderRadius}`}
+      className={`bg-card overflow-hidden glass-hover ${borderRadius}`}
       style={{ 
         boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
         transition: 'transform 0.25s ease, box-shadow 0.25s ease',
