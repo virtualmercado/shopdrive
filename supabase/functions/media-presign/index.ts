@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from "npm:@aws-sdk/client-s3@3.700.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.700.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +33,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // --- Authentication ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ ok: false, error: "Unauthorized" }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      return jsonResponse({ ok: false, error: "Invalid token" }, 401);
+    }
+
+    const userId = claimsData.claims.sub as string;
+
     const { product_id, mime_type, size_bytes } = await req.json();
 
     // --- Validations ---
@@ -51,6 +74,18 @@ Deno.serve(async (req) => {
         { ok: false, error: `size_bytes deve ser entre 1 e ${MAX_SIZE} (10 MB)` },
         400,
       );
+    }
+
+    // --- Verify product ownership ---
+    const supabaseService = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: product, error: productError } = await supabaseService
+      .from("products")
+      .select("user_id")
+      .eq("id", product_id)
+      .single();
+
+    if (productError || !product || product.user_id !== userId) {
+      return jsonResponse({ ok: false, error: "Produto não encontrado ou sem permissão" }, 403);
     }
 
     // --- Build object key ---

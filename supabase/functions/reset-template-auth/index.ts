@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,7 +13,33 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // --- Verify caller is an admin ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const callerId = claimsData.claims.sub as string;
+
     // Create admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -22,6 +47,19 @@ Deno.serve(async (req) => {
         persistSession: false,
       },
     });
+
+    // Verify caller has admin role
+    const { data: hasAdmin } = await supabaseAdmin.rpc('has_role', {
+      _user_id: callerId,
+      _role: 'admin',
+    });
+
+    if (!hasAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: admin role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { templateId } = await req.json();
 
@@ -35,7 +73,7 @@ Deno.serve(async (req) => {
     // Get template info
     const { data: template, error: templateError } = await supabaseAdmin
       .from('brand_templates')
-      .select('source_profile_id, template_password')
+      .select('source_profile_id')
       .eq('id', templateId)
       .single();
 
@@ -53,20 +91,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // If password exists, return it directly
-    if (template.template_password) {
-      const email = `template-${templateId}@virtualmercado.internal`;
-      return new Response(
-        JSON.stringify({ 
-          email,
-          password: template.template_password,
-          message: 'Credentials retrieved successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Generate new password
+    // Always generate a fresh password (never stored in DB)
     const newPassword = `Template${Date.now()}!${Math.random().toString(36).substring(2, 15)}`;
     const email = `template-${templateId}@virtualmercado.internal`;
 
@@ -84,17 +109,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Store the new password in the template record
-    const { error: storeError } = await supabaseAdmin
-      .from('brand_templates')
-      .update({ template_password: newPassword })
-      .eq('id', templateId);
-
-    if (storeError) {
-      console.error('Error storing password:', storeError);
-      // Password was updated but not stored - still return it
-    }
-
+    // Return credentials (password is ephemeral, not stored in DB)
     return new Response(
       JSON.stringify({ 
         email,
