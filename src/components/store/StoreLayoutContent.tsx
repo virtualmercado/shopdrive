@@ -2,6 +2,7 @@ import ProductCarousel from "./ProductCarousel";
 import MiniBannerSection from "./MiniBannerSection";
 import { BrandSection } from "./BrandSection";
 import HomeVideoSection from "./HomeVideoSection";
+import StoreReviewsSection from "./StoreReviewsSection";
 
 type StoreLayoutType = "layout_01" | "layout_02" | "layout_03";
 
@@ -136,11 +137,17 @@ const ModuleComponents = {
       buttonTextColor={props.buttonTextColor}
     />
   ),
+  reviews: (props: any) => (
+    <StoreReviewsSection
+      storeOwnerId={props.storeData.id}
+      storeSlug={props.storeSlug || ""}
+      primaryColor={props.storeData.primary_color}
+    />
+  ),
 };
 
 // Define the order of modules for each layout
 const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = {
-  // Layout 01 - Clássico (padrão)
   layout_01: [
     "miniBanners",
     "destaques",
@@ -148,8 +155,8 @@ const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = 
     "todos",
     "brands",
     "video",
+    "reviews",
   ],
-  // Layout 02 - Conversão (foco em vendas)
   layout_02: [
     "promocoes",
     "destaques",
@@ -157,8 +164,8 @@ const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = 
     "todos",
     "brands",
     "video",
+    "reviews",
   ],
-  // Layout 03 - Marca & Conteúdo (storytelling)
   layout_03: [
     "video",
     "miniBanners",
@@ -166,6 +173,7 @@ const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = 
     "promocoes",
     "todos",
     "brands",
+    "reviews",
   ],
 };
 

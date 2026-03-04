@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS reviews_section_title text DEFAULT 'Avaliações dos nossos clientes';
