@@ -5,12 +5,12 @@ interface StoreLayoutPreviewProps {
 }
 
 // Module IDs for the dynamic middle section
-type ModuleId = "banner" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video";
+type ModuleId = "banner" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video" | "reviews";
 
 const layoutMiddleOrder: Record<StoreLayoutType, ModuleId[]> = {
-  layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video"],
-  layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video"],
-  layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos"],
+  layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video", "reviews"],
+  layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video", "reviews"],
+  layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos", "reviews"],
 };
 
 /* ── Tiny reusable wireframe pieces ── */
@@ -58,6 +58,12 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
   video: () => (
     <div className="bg-[#a0a0a0] rounded-lg h-[80px] flex items-center justify-center">
       <span className="text-[12px] font-semibold text-white/90">Vídeo YouTube</span>
+    </div>
+  ),
+  reviews: () => (
+    <div className="bg-[#f5f0e0] rounded-lg h-[56px] flex items-center justify-center gap-1">
+      <span className="text-[10px]">⭐</span>
+      <span className="text-[10px] font-semibold text-[#555]">Avaliações</span>
     </div>
   ),
 };

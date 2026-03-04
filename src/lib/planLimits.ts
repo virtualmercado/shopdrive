@@ -10,6 +10,7 @@ export interface PlanLimits {
   canUseMarketing: boolean;
   canUseCoupons: boolean;
   canUseWhatsAppSupport: boolean;
+  canUseReviews: boolean;
 }
 
 export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
@@ -23,6 +24,7 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseMarketing: false,
     canUseCoupons: false,
     canUseWhatsAppSupport: false,
+    canUseReviews: false,
   },
   pro: {
     maxProducts: 150,
@@ -34,6 +36,7 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseMarketing: true,
     canUseCoupons: true,
     canUseWhatsAppSupport: false,
+    canUseReviews: true,
   },
   premium: {
     maxProducts: null,
@@ -45,6 +48,7 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseMarketing: true,
     canUseCoupons: true,
     canUseWhatsAppSupport: true,
+    canUseReviews: true,
   },
 };
 

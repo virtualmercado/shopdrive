@@ -2941,6 +2941,7 @@ export type Database = {
           product_image_format: string | null
           product_text_alignment: string | null
           return_policy_text: string | null
+          reviews_section_title: string | null
           secondary_color: string | null
           shipping_fixed_fee: number | null
           shipping_free_minimum: number | null
@@ -3035,6 +3036,7 @@ export type Database = {
           product_image_format?: string | null
           product_text_alignment?: string | null
           return_policy_text?: string | null
+          reviews_section_title?: string | null
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
@@ -3129,6 +3131,7 @@ export type Database = {
           product_image_format?: string | null
           product_text_alignment?: string | null
           return_policy_text?: string | null
+          reviews_section_title?: string | null
           secondary_color?: string | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
@@ -3415,6 +3418,63 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_reviews: {
+        Row: {
+          comment: string
+          created_at: string
+          customer_city: string
+          customer_name: string
+          display_order: number
+          id: string
+          is_verified: boolean
+          product_id: string | null
+          stars: number
+          store_owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          customer_city: string
+          customer_name: string
+          display_order?: number
+          id?: string
+          is_verified?: boolean
+          product_id?: string | null
+          stars?: number
+          store_owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          customer_city?: string
+          customer_name?: string
+          display_order?: number
+          id?: string
+          is_verified?: boolean
+          product_id?: string | null
+          stars?: number
+          store_owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
             referencedColumns: ["id"]
           },
         ]

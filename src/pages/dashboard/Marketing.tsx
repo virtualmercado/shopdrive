@@ -25,7 +25,8 @@ import {
   HelpCircle,
   AlertCircle,
   ExternalLink,
-  Megaphone
+  Megaphone,
+  Star
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -315,6 +316,37 @@ const Marketing = () => {
 
           {/* Coupons Section */}
           <CouponsSection />
+
+          {/* Reviews Section Card */}
+          <Card className="relative overflow-hidden">
+            {!limits.canUseReviews && !planLoading && (
+              <PlanGateOverlay
+                message="Disponível apenas nos planos PRO e PREMIUM."
+                buttonLabel="Fazer Upgrade"
+              />
+            )}
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Avaliações dos clientes</CardTitle>
+                  <CardDescription className="text-[#515151]">
+                    Adicione depoimentos reais para aumentar a confiança dos clientes na sua loja.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => handleSmoothNavigation('/lojista/reviews')}
+                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+              >
+                Gerenciar avaliações
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Instagram Shopping Section */}
           <Card>
