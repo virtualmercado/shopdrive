@@ -107,11 +107,16 @@ const StorePerformanceSection = () => {
   return (
     <Card>
       <CardHeader>
-        <div>
-          <CardTitle className="text-lg">👁️ Desempenho da Loja</CardTitle>
-          <CardDescription className="text-[#515151]">
-            Veja quais produtos recebem mais visualizações na sua loja pública.
-          </CardDescription>
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
+            <Eye className="h-5 w-5" style={{ color: SD_PURPLE }} />
+          </div>
+          <div>
+            <CardTitle className="text-lg">👁️ Desempenho da Loja</CardTitle>
+            <CardDescription className="text-[#515151]">
+              Veja quais produtos recebem mais visualizações na sua loja pública.
+            </CardDescription>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
