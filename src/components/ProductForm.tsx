@@ -376,15 +376,32 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     }
   };
 
-  const handleCameraCapture = () => {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.click();
-    }
-  };
-
   const handleFileSelect = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  const setAsPrimary = (index: number) => {
+    if (index === 0 || index >= imagePreviews.length) return;
+    const current = [...imagePreviewsRef.current];
+    const [moved] = current.splice(index, 1);
+    current.unshift(moved);
+    setImagePreviews(current);
+    imagePreviewsRef.current = current;
+    imagesMutationRef.current += 1;
+
+    // Also reorder adjustments
+    const adjCurrent = [...imageAdjustmentsRef.current];
+    if (adjCurrent.length > index) {
+      const [movedAdj] = adjCurrent.splice(index, 1);
+      adjCurrent.unshift(movedAdj);
+      setImageAdjustments(adjCurrent);
+      imageAdjustmentsRef.current = adjCurrent;
+    }
+
+    if (product?.id) {
+      requestPersistImages();
     }
   };
 
