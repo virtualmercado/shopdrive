@@ -109,9 +109,8 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <Store className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-primary">ShopDrive</span>
+          <Link to="/" className="inline-block mb-4">
+            <img src={logoHeaderSD} alt="ShopDrive" className="h-8 w-auto object-contain mx-auto" />
           </Link>
           <h1 className="text-3xl font-bold mb-2">Crie sua conta</h1>
           <p className="text-muted-foreground">Comece a vender online hoje mesmo</p>
