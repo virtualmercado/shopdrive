@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Link2 } from "lucide-react";
+import { Trophy, BarChart3, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -109,11 +109,16 @@ const CatalogPerformanceSection = () => {
   return (
     <Card>
       <CardHeader>
-        <div>
-          <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
-          <CardDescription className="text-[#515151]">
-            Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
-          </CardDescription>
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
+            <BarChart3 className="h-5 w-5" style={{ color: SD_PURPLE }} />
+          </div>
+          <div>
+            <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
+            <CardDescription className="text-[#515151]">
+              Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
+            </CardDescription>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
