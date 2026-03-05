@@ -109,16 +109,11 @@ const CatalogPerformanceSection = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
-            <BarChart3 className="h-5 w-5" style={{ color: SD_PURPLE }} />
-          </div>
-          <div>
-            <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
-            <CardDescription className="text-[#515151]">
-              Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
-            </CardDescription>
-          </div>
+        <div>
+          <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
+          <CardDescription className="text-[#515151]">
+            Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
