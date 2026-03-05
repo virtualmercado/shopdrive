@@ -70,6 +70,7 @@ const CatalogPDF = () => {
   const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCopyingLink, setIsCopyingLink] = useState(false);
+  const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
 
   useEffect(() => {
     if (user) {
