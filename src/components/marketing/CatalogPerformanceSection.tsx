@@ -3,8 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart3, Trophy, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Progress } from "@/components/ui/progress";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProductClick {
   product_id: string;
@@ -12,12 +17,16 @@ interface ProductClick {
   clicks: number;
 }
 
+const SD_PURPLE = "#6A1B9A";
+const SD_ORANGE = "#FB8C00";
+
 const CatalogPerformanceSection = () => {
   const { user } = useAuth();
   const { buttonBgColor } = useTheme();
   const [totalClicks, setTotalClicks] = useState(0);
   const [topProducts, setTopProducts] = useState<ProductClick[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -27,7 +36,6 @@ const CatalogPerformanceSection = () => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Get all clicks for last 30 days
         const { data: clicks, error } = await supabase
           .from("catalog_pdf_clicks")
           .select("product_id, created_at")
@@ -44,18 +52,15 @@ const CatalogPerformanceSection = () => {
           return;
         }
 
-        // Aggregate by product_id
         const countMap: Record<string, number> = {};
         for (const c of clicks) {
           countMap[c.product_id] = (countMap[c.product_id] || 0) + 1;
         }
 
-        // Sort and take top 5
         const sorted = Object.entries(countMap)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5);
+          .slice(0, 10);
 
-        // Fetch product names
         const productIds = sorted.map(([id]) => id);
         const { data: products } = await supabase
           .from("products")
@@ -105,8 +110,8 @@ const CatalogPerformanceSection = () => {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 rounded-lg">
-            <BarChart3 className="h-5 w-5 text-indigo-600" />
+          <div className="p-2 rounded-lg" style={{ backgroundColor: `${SD_PURPLE}15` }}>
+            <BarChart3 className="h-5 w-5" style={{ color: SD_PURPLE }} />
           </div>
           <div>
             <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
@@ -119,8 +124,8 @@ const CatalogPerformanceSection = () => {
       <CardContent className="space-y-6">
         {/* Main metric */}
         <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
-          <div className="p-3 rounded-full" style={{ backgroundColor: `${buttonBgColor}15` }}>
-            <Link2 className="h-6 w-6" style={{ color: buttonBgColor }} />
+          <div className="p-3 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
+            <Link2 className="h-6 w-6" style={{ color: SD_PURPLE }} />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Cliques vindos do Catálogo PDF</p>
@@ -132,7 +137,7 @@ const CatalogPerformanceSection = () => {
         {topProducts.length > 0 && (
           <>
             {/* Top product highlight */}
-            <div className="p-4 rounded-lg border" style={{ borderColor: `${buttonBgColor}40` }}>
+            <div className="p-4 rounded-lg border" style={{ borderColor: `${SD_PURPLE}40`, background: `linear-gradient(135deg, ${SD_PURPLE}08, ${SD_ORANGE}08)` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span className="text-sm font-medium text-muted-foreground">
@@ -143,21 +148,70 @@ const CatalogPerformanceSection = () => {
               <p className="text-sm text-muted-foreground">{topProducts[0].clicks} cliques</p>
             </div>
 
-            {/* Ranking */}
+            {/* Horizontal bar chart */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Ranking de produtos</h4>
-              {topProducts.map((p, i) => (
-                <div key={p.product_id} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate max-w-[70%] text-foreground">{p.product_name}</span>
-                    <span className="font-semibold text-foreground">{p.clicks}</span>
-                  </div>
-                  <Progress
-                    value={(p.clicks / maxClicks) * 100}
-                    className="h-2"
-                  />
+              <h4 className="text-sm font-semibold text-foreground">Ranking dos 10 produtos mais clicados</h4>
+              <TooltipProvider delayDuration={200}>
+                <div className="space-y-2">
+                  {topProducts.map((p, i) => {
+                    const barPercent = Math.max((p.clicks / maxClicks) * 100, 4);
+                    const isHovered = hoveredIndex === i;
+
+                    return (
+                      <Tooltip key={p.product_id}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="flex items-center gap-3 group cursor-default transition-all duration-200 rounded-md px-2 py-1.5"
+                            style={{
+                              backgroundColor: isHovered ? `${SD_PURPLE}08` : "transparent",
+                            }}
+                            onMouseEnter={() => setHoveredIndex(i)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                          >
+                            {/* Rank number */}
+                            <span
+                              className="text-xs font-bold shrink-0 w-5 text-center rounded"
+                              style={{ color: i < 3 ? SD_PURPLE : "#888" }}
+                            >
+                              {i + 1}
+                            </span>
+
+                            {/* Product name */}
+                            <span className="text-sm text-foreground truncate w-[140px] sm:w-[200px] shrink-0" title={p.product_name}>
+                              {p.product_name}
+                            </span>
+
+                            {/* Bar */}
+                            <div className="flex-1 h-7 rounded-md overflow-hidden bg-muted/50 relative">
+                              <div
+                                className="h-full rounded-md transition-all duration-300 ease-out"
+                                style={{
+                                  width: `${barPercent}%`,
+                                  background: `linear-gradient(90deg, ${SD_PURPLE}, ${SD_ORANGE})`,
+                                  opacity: isHovered ? 1 : 0.85,
+                                  boxShadow: isHovered ? `0 2px 8px ${SD_PURPLE}40` : "none",
+                                }}
+                              />
+                            </div>
+
+                            {/* Click count */}
+                            <span
+                              className="text-sm font-bold shrink-0 w-8 text-right tabular-nums"
+                              style={{ color: SD_PURPLE }}
+                            >
+                              {p.clicks}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px]">
+                          <p className="font-semibold text-sm">{p.product_name}</p>
+                          <p className="text-xs text-muted-foreground">{p.clicks} clique{p.clicks !== 1 ? "s" : ""}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
-              ))}
+              </TooltipProvider>
             </div>
           </>
         )}
