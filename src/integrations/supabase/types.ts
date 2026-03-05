@@ -3458,6 +3458,45 @@ export type Database = {
           },
         ]
       }
+      store_product_views: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          product_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          product_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          product_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_reviews: {
         Row: {
           comment: string

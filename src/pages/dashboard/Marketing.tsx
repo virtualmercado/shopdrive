@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import CouponsSection from "@/components/marketing/CouponsSection";
 import CatalogPerformanceSection from "@/components/marketing/CatalogPerformanceSection";
+import StorePerformanceSection from "@/components/marketing/StorePerformanceSection";
 
 interface MarketingSettings {
   instagram_shopping_status: 'connected' | 'disconnected' | 'pending';
@@ -349,8 +350,11 @@ const Marketing = () => {
             </CardContent>
           </Card>
 
-          {/* Catalog Performance Section */}
-          <CatalogPerformanceSection />
+          {/* Performance Sections - side by side on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CatalogPerformanceSection />
+            <StorePerformanceSection />
+          </div>
 
           {/* Instagram Shopping Section */}
           <Card>
