@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy } from "lucide-react";
+import { Trophy, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -107,18 +107,23 @@ const StorePerformanceSection = () => {
   return (
     <Card>
       <CardHeader>
-        <div>
-          <CardTitle className="text-lg">👁️ Desempenho da Loja</CardTitle>
-          <CardDescription className="text-[#515151]">
-            Veja quais produtos recebem mais visualizações na sua loja pública.
-          </CardDescription>
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
+            <Eye className="h-5 w-5" style={{ color: SD_PURPLE }} />
+          </div>
+          <div>
+            <CardTitle className="text-lg">👁️ Desempenho da Loja</CardTitle>
+            <CardDescription className="text-[#515151]">
+              Veja quais produtos recebem mais visualizações na sua loja pública.
+            </CardDescription>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Main metric */}
         <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
           <div className="p-3 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
-            <Trophy className="h-6 w-6" style={{ color: SD_PURPLE }} />
+            <Eye className="h-6 w-6" style={{ color: SD_PURPLE }} />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Visualizações de produtos</p>
