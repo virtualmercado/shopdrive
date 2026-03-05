@@ -1333,6 +1333,13 @@ const CatalogPDF = () => {
                   </div>
                 </RadioGroup>
 
+                {/* Layout selector */}
+                <CatalogLayoutSelector
+                  selected={catalogLayout}
+                  onChange={setCatalogLayout}
+                  primaryColor={buttonBgColor}
+                />
+
                 {/* Products per page selector */}
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
