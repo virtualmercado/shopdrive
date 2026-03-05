@@ -130,7 +130,7 @@ const CatalogPerformanceSection = () => {
           <div>
             <p className="text-sm text-muted-foreground">Cliques vindos do Catálogo PDF</p>
             <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
-            <p className="text-3xl font-bold text-foreground">🔗 {totalClicks}</p>
+            <p className="text-3xl font-bold text-foreground">{totalClicks}</p>
           </div>
         </div>
 
