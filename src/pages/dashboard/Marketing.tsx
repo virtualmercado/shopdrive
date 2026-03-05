@@ -431,14 +431,9 @@ const Marketing = () => {
               {/* Meta Pixel */}
               <div className="p-4 border rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Facebook className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Pixel da Meta (Facebook + Instagram)</h4>
-                      <p className="text-sm text-[#515151]">Rastreie conversões do Facebook e Instagram Ads</p>
-                    </div>
+                  <div>
+                    <h4 className="font-medium">Pixel da Meta (Facebook + Instagram)</h4>
+                    <p className="text-sm text-[#515151]">Rastreie conversões do Facebook e Instagram Ads</p>
                   </div>
                   {getPixelStatusIcon(settings.meta_pixel_enabled, settings.meta_pixel_id)}
                 </div>
