@@ -1525,152 +1525,202 @@ const CatalogPDF = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Cover Preview */}
-                    <CatalogCoverPreview
-                      layoutType={catalogLayout}
-                      primaryColor={storeProfile?.primary_color || primaryColor}
-                      logoUrl={storeProfile?.store_logo_url}
-                    />
-
-                    {/* Content page preview with sidebar */}
-                    <div className="relative rounded-lg overflow-hidden bg-white border">
-                      {/* Sidebar preview (without logo) */}
-                      <div 
-                        className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2"
-                        style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
+                    {/* Page indicator */}
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => setCurrentPreviewPage(Math.max(0, currentPreviewPage - 1))}
+                        disabled={currentPreviewPage === 0}
+                        className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>01</span>
-                      </div>
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Página {currentPreviewPage + 1} de {totalPreviewPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPreviewPage(Math.min(totalPreviewPages - 1, currentPreviewPage + 1))}
+                        disabled={currentPreviewPage >= totalPreviewPages - 1}
+                        className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </div>
 
-                      {/* Content area */}
-                      <div className="ml-5 p-2">
-                        {filterType === "single" && filteredProducts.length === 1 ? (
-                          <div className="flex flex-col items-center text-center space-y-2 py-4">
-                            <div className="w-20 h-20 flex items-center justify-center">
-                              {filteredProducts[0].image_url ? (
-                                <img 
-                                  src={filteredProducts[0].image_url} 
-                                  alt={filteredProducts[0].name}
-                                  className="max-w-full max-h-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-gray-50 rounded">
-                                  Sem imagem
+                    {/* Main preview area */}
+                    {currentPreviewPage === 0 && (
+                      <CatalogCoverPreview
+                        layoutType={catalogLayout}
+                        primaryColor={storeProfile?.primary_color || primaryColor}
+                        logoUrl={storeProfile?.store_logo_url}
+                      />
+                    )}
+
+                    {currentPreviewPage === totalPreviewPages - 1 && (
+                      <CatalogBackCoverPreview
+                        layoutType={catalogLayout}
+                        primaryColor={storeProfile?.primary_color || primaryColor}
+                        logoUrl={storeProfile?.store_logo_url}
+                        storeSlug={storeProfile?.store_slug}
+                        whatsappNumber={storeProfile?.whatsapp_number}
+                        fullAddress={getFullAddress()}
+                      />
+                    )}
+
+                    {currentPreviewPage > 0 && currentPreviewPage < totalPreviewPages - 1 && (() => {
+                      const pageIndex = currentPreviewPage - 1; // 0-based product page index
+                      const previewColor = storeProfile?.primary_color || primaryColor;
+
+                      if (filterType === "single" && filteredProducts.length === 1) {
+                        return (
+                          <div className="relative rounded-lg overflow-hidden bg-white border aspect-[210/297]">
+                            <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
+                              <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
+                            </div>
+                            <div className="ml-5 p-2 flex flex-col items-center text-center space-y-2 py-4">
+                              <div className="w-20 h-20 flex items-center justify-center">
+                                {filteredProducts[0].image_url ? (
+                                  <img src={filteredProducts[0].image_url} alt={filteredProducts[0].name} className="max-w-full max-h-full object-contain" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-muted rounded">Sem imagem</div>
+                                )}
+                              </div>
+                              <h3 className="text-xs font-bold text-foreground px-2">{filteredProducts[0].name}</h3>
+                              <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>
+                              <div className="text-[8px] text-white rounded py-1 px-4" style={{ backgroundColor: previewColor }}>Ver produto</div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (filterType === "list") {
+                        const itemsPerListPage = 20;
+                        const startIdx = pageIndex * itemsPerListPage;
+                        const pageItems = filteredProducts.slice(startIdx, startIdx + itemsPerListPage);
+                        return (
+                          <div className="relative rounded-lg overflow-hidden bg-white border aspect-[210/297]">
+                            <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
+                              <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
+                            </div>
+                            <div className="ml-5 p-2 space-y-1">
+                              <div className="rounded p-1 mb-1 flex items-center text-white text-[8px]" style={{ backgroundColor: previewColor }}>
+                                <span className="font-semibold w-6 text-center">Item</span>
+                                <span className="font-semibold flex-1 pl-2">Produto</span>
+                                <span className="font-semibold pr-1">Valor</span>
+                              </div>
+                              {pageItems.slice(0, 8).map((product, index) => (
+                                <div key={product.id} className="flex items-center py-1 px-1 text-[7px]" style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}>
+                                  <span className="w-5 text-center text-muted-foreground">{startIdx + index + 1}</span>
+                                  <div className="w-4 h-4 flex-shrink-0 mx-1 flex items-center justify-center overflow-hidden rounded-sm bg-white">
+                                    {product.image_url ? (
+                                      <img src={product.image_url} alt={product.name} className="max-w-full max-h-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-full bg-muted" />
+                                    )}
+                                  </div>
+                                  <span className="flex-1 truncate pl-1">{product.name}</span>
+                                  <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
                                 </div>
+                              ))}
+                              {pageItems.length > 8 && (
+                                <p className="text-[8px] text-center text-muted-foreground mt-1">+{pageItems.length - 8} itens nesta página</p>
                               )}
                             </div>
-                            <h3 className="text-xs font-bold text-foreground px-2">
-                              {filteredProducts[0].name}
-                            </h3>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}
-                            </p>
-                            <div 
-                              className="text-[8px] text-white rounded py-1 px-4"
-                              style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
-                            >
-                              Ver produto
-                            </div>
                           </div>
-                        ) : filterType === "list" ? (
-                          <div className="space-y-1">
-                            <div 
-                              className="rounded p-1 mb-1 flex items-center text-white text-[8px]"
-                              style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
-                            >
-                              <span className="font-semibold w-6 text-center">Item</span>
-                              <span className="font-semibold flex-1 pl-2">Produto</span>
-                              <span className="font-semibold pr-1">Valor</span>
-                            </div>
-                            {filteredProducts.slice(0, 6).map((product, index) => (
-                              <div 
-                                key={product.id} 
-                                className="flex items-center py-1 px-1 text-[7px]"
-                                style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}
-                              >
-                                <span className="w-5 text-center text-gray-500">{index + 1}</span>
-                                {/* Thumbnail */}
-                                <div className="w-4 h-4 flex-shrink-0 mx-1 flex items-center justify-center overflow-hidden rounded-sm bg-white">
-                                  {product.image_url ? (
-                                    <img 
-                                      src={product.image_url} 
-                                      alt={product.name}
-                                      className="max-w-full max-h-full object-contain"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gray-100" />
-                                  )}
-                                </div>
-                                <span className="flex-1 truncate pl-1">{product.name}</span>
-                                <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
-                              </div>
-                            ))}
-                            {filteredProducts.length > 6 && (
-                              <p className="text-[8px] text-center text-muted-foreground mt-1">
-                                +{filteredProducts.length - 6} produtos
-                              </p>
-                            )}
+                        );
+                      }
+
+                      // Grid layout (all / category)
+                      const perPage = productsPerPage;
+                      const startIdx = pageIndex * perPage;
+                      const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
+                      return (
+                        <div className="relative rounded-lg overflow-hidden bg-white border aspect-[210/297]">
+                          <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
+                            <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
                           </div>
-                        ) : (
-                          <>
+                          <div className="ml-5 p-2">
                             <div className={`grid ${getPreviewGridCols()} gap-1`}>
-                              {filteredProducts.slice(0, getPreviewProductCount()).map((product) => (
-                                <div 
-                                  key={product.id} 
-                                  className="bg-white border border-gray-200 rounded p-1 text-center"
-                                >
+                              {pageProducts.map((product) => (
+                                <div key={product.id} className="bg-white border border-border rounded p-1 text-center">
                                   <div className={`${productsPerPage === 12 ? 'aspect-[4/3]' : 'aspect-square'} rounded mb-1 overflow-hidden flex items-center justify-center bg-white`}>
                                     {product.image_url ? (
-                                      <img 
-                                        src={product.image_url} 
-                                        alt={product.name}
-                                        className="max-w-full max-h-full object-contain"
-                                      />
+                                      <img src={product.image_url} alt={product.name} className="max-w-full max-h-full object-contain" />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-gray-50">
-                                        Sem imagem
-                                      </div>
+                                      <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-muted">Sem imagem</div>
                                     )}
                                   </div>
                                   <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium truncate`}>{product.name}</p>
-                                  <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>
-                                    {formatPrice(product.promotional_price || product.price)}
-                                  </p>
-                                  <div 
-                                    className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`}
-                                    style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
-                                  >
-                                    Ver produto
-                                  </div>
+                                  <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>
+                                  <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`} style={{ backgroundColor: previewColor }}>Ver produto</div>
                                 </div>
                               ))}
                             </div>
-                            {filteredProducts.length > getPreviewProductCount() && (
-                              <p className="text-[8px] text-muted-foreground text-center mt-1">
-                                +{filteredProducts.length - getPreviewProductCount()} produtos adicionais
-                              </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Filmstrip thumbnails */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 pt-1 px-1">
+                      {pageLabels.map((label, idx) => {
+                        const isActive = idx === currentPreviewPage;
+                        const previewColor = storeProfile?.primary_color || primaryColor;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentPreviewPage(idx)}
+                            className={`flex-shrink-0 rounded-md border-2 transition-all duration-200 flex flex-col items-center justify-center bg-white hover:shadow-md`}
+                            style={{
+                              width: 56,
+                              height: 76,
+                              borderColor: isActive ? previewColor : 'hsl(var(--border))',
+                              boxShadow: isActive ? `0 0 0 2px ${previewColor}33` : '0 1px 3px rgba(0,0,0,0.08)',
+                              outline: isActive ? `2px solid ${previewColor}` : 'none',
+                              outlineOffset: '1px',
+                            }}
+                          >
+                            {/* Mini thumbnail content */}
+                            {idx === 0 && (
+                              <div className="w-full h-full rounded overflow-hidden relative">
+                                <div className="absolute inset-0" style={{ backgroundColor: `${previewColor}15` }} />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="bg-white rounded-sm shadow-sm px-1 py-0.5">
+                                    <span className="text-[5px] font-bold text-foreground">CATÁLOGO</span>
+                                  </div>
+                                </div>
+                              </div>
                             )}
-                          </>
-                        )}
-                      </div>
-                      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        Página 1
-                      </div>
+                            {idx === totalPreviewPages - 1 && (
+                              <div className="w-full h-full rounded overflow-hidden relative">
+                                <div className="absolute inset-0 bg-muted/30" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center">
+                                    <span className="text-[4px] text-muted-foreground">Logo</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {idx > 0 && idx < totalPreviewPages - 1 && (
+                              <div className="w-full h-full rounded overflow-hidden relative">
+                                <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: previewColor }} />
+                                <div className="ml-2 mt-1 space-y-0.5">
+                                  {[...Array(Math.min(3, productsPerPage))].map((_, i) => (
+                                    <div key={i} className="h-1 bg-muted rounded-sm" style={{ width: `${60 - i * 10}%` }} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    {/* Back cover preview */}
-                    <CatalogBackCoverPreview
-                      layoutType={catalogLayout}
-                      primaryColor={storeProfile?.primary_color || primaryColor}
-                      logoUrl={storeProfile?.store_logo_url}
-                      storeSlug={storeProfile?.store_slug}
-                      whatsappNumber={storeProfile?.whatsapp_number}
-                      fullAddress={getFullAddress()}
-                    />
-
-                    <p className="text-sm text-muted-foreground text-center">
-                      Total: {filteredProducts.length} produto(s)
-                    </p>
+                    {/* Page label under filmstrip */}
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {pageLabels[currentPreviewPage]} — Total: {filteredProducts.length} produto(s)
+                      </span>
+                    </div>
                   </div>
                 )}
               </CardContent>
