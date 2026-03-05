@@ -128,7 +128,7 @@ const StorePerformanceSection = () => {
           <div>
             <p className="text-sm text-muted-foreground">Visualizações de produtos</p>
             <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
-            <p className="text-3xl font-bold text-foreground">👁️ {totalViews}</p>
+            <p className="text-3xl font-bold text-foreground">{totalViews}</p>
           </div>
         </div>
 
