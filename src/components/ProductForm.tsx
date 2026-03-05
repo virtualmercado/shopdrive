@@ -131,7 +131,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
 
   useEffect(() => {
