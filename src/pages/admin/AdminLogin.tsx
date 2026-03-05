@@ -113,8 +113,8 @@ const AdminLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#6a1b9a] to-[#4a148c] p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-16 h-16 bg-[#6a1b9a] rounded-full flex items-center justify-center mb-4">
-            <Shield className="h-8 w-8 text-white" />
+          <div className="mx-auto w-16 h-16 flex items-center justify-center mb-4">
+            <img src={iconShopDrive} alt="ShopDrive" className="h-14 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">Painel Master</CardTitle>
           <CardDescription>
