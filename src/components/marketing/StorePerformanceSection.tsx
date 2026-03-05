@@ -112,7 +112,7 @@ const StorePerformanceSection = () => {
             <Eye className="h-5 w-5" style={{ color: SD_PURPLE }} />
           </div>
           <div>
-            <CardTitle className="text-lg">👁️ Desempenho da Loja</CardTitle>
+            <CardTitle className="text-lg">Desempenho da Loja</CardTitle>
             <CardDescription className="text-[#515151]">
               Veja quais produtos recebem mais visualizações na sua loja pública.
             </CardDescription>
