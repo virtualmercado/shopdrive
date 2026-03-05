@@ -149,6 +149,16 @@ const ProductDetailContent = () => {
           }
         } catch (_) { /* tracking should never block page */ }
 
+        // Track product view for store performance
+        try {
+          if (productId) {
+            supabase
+              .from('store_product_views')
+              .insert({ store_id: profileData.id, product_id: productId, event_type: 'product_view' })
+              .then(() => {});
+          }
+        } catch (_) { /* tracking should never block page */ }
+
         // Fetch product
         const { data: productData } = await supabase
           .from("products")

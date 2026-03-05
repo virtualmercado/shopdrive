@@ -350,8 +350,11 @@ const Marketing = () => {
             </CardContent>
           </Card>
 
-          {/* Catalog Performance Section */}
-          <CatalogPerformanceSection />
+          {/* Performance Sections - side by side on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CatalogPerformanceSection />
+            <StorePerformanceSection />
+          </div>
 
           {/* Instagram Shopping Section */}
           <Card>
