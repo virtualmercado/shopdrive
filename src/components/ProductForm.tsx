@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor, EditorSettings, ImageAdjustments } from "@/components/ImageEditor";
-import { ProductGalleryUploader } from "@/components/ProductGalleryUploader";
+
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
