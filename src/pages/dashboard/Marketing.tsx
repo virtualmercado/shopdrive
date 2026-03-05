@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import CouponsSection from "@/components/marketing/CouponsSection";
+import CatalogPerformanceSection from "@/components/marketing/CatalogPerformanceSection";
 
 interface MarketingSettings {
   instagram_shopping_status: 'connected' | 'disconnected' | 'pending';
