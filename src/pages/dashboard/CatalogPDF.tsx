@@ -1191,6 +1191,33 @@ const CatalogPDF = () => {
     }
   };
 
+  // Compute total preview pages: cover + product pages + back cover
+  const getProductPageCount = () => {
+    if (filteredProducts.length === 0) return 0;
+    if (filterType === 'single') return 1;
+    if (filterType === 'list') return Math.ceil(filteredProducts.length / 20); // ~20 items per list page
+    return Math.ceil(filteredProducts.length / productsPerPage);
+  };
+
+  const productPageCount = getProductPageCount();
+  const totalPreviewPages = filteredProducts.length > 0 ? 1 + productPageCount + 1 : 0; // cover + pages + backcover
+
+  // Reset to first page when filters/layout change
+  useEffect(() => {
+    setCurrentPreviewPage(0);
+  }, [filterType, selectedCategory, selectedProduct, productsPerPage, catalogLayout, filteredProducts.length]);
+
+  // Build page labels for filmstrip
+  const pageLabels = useMemo(() => {
+    if (totalPreviewPages === 0) return [];
+    const labels: string[] = ['Capa'];
+    for (let i = 1; i <= productPageCount; i++) {
+      labels.push(`Pg ${i}`);
+    }
+    labels.push('Contracapa');
+    return labels;
+  }, [totalPreviewPages, productPageCount]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
