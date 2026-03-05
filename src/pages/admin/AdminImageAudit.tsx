@@ -237,13 +237,11 @@ const AdminImageAudit = () => {
       const entries: StorageMapEntry[] = [];
       for (const def of STORAGE_MAP_DEFINITION) {
         const selectCols = [def.idCol, ...def.columns.map(c => c.col)].join(", ");
-        const { data, error, count } = await supabase
-          .from(def.table)
+        const { data, error, count } = await (supabase.from as any)(def.table)
           .select(selectCols, { count: "exact" })
           .limit(1);
 
         if (error) {
-          // Table might not exist, skip
           for (const col of def.columns) {
             entries.push({ table: def.table, column: col.col, type: col.type, entity: def.entity, sample: null, count: 0 });
           }
