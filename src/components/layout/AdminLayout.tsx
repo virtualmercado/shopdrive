@@ -12,6 +12,7 @@ import {
   HeadphonesIcon,
   Shield,
   Brain,
+  ScanSearch,
   Cpu,
   Layers,
   Image,
