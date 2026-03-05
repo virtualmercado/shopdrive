@@ -1497,51 +1497,11 @@ const CatalogPDF = () => {
                 ) : (
                   <div className="space-y-4">
                     {/* Cover Preview */}
-                    <div className="relative rounded-lg overflow-hidden aspect-[210/297] bg-white">
-                      {/* 3 vertical stripes on the left */}
-                      <div 
-                        className="absolute left-0 top-0 bottom-0"
-                        style={{ 
-                          width: '19%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      <div 
-                        className="absolute top-0 bottom-0"
-                        style={{ 
-                          left: '22%',
-                          width: '9.5%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      <div 
-                        className="absolute top-0 bottom-0"
-                        style={{ 
-                          left: '34%',
-                          width: '4.75%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      {/* White overlay rectangle */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
-                          <p className="text-lg font-bold text-gray-800">CATÁLOGO</p>
-                          <p className="text-sm text-gray-800">de</p>
-                          <p className="text-lg font-bold text-gray-800">PRODUTOS</p>
-                          <p className="text-sm text-gray-600 mt-2">{new Date().getFullYear()}</p>
-                          {storeProfile?.store_logo_url && (
-                            <img 
-                              src={storeProfile.store_logo_url} 
-                              alt="Logo" 
-                              className="h-8 w-auto mx-auto mt-3 object-contain"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        Capa
-                      </div>
-                    </div>
+                    <CatalogCoverPreview
+                      layoutType={catalogLayout}
+                      primaryColor={storeProfile?.primary_color || primaryColor}
+                      logoUrl={storeProfile?.store_logo_url}
+                    />
 
                     {/* Content page preview with sidebar */}
                     <div className="relative rounded-lg overflow-hidden bg-white border">
