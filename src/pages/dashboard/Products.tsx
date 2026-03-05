@@ -281,7 +281,7 @@ const Products = () => {
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-3">
             {filteredProducts.map((product) => (
-              <Card key={product.id} className={`overflow-hidden relative transition-opacity ${!product.is_active ? 'opacity-60' : ''}`}>
+              <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
                 <div className="absolute top-2 right-2 z-10">
                   <Switch
                     checked={product.is_active}
@@ -307,13 +307,17 @@ const Products = () => {
                     </div>
                   )}
                 </div>
-                <div className="p-4">
+                {/* Top section: title + description — stretches to fill */}
+                <div className="p-4 flex-1">
                   <h3 className="font-semibold mb-1">{product.name}</h3>
                   {product.description && (
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
                       {product.description}
                     </p>
                   )}
+                </div>
+                {/* Bottom section: price, stock, actions — always pinned */}
+                <div className="px-4 pb-4 mt-auto">
                   <div className="mb-2">
                     {product.promotional_price ? (
                       <div className="flex items-center gap-2 flex-wrap">
