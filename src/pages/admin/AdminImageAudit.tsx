@@ -170,7 +170,7 @@ async function fetchAll<T>(table: string, select: string): Promise<T[]> {
   let page = 0;
   let hasMore = true;
   while (hasMore) {
-    const { data, error } = await supabase.from(table).select(select).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    const { data, error } = await (supabase.from as any)(table).select(select).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     if (error) throw error;
     if (data) all.push(...(data as T[]));
     hasMore = (data?.length || 0) === PAGE_SIZE;
