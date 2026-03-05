@@ -349,6 +349,9 @@ const Marketing = () => {
             </CardContent>
           </Card>
 
+          {/* Catalog Performance Section */}
+          <CatalogPerformanceSection />
+
           {/* Instagram Shopping Section */}
           <Card>
             <CardHeader>
