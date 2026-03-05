@@ -223,40 +223,28 @@ const CatalogPDF = () => {
     return productsWithImages[0].image_url;
   };
 
-  // Generate Cover Page
-  const generateCoverPage = async (pdf: jsPDF) => {
+  // Generate Cover Page - Layout 01 (original)
+  const generateCoverLayout01 = async (pdf: jsPDF) => {
     const pageWidth = 210;
     const pageHeight = 297;
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
-    // White background
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-    // 3 vertical stripes on the left side (reaching middle of page)
-    // Stripe 1: widest, starts at left edge
     const stripe1Width = 40;
-    // Stripe 2: half the width of stripe 1
     const stripe2Width = stripe1Width / 2;
-    // Stripe 3: half the width of stripe 2
     const stripe3Width = stripe2Width / 2;
+    const gap = 6;
     
-    const gap = 6; // Gap between stripes
-    
-    // Draw stripe 1 (leftmost, full width)
     pdf.setFillColor(r, g, b);
     pdf.rect(0, 0, stripe1Width, pageHeight, "F");
-    
-    // Draw stripe 2 
     const stripe2X = stripe1Width + gap;
     pdf.rect(stripe2X, 0, stripe2Width, pageHeight, "F");
-    
-    // Draw stripe 3 (reaches approximately middle of page)
     const stripe3X = stripe2X + stripe2Width + gap;
     pdf.rect(stripe3X, 0, stripe3Width, pageHeight, "F");
 
-    // White rectangle overlay in center
     const rectWidth = 100;
     const rectHeight = 160;
     const rectX = (pageWidth - rectWidth) / 2;
@@ -265,46 +253,27 @@ const CatalogPDF = () => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(rectX, rectY, rectWidth, rectHeight, "F");
 
-    // Calculate vertical layout to center all content within white rectangle
-    // Content: CATÁLOGO (28pt) + de (16pt) + PRODUTOS (28pt) + Year (20pt) + Logo
     const textCenterX = pageWidth / 2;
     
-    // Load logo first to calculate its dimensions
     let logoDimensions = { width: 0, height: 0 };
     let logoImage: { data: string; width: number; height: number; format: string } | null = null;
     
     if (storeProfile?.store_logo_url) {
       logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
       if (logoImage) {
-        const logoMaxWidth = 55;
-        const logoMaxHeight = 45;
-        logoDimensions = calculateImageDimensions(
-          logoImage.width,
-          logoImage.height,
-          logoMaxWidth,
-          logoMaxHeight
-        );
+        logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, 55, 45);
       }
     }
     
-    // Calculate total content height for vertical centering
-    // Title block: CATÁLOGO (10mm) + gap (4mm) + de (5mm) + gap (4mm) + PRODUTOS (10mm) = ~33mm
-    // Gap after title: 10mm
-    // Year: 7mm
-    // Gap before logo: 12mm
-    // Logo height: logoDimensions.height
     const titleBlockHeight = 33;
     const gapAfterTitle = 10;
     const yearHeight = 7;
     const gapBeforeLogo = 12;
     const totalContentHeight = titleBlockHeight + gapAfterTitle + yearHeight + gapBeforeLogo + logoDimensions.height;
     
-    // Start Y position to center content vertically within white rectangle
-    // Ensure minimum padding from top and bottom (at least 25mm from bottom for logo breathing room)
     const minBottomPadding = 25;
     const availableHeight = rectHeight - minBottomPadding;
     let startY = rectY + Math.max(25, (availableHeight - totalContentHeight) / 2 + 15);
-    
     let currentY = startY;
 
     pdf.setFontSize(28);
@@ -312,7 +281,6 @@ const CatalogPDF = () => {
     pdf.setFont("helvetica", "bold");
     pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
     currentY += 12;
-    // "de" in lowercase with smaller font
     pdf.setFontSize(16);
     pdf.text("de", textCenterX, currentY, { align: "center" });
     currentY += 12;
@@ -320,20 +288,209 @@ const CatalogPDF = () => {
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
     currentY += 20;
 
-    // Year
     const currentYear = new Date().getFullYear();
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "normal");
     pdf.text(String(currentYear), textCenterX, currentY, { align: "center" });
     currentY += 18;
 
-    // Logo - positioned with proper spacing, ensuring it doesn't go too low
     if (logoImage) {
       const logoX = textCenterX - (logoDimensions.width / 2);
-      // Ensure logo stays within white rectangle with minimum bottom margin
       const maxLogoY = rectY + rectHeight - logoDimensions.height - 20;
       const logoY = Math.min(currentY, maxLogoY);
       pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+    }
+  };
+
+  // Generate Cover Page - Layout 02 (Vertical bars minimalist)
+  const generateCoverLayout02 = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const lr = Math.min(255, r + 60), lg = Math.min(255, g + 60), lb = Math.min(255, b + 60);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Left bars
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, 12, pageHeight, "F");
+    pdf.setFillColor(lr, lg, lb);
+    pdf.rect(16, 0, 6, pageHeight, "F");
+
+    // Right bars
+    pdf.setFillColor(r, g, b);
+    pdf.rect(pageWidth - 12, 0, 12, pageHeight, "F");
+    pdf.setFillColor(lr, lg, lb);
+    pdf.rect(pageWidth - 22, 0, 6, pageHeight, "F");
+
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
+
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
+
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+      }
+    }
+  };
+
+  // Generate Cover Page - Layout 03 (Geometric modern)
+  const generateCoverLayout03 = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const lr = Math.min(255, r + 40), lg = Math.min(255, g + 40), lb = Math.min(255, b + 40);
+    const llr = Math.min(255, r + 100), llg = Math.min(255, g + 100), llb = Math.min(255, b + 100);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Top right triangle (lightest)
+    pdf.setFillColor(llr, llg, llb);
+    pdf.triangle(0, 0, pageWidth, 0, pageWidth, 90, "F");
+
+    // Bottom left triangle (primary)
+    pdf.setFillColor(r, g, b);
+    pdf.triangle(0, pageHeight, 0, 180, 140, pageHeight, "F");
+
+    // Bottom right triangle (lighter)
+    pdf.setFillColor(lr, lg, lb);
+    pdf.triangle(pageWidth, pageHeight, pageWidth, 210, 100, pageHeight, "F");
+
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
+
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
+
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+      }
+    }
+  };
+
+  // Generate Cover Page - Layout 04 (Diagonal premium)
+  const generateCoverLayout04 = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Diagonal division: bottom part in primary color
+    pdf.setFillColor(r, g, b);
+    pdf.triangle(0, 148, pageWidth, 110, pageWidth, pageHeight, "F");
+    pdf.triangle(0, 148, 0, pageHeight, pageWidth, pageHeight, "F");
+
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
+
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
+
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+      }
+    }
+  };
+
+  // Route cover generation based on selected layout
+  const generateCoverPage = async (pdf: jsPDF) => {
+    switch (catalogLayout) {
+      case 'layout_02': return generateCoverLayout02(pdf);
+      case 'layout_03': return generateCoverLayout03(pdf);
+      case 'layout_04': return generateCoverLayout04(pdf);
+      default: return generateCoverLayout01(pdf);
     }
   };
 
