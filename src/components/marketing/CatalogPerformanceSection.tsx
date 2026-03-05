@@ -144,8 +144,6 @@ const CatalogPerformanceSection = () => {
                   🥇 Produto mais clicado no catálogo
                 </span>
               </div>
-                </span>
-              </div>
               <p className="text-lg font-bold text-foreground">{topProducts[0].product_name}</p>
               <p className="text-sm text-muted-foreground">{topProducts[0].clicks} cliques</p>
             </div>
