@@ -755,7 +755,7 @@ const CatalogPDF = () => {
     pdf.text("Ver produto", contentCenterX, currentY + 6.5, { align: "center" });
 
     if (storeProfile?.store_slug) {
-      const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
+      const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
       pdf.link(btnX, currentY, btnWidth, btnHeight, { url: productUrl });
     }
     currentY += btnHeight + 15;
@@ -912,7 +912,7 @@ const CatalogPDF = () => {
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
 
         if (storeProfile?.store_slug) {
-          const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
+          const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
           pdf.link(x, y, cardWidth, cardHeight, { url: productUrl });
         }
       }

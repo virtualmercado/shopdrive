@@ -579,6 +579,45 @@ export type Database = {
           },
         ]
       }
+      catalog_pdf_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          origin: string
+          product_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          origin?: string
+          product_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          origin?: string
+          product_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_pdf_clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_pdf_clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cms_banners: {
         Row: {
           banner_key: string
