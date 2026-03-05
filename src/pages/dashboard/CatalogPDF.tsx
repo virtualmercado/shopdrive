@@ -1630,72 +1630,14 @@ const CatalogPDF = () => {
                     </div>
 
                     {/* Back cover preview */}
-                    <div className="relative rounded-lg overflow-hidden aspect-[210/297]">
-                      {/* Top half with primary color */}
-                      <div 
-                        className="absolute top-0 left-0 right-0 h-1/2"
-                        style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
-                      />
-                      {/* Bottom half white */}
-                      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-white" />
-                      {/* Logo circle in center */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden">
-                          {storeProfile?.store_logo_url ? (
-                            <img 
-                              src={storeProfile.store_logo_url} 
-                              alt="Logo" 
-                              className="w-12 h-12 object-contain"
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-400">Logo</span>
-                          )}
-                        </div>
-                        <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
-                          {storeProfile?.store_slug && (
-                            <p 
-                              className="font-semibold cursor-pointer transition-all duration-200 hover:underline hover:scale-105" 
-                              style={{ color: storeProfile?.primary_color || primaryColor }}
-                            >
-                              {window.location.origin}/loja/{storeProfile.store_slug}
-                            </p>
-                          )}
-                          {storeProfile?.whatsapp_number && (
-                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
-                              <img 
-                                src={iconWhatsAppOutline} 
-                                alt="WhatsApp" 
-                                className="w-3 h-3 object-contain"
-                              />
-                              <span className="text-[10px]">
-                                {(() => {
-                                  const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
-                                  let displayNumber = rawNumber;
-                                  if (rawNumber.startsWith('55') && rawNumber.length > 11) {
-                                    displayNumber = rawNumber.substring(2);
-                                  }
-                                  if (displayNumber.length === 11) {
-                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
-                                  } else if (displayNumber.length === 10) {
-                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
-                                  }
-                                  return displayNumber;
-                                })()}
-                              </span>
-                            </div>
-                          )}
-                          {getFullAddress() && (
-                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
-                              <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span className="text-[8px] truncate">{getFullAddress()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        Contracapa
-                      </div>
-                    </div>
+                    <CatalogBackCoverPreview
+                      layoutType={catalogLayout}
+                      primaryColor={storeProfile?.primary_color || primaryColor}
+                      logoUrl={storeProfile?.store_logo_url}
+                      storeSlug={storeProfile?.store_slug}
+                      whatsappNumber={storeProfile?.whatsapp_number}
+                      fullAddress={getFullAddress()}
+                    />
 
                     <p className="text-sm text-muted-foreground text-center">
                       Total: {filteredProducts.length} produto(s)
