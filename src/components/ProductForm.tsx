@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trash2, Camera, Image as ImageIcon, Pencil, Plus, Sparkles, Bot } from "lucide-react";
+import { Loader2, Trash2, Upload, Pencil, Plus, Sparkles, Bot, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ImageEditor, EditorSettings, ImageAdjustments } from "@/components/ImageEditor";
-import { ProductGalleryUploader } from "@/components/ProductGalleryUploader";
+
 import { AIProductAssistantModal } from "@/components/products/AIProductAssistantModal";
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
@@ -130,7 +131,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
 
   useEffect(() => {
@@ -375,15 +376,32 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     }
   };
 
-  const handleCameraCapture = () => {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.click();
-    }
-  };
-
   const handleFileSelect = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  const setAsPrimary = (index: number) => {
+    if (index === 0 || index >= imagePreviews.length) return;
+    const current = [...imagePreviewsRef.current];
+    const [moved] = current.splice(index, 1);
+    current.unshift(moved);
+    setImagePreviews(current);
+    imagePreviewsRef.current = current;
+    imagesMutationRef.current += 1;
+
+    // Also reorder adjustments
+    const adjCurrent = [...imageAdjustmentsRef.current];
+    if (adjCurrent.length > index) {
+      const [movedAdj] = adjCurrent.splice(index, 1);
+      adjCurrent.unshift(movedAdj);
+      setImageAdjustments(adjCurrent);
+      imageAdjustmentsRef.current = adjCurrent;
+    }
+
+    if (product?.id) {
+      requestPersistImages();
     }
   };
 
@@ -848,11 +866,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Multiple Images Upload */}
-          <div className="space-y-2">
-            <Label>Imagens do Produto (máx. 7)</Label>
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Imagens do Produto (máx. 7)</Label>
             
             {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {imagePreviews.map((preview, index) => (
                   <div 
                     key={index} 
@@ -864,15 +882,42 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                   >
                     <img
                       src={preview}
-                      alt={`Preview ${index + 1}`}
+                      alt={`Imagem ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
+
+                    {/* Principal badge */}
+                    {index === 0 && (
+                      <Badge className="absolute top-1.5 left-1.5 z-10 text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground">
+                        Principal
+                      </Badge>
+                    )}
+
                     {/* Pencil icon overlay */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="bg-black/30 rounded-full p-3 opacity-50 group-hover:opacity-80 transition-opacity">
                         <Pencil className="h-6 w-6 text-white" />
                       </div>
                     </div>
+
+                    {/* Set as primary button (non-first images) */}
+                    {index > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 left-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 bg-black/50 hover:bg-black/70 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAsPrimary(index);
+                        }}
+                        title="Definir como principal"
+                      >
+                        <Star className="h-3 w-3" />
+                      </Button>
+                    )}
+
+                    {/* Remove button */}
                     <Button
                       type="button"
                       variant="ghost"
@@ -904,60 +949,29 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             )}
 
             {imagePreviews.length < 7 && (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`flex-1 ${buttonRadius} transition-all duration-200`}
-                  onClick={handleCameraCapture}
-                  style={{ 
-                    borderColor: buttonBgColor,
-                    color: buttonBgColor
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = buttonBgColor;
-                    e.currentTarget.style.color = buttonTextColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = buttonBgColor;
-                  }}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Câmera
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`flex-1 ${buttonRadius} transition-all duration-200`}
-                  onClick={handleFileSelect}
-                  style={{ 
-                    borderColor: buttonBgColor,
-                    color: buttonBgColor
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = buttonBgColor;
-                    e.currentTarget.style.color = buttonTextColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = buttonBgColor;
-                  }}
-                >
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Arquivos
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className={`w-full ${buttonRadius} transition-all duration-200`}
+                onClick={handleFileSelect}
+                style={{ 
+                  borderColor: buttonBgColor,
+                  color: buttonBgColor
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = buttonBgColor;
+                  e.currentTarget.style.color = buttonTextColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = buttonBgColor;
+                }}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Adicionar imagens
+              </Button>
             )}
 
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImagesChange}
-              className="hidden"
-            />
             <input
               ref={fileInputRef}
               type="file"
@@ -966,6 +980,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               onChange={handleImagesChange}
               className="hidden"
             />
+
+            <p className="text-xs text-muted-foreground">
+              Formatos: JPEG, PNG, WEBP • Máx. 10 MB por imagem
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -1419,10 +1437,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             </Button>
           </div>
 
-          {/* Product Gallery (MinIO) - only for existing products */}
-          {product?.id && (
-            <ProductGalleryUploader productId={product.id} />
-          )}
 
           {/* Product Features */}
           <div className="space-y-3 border-t pt-4">
