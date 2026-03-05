@@ -1437,10 +1437,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             </Button>
           </div>
 
-          {/* Product Gallery (MinIO) - only for existing products */}
-          {product?.id && (
-            <ProductGalleryUploader productId={product.id} />
-          )}
 
           {/* Product Features */}
           <div className="space-y-3 border-t pt-4">
