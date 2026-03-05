@@ -313,7 +313,7 @@ const AdminImageAudit = () => {
       }
 
       // ── Duplicate detection ──
-      const urlCount: Map<string, ImageRef[]> = new Map();
+      const urlCount = {} as Record<string, ImageRef[]>;
       for (const ref of allRefs) {
         if (ref.url.startsWith("data:")) continue;
         const existing = urlCount.get(ref.url) || [];
