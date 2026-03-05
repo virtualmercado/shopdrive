@@ -313,26 +313,25 @@ const AdminImageAudit = () => {
       }
 
       // ── Duplicate detection ──
-      const urlCount = {} as Record<string, ImageRef[]>;
+      const urlCountMap: Record<string, ImageRef[]> = {};
       for (const ref of allRefs) {
         if (ref.url.startsWith("data:")) continue;
-        const existing = urlCount.get(ref.url) || [];
-        existing.push(ref);
-        urlCount.set(ref.url, existing);
+        if (!urlCountMap[ref.url]) urlCountMap[ref.url] = [];
+        urlCountMap[ref.url].push(ref);
       }
-      const duplicateRefs = Array.from(urlCount.entries())
+      const duplicateRefs = Object.entries(urlCountMap)
         .filter(([, refs]) => refs.length > 1)
         .map(([url, refs]) => ({ url, refs }));
 
       // ── Entity breakdown ──
       const entityBreakdown: Record<string, { total: number; ok: number; problems: number }> = {};
-      const entityIdSets = {} as Record<string, Set<string>>;
+      const entityIdSetsMap: Record<string, Record<string, boolean>> = {};
       for (const ref of allRefs) {
-        if (!entityIdSets.has(ref.entity)) entityIdSets.set(ref.entity, new Set());
-        entityIdSets.get(ref.entity)!.add(ref.entityId);
+        if (!entityIdSetsMap[ref.entity]) entityIdSetsMap[ref.entity] = {};
+        entityIdSetsMap[ref.entity][ref.entityId] = true;
       }
-      for (const [entity, ids] of entityIdSets) {
-        entityBreakdown[entity] = { total: ids.size, ok: 0, problems: 0 };
+      for (const [entity, idsObj] of Object.entries(entityIdSetsMap)) {
+        entityBreakdown[entity] = { total: Object.keys(idsObj).length, ok: 0, problems: 0 };
       }
 
       setProgress(30);
@@ -341,7 +340,7 @@ const AdminImageAudit = () => {
       // ── Validate via edge function ──
       const brokenRefs: Array<ImageRef & { error?: string }> = [];
       const oversized: Array<{ ref: ImageRef; size: number }> = [];
-      const validatedKeys = new Set<string>();
+      const validatedKeysMap: Record<string, boolean> = {};
       let validCount = 0;
       const BATCH_SIZE = 50;
 
@@ -355,7 +354,7 @@ const AdminImageAudit = () => {
           const results: ValidationResult[] = data?.results || [];
           for (let j = 0; j < results.length; j++) {
             const res = results[j];
-            if (res.objectKey) validatedKeys.add(res.objectKey);
+            if (res.objectKey) validatedKeysMap[res.objectKey] = true;
             if (!res.exists) {
               brokenRefs.push({ ...batch[j], error: res.error || "not_found" });
             } else {
@@ -380,24 +379,22 @@ const AdminImageAudit = () => {
         if (!error && data?.objects) storageObjects = data.objects;
       } catch { /* non-critical */ }
 
-      const orphanObjects = storageObjects.filter(obj => !validatedKeys.has(obj.key));
+      const orphanObjects = storageObjects.filter(obj => !validatedKeysMap[obj.key]);
 
       // ── Entity breakdown counts ──
-      const brokenEntityIds = new Set(brokenRefs.map(r => `${r.entity}:${r.entityId}`));
-      const problemEntityIds = new Set([
-        ...brokenRefs.map(r => `${r.entity}:${r.entityId}`),
-        ...base64Refs.map(r => `${r.entity}:${r.entityId}`),
-        ...localRefs.map(r => `${r.entity}:${r.entityId}`),
-      ]);
+      const problemEntityIdsMap: Record<string, boolean> = {};
+      for (const r of brokenRefs) problemEntityIdsMap[`${r.entity}:${r.entityId}`] = true;
+      for (const r of base64Refs) problemEntityIdsMap[`${r.entity}:${r.entityId}`] = true;
+      for (const r of localRefs) problemEntityIdsMap[`${r.entity}:${r.entityId}`] = true;
 
-      for (const [entity, data] of Object.entries(entityBreakdown)) {
-        const ids = entityIdSets.get(entity)!;
+      for (const [entity, bd] of Object.entries(entityBreakdown)) {
+        const idsObj = entityIdSetsMap[entity] || {};
         let problems = 0;
-        for (const id of ids) {
-          if (problemEntityIds.has(`${entity}:${id}`)) problems++;
+        for (const id of Object.keys(idsObj)) {
+          if (problemEntityIdsMap[`${entity}:${id}`]) problems++;
         }
-        data.problems = problems;
-        data.ok = data.total - problems;
+        bd.problems = problems;
+        bd.ok = bd.total - problems;
       }
 
       setProgress(100);
