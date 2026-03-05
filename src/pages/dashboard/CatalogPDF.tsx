@@ -494,55 +494,15 @@ const CatalogPDF = () => {
     }
   };
 
-  // Generate Back Cover (Contracapa)
-  const generateBackCover = async (pdf: jsPDF) => {
-    pdf.addPage();
-    const pageWidth = 210;
-    const pageHeight = 297;
+  // Shared back cover contact info rendering
+  const renderBackCoverContactInfo = async (pdf: jsPDF, centerX: number, startInfoY: number) => {
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
-
-    // Top half with primary color
-    pdf.setFillColor(r, g, b);
-    pdf.rect(0, 0, pageWidth, pageHeight / 2, "F");
-
-    // Bottom half white
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
-
-    // Logo in center with white background circle
-    const centerX = pageWidth / 2;
-    const centerY = pageHeight / 2;
-    const circleRadius = 35;
-
-    // White circle background for logo
-    pdf.setFillColor(255, 255, 255);
-    pdf.circle(centerX, centerY, circleRadius, "F");
-
-    // Logo
-    if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
-      if (logoImage) {
-        const logoMaxSize = circleRadius * 1.5;
-        const logoDimensions = calculateImageDimensions(
-          logoImage.width,
-          logoImage.height,
-          logoMaxSize,
-          logoMaxSize
-        );
-        const logoX = centerX - (logoDimensions.width / 2);
-        const logoY = centerY - (logoDimensions.height / 2);
-        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
-      }
-    }
-
-    // Contact info below logo - all centered horizontally on page
-    let infoY = centerY + circleRadius + 25;
+    let infoY = startInfoY;
     pdf.setFontSize(12);
     pdf.setTextColor(50, 50, 50);
     pdf.setFont("helvetica", "normal");
 
-    // Store URL (clickable) - centered
     if (storeProfile?.store_slug) {
       const storeUrl = `${window.location.origin}/loja/${storeProfile.store_slug}`;
       pdf.setTextColor(r, g, b);
@@ -553,93 +513,141 @@ const CatalogPDF = () => {
       infoY += 18;
     }
 
-    // WhatsApp (clickable) with icon - centered as a block
     if (storeProfile?.whatsapp_number) {
       pdf.setTextColor(50, 50, 50);
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(12);
-      
-      // Format phone number: remove country code (+55) and format as (DDD) XXXXX-XXXX
       const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
       let displayNumber = rawNumber;
+      if (rawNumber.startsWith('55') && rawNumber.length > 11) displayNumber = rawNumber.substring(2);
+      if (displayNumber.length === 11) displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
+      else if (displayNumber.length === 10) displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
       
-      // Remove country code (55) if present
-      if (rawNumber.startsWith('55') && rawNumber.length > 11) {
-        displayNumber = rawNumber.substring(2);
-      }
-      
-      // Format: (XX) XXXXX-XXXX or (XX) XXXX-XXXX
-      if (displayNumber.length === 11) {
-        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
-      } else if (displayNumber.length === 10) {
-        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
-      }
-      
-      // Calculate total width of icon + text to center the block
       const iconSize = 6;
       const iconTextGap = 3;
       const textWidth = pdf.getTextWidth(displayNumber);
       const totalBlockWidth = iconSize + iconTextGap + textWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
       
-      // Load and draw WhatsApp outline icon
       const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false);
       if (whatsappIconData) {
         pdf.addImage(whatsappIconData.data, whatsappIconData.format, blockStartX, infoY - 4.5, iconSize, iconSize);
       }
-      
-      // Phone number text - positioned after icon
       pdf.text(displayNumber, blockStartX + iconSize + iconTextGap, infoY);
-      
       const whatsappUrl = `https://wa.me/${rawNumber}`;
       pdf.link(blockStartX - 2, infoY - 5, totalBlockWidth + 4, 8, { url: whatsappUrl });
       infoY += 18;
     }
 
-    // Physical address (clickable to Google Maps) with map pin icon - centered as a block
     const fullAddress = getFullAddress();
     if (fullAddress) {
       pdf.setFontSize(10);
       pdf.setTextColor(80, 80, 80);
-      
       const iconSize = 5;
       const iconTextGap = 3;
-      
-      // Calculate address width to center the entire block (icon + text)
       const maxAddressWidth = 140;
       const addressLines = pdf.splitTextToSize(fullAddress, maxAddressWidth);
-      
-      // Find the widest line to calculate block width
       let maxLineWidth = 0;
       addressLines.forEach((line: string) => {
         const lineWidth = pdf.getTextWidth(line);
         if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
       });
-      
       const totalBlockWidth = iconSize + iconTextGap + maxLineWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
-      
-      // Load and draw map pin icon
       const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
       if (mapPinIconData) {
         pdf.addImage(mapPinIconData.data, mapPinIconData.format, blockStartX, infoY - 3.5, iconSize, iconSize);
       }
-      
-      // Address text - positioned after icon
       const textStartX = blockStartX + iconSize + iconTextGap;
       let addressY = infoY;
       addressLines.forEach((line: string) => {
         pdf.text(line, textStartX, addressY);
         addressY += 5;
       });
-      
       const mapsUrl = buildGoogleMapsSearchUrl(fullAddress);
       if (mapsUrl) {
         const totalHeight = addressLines.length * 5;
         pdf.link(blockStartX - 2, infoY - 4, totalBlockWidth + 4, totalHeight + 4, { url: mapsUrl });
       }
-      infoY = addressY;
     }
+  };
+
+  // Back Cover Logo rendering
+  const renderBackCoverLogo = async (pdf: jsPDF, centerX: number, centerY: number, circleRadius: number) => {
+    pdf.setFillColor(255, 255, 255);
+    pdf.circle(centerX, centerY, circleRadius, "F");
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const logoMaxSize = circleRadius * 1.5;
+        const logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, logoMaxSize, logoMaxSize);
+        const logoX = centerX - (logoDimensions.width / 2);
+        const logoY = centerY - (logoDimensions.height / 2);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+      }
+    }
+  };
+
+  // Generate Back Cover (Contracapa) - routes to layout-specific version
+  const generateBackCover = async (pdf: jsPDF) => {
+    pdf.addPage();
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const centerX = pageWidth / 2;
+    const centerY = pageHeight / 2;
+    const circleRadius = 35;
+
+    // Background based on layout
+    switch (catalogLayout) {
+      case 'layout_02': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        const lr = Math.min(255, r + 60), lg2 = Math.min(255, g + 60), lb = Math.min(255, b + 60);
+        pdf.setFillColor(r, g, b);
+        pdf.rect(0, 0, 12, pageHeight, "F");
+        pdf.setFillColor(lr, lg2, lb);
+        pdf.rect(16, 0, 6, pageHeight, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.rect(pageWidth - 12, 0, 12, pageHeight, "F");
+        pdf.setFillColor(lr, lg2, lb);
+        pdf.rect(pageWidth - 22, 0, 6, pageHeight, "F");
+        break;
+      }
+      case 'layout_03': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        const llr = Math.min(255, r + 100), llg = Math.min(255, g + 100), llb = Math.min(255, b + 100);
+        const lr3 = Math.min(255, r + 40), lg3 = Math.min(255, g + 40), lb3 = Math.min(255, b + 40);
+        pdf.setFillColor(llr, llg, llb);
+        pdf.triangle(0, 0, pageWidth, 0, pageWidth, 90, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.triangle(0, pageHeight, 0, 250, 80, pageHeight, "F");
+        pdf.setFillColor(lr3, lg3, lb3);
+        pdf.triangle(pageWidth, pageHeight, pageWidth, 260, 140, pageHeight, "F");
+        break;
+      }
+      case 'layout_04': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.triangle(0, 200, pageWidth, 170, pageWidth, pageHeight, "F");
+        pdf.triangle(0, 200, 0, pageHeight, pageWidth, pageHeight, "F");
+        break;
+      }
+      default: {
+        // Layout 01 - original
+        pdf.setFillColor(r, g, b);
+        pdf.rect(0, 0, pageWidth, pageHeight / 2, "F");
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+        break;
+      }
+    }
+
+    await renderBackCoverLogo(pdf, centerX, centerY, circleRadius);
+    await renderBackCoverContactInfo(pdf, centerX, centerY + circleRadius + 25);
   };
 
   // Generate Sidebar with page number only (logo removed from product pages)
