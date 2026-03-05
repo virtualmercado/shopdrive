@@ -95,7 +95,7 @@ const CatalogPerformanceSection = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
+          <CardTitle className="text-lg">Desempenho do Catálogo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32">
@@ -114,7 +114,7 @@ const CatalogPerformanceSection = () => {
             <BarChart3 className="h-5 w-5" style={{ color: SD_PURPLE }} />
           </div>
           <div>
-            <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
+            <CardTitle className="text-lg">Desempenho do Catálogo</CardTitle>
             <CardDescription className="text-[#515151]">
               Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
             </CardDescription>
@@ -130,7 +130,7 @@ const CatalogPerformanceSection = () => {
           <div>
             <p className="text-sm text-muted-foreground">Cliques vindos do Catálogo PDF</p>
             <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
-            <p className="text-3xl font-bold text-foreground">🔗 {totalClicks}</p>
+            <p className="text-3xl font-bold text-foreground">{totalClicks}</p>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ const CatalogPerformanceSection = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  🥇 Produto mais clicado no catálogo
+                  Produto mais clicado no catálogo
                 </span>
               </div>
               <p className="text-lg font-bold text-foreground">{topProducts[0].product_name}</p>
