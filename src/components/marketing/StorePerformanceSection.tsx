@@ -123,7 +123,7 @@ const StorePerformanceSection = () => {
         {/* Main metric */}
         <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
           <div className="p-3 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
-            <Trophy className="h-6 w-6" style={{ color: SD_PURPLE }} />
+            <Eye className="h-6 w-6" style={{ color: SD_PURPLE }} />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Visualizações de produtos</p>
