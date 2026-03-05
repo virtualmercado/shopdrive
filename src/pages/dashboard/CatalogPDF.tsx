@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
