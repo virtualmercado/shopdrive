@@ -1,22 +1,18 @@
 
 
-## Plan: Align Product Cards in Dashboard Grid
+## Analysis
 
-### Problem
-Cards have variable heights due to differing description lengths, causing prices, stock info, and buttons to misalign across the grid row.
+After reviewing `StoreBanner.tsx`, the mobile banner code already contains `aspect-ratio: '8 / 7'` with proper `object-cover` and `object-center` styling (lines 135-142). However, the user reports the mobile banner still appears compressed.
 
-### Solution
-Apply `flex-col h-full` structure to each Card so content stretches uniformly and the price/stock/buttons section is always pinned to the bottom.
+The likely cause: the aspect-ratio value `'8 / 7'` may not be rendering as expected in all mobile browsers. Using the explicit pixel ratio `'800 / 700'` is identical mathematically but more explicit. Additionally, I will ensure no conflicting constraints exist.
 
-### Changes — Single file: `src/pages/dashboard/Products.tsx`
+## Plan
 
-**1. Card container** (line 284): Add `flex flex-col h-full` to the `<Card>`.
+**File: `src/components/store/StoreBanner.tsx`** — Two targeted changes (mobile sections only, desktop untouched):
 
-**2. Content area** (line 310): Split the `<div className="p-4">` into two sections:
-- **Top section** (`flex-1`): title + description (description clamped to 3 lines via `line-clamp-3`)
-- **Bottom section** (`mt-auto`): price, stock, and action buttons — always pinned to card bottom.
+1. **Primary mobile carousel (lines 134-142)**: Change `aspect-ratio: '8 / 7'` to `aspect-ratio: '800 / 700'` for explicit clarity, and add `min-height: 0` to the container to prevent any flex/grid compression.
 
-**3. Description clamp**: Change `line-clamp-2` → `line-clamp-3`, and add a fixed min-height so cards without descriptions still align.
+2. **Fallback mobile section (lines 183-191)**: Apply the same fix for consistency.
 
-No other files or database changes needed.
+No changes to: desktop banner, carousel logic, autoplay, dots navigation, or banner ordering.
 
