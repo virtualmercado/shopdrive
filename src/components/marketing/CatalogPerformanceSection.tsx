@@ -141,7 +141,7 @@ const CatalogPerformanceSection = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  🥇 Produto mais clicado no catálogo
+                  Produto mais clicado no catálogo
                 </span>
               </div>
               <p className="text-lg font-bold text-foreground">{topProducts[0].product_name}</p>
