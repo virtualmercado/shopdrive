@@ -14,6 +14,9 @@ import { jsPDF } from "jspdf";
 import { buildGoogleMapsSearchUrl } from "@/lib/maps";
 import iconWhatsAppOutline from "@/assets/icon-whatsapp-outline.jpg";
 import iconMapPin from "@/assets/icon-map-pin.jpg";
+import CatalogLayoutSelector, { type CatalogLayoutType } from "@/components/catalog/CatalogLayoutSelector";
+import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
+import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
 
 interface Product {
   id: string;
