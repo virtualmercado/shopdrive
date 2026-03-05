@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.media-delete]
 verify_jwt = false
+
+[functions.audit-images]
+verify_jwt = false
