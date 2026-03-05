@@ -138,6 +138,17 @@ const ProductDetailContent = () => {
       if (profileData) {
         setStoreData(profileData);
 
+        // Track catalog PDF click if src=catalogo_pdf
+        try {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('src') === 'catalogo_pdf' && productId) {
+            supabase
+              .from('catalog_pdf_clicks')
+              .insert({ store_id: profileData.id, product_id: productId, origin: 'catalogo_pdf' })
+              .then(() => {});
+          }
+        } catch (_) { /* tracking should never block page */ }
+
         // Fetch product
         const { data: productData } = await supabase
           .from("products")
