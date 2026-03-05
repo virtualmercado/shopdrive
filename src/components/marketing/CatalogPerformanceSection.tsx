@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Trophy, Link2 } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -109,23 +109,18 @@ const CatalogPerformanceSection = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg" style={{ backgroundColor: `${SD_PURPLE}15` }}>
-            <BarChart3 className="h-5 w-5" style={{ color: SD_PURPLE }} />
-          </div>
-          <div>
-            <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
-            <CardDescription className="text-[#515151]">
-              Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
-            </CardDescription>
-          </div>
+        <div>
+          <CardTitle className="text-lg">📊 Desempenho do Catálogo</CardTitle>
+          <CardDescription className="text-[#515151]">
+            Veja quais produtos recebem mais cliques vindos do seu catálogo PDF.
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Main metric */}
         <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
           <div className="p-3 rounded-full" style={{ backgroundColor: `${SD_PURPLE}15` }}>
-            <Link2 className="h-6 w-6" style={{ color: SD_PURPLE }} />
+            <Trophy className="h-6 w-6" style={{ color: SD_PURPLE }} />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Cliques vindos do Catálogo PDF</p>
@@ -141,7 +136,7 @@ const CatalogPerformanceSection = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  🥇 Produto mais clicado no catálogo
+                  Produto mais clicado no catálogo
                 </span>
               </div>
               <p className="text-lg font-bold text-foreground">{topProducts[0].product_name}</p>
