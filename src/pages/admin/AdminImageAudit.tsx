@@ -400,9 +400,11 @@ const AdminImageAudit = () => {
       setProgress(100);
       setProgressLabel("Auditoria concluída!");
 
+      const uniqueEntityCount = Object.keys(entityIdSetsMap).reduce((acc, e) => acc + Object.keys(entityIdSetsMap[e]).length, 0);
+
       setReport({
-        totalEntities: allRefs.length > 0 ? new Set(allRefs.map(r => `${r.entity}:${r.entityId}`)).size : 0,
-        entitiesWithImages: new Set(allRefs.map(r => `${r.entity}:${r.entityId}`)).size,
+        totalEntities: uniqueEntityCount,
+        entitiesWithImages: uniqueEntityCount,
         entitiesWithoutImages: 0,
         totalRefsInDb: allRefs.length,
         totalRefsValid: validCount,
