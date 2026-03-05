@@ -1161,6 +1161,7 @@ const CatalogPDF = () => {
     setSelectedProduct("");
     setFilteredProducts([]);
     setProductsPerPage(9);
+    setCatalogLayout('layout_01');
   };
 
   const canGenerate = filterType === "all" || 
