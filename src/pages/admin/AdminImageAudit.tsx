@@ -326,7 +326,7 @@ const AdminImageAudit = () => {
 
       // ── Entity breakdown ──
       const entityBreakdown: Record<string, { total: number; ok: number; problems: number }> = {};
-      const entityIdSets: Map<string, Set<string>> = new Map();
+      const entityIdSets = {} as Record<string, Set<string>>;
       for (const ref of allRefs) {
         if (!entityIdSets.has(ref.entity)) entityIdSets.set(ref.entity, new Set());
         entityIdSets.get(ref.entity)!.add(ref.entityId);
