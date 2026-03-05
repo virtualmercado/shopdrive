@@ -134,7 +134,7 @@ const StorePerformanceSection = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  🥇 Produto mais visualizado
+                  Produto mais visualizado
                 </span>
               </div>
               <p className="text-lg font-bold text-foreground">{topProducts[0].product_name}</p>
