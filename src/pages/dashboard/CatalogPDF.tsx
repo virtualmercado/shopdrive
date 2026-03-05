@@ -14,6 +14,9 @@ import { jsPDF } from "jspdf";
 import { buildGoogleMapsSearchUrl } from "@/lib/maps";
 import iconWhatsAppOutline from "@/assets/icon-whatsapp-outline.jpg";
 import iconMapPin from "@/assets/icon-map-pin.jpg";
+import CatalogLayoutSelector, { type CatalogLayoutType } from "@/components/catalog/CatalogLayoutSelector";
+import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
+import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
 
 interface Product {
   id: string;
@@ -67,6 +70,7 @@ const CatalogPDF = () => {
   const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCopyingLink, setIsCopyingLink] = useState(false);
+  const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
 
   useEffect(() => {
     if (user) {
@@ -219,40 +223,28 @@ const CatalogPDF = () => {
     return productsWithImages[0].image_url;
   };
 
-  // Generate Cover Page
-  const generateCoverPage = async (pdf: jsPDF) => {
+  // Generate Cover Page - Layout 01 (original)
+  const generateCoverLayout01 = async (pdf: jsPDF) => {
     const pageWidth = 210;
     const pageHeight = 297;
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
-    // White background
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-    // 3 vertical stripes on the left side (reaching middle of page)
-    // Stripe 1: widest, starts at left edge
     const stripe1Width = 40;
-    // Stripe 2: half the width of stripe 1
     const stripe2Width = stripe1Width / 2;
-    // Stripe 3: half the width of stripe 2
     const stripe3Width = stripe2Width / 2;
+    const gap = 6;
     
-    const gap = 6; // Gap between stripes
-    
-    // Draw stripe 1 (leftmost, full width)
     pdf.setFillColor(r, g, b);
     pdf.rect(0, 0, stripe1Width, pageHeight, "F");
-    
-    // Draw stripe 2 
     const stripe2X = stripe1Width + gap;
     pdf.rect(stripe2X, 0, stripe2Width, pageHeight, "F");
-    
-    // Draw stripe 3 (reaches approximately middle of page)
     const stripe3X = stripe2X + stripe2Width + gap;
     pdf.rect(stripe3X, 0, stripe3Width, pageHeight, "F");
 
-    // White rectangle overlay in center
     const rectWidth = 100;
     const rectHeight = 160;
     const rectX = (pageWidth - rectWidth) / 2;
@@ -261,46 +253,27 @@ const CatalogPDF = () => {
     pdf.setFillColor(255, 255, 255);
     pdf.rect(rectX, rectY, rectWidth, rectHeight, "F");
 
-    // Calculate vertical layout to center all content within white rectangle
-    // Content: CATÁLOGO (28pt) + de (16pt) + PRODUTOS (28pt) + Year (20pt) + Logo
     const textCenterX = pageWidth / 2;
     
-    // Load logo first to calculate its dimensions
     let logoDimensions = { width: 0, height: 0 };
     let logoImage: { data: string; width: number; height: number; format: string } | null = null;
     
     if (storeProfile?.store_logo_url) {
       logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
       if (logoImage) {
-        const logoMaxWidth = 55;
-        const logoMaxHeight = 45;
-        logoDimensions = calculateImageDimensions(
-          logoImage.width,
-          logoImage.height,
-          logoMaxWidth,
-          logoMaxHeight
-        );
+        logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, 55, 45);
       }
     }
     
-    // Calculate total content height for vertical centering
-    // Title block: CATÁLOGO (10mm) + gap (4mm) + de (5mm) + gap (4mm) + PRODUTOS (10mm) = ~33mm
-    // Gap after title: 10mm
-    // Year: 7mm
-    // Gap before logo: 12mm
-    // Logo height: logoDimensions.height
     const titleBlockHeight = 33;
     const gapAfterTitle = 10;
     const yearHeight = 7;
     const gapBeforeLogo = 12;
     const totalContentHeight = titleBlockHeight + gapAfterTitle + yearHeight + gapBeforeLogo + logoDimensions.height;
     
-    // Start Y position to center content vertically within white rectangle
-    // Ensure minimum padding from top and bottom (at least 25mm from bottom for logo breathing room)
     const minBottomPadding = 25;
     const availableHeight = rectHeight - minBottomPadding;
     let startY = rectY + Math.max(25, (availableHeight - totalContentHeight) / 2 + 15);
-    
     let currentY = startY;
 
     pdf.setFontSize(28);
@@ -308,7 +281,6 @@ const CatalogPDF = () => {
     pdf.setFont("helvetica", "bold");
     pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
     currentY += 12;
-    // "de" in lowercase with smaller font
     pdf.setFontSize(16);
     pdf.text("de", textCenterX, currentY, { align: "center" });
     currentY += 12;
@@ -316,72 +288,221 @@ const CatalogPDF = () => {
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
     currentY += 20;
 
-    // Year
     const currentYear = new Date().getFullYear();
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "normal");
     pdf.text(String(currentYear), textCenterX, currentY, { align: "center" });
     currentY += 18;
 
-    // Logo - positioned with proper spacing, ensuring it doesn't go too low
     if (logoImage) {
       const logoX = textCenterX - (logoDimensions.width / 2);
-      // Ensure logo stays within white rectangle with minimum bottom margin
       const maxLogoY = rectY + rectHeight - logoDimensions.height - 20;
       const logoY = Math.min(currentY, maxLogoY);
       pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
     }
   };
 
-  // Generate Back Cover (Contracapa)
-  const generateBackCover = async (pdf: jsPDF) => {
-    pdf.addPage();
+  // Generate Cover Page - Layout 02 (Vertical bars minimalist)
+  const generateCoverLayout02 = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const lr = Math.min(255, r + 60), lg = Math.min(255, g + 60), lb = Math.min(255, b + 60);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Left bars
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, 12, pageHeight, "F");
+    pdf.setFillColor(lr, lg, lb);
+    pdf.rect(16, 0, 6, pageHeight, "F");
+
+    // Right bars
+    pdf.setFillColor(r, g, b);
+    pdf.rect(pageWidth - 12, 0, 12, pageHeight, "F");
+    pdf.setFillColor(lr, lg, lb);
+    pdf.rect(pageWidth - 22, 0, 6, pageHeight, "F");
+
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
+
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
+
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+      }
+    }
+  };
+
+  // Generate Cover Page - Layout 03 (Geometric modern)
+  const generateCoverLayout03 = async (pdf: jsPDF) => {
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const lr = Math.min(255, r + 40), lg = Math.min(255, g + 40), lb = Math.min(255, b + 40);
+    const llr = Math.min(255, r + 100), llg = Math.min(255, g + 100), llb = Math.min(255, b + 100);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Top right triangle (lightest)
+    pdf.setFillColor(llr, llg, llb);
+    pdf.triangle(0, 0, pageWidth, 0, pageWidth, 90, "F");
+
+    // Bottom left triangle (primary)
+    pdf.setFillColor(r, g, b);
+    pdf.triangle(0, pageHeight, 0, 180, 140, pageHeight, "F");
+
+    // Bottom right triangle (lighter)
+    pdf.setFillColor(lr, lg, lb);
+    pdf.triangle(pageWidth, pageHeight, pageWidth, 210, 100, pageHeight, "F");
+
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
+
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
+
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
+
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+      }
+    }
+  };
+
+  // Generate Cover Page - Layout 04 (Diagonal premium)
+  const generateCoverLayout04 = async (pdf: jsPDF) => {
     const pageWidth = 210;
     const pageHeight = 297;
     const hexColor = getHexColor();
     const { r, g, b } = parseHexColor(hexColor);
 
-    // Top half with primary color
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Diagonal division: bottom part in primary color
     pdf.setFillColor(r, g, b);
-    pdf.rect(0, 0, pageWidth, pageHeight / 2, "F");
+    pdf.triangle(0, 148, pageWidth, 110, pageWidth, pageHeight, "F");
+    pdf.triangle(0, 148, 0, pageHeight, pageWidth, pageHeight, "F");
 
-    // Bottom half white
+    // Center white square
+    const rectSize = 100;
+    const rectX = (pageWidth - rectSize) / 2;
+    const rectY = (pageHeight - rectSize) / 2 - 10;
     pdf.setFillColor(255, 255, 255);
-    pdf.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+    pdf.setDrawColor(240, 240, 240);
+    pdf.setLineWidth(0.5);
+    pdf.rect(rectX, rectY, rectSize, rectSize, "FD");
 
-    // Logo in center with white background circle
-    const centerX = pageWidth / 2;
-    const centerY = pageHeight / 2;
-    const circleRadius = 35;
+    const textCenterX = pageWidth / 2;
+    let currentY = rectY + 25;
 
-    // White circle background for logo
-    pdf.setFillColor(255, 255, 255);
-    pdf.circle(centerX, centerY, circleRadius, "F");
+    pdf.setFontSize(28);
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("CATÁLOGO", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(16);
+    pdf.text("de", textCenterX, currentY, { align: "center" });
+    currentY += 12;
+    pdf.setFontSize(28);
+    pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
+    currentY += 16;
 
-    // Logo
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(new Date().getFullYear()), textCenterX, currentY, { align: "center" });
+    currentY += 14;
+
     if (storeProfile?.store_logo_url) {
       const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
       if (logoImage) {
-        const logoMaxSize = circleRadius * 1.5;
-        const logoDimensions = calculateImageDimensions(
-          logoImage.width,
-          logoImage.height,
-          logoMaxSize,
-          logoMaxSize
-        );
-        const logoX = centerX - (logoDimensions.width / 2);
-        const logoY = centerY - (logoDimensions.height / 2);
-        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+        const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
+        const logoX = textCenterX - (dim.width / 2);
+        const maxLogoY = rectY + rectSize - dim.height - 8;
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
       }
     }
+  };
 
-    // Contact info below logo - all centered horizontally on page
-    let infoY = centerY + circleRadius + 25;
+  // Route cover generation based on selected layout
+  const generateCoverPage = async (pdf: jsPDF) => {
+    switch (catalogLayout) {
+      case 'layout_02': return generateCoverLayout02(pdf);
+      case 'layout_03': return generateCoverLayout03(pdf);
+      case 'layout_04': return generateCoverLayout04(pdf);
+      default: return generateCoverLayout01(pdf);
+    }
+  };
+
+  // Shared back cover contact info rendering
+  const renderBackCoverContactInfo = async (pdf: jsPDF, centerX: number, startInfoY: number) => {
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    let infoY = startInfoY;
     pdf.setFontSize(12);
     pdf.setTextColor(50, 50, 50);
     pdf.setFont("helvetica", "normal");
 
-    // Store URL (clickable) - centered
     if (storeProfile?.store_slug) {
       const storeUrl = `${window.location.origin}/loja/${storeProfile.store_slug}`;
       pdf.setTextColor(r, g, b);
@@ -392,93 +513,141 @@ const CatalogPDF = () => {
       infoY += 18;
     }
 
-    // WhatsApp (clickable) with icon - centered as a block
     if (storeProfile?.whatsapp_number) {
       pdf.setTextColor(50, 50, 50);
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(12);
-      
-      // Format phone number: remove country code (+55) and format as (DDD) XXXXX-XXXX
       const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
       let displayNumber = rawNumber;
+      if (rawNumber.startsWith('55') && rawNumber.length > 11) displayNumber = rawNumber.substring(2);
+      if (displayNumber.length === 11) displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
+      else if (displayNumber.length === 10) displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
       
-      // Remove country code (55) if present
-      if (rawNumber.startsWith('55') && rawNumber.length > 11) {
-        displayNumber = rawNumber.substring(2);
-      }
-      
-      // Format: (XX) XXXXX-XXXX or (XX) XXXX-XXXX
-      if (displayNumber.length === 11) {
-        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
-      } else if (displayNumber.length === 10) {
-        displayNumber = `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
-      }
-      
-      // Calculate total width of icon + text to center the block
       const iconSize = 6;
       const iconTextGap = 3;
       const textWidth = pdf.getTextWidth(displayNumber);
       const totalBlockWidth = iconSize + iconTextGap + textWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
       
-      // Load and draw WhatsApp outline icon
       const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false);
       if (whatsappIconData) {
         pdf.addImage(whatsappIconData.data, whatsappIconData.format, blockStartX, infoY - 4.5, iconSize, iconSize);
       }
-      
-      // Phone number text - positioned after icon
       pdf.text(displayNumber, blockStartX + iconSize + iconTextGap, infoY);
-      
       const whatsappUrl = `https://wa.me/${rawNumber}`;
       pdf.link(blockStartX - 2, infoY - 5, totalBlockWidth + 4, 8, { url: whatsappUrl });
       infoY += 18;
     }
 
-    // Physical address (clickable to Google Maps) with map pin icon - centered as a block
     const fullAddress = getFullAddress();
     if (fullAddress) {
       pdf.setFontSize(10);
       pdf.setTextColor(80, 80, 80);
-      
       const iconSize = 5;
       const iconTextGap = 3;
-      
-      // Calculate address width to center the entire block (icon + text)
       const maxAddressWidth = 140;
       const addressLines = pdf.splitTextToSize(fullAddress, maxAddressWidth);
-      
-      // Find the widest line to calculate block width
       let maxLineWidth = 0;
       addressLines.forEach((line: string) => {
         const lineWidth = pdf.getTextWidth(line);
         if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
       });
-      
       const totalBlockWidth = iconSize + iconTextGap + maxLineWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
-      
-      // Load and draw map pin icon
       const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
       if (mapPinIconData) {
         pdf.addImage(mapPinIconData.data, mapPinIconData.format, blockStartX, infoY - 3.5, iconSize, iconSize);
       }
-      
-      // Address text - positioned after icon
       const textStartX = blockStartX + iconSize + iconTextGap;
       let addressY = infoY;
       addressLines.forEach((line: string) => {
         pdf.text(line, textStartX, addressY);
         addressY += 5;
       });
-      
       const mapsUrl = buildGoogleMapsSearchUrl(fullAddress);
       if (mapsUrl) {
         const totalHeight = addressLines.length * 5;
         pdf.link(blockStartX - 2, infoY - 4, totalBlockWidth + 4, totalHeight + 4, { url: mapsUrl });
       }
-      infoY = addressY;
     }
+  };
+
+  // Back Cover Logo rendering
+  const renderBackCoverLogo = async (pdf: jsPDF, centerX: number, centerY: number, circleRadius: number) => {
+    pdf.setFillColor(255, 255, 255);
+    pdf.circle(centerX, centerY, circleRadius, "F");
+    if (storeProfile?.store_logo_url) {
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      if (logoImage) {
+        const logoMaxSize = circleRadius * 1.5;
+        const logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, logoMaxSize, logoMaxSize);
+        const logoX = centerX - (logoDimensions.width / 2);
+        const logoY = centerY - (logoDimensions.height / 2);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+      }
+    }
+  };
+
+  // Generate Back Cover (Contracapa) - routes to layout-specific version
+  const generateBackCover = async (pdf: jsPDF) => {
+    pdf.addPage();
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const hexColor = getHexColor();
+    const { r, g, b } = parseHexColor(hexColor);
+    const centerX = pageWidth / 2;
+    const centerY = pageHeight / 2;
+    const circleRadius = 35;
+
+    // Background based on layout
+    switch (catalogLayout) {
+      case 'layout_02': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        const lr = Math.min(255, r + 60), lg2 = Math.min(255, g + 60), lb = Math.min(255, b + 60);
+        pdf.setFillColor(r, g, b);
+        pdf.rect(0, 0, 12, pageHeight, "F");
+        pdf.setFillColor(lr, lg2, lb);
+        pdf.rect(16, 0, 6, pageHeight, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.rect(pageWidth - 12, 0, 12, pageHeight, "F");
+        pdf.setFillColor(lr, lg2, lb);
+        pdf.rect(pageWidth - 22, 0, 6, pageHeight, "F");
+        break;
+      }
+      case 'layout_03': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        const llr = Math.min(255, r + 100), llg = Math.min(255, g + 100), llb = Math.min(255, b + 100);
+        const lr3 = Math.min(255, r + 40), lg3 = Math.min(255, g + 40), lb3 = Math.min(255, b + 40);
+        pdf.setFillColor(llr, llg, llb);
+        pdf.triangle(0, 0, pageWidth, 0, pageWidth, 90, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.triangle(0, pageHeight, 0, 250, 80, pageHeight, "F");
+        pdf.setFillColor(lr3, lg3, lb3);
+        pdf.triangle(pageWidth, pageHeight, pageWidth, 260, 140, pageHeight, "F");
+        break;
+      }
+      case 'layout_04': {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        pdf.setFillColor(r, g, b);
+        pdf.triangle(0, 200, pageWidth, 170, pageWidth, pageHeight, "F");
+        pdf.triangle(0, 200, 0, pageHeight, pageWidth, pageHeight, "F");
+        break;
+      }
+      default: {
+        // Layout 01 - original
+        pdf.setFillColor(r, g, b);
+        pdf.rect(0, 0, pageWidth, pageHeight / 2, "F");
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, "F");
+        break;
+      }
+    }
+
+    await renderBackCoverLogo(pdf, centerX, centerY, circleRadius);
+    await renderBackCoverContactInfo(pdf, centerX, centerY + circleRadius + 25);
   };
 
   // Generate Sidebar with page number only (logo removed from product pages)
@@ -992,6 +1161,7 @@ const CatalogPDF = () => {
     setSelectedProduct("");
     setFilteredProducts([]);
     setProductsPerPage(9);
+    setCatalogLayout('layout_01');
   };
 
   const canGenerate = filterType === "all" || 
@@ -1164,6 +1334,13 @@ const CatalogPDF = () => {
                   </div>
                 </RadioGroup>
 
+                {/* Layout selector */}
+                <CatalogLayoutSelector
+                  selected={catalogLayout}
+                  onChange={setCatalogLayout}
+                  primaryColor={buttonBgColor}
+                />
+
                 {/* Products per page selector */}
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
@@ -1321,51 +1498,11 @@ const CatalogPDF = () => {
                 ) : (
                   <div className="space-y-4">
                     {/* Cover Preview */}
-                    <div className="relative rounded-lg overflow-hidden aspect-[210/297] bg-white">
-                      {/* 3 vertical stripes on the left */}
-                      <div 
-                        className="absolute left-0 top-0 bottom-0"
-                        style={{ 
-                          width: '19%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      <div 
-                        className="absolute top-0 bottom-0"
-                        style={{ 
-                          left: '22%',
-                          width: '9.5%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      <div 
-                        className="absolute top-0 bottom-0"
-                        style={{ 
-                          left: '34%',
-                          width: '4.75%',
-                          backgroundColor: storeProfile?.primary_color || primaryColor 
-                        }}
-                      />
-                      {/* White overlay rectangle */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-white p-6 text-center shadow-lg" style={{ width: '60%', maxWidth: '200px' }}>
-                          <p className="text-lg font-bold text-gray-800">CATÁLOGO</p>
-                          <p className="text-sm text-gray-800">de</p>
-                          <p className="text-lg font-bold text-gray-800">PRODUTOS</p>
-                          <p className="text-sm text-gray-600 mt-2">{new Date().getFullYear()}</p>
-                          {storeProfile?.store_logo_url && (
-                            <img 
-                              src={storeProfile.store_logo_url} 
-                              alt="Logo" 
-                              className="h-8 w-auto mx-auto mt-3 object-contain"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        Capa
-                      </div>
-                    </div>
+                    <CatalogCoverPreview
+                      layoutType={catalogLayout}
+                      primaryColor={storeProfile?.primary_color || primaryColor}
+                      logoUrl={storeProfile?.store_logo_url}
+                    />
 
                     {/* Content page preview with sidebar */}
                     <div className="relative rounded-lg overflow-hidden bg-white border">
@@ -1494,72 +1631,14 @@ const CatalogPDF = () => {
                     </div>
 
                     {/* Back cover preview */}
-                    <div className="relative rounded-lg overflow-hidden aspect-[210/297]">
-                      {/* Top half with primary color */}
-                      <div 
-                        className="absolute top-0 left-0 right-0 h-1/2"
-                        style={{ backgroundColor: storeProfile?.primary_color || primaryColor }}
-                      />
-                      {/* Bottom half white */}
-                      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-white" />
-                      {/* Logo circle in center */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden">
-                          {storeProfile?.store_logo_url ? (
-                            <img 
-                              src={storeProfile.store_logo_url} 
-                              alt="Logo" 
-                              className="w-12 h-12 object-contain"
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-400">Logo</span>
-                          )}
-                        </div>
-                        <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
-                          {storeProfile?.store_slug && (
-                            <p 
-                              className="font-semibold cursor-pointer transition-all duration-200 hover:underline hover:scale-105" 
-                              style={{ color: storeProfile?.primary_color || primaryColor }}
-                            >
-                              {window.location.origin}/loja/{storeProfile.store_slug}
-                            </p>
-                          )}
-                          {storeProfile?.whatsapp_number && (
-                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
-                              <img 
-                                src={iconWhatsAppOutline} 
-                                alt="WhatsApp" 
-                                className="w-3 h-3 object-contain"
-                              />
-                              <span className="text-[10px]">
-                                {(() => {
-                                  const rawNumber = storeProfile.whatsapp_number.replace(/\D/g, '');
-                                  let displayNumber = rawNumber;
-                                  if (rawNumber.startsWith('55') && rawNumber.length > 11) {
-                                    displayNumber = rawNumber.substring(2);
-                                  }
-                                  if (displayNumber.length === 11) {
-                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 7)}-${displayNumber.substring(7)}`;
-                                  } else if (displayNumber.length === 10) {
-                                    return `(${displayNumber.substring(0, 2)}) ${displayNumber.substring(2, 6)}-${displayNumber.substring(6)}`;
-                                  }
-                                  return displayNumber;
-                                })()}
-                              </span>
-                            </div>
-                          )}
-                          {getFullAddress() && (
-                            <div className="flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 hover:underline hover:scale-105">
-                              <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span className="text-[8px] truncate">{getFullAddress()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        Contracapa
-                      </div>
-                    </div>
+                    <CatalogBackCoverPreview
+                      layoutType={catalogLayout}
+                      primaryColor={storeProfile?.primary_color || primaryColor}
+                      logoUrl={storeProfile?.store_logo_url}
+                      storeSlug={storeProfile?.store_slug}
+                      whatsappNumber={storeProfile?.whatsapp_number}
+                      fullAddress={getFullAddress()}
+                    />
 
                     <p className="text-sm text-muted-foreground text-center">
                       Total: {filteredProducts.length} produto(s)
