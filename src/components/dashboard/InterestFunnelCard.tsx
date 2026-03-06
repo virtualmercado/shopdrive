@@ -96,16 +96,15 @@ const InterestFunnelCard = () => {
               <div key={step.label}>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-muted-foreground">{step.label}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-8 rounded-md overflow-hidden bg-muted/50">
-                      <div
-                        className="h-full rounded-md transition-all duration-500 ease-out"
-                        style={{
-                          width: `${barPercent}%`,
-                          background: `linear-gradient(90deg, ${SD_PURPLE}, ${SD_ORANGE})`,
-                          opacity: 0.85,
-                        }}
-                      />
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-8 bg-muted/50">
+                        <div
+                          className="h-full transition-all duration-500 ease-out"
+                          style={{
+                            width: `${barPercent}%`,
+                            backgroundColor: SD_PURPLE,
+                          }}
+                        />
                     </div>
                     <span
                       className="text-sm font-bold shrink-0 tabular-nums min-w-[60px] text-right"
