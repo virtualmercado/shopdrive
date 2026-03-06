@@ -989,6 +989,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
       }
 
       clearCart();
+      sessionStorage.removeItem('order_origin_catalog');
       toast.success("Pedido realizado com sucesso!");
       setTimeout(() => navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
