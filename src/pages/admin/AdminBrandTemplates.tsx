@@ -508,7 +508,9 @@ const AdminBrandTemplates = () => {
                         <TableHead>Marca</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Produtos</TableHead>
-                        <TableHead>Lojas Criadas</TableHead>
+                        <TableHead>Cliques</TableHead>
+                        <TableHead>Contas</TableHead>
+                        <TableHead>Conversão</TableHead>
                         <TableHead>Link</TableHead>
                         <TableHead>Última Atualização</TableHead>
                         <TableHead className="w-[50px]">Ações</TableHead>
