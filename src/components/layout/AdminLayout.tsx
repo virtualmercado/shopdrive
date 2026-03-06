@@ -56,6 +56,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: Globe, label: "Suporte / Tickets\nLanding Page", path: "/gestor/suporte-landing" },
     { icon: ScanSearch, label: "Auditoria de Imagens", path: "/gestor/auditoria-imagens" },
     { icon: Shield, label: "Logs e Segurança", path: "/gestor/seguranca" },
+    { icon: Users, label: "Usuários", path: "/gestor/usuarios" },
   ];
 
   const handleLogout = async () => {
