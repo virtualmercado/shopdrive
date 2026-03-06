@@ -126,6 +126,9 @@ const Dashboard = () => {
         {/* Interest Funnel Card */}
         <InterestFunnelCard />
 
+        {/* Sales Origin Card */}
+        <SalesOriginCard />
+
         {/* Charts Grid - 2 per row */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Chart 1 - Sales by State - Horizontal Bar Chart */}
