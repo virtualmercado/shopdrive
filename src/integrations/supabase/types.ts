@@ -1310,6 +1310,96 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          data_envio: string
+          destinatario: string
+          email_remetente: string | null
+          erro: string | null
+          id: string
+          status: string
+          template: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          data_envio?: string
+          destinatario: string
+          email_remetente?: string | null
+          erro?: string | null
+          id?: string
+          status?: string
+          template?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          data_envio?: string
+          destinatario?: string
+          email_remetente?: string | null
+          erro?: string | null
+          id?: string
+          status?: string
+          template?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      email_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          html: string | null
+          id: string
+          last_error: string | null
+          payload: Json | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          store_name: string | null
+          subject: string
+          template: string | null
+          template_id: string | null
+          template_name: string | null
+          tenant_id: string | null
+          to_email: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          html?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          store_name?: string | null
+          subject: string
+          template?: string | null
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id?: string | null
+          to_email: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          html?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          store_name?: string | null
+          subject?: string
+          template?: string | null
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id?: string | null
+          to_email?: string
+        }
+        Relationships: []
+      }
       email_send_logs: {
         Row: {
           created_at: string
@@ -4991,6 +5081,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_email_metric_counters: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
       }
       increment_template_link_clicks: {
         Args: { p_template_slug: string }
