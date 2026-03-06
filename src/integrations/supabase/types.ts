@@ -317,6 +317,47 @@ export type Database = {
           },
         ]
       }
+      brand_report_logs: {
+        Row: {
+          accounts_snapshot: number | null
+          clicks_snapshot: number | null
+          conversion_snapshot: number | null
+          email_sent_to: string
+          id: string
+          report_month: string
+          sent_at: string
+          template_id: string
+        }
+        Insert: {
+          accounts_snapshot?: number | null
+          clicks_snapshot?: number | null
+          conversion_snapshot?: number | null
+          email_sent_to: string
+          id?: string
+          report_month: string
+          sent_at?: string
+          template_id: string
+        }
+        Update: {
+          accounts_snapshot?: number | null
+          clicks_snapshot?: number | null
+          conversion_snapshot?: number | null
+          email_sent_to?: string
+          id?: string
+          report_month?: string
+          sent_at?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_report_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_template_categories: {
         Row: {
           created_at: string
