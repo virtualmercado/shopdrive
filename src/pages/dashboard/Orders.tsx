@@ -632,7 +632,7 @@ const Orders = () => {
                               onClick={() => handleDeleteOrder(order)}
                               disabled={!canDeleteOrder(order)}
                               title={
-                                order.order_source === 'online' 
+                                order.order_source !== 'manual' 
                                   ? "Pedidos gerados pela loja online não podem ser excluídos" 
                                   : order.status === 'delivered' 
                                     ? "Pedidos com status 'Entregue' não podem ser excluídos" 

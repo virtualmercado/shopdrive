@@ -897,7 +897,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
           total_amount: total,
           status: "pending",
           notes: formData.notes || null,
-          order_source: "online",
+          order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
         })
         .select()
         .single();
