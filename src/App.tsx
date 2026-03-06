@@ -76,6 +76,7 @@ import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
 import AdminImageAudit from "./pages/admin/AdminImageAudit";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,7 @@ function App() {
             <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
             <Route path="/gestor/auditoria-imagens" element={<AdminRoute><AdminImageAudit /></AdminRoute>} />
+            <Route path="/gestor/usuarios" element={<AdminRoute><AdminUsers /></AdminRoute>} />
             <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
             
             {/* Merchant Routes */}
