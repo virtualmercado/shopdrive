@@ -808,7 +808,12 @@ const CheckoutContent = () => {
 
           clearCart();
           sessionStorage.removeItem('order_origin_catalog');
-          
+
+          // Track purchase event for conversion funnel
+          if (storeData?.id) {
+            trackStoreEvent(storeData.id, "purchase");
+          }
+
           if (paymentData.status === "approved") {
             toast.success("Pagamento aprovado! Pedido confirmado.");
           } else {
