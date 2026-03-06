@@ -21,6 +21,7 @@ import { format } from "date-fns";
 
 const EmailTemplatesTab = () => {
   const { templates, logs, loading, saving, updateTemplate, duplicateTemplate, logSend } = useEmailTemplates();
+  const emailSettings = useEmailSettings();
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,14 +33,40 @@ const EmailTemplatesTab = () => {
     text_content: "",
   });
 
-  // Sender config state (local for now, can be persisted to platform_settings)
-  const [senderConfig, setSenderConfig] = useState({
+  // Local form state for sender config
+  const [senderForm, setSenderForm] = useState({
+    provider: "resend",
     sender_name: "ShopDrive",
     sender_email: "noreply@shopdrive.com.br",
     reply_to: "suporte@shopdrive.com.br",
-    provider: "Resend",
-    status: "Ativo",
+    smtp_host: "",
+    smtp_port: 587,
+    smtp_user: "",
+    smtp_password: "",
+    smtp_security: "tls",
   });
+  const [senderFormLoaded, setSenderFormLoaded] = useState(false);
+
+  // Sync settings into form once loaded
+  if (emailSettings.settings && !senderFormLoaded) {
+    const s = emailSettings.settings;
+    setSenderForm({
+      provider: s.provider || "resend",
+      sender_name: s.sender_name || "ShopDrive",
+      sender_email: s.sender_email || "",
+      reply_to: s.reply_to || "",
+      smtp_host: s.smtp_host || "",
+      smtp_port: s.smtp_port || 587,
+      smtp_user: s.smtp_user || "",
+      smtp_password: s.smtp_password || "",
+      smtp_security: s.smtp_security || "tls",
+    });
+    setSenderFormLoaded(true);
+  }
+
+  const handleSaveSenderConfig = async () => {
+    await emailSettings.saveSettings(senderForm as any);
+  };
 
   const filteredTemplates = templates.filter(
     (t) =>
