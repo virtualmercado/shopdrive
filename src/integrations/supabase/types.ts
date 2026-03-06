@@ -4081,6 +4081,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_email_metrics: {
+        Row: {
+          blocked_reason: string | null
+          bounce_rate: number
+          created_at: string
+          emails_last_day: number
+          emails_last_hour: number
+          error_rate: number
+          id: string
+          last_day_reset_at: string
+          last_email_sent_at: string | null
+          last_hour_reset_at: string
+          status: string
+          tenant_id: string
+          total_bounces: number
+          total_errors: number
+          total_sent: number
+          updated_at: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          bounce_rate?: number
+          created_at?: string
+          emails_last_day?: number
+          emails_last_hour?: number
+          error_rate?: number
+          id?: string
+          last_day_reset_at?: string
+          last_email_sent_at?: string | null
+          last_hour_reset_at?: string
+          status?: string
+          tenant_id: string
+          total_bounces?: number
+          total_errors?: number
+          total_sent?: number
+          updated_at?: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          bounce_rate?: number
+          created_at?: string
+          emails_last_day?: number
+          emails_last_hour?: number
+          error_rate?: number
+          id?: string
+          last_day_reset_at?: string
+          last_email_sent_at?: string | null
+          last_hour_reset_at?: string
+          status?: string
+          tenant_id?: string
+          total_bounces?: number
+          total_errors?: number
+          total_sent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenant_email_settings: {
         Row: {
           cloudflare_zone_id: string | null
