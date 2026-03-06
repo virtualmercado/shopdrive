@@ -16,6 +16,8 @@ import { AIProductAssistantModal } from "@/components/products/AIProductAssistan
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
 import { exportEditedProductImageJpeg } from "@/lib/batchExportProductImage";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanFeatureBlockModal } from "@/components/plan";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
@@ -120,6 +122,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [imageEditorBlockOpen, setImageEditorBlockOpen] = useState(false);
+
+  // Plan check for image editor
+  const { limits: planLimits } = useMerchantPlan();
 
   // Batch apply state (padronização em lote)
   const [batchApplyStatus, setBatchApplyStatus] = useState({ inProgress: false, completed: 0, total: 0, failed: 0 });
@@ -876,6 +882,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                     key={index} 
                     className="relative aspect-square bg-muted rounded-lg overflow-hidden group cursor-pointer"
                     onDoubleClick={() => {
+                      if (!planLimits.canUseImageEditor) {
+                        setImageEditorBlockOpen(true);
+                        return;
+                      }
                       setEditingImageIndex(index);
                       setImageEditorOpen(true);
                     }}
@@ -1547,6 +1557,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           setDescription(result.description);
         }
       }}
+    />
+
+    {/* Plan block modal for image editor */}
+    <PlanFeatureBlockModal
+      open={imageEditorBlockOpen}
+      onOpenChange={setImageEditorBlockOpen}
+      message={"O Editor de Imagem é um recurso exclusivo do plano PREMIUM.\nFaça upgrade para editar suas imagens com ferramentas profissionais."}
+      buttonLabel="Upgrade para PREMIUM"
     />
     </>
   );

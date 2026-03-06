@@ -3,6 +3,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { MerchantPlan, getPlanFromPlanId, getPlanLimits, PlanLimits, isWithinLimit } from '@/lib/planLimits';
 
+/** All-unlocked limits used when template editor mode is active */
+const TEMPLATE_OVERRIDE_LIMITS: PlanLimits = {
+  maxProducts: null,
+  maxCustomers: null,
+  canCustomizeLogo: true,
+  canCustomizeColors: true,
+  canUseCustomDomain: true,
+  canUseImageEditor: true,
+  canUseMarketing: true,
+  canUseCoupons: true,
+  canUseWhatsAppSupport: true,
+  canUseReviews: true,
+};
+
+/** Detect template-editor mode from URL + localStorage (same logic as useTemplateEditorMode) */
+function isInTemplateEditorMode(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
+    const stored = localStorage.getItem('templateEditorContext');
+    if (stored) {
+      const ctx = JSON.parse(stored);
+      if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+}
+
 interface UseMerchantPlanReturn {
   plan: MerchantPlan;
   limits: PlanLimits;
@@ -20,6 +48,8 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
   const [loading, setLoading] = useState(true);
   const [productCount, setProductCount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
+
+  const templateMode = isInTemplateEditorMode();
 
   const fetchPlanAndCounts = async () => {
     if (!user) {
@@ -74,10 +104,11 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
     }
   }, [user, authLoading]);
 
-  const limits = getPlanLimits(plan);
+  // In template editor mode, override ALL limits to fully unlocked
+  const limits = templateMode ? TEMPLATE_OVERRIDE_LIMITS : getPlanLimits(plan);
 
   return {
-    plan,
+    plan: templateMode ? 'premium' : plan,
     limits,
     loading: loading || authLoading,
     productCount,
