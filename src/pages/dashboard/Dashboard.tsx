@@ -123,11 +123,11 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Interest Funnel Card */}
-        <InterestFunnelCard />
-
-        {/* Sales Origin Card */}
-        <SalesOriginCard />
+        {/* Interest Funnel & Sales Origin - 2 Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <InterestFunnelCard />
+          <SalesOriginCard />
+        </div>
 
         {/* Charts Grid - 2 per row */}
         <div className="grid md:grid-cols-2 gap-6">
