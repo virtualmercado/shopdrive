@@ -26,6 +26,7 @@ import {
   Upload,
   Image as ImageIcon,
   Loader2,
+  Send,
 } from 'lucide-react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
