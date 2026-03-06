@@ -122,8 +122,8 @@ function App() {
             <Route path="/gestor/configuracoes" element={<AdminRoute><AdminPlatformSettings /></AdminRoute>} />
             <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
-            <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
-            <Route path="/gestor/auditoria-imagens" element={<AdminRoute><AdminImageAudit /></AdminRoute>} />
+            <Route path="/gestor/seguranca" element={<Navigate to="/gestor/configuracoes?tab=logs-seguranca" replace />} />
+            <Route path="/gestor/auditoria-imagens" element={<Navigate to="/gestor/configuracoes?tab=auditoria-imagens" replace />} />
             <Route path="/gestor/usuarios" element={<Navigate to="/gestor/configuracoes?tab=usuarios" replace />} />
             <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
             
