@@ -18,6 +18,7 @@ import { useEmailSettings } from "@/hooks/useEmailSettings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ReputationShieldTab } from "./ReputationShieldTab";
 
 const EmailTemplatesTab = () => {
   const { templates, logs, loading, saving, updateTemplate, duplicateTemplate, logSend } = useEmailTemplates();
