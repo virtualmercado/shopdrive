@@ -16,6 +16,8 @@ import { AIProductAssistantModal } from "@/components/products/AIProductAssistan
 import { BrandSelector } from "@/components/products/BrandSelector";
 import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } from "@/lib/persistEditedProductImage";
 import { exportEditedProductImageJpeg } from "@/lib/batchExportProductImage";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { PlanFeatureBlockModal } from "@/components/plan";
 
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
