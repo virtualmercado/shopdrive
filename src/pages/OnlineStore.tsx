@@ -203,6 +203,8 @@ const OnlineStoreContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Store owner ID for event tracking */}
+      <meta name="store-owner-id" content={storeData.id} />
       {/* Top Bar - shown in both modes */}
       {storeData.topbar_enabled && storeData.topbar_text && (
         <StoreTopBar
