@@ -158,7 +158,7 @@ const Dashboard = () => {
                       tick={{ fill: '#666', fontSize: 11 }}
                       width={80}
                     />
-                    <Tooltip 
+                    <RechartsTooltip 
                       formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
                       contentStyle={{ 
                         backgroundColor: 'white', 
