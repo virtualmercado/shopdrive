@@ -127,10 +127,11 @@ const EmailTemplatesTab = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="templates" className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap">
           <TabsTrigger value="templates" className="flex items-center gap-2"><FileText className="h-4 w-4" /> Templates</TabsTrigger>
           <TabsTrigger value="config" className="flex items-center gap-2"><Settings2 className="h-4 w-4" /> Configuração de Envio</TabsTrigger>
           <TabsTrigger value="logs" className="flex items-center gap-2"><History className="h-4 w-4" /> Logs de Envio</TabsTrigger>
+          <TabsTrigger value="reputation" className="flex items-center gap-2"><Shield className="h-4 w-4" /> Reputation Shield</TabsTrigger>
         </TabsList>
 
         {/* Templates List */}
