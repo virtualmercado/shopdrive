@@ -293,11 +293,38 @@ const AdminBrandTemplates = () => {
     }
   };
 
+  const [sendingReportId, setSendingReportId] = useState<string | null>(null);
+
   const handleToggleLink = (template: BrandTemplate) => {
     toggleLinkMutation.mutate({
       id: template.id,
       currentLinkStatus: template.is_link_active,
     });
+  };
+
+  const handleSendReport = async (template: BrandTemplate) => {
+    setSendingReportId(template.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-brand-reports', {
+        body: { template_id: template.id, report_type: 'manual_test' },
+      });
+
+      if (error) throw error;
+
+      const result = data?.results?.[0];
+      if (result?.status === 'sent') {
+        toast.success('Relatório enviado com sucesso para o e-mail da marca.');
+      } else if (result?.detail === 'no_email') {
+        toast.error('Esta marca não possui e-mail cadastrado nas Informações Básicas da loja modelo.');
+      } else {
+        toast.error(`Falha ao enviar o relatório: ${result?.detail || 'erro desconhecido'}`);
+      }
+    } catch (err) {
+      console.error('Error sending report:', err);
+      toast.error('Falha ao enviar o relatório. Verifique os logs da função send-brand-reports.');
+    } finally {
+      setSendingReportId(null);
+    }
   };
 
   const getStatusBadge = (status: BrandTemplateStatus) => {
