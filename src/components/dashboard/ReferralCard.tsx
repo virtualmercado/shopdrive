@@ -118,7 +118,7 @@ const ReferralCard = () => {
             {statsLoading ? (
               <Skeleton className="h-6 w-8 mx-auto" />
             ) : (
-              <p className="text-lg font-bold text-green-600">{stats?.active_referrals || 0}</p>
+              <p className="text-lg font-bold text-primary">{stats?.active_referrals || 0}</p>
             )}
             <p className="text-xs text-muted-foreground">Ativas</p>
           </div>
