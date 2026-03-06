@@ -538,7 +538,15 @@ const AdminBrandTemplates = () => {
                             <span className="font-medium">{template.products_count}</span>
                             <span className="text-muted-foreground">/{template.max_products}</span>
                           </TableCell>
+                          <TableCell>{template.link_clicks}</TableCell>
                           <TableCell>{template.stores_created}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono">
+                              {template.link_clicks > 0
+                                ? `${Math.round((template.stores_created / template.link_clicks) * 100)}%`
+                                : '0%'}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {getLinkBadge(template.is_link_active)}
