@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Package, ShoppingCart, DollarSign, TrendingUp } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, TrendingUp, TrendingDown, Info } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useSalesByState, useSalesByGender, useSalesByAgeRange, useRevenueStats, useTopProducts, useTopCustomers } from "@/hooks/useDashboardCharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardNewsCarousel from "@/components/dashboard/DashboardNewsCarousel";
 import InterestFunnelCard from "@/components/dashboard/InterestFunnelCard";
 
