@@ -882,6 +882,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                     key={index} 
                     className="relative aspect-square bg-muted rounded-lg overflow-hidden group cursor-pointer"
                     onDoubleClick={() => {
+                      if (!planLimits.canUseImageEditor) {
+                        setImageEditorBlockOpen(true);
+                        return;
+                      }
                       setEditingImageIndex(index);
                       setImageEditorOpen(true);
                     }}
