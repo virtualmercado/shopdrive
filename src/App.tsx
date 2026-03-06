@@ -76,6 +76,7 @@ import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
 import AdminImageAudit from "./pages/admin/AdminImageAudit";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
