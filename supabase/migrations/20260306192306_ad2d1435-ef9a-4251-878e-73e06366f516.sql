@@ -1,0 +1,1 @@
+ALTER TABLE public.brand_report_logs ADD COLUMN IF NOT EXISTS report_type text NOT NULL DEFAULT 'monthly';
