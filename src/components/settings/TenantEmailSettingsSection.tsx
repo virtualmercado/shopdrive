@@ -37,6 +37,7 @@ export const TenantEmailSettingsSection = () => {
     saveSettings,
     verifyDomain,
     createCloudflareRecords,
+    removeCloudflareRecords,
   } = useTenantEmailSettings();
 
   const [form, setForm] = useState({
