@@ -316,7 +316,16 @@ export const TenantEmailSettingsSection = () => {
           {dnsRecords.length > 0 && (
             <>
               <Separator className="my-6" />
-              <h3 className="font-medium mb-2">Registros criados no Cloudflare</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">Registros criados no Cloudflare</h3>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={removeCloudflareRecords}
+                >
+                  Remover Todos
+                </Button>
+              </div>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -324,6 +333,7 @@ export const TenantEmailSettingsSection = () => {
                       <TableHead>Tipo</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Record ID</TableHead>
+                      <TableHead>Comentário</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -336,6 +346,9 @@ export const TenantEmailSettingsSection = () => {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{r.record_name}</TableCell>
                         <TableCell className="font-mono text-xs">{r.record_id_cloudflare}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[250px] truncate">
+                          {r.record_comment || "-"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
