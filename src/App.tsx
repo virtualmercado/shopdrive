@@ -124,7 +124,7 @@ function App() {
             <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
             <Route path="/gestor/seguranca" element={<AdminRoute><AdminSecurity /></AdminRoute>} />
             <Route path="/gestor/auditoria-imagens" element={<AdminRoute><AdminImageAudit /></AdminRoute>} />
-            <Route path="/gestor/usuarios" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="/gestor/usuarios" element={<Navigate to="/gestor/configuracoes?tab=usuarios" replace />} />
             <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
             
             {/* Merchant Routes */}

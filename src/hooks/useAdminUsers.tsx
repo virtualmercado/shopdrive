@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface AdminUserPermissions {
+export interface AdminUserPermissions {
   id: string;
   user_id: string;
   full_name: string;
   email: string;
   is_active: boolean;
+  role: string;
   permissions: Record<string, boolean>;
   created_at: string;
 }
@@ -29,6 +30,14 @@ export const ADMIN_MODULES = [
   { key: "configuracoes", label: "Configurações da Plataforma" },
 ];
 
+export const ADMIN_ROLES = [
+  { value: "super_admin", label: "Super Admin" },
+  { value: "admin", label: "Admin" },
+  { value: "operador", label: "Operador" },
+  { value: "suporte", label: "Suporte" },
+  { value: "financeiro", label: "Financeiro" },
+];
+
 export const useAdminUsers = () => {
   const [users, setUsers] = useState<AdminUserPermissions[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +56,10 @@ export const useAdminUsers = () => {
       return;
     }
 
-    const mappedUsers = (data || []).map((u) => ({
+    const mappedUsers = (data || []).map((u: any) => ({
       ...u,
       permissions: (u.permissions as Record<string, boolean>) || {},
+      role: u.role || "admin",
     }));
 
     setUsers(mappedUsers);
@@ -64,18 +74,16 @@ export const useAdminUsers = () => {
     fullName: string,
     email: string,
     password: string,
-    permissions: Record<string, boolean>
+    permissions: Record<string, boolean>,
+    role: string = "admin"
   ) => {
     setSaving(true);
     
-    // First create the user in auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        },
+        data: { full_name: fullName },
       },
     });
 
@@ -86,7 +94,6 @@ export const useAdminUsers = () => {
       return false;
     }
 
-    // Then add admin role and permissions
     const { error: roleError } = await supabase
       .from("user_roles")
       .insert({ user_id: authData.user.id, role: "admin" });
@@ -102,6 +109,7 @@ export const useAdminUsers = () => {
         full_name: fullName,
         email,
         is_active: true,
+        role,
         permissions,
       });
 
@@ -144,7 +152,6 @@ export const useAdminUsers = () => {
   const deleteUser = async (id: string, userId: string) => {
     setSaving(true);
     
-    // Remove permissions
     const { error: permError } = await supabase
       .from("admin_user_permissions")
       .delete()
@@ -157,7 +164,6 @@ export const useAdminUsers = () => {
       return false;
     }
 
-    // Remove admin role
     await supabase
       .from("user_roles")
       .delete()
@@ -170,5 +176,9 @@ export const useAdminUsers = () => {
     return true;
   };
 
-  return { users, loading, saving, createUser, updateUser, deleteUser, refetch: fetchUsers };
+  const toggleUserStatus = async (id: string, currentStatus: boolean) => {
+    return updateUser(id, { is_active: !currentStatus });
+  };
+
+  return { users, loading, saving, createUser, updateUser, deleteUser, toggleUserStatus, refetch: fetchUsers };
 };
