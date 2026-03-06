@@ -28,6 +28,7 @@ export interface TenantDnsRecord {
   record_type: string;
   record_name: string;
   record_content: string;
+  record_comment: string;
   created_at: string;
 }
 
