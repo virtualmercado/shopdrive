@@ -34,6 +34,62 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Remove Cloudflare records for tenant
+    if (action === "remove_cloudflare") {
+      const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
+      if (!CLOUDFLARE_API_TOKEN) {
+        return new Response(
+          JSON.stringify({ error: "CLOUDFLARE_API_TOKEN não configurado" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get all stored DNS records for this tenant
+      const { data: existingRecords } = await supabase
+        .from("tenant_email_dns_records")
+        .select("*")
+        .eq("tenant_id", tenant_id);
+
+      let removed = 0;
+      if (existingRecords && existingRecords.length > 0) {
+        // Get zone_id from tenant settings
+        const { data: tenantCfg } = await supabase
+          .from("tenant_email_settings")
+          .select("cloudflare_zone_id")
+          .eq("tenant_id", tenant_id)
+          .single();
+
+        const zoneId = cloudflare_zone_id || tenantCfg?.cloudflare_zone_id;
+        if (zoneId) {
+          for (const rec of existingRecords) {
+            try {
+              await fetch(
+                `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${rec.record_id_cloudflare}`,
+                {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+                }
+              );
+              removed++;
+            } catch (e) {
+              console.error(`Failed to delete CF record ${rec.record_id_cloudflare}:`, e);
+            }
+          }
+        }
+
+        // Remove from database
+        await supabase
+          .from("tenant_email_dns_records")
+          .delete()
+          .eq("tenant_id", tenant_id);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, records_removed: removed }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Cloudflare record creation
     if (action === "create_cloudflare" && cloudflare_zone_id) {
       const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
@@ -44,14 +100,16 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get tenant info for comment
+      // Get tenant info for standardized comment
       const { data: tenantSettings } = await supabase
         .from("tenant_email_settings")
         .select("sender_name")
         .eq("tenant_id", tenant_id)
         .single();
 
-      const comment = `ShopDrive Tenant: ${tenantSettings?.sender_name || "Unknown"} | Tenant ID: ${tenant_id.substring(0, 8)} | Tipo: Email Auth`;
+      const tenantName = tenantSettings?.sender_name || "Unknown";
+      const shortId = tenant_id.substring(0, 8);
+      const comment = `ShopDrive | Tenant: ${tenantName} | ID: ${shortId} | Email Auth`;
 
       const records = [
         {
@@ -73,6 +131,27 @@ Deno.serve(async (req) => {
           label: "DMARC",
         },
       ];
+
+      // Remove existing records first to avoid duplicates
+      const { data: oldRecords } = await supabase
+        .from("tenant_email_dns_records")
+        .select("record_id_cloudflare")
+        .eq("tenant_id", tenant_id);
+
+      if (oldRecords && oldRecords.length > 0) {
+        for (const old of oldRecords) {
+          try {
+            await fetch(
+              `https://api.cloudflare.com/client/v4/zones/${cloudflare_zone_id}/dns_records/${old.record_id_cloudflare}`,
+              {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+              }
+            );
+          } catch (_) { /* ignore */ }
+        }
+        await supabase.from("tenant_email_dns_records").delete().eq("tenant_id", tenant_id);
+      }
 
       const createdRecords = [];
 
@@ -103,6 +182,7 @@ Deno.serve(async (req) => {
             record_type: rec.label,
             record_name: rec.name,
             record_content: rec.content,
+            record_comment: comment,
           });
         }
       }
