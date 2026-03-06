@@ -1012,6 +1012,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
   const handlePixPaymentConfirmed = () => {
     clearCart();
+    // Track purchase event for conversion funnel
+    if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
     toast.success("Pagamento confirmado!");
     navigate(`/loja/${storeSlug}/pedido-confirmado/${createdOrderId}`);
   };
