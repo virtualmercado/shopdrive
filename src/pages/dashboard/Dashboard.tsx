@@ -128,11 +128,15 @@ const Dashboard = () => {
         {/* Referral Card */}
         <ReferralCard />
 
-        {/* Interest Funnel & Sales Origin - 2 Column Grid */}
+        {/* Conversion Funnel & Sales Origin - 2 Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <InterestFunnelCard />
+          <ConversionFunnelCard />
           <SalesOriginCard />
         </div>
+
+        {/* Cart Abandonment & Sales by State */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CartAbandonmentCard />
 
         {/* Charts Grid - 2 per row */}
         <div className="grid md:grid-cols-2 gap-6">
