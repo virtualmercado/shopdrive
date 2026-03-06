@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { useCoupon } from "@/hooks/useCoupon";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
@@ -807,7 +808,12 @@ const CheckoutContent = () => {
 
           clearCart();
           sessionStorage.removeItem('order_origin_catalog');
-          
+
+          // Track purchase event for conversion funnel
+          if (storeData?.id) {
+            trackStoreEvent(storeData.id, "purchase");
+          }
+
           if (paymentData.status === "approved") {
             toast.success("Pagamento aprovado! Pedido confirmado.");
           } else {
@@ -966,6 +972,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             }
             
             clearCart();
+            // Track purchase event for conversion funnel
+            if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
             // Navigate to confirmation page where boleto details will be shown
             navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
             return;
@@ -990,6 +998,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
       clearCart();
       sessionStorage.removeItem('order_origin_catalog');
+      // Track purchase event for conversion funnel
+      if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
       toast.success("Pedido realizado com sucesso!");
       setTimeout(() => navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
@@ -1002,6 +1012,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
   const handlePixPaymentConfirmed = () => {
     clearCart();
+    // Track purchase event for conversion funnel
+    if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
     toast.success("Pagamento confirmado!");
     navigate(`/loja/${storeSlug}/pedido-confirmado/${createdOrderId}`);
   };

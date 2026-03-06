@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardNewsCarousel from "@/components/dashboard/DashboardNewsCarousel";
-import InterestFunnelCard from "@/components/dashboard/InterestFunnelCard";
+import ConversionFunnelCard from "@/components/dashboard/ConversionFunnelCard";
+import CartAbandonmentCard from "@/components/dashboard/CartAbandonmentCard";
 import SalesOriginCard from "@/components/dashboard/SalesOriginCard";
 import ReferralCard from "@/components/dashboard/ReferralCard";
 
@@ -127,14 +128,16 @@ const Dashboard = () => {
         {/* Referral Card */}
         <ReferralCard />
 
-        {/* Interest Funnel & Sales Origin - 2 Column Grid */}
+        {/* Conversion Funnel & Sales Origin - 2 Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <InterestFunnelCard />
+          <ConversionFunnelCard />
           <SalesOriginCard />
         </div>
 
-        {/* Charts Grid - 2 per row */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Cart Abandonment & Sales by State */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CartAbandonmentCard />
+
           {/* Chart 1 - Sales by State - Horizontal Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
@@ -194,6 +197,10 @@ const Dashboard = () => {
               </div>
             )}
           </Card>
+        </div>
+
+        {/* Charts Grid - 2 per row */}
+        <div className="grid md:grid-cols-2 gap-6">
 
           {/* Chart 2 - Sales by Gender */}
           <Card className="p-6">

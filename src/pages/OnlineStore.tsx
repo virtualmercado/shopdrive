@@ -17,6 +17,7 @@ import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveBanners } from "@/lib/defaultBanners";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 type StoreModelType = "loja_virtual" | "catalogo_digital";
 
@@ -104,6 +105,9 @@ const OnlineStoreContent = () => {
       const mobileUrls = Array.isArray(data.banner_mobile_urls)
         ? data.banner_mobile_urls.filter((url): url is string => typeof url === "string")
         : [];
+
+      // Track store visit event
+      trackStoreEvent(data.id, "store_visit");
 
       setStoreData({
         ...data,
@@ -199,6 +203,8 @@ const OnlineStoreContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Store owner ID for event tracking */}
+      <meta name="store-owner-id" content={storeData.id} />
       {/* Top Bar - shown in both modes */}
       {storeData.topbar_enabled && storeData.topbar_text && (
         <StoreTopBar

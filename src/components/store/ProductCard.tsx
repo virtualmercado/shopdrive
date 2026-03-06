@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 interface ProductCardProps {
   product: {
@@ -46,6 +47,7 @@ const ProductCard = ({
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const [isHovered, setIsHovered] = useState(false);
+  const { storeSlug: routeStoreSlug } = useParams<{ storeSlug: string }>();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
@@ -98,6 +100,19 @@ const ProductCard = ({
     };
 
     addToCart(cartItem);
+
+    // Track add_to_cart event for conversion funnel
+    // We need the store owner ID - derive from product context
+    // The storeSlug prop or route param gives us context but we need store_id
+    // We'll pass it via a data attribute or use a simpler approach
+    if (product.id) {
+      // Fetch store_id from the page context - use the product's store relationship
+      const storeIdMeta = document.querySelector('meta[name="store-owner-id"]')?.getAttribute('content');
+      if (storeIdMeta) {
+        trackStoreEvent(storeIdMeta, "add_to_cart", product.id);
+      }
+    }
+
     setLastAddedItem({
       ...cartItem,
       quantity: 1,

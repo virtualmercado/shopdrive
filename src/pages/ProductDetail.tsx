@@ -14,6 +14,7 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useEmblaCarousel from "embla-carousel-react";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 interface Product {
   id: string;
@@ -172,6 +173,8 @@ const ProductDetailContent = () => {
                 sessionStorage.setItem(viewKey, 'true');
               }
             }
+            // Also track in store_events for conversion funnel
+            trackStoreEvent(profileData.id, "product_view", productId);
           }
         } catch (e) { console.error('Unexpected error tracking product view:', e); }
 
@@ -332,6 +335,11 @@ const ProductDetailContent = () => {
 
     for (let i = 0; i < quantity; i++) {
       addToCart(cartItem);
+    }
+
+    // Track add_to_cart event for conversion funnel
+    if (storeData) {
+      trackStoreEvent(storeData.id, "add_to_cart", product.id);
     }
 
     setLastAddedItem({
