@@ -35,6 +35,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import CouponsSection from "@/components/marketing/CouponsSection";
 import CatalogPerformanceSection from "@/components/marketing/CatalogPerformanceSection";
 import StorePerformanceSection from "@/components/marketing/StorePerformanceSection";
+import ProductInterestSection from "@/components/marketing/ProductInterestSection";
 
 interface MarketingSettings {
   instagram_shopping_status: 'connected' | 'disconnected' | 'pending';
@@ -355,6 +356,9 @@ const Marketing = () => {
             <CatalogPerformanceSection />
             <StorePerformanceSection />
           </div>
+
+          {/* Interest Rate Section - full width below performance */}
+          <ProductInterestSection />
 
           {/* Instagram Shopping Section */}
           <Card>
