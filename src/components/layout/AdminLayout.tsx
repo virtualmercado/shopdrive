@@ -12,7 +12,6 @@ import {
   HeadphonesIcon,
   Shield,
   Brain,
-  
   Cpu,
   Layers,
   Image,
