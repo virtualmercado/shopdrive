@@ -14,6 +14,7 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useEmblaCarousel from "embla-carousel-react";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 interface Product {
   id: string;
