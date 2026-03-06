@@ -106,6 +106,9 @@ const OnlineStoreContent = () => {
         ? data.banner_mobile_urls.filter((url): url is string => typeof url === "string")
         : [];
 
+      // Track store visit event
+      trackStoreEvent(data.id, "store_visit");
+
       setStoreData({
         ...data,
         banner_desktop_urls: desktopUrls,

@@ -337,6 +337,11 @@ const ProductDetailContent = () => {
       addToCart(cartItem);
     }
 
+    // Track add_to_cart event for conversion funnel
+    if (storeData) {
+      trackStoreEvent(storeData.id, "add_to_cart", product.id);
+    }
+
     setLastAddedItem({
       ...cartItem,
       quantity,

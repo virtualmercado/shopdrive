@@ -100,6 +100,19 @@ const ProductCard = ({
     };
 
     addToCart(cartItem);
+
+    // Track add_to_cart event for conversion funnel
+    // We need the store owner ID - derive from product context
+    // The storeSlug prop or route param gives us context but we need store_id
+    // We'll pass it via a data attribute or use a simpler approach
+    if (product.id) {
+      // Fetch store_id from the page context - use the product's store relationship
+      const storeIdMeta = document.querySelector('meta[name="store-owner-id"]')?.getAttribute('content');
+      if (storeIdMeta) {
+        trackStoreEvent(storeIdMeta, "add_to_cart", product.id);
+      }
+    }
+
     setLastAddedItem({
       ...cartItem,
       quantity: 1,
