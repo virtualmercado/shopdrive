@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardNewsCarousel from "@/components/dashboard/DashboardNewsCarousel";
-import InterestFunnelCard from "@/components/dashboard/InterestFunnelCard";
+import ConversionFunnelCard from "@/components/dashboard/ConversionFunnelCard";
+import CartAbandonmentCard from "@/components/dashboard/CartAbandonmentCard";
 import SalesOriginCard from "@/components/dashboard/SalesOriginCard";
 import ReferralCard from "@/components/dashboard/ReferralCard";
 
