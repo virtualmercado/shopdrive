@@ -27,6 +27,7 @@ const registerSchema = z.object({
 const Register = () => {
   const [searchParams] = useSearchParams();
   const templateSlug = searchParams.get('template');
+  const conviteStoreId = searchParams.get('convite');
   
   const [formData, setFormData] = useState({
     name: "",
