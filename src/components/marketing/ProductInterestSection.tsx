@@ -43,11 +43,11 @@ const ProductInterestSection = () => {
           .eq("store_id", user.id)
           .gte("created_at", since);
 
-        // Fetch confirmed orders with items
+        // Fetch confirmed order IDs
         const paidStatuses = ["paid", "delivered", "shipped", "confirmed", "completed"];
         const { data: orders } = await supabase
           .from("orders")
-          .select("id, items")
+          .select("id")
           .eq("store_owner_id", user.id)
           .in("status", paidStatuses)
           .gte("created_at", since);
@@ -64,21 +64,25 @@ const ProductInterestSection = () => {
           viewMap[v.product_id] = (viewMap[v.product_id] || 0) + 1;
         }
 
-        // Count sales per product from order items
+        // Count sales per product from order_items
         const salesMap: Record<string, number> = {};
-        if (orders) {
-          for (const order of orders) {
-            const items = Array.isArray(order.items) ? order.items : [];
-            for (const item of items) {
-              const pid = (item as any)?.product_id || (item as any)?.id;
-              if (pid && viewMap[pid] !== undefined) {
-                salesMap[pid] = (salesMap[pid] || 0) + ((item as any)?.quantity || 1);
+        if (orders && orders.length > 0) {
+          const orderIds = orders.map((o) => o.id);
+          const { data: orderItems } = await supabase
+            .from("order_items")
+            .select("product_id, quantity")
+            .in("order_id", orderIds);
+
+          if (orderItems) {
+            for (const item of orderItems) {
+              if (viewMap[item.product_id] !== undefined) {
+                salesMap[item.product_id] = (salesMap[item.product_id] || 0) + item.quantity;
               }
             }
           }
         }
 
-        // Calculate interest rate for products that have views
+        // Fetch product names
         const allProductIds = Object.keys(viewMap);
         const { data: products } = await supabase
           .from("products")
