@@ -75,7 +75,7 @@ import AdminBrandTemplateEdit from "./pages/admin/AdminBrandTemplateEdit";
 import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
-import AdminImageAudit from "./pages/admin/AdminImageAudit";
+
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
