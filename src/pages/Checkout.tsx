@@ -972,6 +972,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             }
             
             clearCart();
+            // Track purchase event for conversion funnel
+            if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
             // Navigate to confirmation page where boleto details will be shown
             navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
             return;
