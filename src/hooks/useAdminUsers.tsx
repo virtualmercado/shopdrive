@@ -56,6 +56,54 @@ export const useAdminUsers = () => {
       return;
     }
 
+    // If admin_user_permissions is empty, try to sync from user_roles + profiles
+    if (!data || data.length === 0) {
+      console.warn("admin_user_permissions is empty, attempting sync from user_roles...");
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (roles && roles.length > 0) {
+        const userIds = roles.map((r: any) => r.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds);
+
+        for (const profile of (profiles || [])) {
+          await supabase.from("admin_user_permissions").upsert({
+            user_id: profile.id,
+            full_name: profile.full_name || "Admin",
+            email: "",
+            is_active: true,
+            role: "super_admin",
+            permissions: {
+              dashboard: true, comando_ia: true, inteligencia_artificial: true,
+              assinantes: true, faturas: true, automacoes: true, templates_marca: true,
+              comunicacao: true, integracoes: true, cms: true, biblioteca_midia: true,
+              relatorios: true, suporte_lojista: true, configuracoes: true,
+            },
+          }, { onConflict: "user_id" });
+        }
+
+        // Re-fetch after sync
+        const { data: syncedData } = await supabase
+          .from("admin_user_permissions")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        const syncedUsers = (syncedData || []).map((u: any) => ({
+          ...u,
+          permissions: (u.permissions as Record<string, boolean>) || {},
+          role: u.role || "admin",
+        }));
+        setUsers(syncedUsers);
+        setLoading(false);
+        return;
+      }
+    }
+
     const mappedUsers = (data || []).map((u: any) => ({
       ...u,
       permissions: (u.permissions as Record<string, boolean>) || {},
