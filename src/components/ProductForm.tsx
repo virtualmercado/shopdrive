@@ -122,6 +122,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [imageEditorBlockOpen, setImageEditorBlockOpen] = useState(false);
+
+  // Plan check for image editor
+  const { limits: planLimits } = useMerchantPlan();
 
   // Batch apply state (padronização em lote)
   const [batchApplyStatus, setBatchApplyStatus] = useState({ inProgress: false, completed: 0, total: 0, failed: 0 });
