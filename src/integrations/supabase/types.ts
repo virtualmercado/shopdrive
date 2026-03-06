@@ -79,6 +79,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           permissions: Json | null
+          role: string
           updated_at: string
           user_id: string
         }
@@ -89,6 +90,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           permissions?: Json | null
+          role?: string
           updated_at?: string
           user_id: string
         }
@@ -99,6 +101,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           permissions?: Json | null
+          role?: string
           updated_at?: string
           user_id?: string
         }
@@ -1304,6 +1307,89 @@ export type Database = {
           id?: string
           max_retry_attempts?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_send_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          status: string
+          subject: string | null
+          template_id: string | null
+          template_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          event_trigger: string
+          html_content: string | null
+          id: string
+          is_active: boolean
+          name: string
+          pre_header: string | null
+          subject: string
+          text_content: string | null
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_trigger: string
+          html_content?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          pre_header?: string | null
+          subject?: string
+          text_content?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_trigger?: string
+          html_content?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          pre_header?: string | null
+          subject?: string
+          text_content?: string | null
+          updated_at?: string
+          variables?: Json | null
         }
         Relationships: []
       }
