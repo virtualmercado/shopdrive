@@ -357,6 +357,9 @@ const Marketing = () => {
             <StorePerformanceSection />
           </div>
 
+          {/* Interest Rate Section - full width below performance */}
+          <ProductInterestSection />
+
           {/* Instagram Shopping Section */}
           <Card>
             <CardHeader>
