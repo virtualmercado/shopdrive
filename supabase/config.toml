@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.audit-images]
 verify_jwt = false
+
+[functions.send-platform-email]
+verify_jwt = false
+
+[functions.send-brand-reports]
+verify_jwt = false
