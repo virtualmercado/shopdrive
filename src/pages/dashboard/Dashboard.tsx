@@ -306,7 +306,7 @@ const Dashboard = () => {
                       width={120}
                       tickFormatter={(value) => value.length > 18 ? `${value.substring(0, 18)}...` : value}
                     />
-                    <Tooltip 
+                    <RechartsTooltip 
                       formatter={(value: number) => [`${value} unidades`, 'Quantidade']}
                       contentStyle={{ 
                         backgroundColor: 'white', 
