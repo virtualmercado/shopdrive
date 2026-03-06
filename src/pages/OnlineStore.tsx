@@ -17,6 +17,7 @@ import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveBanners } from "@/lib/defaultBanners";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 type StoreModelType = "loja_virtual" | "catalogo_digital";
 
