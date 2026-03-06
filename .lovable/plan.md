@@ -1,18 +1,29 @@
 
 
-## Analysis
+## Plano: Área de Gerenciamento de Usuários no Painel Master
 
-After reviewing `StoreBanner.tsx`, the mobile banner code already contains `aspect-ratio: '8 / 7'` with proper `object-cover` and `object-center` styling (lines 135-142). However, the user reports the mobile banner still appears compressed.
+### Situação Atual
+A gestão de usuários do Painel Master já existe como uma aba ("Usuários e Permissões") dentro de **Configurações da Plataforma**. O hook `useAdminUsers` e o componente `UsersPermissionsTab` já possuem CRUD completo (criar, editar, excluir usuários com permissões modulares). O objetivo é promover isso para uma **página dedicada** no menu lateral.
 
-The likely cause: the aspect-ratio value `'8 / 7'` may not be rendering as expected in all mobile browsers. Using the explicit pixel ratio `'800 / 700'` is identical mathematically but more explicit. Additionally, I will ensure no conflicting constraints exist.
+### O que será feito
 
-## Plan
+**1. Nova página `AdminUsers.tsx`**
+- Criar `/gestor/usuarios` como página independente
+- Reutilizar o componente `UsersPermissionsTab` existente (ou extrair seu conteúdo para a nova página com layout aprimorado)
+- Manter toda a lógica existente do `useAdminUsers` sem alterações
 
-**File: `src/components/store/StoreBanner.tsx`** — Two targeted changes (mobile sections only, desktop untouched):
+**2. Adicionar rota no `App.tsx`**
+- Nova rota protegida: `/gestor/usuarios` com `AdminRoute`
 
-1. **Primary mobile carousel (lines 134-142)**: Change `aspect-ratio: '8 / 7'` to `aspect-ratio: '800 / 700'` for explicit clarity, and add `min-height: 0` to the container to prevent any flex/grid compression.
+**3. Adicionar item no menu lateral (`AdminLayout.tsx`)**
+- Novo item "Usuários" com ícone `Users` posicionado após "Logs e Segurança" (ou antes de "Configurações")
+- Path: `/gestor/usuarios`
 
-2. **Fallback mobile section (lines 183-191)**: Apply the same fix for consistency.
+**4. Manter a aba em Configurações**
+- A aba "Usuários e Permissões" em Configurações continuará funcionando normalmente como acesso alternativo
 
-No changes to: desktop banner, carousel logic, autoplay, dots navigation, or banner ordering.
+### Arquivos afetados
+- `src/pages/admin/AdminUsers.tsx` (novo)
+- `src/App.tsx` (nova rota)
+- `src/components/layout/AdminLayout.tsx` (novo item no menu)
 
