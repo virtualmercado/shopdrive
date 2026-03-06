@@ -168,6 +168,7 @@ Deno.serve(async (req) => {
 
     const body: SendEmailRequest = await req.json();
     const { to, subject, html, template_id, template_name, store_name } = body;
+    const tenant_id = (body as any).tenant_id;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -188,12 +189,29 @@ Deno.serve(async (req) => {
       throw new Error("Configurações de e-mail não encontradas");
     }
 
-    // Build From header (multi-tenant support)
+    // Check tenant-specific email settings
+    let tenantFrom: string | null = null;
+    let tenantReplyTo: string | null = null;
+
+    if (tenant_id) {
+      const { data: tenantSettings } = await supabase
+        .from("tenant_email_settings")
+        .select("*")
+        .eq("tenant_id", tenant_id)
+        .maybeSingle();
+
+      if (tenantSettings && tenantSettings.domain_status === "verified" && tenantSettings.sender_email) {
+        tenantFrom = `${tenantSettings.sender_name || store_name} <${tenantSettings.sender_email}>`;
+        tenantReplyTo = tenantSettings.reply_to || tenantSettings.sender_email;
+      }
+    }
+
+    // Build From header (tenant verified → use tenant, otherwise fallback)
     const displayName = store_name
-      ? `${store_name} via ${settings.sender_name}`
+      ? (tenantFrom ? store_name : `${store_name} via ${settings.sender_name}`)
       : settings.sender_name;
-    const fromHeader = `${displayName} <${settings.sender_email}>`;
-    const replyTo = settings.reply_to || settings.sender_email;
+    const fromHeader = tenantFrom || `${displayName} <${settings.sender_email}>`;
+    const replyTo = tenantReplyTo || settings.reply_to || settings.sender_email;
 
     let result: { success: boolean; id?: string; error?: string };
 

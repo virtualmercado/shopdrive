@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { User, ShoppingBag, Lock } from "lucide-react";
+import { User, ShoppingBag, Lock, Mail } from "lucide-react";
 import { AccountClosureSection } from "@/components/settings/AccountClosureSection";
+import { TenantEmailSettingsSection } from "@/components/settings/TenantEmailSettingsSection";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -417,6 +418,9 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+
+        {/* Tenant Email Settings */}
+        <TenantEmailSettingsSection />
 
         {/* Account Closure */}
         <AccountClosureSection />
