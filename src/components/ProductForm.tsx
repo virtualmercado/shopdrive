@@ -1558,6 +1558,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         }
       }}
     />
+
+    {/* Plan block modal for image editor */}
+    <PlanFeatureBlockModal
+      open={imageEditorBlockOpen}
+      onOpenChange={setImageEditorBlockOpen}
+      message={"O Editor de Imagem é um recurso exclusivo do plano PREMIUM.\nFaça upgrade para editar suas imagens com ferramentas profissionais."}
+      buttonLabel="Upgrade para PREMIUM"
+    />
     </>
   );
 };
