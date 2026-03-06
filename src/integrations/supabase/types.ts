@@ -4048,6 +4048,96 @@ export type Database = {
           },
         ]
       }
+      tenant_email_dns_records: {
+        Row: {
+          created_at: string
+          id: string
+          record_content: string
+          record_id_cloudflare: string
+          record_name: string
+          record_type: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          record_content: string
+          record_id_cloudflare: string
+          record_name: string
+          record_type: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          record_content?: string
+          record_id_cloudflare?: string
+          record_name?: string
+          record_type?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      tenant_email_settings: {
+        Row: {
+          cloudflare_zone_id: string | null
+          created_at: string
+          dkim_record: string | null
+          dkim_verified: boolean | null
+          dmarc_record: string | null
+          dmarc_verified: boolean | null
+          domain_status: string
+          email_domain: string | null
+          id: string
+          last_verification_at: string | null
+          reply_to: string | null
+          sender_email: string
+          sender_name: string
+          spf_record: string | null
+          spf_verified: boolean | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cloudflare_zone_id?: string | null
+          created_at?: string
+          dkim_record?: string | null
+          dkim_verified?: boolean | null
+          dmarc_record?: string | null
+          dmarc_verified?: boolean | null
+          domain_status?: string
+          email_domain?: string | null
+          id?: string
+          last_verification_at?: string | null
+          reply_to?: string | null
+          sender_email?: string
+          sender_name?: string
+          spf_record?: string | null
+          spf_verified?: boolean | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cloudflare_zone_id?: string | null
+          created_at?: string
+          dkim_record?: string | null
+          dkim_verified?: boolean | null
+          dmarc_record?: string | null
+          dmarc_verified?: boolean | null
+          domain_status?: string
+          email_domain?: string | null
+          id?: string
+          last_verification_at?: string | null
+          reply_to?: string | null
+          sender_email?: string
+          sender_name?: string
+          spf_record?: string | null
+          spf_verified?: boolean | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ticket_landing_responses: {
         Row: {
           assunto: string
