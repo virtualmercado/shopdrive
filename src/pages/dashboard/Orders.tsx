@@ -371,7 +371,7 @@ const Orders = () => {
 
   const handleDeleteOrder = (order: any) => {
     // Check if order can be deleted
-    if (order.order_source === 'online') {
+    if (order.order_source !== 'manual') {
       toast({
         title: "Exclusão não permitida",
         description: "Pedidos gerados pela loja online não podem ser excluídos.",
