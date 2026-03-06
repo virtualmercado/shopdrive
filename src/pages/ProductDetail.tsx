@@ -138,16 +138,23 @@ const ProductDetailContent = () => {
       if (profileData) {
         setStoreData(profileData);
 
-        // Track catalog PDF click if src=catalogo_pdf
+        // Track catalog PDF click if src=catalogo_pdf (deduplicated per session)
         try {
           const params = new URLSearchParams(window.location.search);
           if (params.get('src') === 'catalogo_pdf' && productId) {
-            supabase
-              .from('catalog_pdf_clicks')
-              .insert({ store_id: profileData.id, product_id: productId, origin: 'catalogo_pdf' })
-              .then(() => {});
+            const clickKey = `catalog_click_${profileData.id}_${productId}`;
+            if (!sessionStorage.getItem(clickKey)) {
+              const { error: clickError } = await supabase
+                .from('catalog_pdf_clicks')
+                .insert({ store_id: profileData.id, product_id: productId, origin: 'catalogo_pdf' });
+              if (clickError) {
+                console.error('Error tracking catalog click:', clickError);
+              } else {
+                sessionStorage.setItem(clickKey, 'true');
+              }
+            }
           }
-        } catch (_) { /* tracking should never block page */ }
+        } catch (e) { console.error('Unexpected error tracking catalog click:', e); }
 
         // Track product view for store performance (deduplicated per session)
         try {
