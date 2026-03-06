@@ -47,6 +47,7 @@ const ProductCard = ({
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const [isHovered, setIsHovered] = useState(false);
+  const { storeSlug: routeStoreSlug } = useParams<{ storeSlug: string }>();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
