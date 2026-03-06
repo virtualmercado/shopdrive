@@ -22,6 +22,10 @@ export interface SalesByAgeRange {
 export interface RevenueStats {
   totalRevenue: number;
   averageDailyRevenue: number;
+  previousTotalRevenue: number;
+  previousAverageDailyRevenue: number;
+  totalRevenueTrend: number | null;
+  averageRevenueTrend: number | null;
 }
 
 // Helper function to extract state from address
@@ -292,25 +296,53 @@ export const useRevenueStats = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      const now = new Date();
       const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(now.getDate() - 60);
 
-      // For revenue, only count paid orders
+      const paidStatuses = ["paid", "delivered", "shipped", "confirmed", "completed"];
+
+      // Current period
       const { data: orders, error } = await supabase
         .from("orders")
         .select("total_amount")
         .eq("store_owner_id", user.id)
-        .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
+        .in("status", paidStatuses)
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (error) throw error;
 
+      // Previous period (30-60 days ago)
+      const { data: prevOrders, error: prevError } = await supabase
+        .from("orders")
+        .select("total_amount")
+        .eq("store_owner_id", user.id)
+        .in("status", paidStatuses)
+        .gte("created_at", sixtyDaysAgo.toISOString())
+        .lt("created_at", thirtyDaysAgo.toISOString());
+
+      if (prevError) throw prevError;
+
       const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const averageDailyRevenue = totalRevenue / 30;
 
+      const previousTotalRevenue = prevOrders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const previousAverageDailyRevenue = previousTotalRevenue / 30;
+
+      const calcTrend = (current: number, previous: number): number | null => {
+        if (previous === 0) return current > 0 ? null : null;
+        return Math.round(((current - previous) / previous) * 1000) / 10;
+      };
+
       return {
         totalRevenue,
-        averageDailyRevenue
+        averageDailyRevenue,
+        previousTotalRevenue,
+        previousAverageDailyRevenue,
+        totalRevenueTrend: calcTrend(totalRevenue, previousTotalRevenue),
+        averageRevenueTrend: calcTrend(averageDailyRevenue, previousAverageDailyRevenue),
       };
     },
     refetchInterval: 30000,
