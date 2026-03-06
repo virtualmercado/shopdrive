@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { useCoupon } from "@/hooks/useCoupon";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
