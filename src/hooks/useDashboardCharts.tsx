@@ -22,6 +22,10 @@ export interface SalesByAgeRange {
 export interface RevenueStats {
   totalRevenue: number;
   averageDailyRevenue: number;
+  previousTotalRevenue: number;
+  previousAverageDailyRevenue: number;
+  totalRevenueTrend: number | null;
+  averageRevenueTrend: number | null;
 }
 
 // Helper function to extract state from address
