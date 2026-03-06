@@ -3497,6 +3497,38 @@ export type Database = {
           },
         ]
       }
+      store_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          inviter_store_id: string
+          new_store_id: string
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inviter_store_id: string
+          new_store_id: string
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inviter_store_id?: string
+          new_store_id?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_referrals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_reviews: {
         Row: {
           comment: string
@@ -4547,6 +4579,14 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: number
       }
+      create_store_referral: {
+        Args: {
+          p_inviter_store_id: string
+          p_new_store_id: string
+          p_template_id?: string
+        }
+        Returns: boolean
+      }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_quote_number: {
@@ -4571,6 +4611,13 @@ export type Database = {
           clicks: number
           ctr: number
           impressions: number
+        }[]
+      }
+      get_referral_stats: {
+        Args: { p_store_id: string }
+        Returns: {
+          active_referrals: number
+          total_referrals: number
         }[]
       }
       get_template_by_slug: {
