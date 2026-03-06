@@ -149,15 +149,22 @@ const ProductDetailContent = () => {
           }
         } catch (_) { /* tracking should never block page */ }
 
-        // Track product view for store performance
+        // Track product view for store performance (deduplicated per session)
         try {
-          if (productId) {
-            supabase
-              .from('store_product_views')
-              .insert({ store_id: profileData.id, product_id: productId, event_type: 'product_view' })
-              .then(() => {});
+          if (productId && document.visibilityState === 'visible') {
+            const viewKey = `product_view_${profileData.id}_${productId}`;
+            if (!sessionStorage.getItem(viewKey)) {
+              const { error: viewError } = await supabase
+                .from('store_product_views')
+                .insert({ store_id: profileData.id, product_id: productId, event_type: 'product_view' });
+              if (viewError) {
+                console.error('Error tracking product view:', viewError);
+              } else {
+                sessionStorage.setItem(viewKey, 'true');
+              }
+            }
           }
-        } catch (_) { /* tracking should never block page */ }
+        } catch (e) { console.error('Unexpected error tracking product view:', e); }
 
         // Fetch product
         const { data: productData } = await supabase
