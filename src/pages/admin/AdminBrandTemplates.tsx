@@ -26,6 +26,7 @@ import {
   Upload,
   Image as ImageIcon,
   Loader2,
+  Send,
 } from 'lucide-react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -293,11 +294,38 @@ const AdminBrandTemplates = () => {
     }
   };
 
+  const [sendingReportId, setSendingReportId] = useState<string | null>(null);
+
   const handleToggleLink = (template: BrandTemplate) => {
     toggleLinkMutation.mutate({
       id: template.id,
       currentLinkStatus: template.is_link_active,
     });
+  };
+
+  const handleSendReport = async (template: BrandTemplate) => {
+    setSendingReportId(template.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-brand-reports', {
+        body: { template_id: template.id, report_type: 'manual_test' },
+      });
+
+      if (error) throw error;
+
+      const result = data?.results?.[0];
+      if (result?.status === 'sent') {
+        toast.success('Relatório enviado com sucesso para o e-mail da marca.');
+      } else if (result?.detail === 'no_email') {
+        toast.error('Esta marca não possui e-mail cadastrado nas Informações Básicas da loja modelo.');
+      } else {
+        toast.error(`Falha ao enviar o relatório: ${result?.detail || 'erro desconhecido'}`);
+      }
+    } catch (err) {
+      console.error('Error sending report:', err);
+      toast.error('Falha ao enviar o relatório. Verifique os logs da função send-brand-reports.');
+    } finally {
+      setSendingReportId(null);
+    }
   };
 
   const getStatusBadge = (status: BrandTemplateStatus) => {
@@ -588,6 +616,17 @@ const AdminBrandTemplates = () => {
                                   <Eye className="h-4 w-4 mr-2" />
                                   Visualizar Loja Modelo
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleSendReport(template)}
+                                  disabled={sendingReportId === template.id}
+                                >
+                                  {sendingReportId === template.id ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Send className="h-4 w-4 mr-2" />
+                                  )}
+                                  Enviar relatório agora
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => handleCopyLink(template)}>
                                   <Link2 className="h-4 w-4 mr-2" />
@@ -675,6 +714,17 @@ const AdminBrandTemplates = () => {
                               <DropdownMenuItem onClick={() => handleOpenTemplatePreview(template)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleSendReport(template)}
+                                disabled={sendingReportId === template.id}
+                              >
+                                {sendingReportId === template.id ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4 mr-2" />
+                                )}
+                                Enviar relatório
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCopyLink(template)}>

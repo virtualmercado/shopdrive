@@ -4,7 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -22,16 +22,41 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get all active templates with a source profile
-    const { data: templates, error: tplError } = await supabase
+    // Check for optional body params (manual send)
+    let targetTemplateId: string | null = null;
+    let reportType: string = "monthly";
+
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body.template_id) {
+          targetTemplateId = body.template_id;
+        }
+        if (body.report_type === "manual_test") {
+          reportType = "manual_test";
+        }
+      } catch {
+        // No body or invalid JSON — treat as cron (all templates)
+      }
+    }
+
+    // Build query for templates
+    let query = supabase
       .from("brand_templates")
       .select("id, name, template_slug, link_clicks, stores_created, source_profile_id")
-      .eq("status", "active")
       .not("source_profile_id", "is", null);
+
+    if (targetTemplateId) {
+      query = query.eq("id", targetTemplateId);
+    } else {
+      query = query.eq("status", "active");
+    }
+
+    const { data: templates, error: tplError } = await query;
 
     if (tplError) throw tplError;
     if (!templates || templates.length === 0) {
-      return new Response(JSON.stringify({ message: "No active templates" }), {
+      return new Response(JSON.stringify({ message: "No templates found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -40,7 +65,7 @@ Deno.serve(async (req) => {
 
     for (const tpl of templates) {
       try {
-        // Get email from the source profile's store settings
+        // Get email from the source profile
         const { data: profile } = await supabase
           .from("profiles")
           .select("email, store_name")
@@ -49,24 +74,28 @@ Deno.serve(async (req) => {
 
         const email = profile?.email;
         if (!email) {
-          results.push({ template: tpl.name, status: "skipped", detail: "no email" });
+          results.push({ template: tpl.name, status: "skipped", detail: "no_email" });
           continue;
         }
 
-        // Check if report was already sent this month
+        // For monthly (cron) sends, check if report was already sent this month
+        // For manual_test sends, skip this check so admins can always re-send
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-        const { data: existingLog } = await supabase
-          .from("brand_report_logs")
-          .select("id")
-          .eq("template_id", tpl.id)
-          .eq("report_month", monthKey)
-          .maybeSingle();
+        if (reportType === "monthly") {
+          const { data: existingLog } = await supabase
+            .from("brand_report_logs")
+            .select("id")
+            .eq("template_id", tpl.id)
+            .eq("report_month", monthKey)
+            .eq("report_type", "monthly")
+            .maybeSingle();
 
-        if (existingLog) {
-          results.push({ template: tpl.name, status: "skipped", detail: "already sent" });
-          continue;
+          if (existingLog) {
+            results.push({ template: tpl.name, status: "skipped", detail: "already sent" });
+            continue;
+          }
         }
 
         // Calculate conversion rate
@@ -79,6 +108,10 @@ Deno.serve(async (req) => {
         const clicksBar = "█".repeat(Math.max(1, Math.round((clicks / maxBar) * 20)));
         const accountsBar = "█".repeat(Math.max(1, Math.round((accounts / maxBar) * 20)));
 
+        // Subject line differs for manual test
+        const subjectPrefix = reportType === "manual_test" ? "[TESTE] " : "";
+        const subject = `${subjectPrefix}Relatório mensal da marca ${tpl.name} — ${monthKey}`;
+
         // Send email via Resend
         const emailHtml = `
 <!DOCTYPE html>
@@ -88,6 +121,7 @@ Deno.serve(async (req) => {
   <div style="text-align: center; margin-bottom: 30px;">
     <h1 style="color: #111; font-size: 24px; margin-bottom: 4px;">Relatório mensal — ${tpl.name}</h1>
     <p style="color: #666; font-size: 14px;">Período: ${monthKey}</p>
+    ${reportType === "manual_test" ? '<p style="color: #e67e22; font-size: 13px; font-weight: bold;">⚠️ Este é um envio de teste</p>' : ""}
   </div>
 
   <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -141,7 +175,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: "ShopDrive <noreply@shopdrive.com.br>",
             to: [email],
-            subject: `Relatório mensal da marca ${tpl.name} — ${monthKey}`,
+            subject,
             html: emailHtml,
           }),
         });
@@ -159,6 +193,7 @@ Deno.serve(async (req) => {
           clicks_snapshot: clicks,
           accounts_snapshot: accounts,
           conversion_snapshot: conversion,
+          report_type: reportType,
         });
 
         results.push({ template: tpl.name, status: "sent" });

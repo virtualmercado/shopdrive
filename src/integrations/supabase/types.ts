@@ -325,6 +325,7 @@ export type Database = {
           email_sent_to: string
           id: string
           report_month: string
+          report_type: string
           sent_at: string
           template_id: string
         }
@@ -335,6 +336,7 @@ export type Database = {
           email_sent_to: string
           id?: string
           report_month: string
+          report_type?: string
           sent_at?: string
           template_id: string
         }
@@ -345,6 +347,7 @@ export type Database = {
           email_sent_to?: string
           id?: string
           report_month?: string
+          report_type?: string
           sent_at?: string
           template_id?: string
         }
