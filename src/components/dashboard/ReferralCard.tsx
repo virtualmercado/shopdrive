@@ -114,7 +114,7 @@ const ReferralCard = () => {
             <p className="text-xs text-muted-foreground">Convidadas</p>
           </div>
           <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <Users className="h-4 w-4 mx-auto mb-1 text-green-600" />
+            <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
             {statsLoading ? (
               <Skeleton className="h-6 w-8 mx-auto" />
             ) : (

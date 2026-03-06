@@ -48,7 +48,7 @@ const ResaleLanding = () => {
       p_ip_address: null,
       p_user_agent: userAgent,
       p_session_id: sessionId,
-    }).catch(console.error);
+    }).then(() => {}).catch(console.error);
   }, [template, slug]);
 
   const handleCreateStore = () => {
