@@ -214,7 +214,7 @@ const Dashboard = () => {
                         <Cell key={`cell-${index}`} fill={getGenderColor(entry.gender)} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <RechartsTooltip 
                       formatter={(value: number, name: string) => [`${value} pedidos`, name]}
                     />
                   </PieChart>
