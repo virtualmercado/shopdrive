@@ -72,11 +72,10 @@ Deno.serve(async (req) => {
           .eq("id", tpl.source_profile_id)
           .maybeSingle();
 
-        const email = profile?.email;
-        if (!email) {
-          results.push({ template: tpl.name, status: "skipped", detail: "no_email" });
-          continue;
-        }
+        const brandEmail = profile?.email;
+        const FALLBACK_EMAIL = "no-reply@shopdrive.com.br";
+        const email = brandEmail || FALLBACK_EMAIL;
+        const usedFallback = !brandEmail;
 
         // For monthly (cron) sends, check if report was already sent this month
         // For manual_test sends, skip this check so admins can always re-send
@@ -196,7 +195,7 @@ Deno.serve(async (req) => {
           report_type: reportType,
         });
 
-        results.push({ template: tpl.name, status: "sent" });
+        results.push({ template: tpl.name, status: "sent", used_fallback: usedFallback });
       } catch (innerErr) {
         const msg = innerErr instanceof Error ? innerErr.message : "unknown";
         results.push({ template: tpl.name, status: "error", detail: msg });
