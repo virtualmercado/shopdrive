@@ -79,17 +79,22 @@ export const TenantEmailSettingsSection = () => {
     switch (settings.domain_status) {
       case "verified":
         return (
-          <Badge className="bg-green-500 text-white">
+          <Badge variant="default">
             <CheckCircle2 className="h-3 w-3 mr-1" /> Verificado
           </Badge>
         );
       case "verifying":
         return (
-          <Badge variant="outline" className="border-blue-500 text-blue-600">
+          <Badge variant="outline">
             <AlertCircle className="h-3 w-3 mr-1" /> Verificando
           </Badge>
         );
       default:
+        return (
+          <Badge variant="destructive">
+            <XCircle className="h-3 w-3 mr-1" /> Não verificado
+          </Badge>
+        );
         return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" /> Não verificado
