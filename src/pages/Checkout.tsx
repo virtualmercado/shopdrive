@@ -775,7 +775,7 @@ const CheckoutContent = () => {
               total_amount: total,
               status: orderStatus,
               notes: formData.notes || null,
-              order_source: "online",
+              order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
             })
             .select()
             .single();
