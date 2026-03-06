@@ -27,6 +27,7 @@ const registerSchema = z.object({
 const Register = () => {
   const [searchParams] = useSearchParams();
   const templateSlug = searchParams.get('template');
+  const conviteStoreId = searchParams.get('convite');
   
   const [formData, setFormData] = useState({
     name: "",
@@ -72,7 +73,6 @@ const Register = () => {
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
           try {
-            // Use the new clone_template_to_store function that copies everything
             const { error: cloneError } = await supabase
               .rpc('clone_template_to_store', { 
                 p_template_id: template.id,
@@ -88,6 +88,19 @@ const Register = () => {
           } catch (copyError) {
             console.error('Error copying template:', copyError);
             toast.warning('Loja criada, mas houve um erro ao copiar os produtos do template.');
+          }
+        }
+
+        // Register referral if convite parameter is present
+        if (conviteStoreId && data.user.id) {
+          try {
+            await supabase.rpc('create_store_referral', {
+              p_inviter_store_id: conviteStoreId,
+              p_new_store_id: data.user.id,
+              p_template_id: template?.id || null,
+            });
+          } catch (refError) {
+            console.error('Error creating referral:', refError);
           }
         }
         

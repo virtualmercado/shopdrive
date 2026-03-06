@@ -49,6 +49,7 @@ import NotFound from "./pages/NotFound";
 import PrintThermalOrder from "./pages/PrintThermalOrder";
 import ComingSoon from "./pages/ComingSoon";
 import StoreSearchResults from "./pages/StoreSearchResults";
+import ResaleLanding from "./pages/ResaleLanding";
 import PublicQuote from "./pages/PublicQuote";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
@@ -163,6 +164,7 @@ function App() {
             
             {/* Landing Page Internal Routes (Coming Soon) */}
             <Route path="/sobre-nos" element={<LandingAboutUs />} />
+            <Route path="/revenda/:slug" element={<ResaleLanding />} />
             <Route path="/blog" element={<ComingSoon />} />
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
             <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
