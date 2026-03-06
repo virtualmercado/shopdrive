@@ -4052,6 +4052,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          record_comment: string | null
           record_content: string
           record_id_cloudflare: string
           record_name: string
@@ -4061,6 +4062,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          record_comment?: string | null
           record_content: string
           record_id_cloudflare: string
           record_name: string
@@ -4070,6 +4072,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          record_comment?: string | null
           record_content?: string
           record_id_cloudflare?: string
           record_name?: string
