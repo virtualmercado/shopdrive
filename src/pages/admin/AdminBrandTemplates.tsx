@@ -723,13 +723,21 @@ const AdminBrandTemplates = () => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Lojas</p>
-                            <p className="font-medium">{template.stores_created}</p>
-                          </div>
-                          <div>
                             <p className="text-muted-foreground">Cliques</p>
                             <p className="font-medium">{template.link_clicks}</p>
                           </div>
+                          <div>
+                            <p className="text-muted-foreground">Contas</p>
+                            <p className="font-medium">{template.stores_created}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm">
+                          <span className="text-muted-foreground">Conversão: </span>
+                          <span className="font-medium">
+                            {template.link_clicks > 0
+                              ? `${Math.round((template.stores_created / template.link_clicks) * 100)}%`
+                              : '0%'}
+                          </span>
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">
