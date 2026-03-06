@@ -97,9 +97,9 @@ const InterestFunnelCard = () => {
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-muted-foreground">{step.label}</span>
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 h-8 bg-muted/50 rounded-md overflow-hidden">
+                      <div className="flex-1 h-8 bg-muted/50 rounded-sm overflow-hidden">
                         <div
-                          className="h-full transition-all duration-500 ease-out rounded-md"
+                          className="h-full transition-all duration-500 ease-out rounded-sm"
                           style={{
                             width: `${barPercent}%`,
                             backgroundColor: SD_PURPLE,
