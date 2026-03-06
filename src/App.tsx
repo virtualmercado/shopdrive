@@ -164,6 +164,7 @@ function App() {
             
             {/* Landing Page Internal Routes (Coming Soon) */}
             <Route path="/sobre-nos" element={<LandingAboutUs />} />
+            <Route path="/revenda/:slug" element={<ResaleLanding />} />
             <Route path="/blog" element={<ComingSoon />} />
             <Route path="/programa-de-afiliados" element={<ComingSoon />} />
             <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
