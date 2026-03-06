@@ -220,14 +220,14 @@ const ProductInterestSection = () => {
                             {p.product_name}
                           </span>
 
-                          <div className="flex-1 h-7 rounded-md overflow-hidden bg-muted/50 relative">
+                          <div className="flex-1 h-7 rounded-sm overflow-hidden bg-muted/50 relative">
                             <div
-                              className="h-full rounded-md transition-all duration-300 ease-out"
+                              className="h-full rounded-sm transition-all duration-300 ease-out"
                               style={{
                                 width: `${barPercent}%`,
-                                background: `linear-gradient(90deg, ${SD_PURPLE}, ${SD_ORANGE})`,
+                                background: SD_ORANGE,
                                 opacity: isHovered ? 1 : 0.85,
-                                boxShadow: isHovered ? `0 2px 8px ${SD_PURPLE}40` : "none",
+                                boxShadow: isHovered ? `0 2px 8px ${SD_ORANGE}40` : "none",
                               }}
                             />
                           </div>
