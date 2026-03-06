@@ -138,8 +138,6 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CartAbandonmentCard />
 
-        {/* Charts Grid - 2 per row */}
-        <div className="grid md:grid-cols-2 gap-6">
           {/* Chart 1 - Sales by State - Horizontal Bar Chart */}
           <Card className="p-6">
             <h3 className="text-base font-medium text-foreground mb-4">
@@ -199,6 +197,10 @@ const Dashboard = () => {
               </div>
             )}
           </Card>
+        </div>
+
+        {/* Charts Grid - 2 per row */}
+        <div className="grid md:grid-cols-2 gap-6">
 
           {/* Chart 2 - Sales by Gender */}
           <Card className="p-6">
