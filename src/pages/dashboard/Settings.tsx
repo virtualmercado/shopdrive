@@ -419,6 +419,9 @@ const Settings = () => {
           </div>
         </Card>
 
+        {/* Tenant Email Settings */}
+        <TenantEmailSettingsSection />
+
         {/* Account Closure */}
         <AccountClosureSection />
 

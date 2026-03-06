@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.send-brand-reports]
 verify_jwt = false
+
+[functions.verify-tenant-email-dns]
+verify_jwt = false
