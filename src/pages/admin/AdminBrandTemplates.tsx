@@ -314,9 +314,11 @@ const AdminBrandTemplates = () => {
 
       const result = data?.results?.[0];
       if (result?.status === 'sent') {
-        toast.success('Relatório enviado com sucesso para o e-mail da marca.');
-      } else if (result?.detail === 'no_email') {
-        toast.error('Esta marca não possui e-mail cadastrado nas Informações Básicas da loja modelo.');
+        if (result?.used_fallback) {
+          toast.warning('Email da marca não configurado. Relatório enviado usando o email padrão da plataforma.');
+        } else {
+          toast.success('Relatório enviado com sucesso para o e-mail da marca.');
+        }
       } else {
         toast.error(`Falha ao enviar o relatório: ${result?.detail || 'erro desconhecido'}`);
       }

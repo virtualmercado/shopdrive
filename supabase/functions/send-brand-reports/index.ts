@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
           report_type: reportType,
         });
 
-        results.push({ template: tpl.name, status: "sent" });
+        results.push({ template: tpl.name, status: "sent", used_fallback: usedFallback });
       } catch (innerErr) {
         const msg = innerErr instanceof Error ? innerErr.message : "unknown";
         results.push({ template: tpl.name, status: "error", detail: msg });
