@@ -3502,6 +3502,33 @@ export type Database = {
           },
         ]
       }
+      store_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          product_id: string | null
+          session_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          product_id?: string | null
+          session_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          product_id?: string | null
+          session_id?: string
+          store_id?: string
+        }
+        Relationships: []
+      }
       store_product_views: {
         Row: {
           created_at: string
