@@ -3770,6 +3770,47 @@ export type Database = {
           },
         ]
       }
+      template_click_events: {
+        Row: {
+          counted: boolean | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          is_bot: boolean | null
+          session_id: string | null
+          template_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          counted?: boolean | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_bot?: boolean | null
+          session_id?: string | null
+          template_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          counted?: boolean | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_bot?: boolean | null
+          session_id?: string | null
+          template_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_click_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_landing_responses: {
         Row: {
           assunto: string
@@ -4581,6 +4622,15 @@ export type Database = {
       sync_template_from_profile: {
         Args: { p_template_id: string }
         Returns: undefined
+      }
+      track_template_click: {
+        Args: {
+          p_ip_address?: string
+          p_session_id?: string
+          p_template_slug: string
+          p_user_agent?: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
