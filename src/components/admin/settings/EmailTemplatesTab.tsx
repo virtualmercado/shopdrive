@@ -215,27 +215,98 @@ const EmailTemplatesTab = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 max-w-xl">
+            <CardContent className="space-y-6 max-w-xl">
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label>Provedor de E-mail</Label>
+                <Select value={senderForm.provider} onValueChange={(v) => setSenderForm((p) => ({ ...p, provider: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="resend">Resend (API)</SelectItem>
+                    <SelectItem value="smtp">SMTP Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Sender Info */}
               <div className="space-y-2">
                 <Label>Nome do Remetente</Label>
-                <Input value={senderConfig.sender_name} onChange={(e) => setSenderConfig((p) => ({ ...p, sender_name: e.target.value }))} />
+                <Input value={senderForm.sender_name} onChange={(e) => setSenderForm((p) => ({ ...p, sender_name: e.target.value }))} />
               </div>
               <div className="space-y-2">
                 <Label>E-mail do Remetente</Label>
-                <Input value={senderConfig.sender_email} onChange={(e) => setSenderConfig((p) => ({ ...p, sender_email: e.target.value }))} />
+                <Input value={senderForm.sender_email} onChange={(e) => setSenderForm((p) => ({ ...p, sender_email: e.target.value }))} placeholder="noreply@seudominio.com.br" />
               </div>
               <div className="space-y-2">
-                <Label>E-mail de Resposta</Label>
-                <Input value={senderConfig.reply_to} onChange={(e) => setSenderConfig((p) => ({ ...p, reply_to: e.target.value }))} />
+                <Label>E-mail de Resposta (Reply-To)</Label>
+                <Input value={senderForm.reply_to} onChange={(e) => setSenderForm((p) => ({ ...p, reply_to: e.target.value }))} placeholder="suporte@seudominio.com.br" />
               </div>
+
+              {/* SMTP Fields */}
+              {senderForm.provider === "smtp" && (
+                <>
+                  <Separator />
+                  <div className="flex items-center gap-2 mb-2">
+                    <Server className="h-5 w-5 text-muted-foreground" />
+                    <p className="text-sm font-semibold">Configuração SMTP</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>SMTP Host</Label>
+                      <Input value={senderForm.smtp_host} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_host: e.target.value }))} placeholder="smtp.seuservidor.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>SMTP Porta</Label>
+                      <Input type="number" value={senderForm.smtp_port} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_port: parseInt(e.target.value) || 587 }))} placeholder="587" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>SMTP Usuário</Label>
+                      <Input value={senderForm.smtp_user} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_user: e.target.value }))} placeholder="usuario@seuservidor.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>SMTP Senha</Label>
+                      <Input type="password" value={senderForm.smtp_password} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_password: e.target.value }))} placeholder="••••••••" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Segurança</Label>
+                    <Select value={senderForm.smtp_security} onValueChange={(v) => setSenderForm((p) => ({ ...p, smtp_security: v }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tls">STARTTLS (porta 587)</SelectItem>
+                        <SelectItem value="ssl">SSL/TLS (porta 465)</SelectItem>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Provedor</p>
-                  <p className="text-sm text-muted-foreground">{senderConfig.provider}</p>
+                  <p className="text-sm font-medium">Provedor ativo</p>
+                  <p className="text-sm text-muted-foreground">{senderForm.provider === "smtp" ? "SMTP Personalizado" : "Resend"}</p>
                 </div>
-                <Badge variant="default">{senderConfig.status}</Badge>
+                <Badge variant="default">Ativo</Badge>
               </div>
-              <Button className="bg-[#6a1b9a] hover:bg-[#5a1589]" onClick={() => toast.success("Configurações salvas!")}>
+
+              <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                <p className="font-medium mb-1">Multi-tenant</p>
+                <p>As lojas utilizam o mesmo serviço de envio. O header será: <code className="bg-muted px-1 py-0.5 rounded text-xs">From: Loja XYZ via {senderForm.sender_name} &lt;{senderForm.sender_email}&gt;</code></p>
+              </div>
+
+              <Button
+                className="bg-[#6a1b9a] hover:bg-[#5a1589]"
+                onClick={handleSaveSenderConfig}
+                disabled={emailSettings.saving}
+              >
+                {emailSettings.saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Salvar Configurações
               </Button>
             </CardContent>
