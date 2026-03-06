@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Mail, MoreHorizontal, Pencil, Eye, Copy, RotateCcw, Send, Search, Settings2, FileText, History, Server } from "lucide-react";
+import { Loader2, Mail, MoreHorizontal, Pencil, Eye, Copy, RotateCcw, Send, Search, Settings2, FileText, History, Server, Shield } from "lucide-react";
 import { useEmailTemplates, DYNAMIC_VARIABLES, type EmailTemplate } from "@/hooks/useEmailTemplates";
 import { useEmailSettings } from "@/hooks/useEmailSettings";
 import { Skeleton } from "@/components/ui/skeleton";
