@@ -362,6 +362,11 @@ const EmailTemplatesTab = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Reputation Shield */}
+        <TabsContent value="reputation">
+          <ReputationShieldTab />
+        </TabsContent>
       </Tabs>
 
       {/* Edit Template Dialog */}
