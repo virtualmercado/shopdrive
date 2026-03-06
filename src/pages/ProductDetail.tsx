@@ -142,6 +142,8 @@ const ProductDetailContent = () => {
         try {
           const params = new URLSearchParams(window.location.search);
           if (params.get('src') === 'catalogo_pdf' && productId) {
+            // Mark session as catalog-originated for checkout order_source
+            sessionStorage.setItem('order_origin_catalog', 'true');
             const clickKey = `catalog_click_${profileData.id}_${productId}`;
             if (!sessionStorage.getItem(clickKey)) {
               const { error: clickError } = await supabase

@@ -9,6 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, B
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardNewsCarousel from "@/components/dashboard/DashboardNewsCarousel";
 import InterestFunnelCard from "@/components/dashboard/InterestFunnelCard";
+import SalesOriginCard from "@/components/dashboard/SalesOriginCard";
 
 const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478", "#4472C4"];
 
@@ -124,6 +125,9 @@ const Dashboard = () => {
 
         {/* Interest Funnel Card */}
         <InterestFunnelCard />
+
+        {/* Sales Origin Card */}
+        <SalesOriginCard />
 
         {/* Charts Grid - 2 per row */}
         <div className="grid md:grid-cols-2 gap-6">

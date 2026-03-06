@@ -56,6 +56,7 @@ const InterestFunnelCard = () => {
             .select("id", { count: "exact", head: true })
             .eq("store_owner_id", user.id)
             .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
+            .in("order_source", ["store", "catalog"])
             .gte("created_at", since),
         ]);
 

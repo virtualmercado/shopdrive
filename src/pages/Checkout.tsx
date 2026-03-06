@@ -775,7 +775,7 @@ const CheckoutContent = () => {
               total_amount: total,
               status: orderStatus,
               notes: formData.notes || null,
-              order_source: "online",
+              order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
             })
             .select()
             .single();
@@ -806,6 +806,7 @@ const CheckoutContent = () => {
           }
 
           clearCart();
+          sessionStorage.removeItem('order_origin_catalog');
           
           if (paymentData.status === "approved") {
             toast.success("Pagamento aprovado! Pedido confirmado.");
@@ -897,7 +898,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
           total_amount: total,
           status: "pending",
           notes: formData.notes || null,
-          order_source: "online",
+          order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
         })
         .select()
         .single();
@@ -988,6 +989,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
       }
 
       clearCart();
+      sessionStorage.removeItem('order_origin_catalog');
       toast.success("Pedido realizado com sucesso!");
       setTimeout(() => navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {

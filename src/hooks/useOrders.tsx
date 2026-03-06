@@ -27,7 +27,7 @@ export interface Order {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  order_source: 'manual' | 'online';
+  order_source: 'manual' | 'store' | 'catalog';
   order_items?: OrderItem[];
 }
 

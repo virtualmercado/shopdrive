@@ -50,6 +50,7 @@ const ProductInterestSection = () => {
           .select("id")
           .eq("store_owner_id", user.id)
           .in("status", paidStatuses)
+          .in("order_source", ["store", "catalog"])
           .gte("created_at", since);
 
         if (!views || views.length === 0) {
