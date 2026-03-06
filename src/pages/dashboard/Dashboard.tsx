@@ -391,43 +391,97 @@ const Dashboard = () => {
           </Card>
 
           {/* Card 6 - Revenue Stats (2 stacked cards) - Last position */}
+          <TooltipProvider>
           <div className="flex flex-col gap-8">
-            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
-              <h3 className="text-base font-medium text-muted-foreground text-center mb-6">
-                Faturamento / últimos 30 dias
-              </h3>
-              <div className="flex items-center justify-center flex-1">
+            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px] hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+              <div className="flex items-center justify-center gap-1.5 mb-6">
+                <h3 className="text-base font-medium text-muted-foreground text-center">
+                  Faturamento / últimos 30 dias
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground/60 cursor-help flex-shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px] text-center">
+                    <p className="text-xs">Soma total das vendas confirmadas nos últimos 30 dias.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex flex-col items-center justify-center flex-1 gap-2">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
-                  <p 
-                    className="text-3xl font-medium"
-                    style={{ color: primaryColor }}
-                  >
-                    {formatCurrency(revenueStats?.totalRevenue || 0)}
-                  </p>
+                  <>
+                    <p 
+                      className="text-3xl font-medium"
+                      style={{ color: primaryColor }}
+                    >
+                      {formatCurrency(revenueStats?.totalRevenue || 0)}
+                    </p>
+                    {revenueStats?.totalRevenueTrend !== null && revenueStats?.totalRevenueTrend !== undefined && (
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        revenueStats.totalRevenueTrend >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {revenueStats.totalRevenueTrend >= 0 ? (
+                          <TrendingUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <TrendingDown className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {revenueStats.totalRevenueTrend >= 0 ? '+' : ''}{revenueStats.totalRevenueTrend}% em relação aos 30 dias anteriores
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </Card>
 
-            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
-              <h3 className="text-base font-medium text-muted-foreground text-center mb-6">
-                Faturamento médio dia / últimos 30 dias
-              </h3>
-              <div className="flex items-center justify-center flex-1">
+            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px] hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+              <div className="flex items-center justify-center gap-1.5 mb-6">
+                <h3 className="text-base font-medium text-muted-foreground text-center">
+                  Faturamento médio dia / últimos 30 dias
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground/60 cursor-help flex-shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[240px] text-center">
+                    <p className="text-xs">Média diária de faturamento calculada com base nas vendas dos últimos 30 dias.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex flex-col items-center justify-center flex-1 gap-2">
                 {revenueLoading ? (
                   <Skeleton className="h-10 w-40" />
                 ) : (
-                  <p 
-                    className="text-3xl font-medium"
-                    style={{ color: primaryColor }}
-                  >
-                    {formatCurrency(revenueStats?.averageDailyRevenue || 0)}
-                  </p>
+                  <>
+                    <p 
+                      className="text-3xl font-medium"
+                      style={{ color: primaryColor }}
+                    >
+                      {formatCurrency(revenueStats?.averageDailyRevenue || 0)}
+                    </p>
+                    {revenueStats?.averageRevenueTrend !== null && revenueStats?.averageRevenueTrend !== undefined && (
+                      <div className={`flex items-center gap-1 text-xs font-medium ${
+                        revenueStats.averageRevenueTrend >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {revenueStats.averageRevenueTrend >= 0 ? (
+                          <TrendingUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <TrendingDown className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {revenueStats.averageRevenueTrend >= 0 ? '+' : ''}{revenueStats.averageRevenueTrend}% em relação aos 30 dias anteriores
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </Card>
           </div>
+          </TooltipProvider>
         </div>
       </div>
     </DashboardLayout>
