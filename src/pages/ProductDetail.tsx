@@ -173,6 +173,8 @@ const ProductDetailContent = () => {
                 sessionStorage.setItem(viewKey, 'true');
               }
             }
+            // Also track in store_events for conversion funnel
+            trackStoreEvent(profileData.id, "product_view", productId);
           }
         } catch (e) { console.error('Unexpected error tracking product view:', e); }
 
