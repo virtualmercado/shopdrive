@@ -124,6 +124,9 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {/* Referral Card */}
+        <ReferralCard />
+
         {/* Interest Funnel & Sales Origin - 2 Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <InterestFunnelCard />
