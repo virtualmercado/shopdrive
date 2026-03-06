@@ -65,7 +65,7 @@ import AdminAutomations from "./pages/admin/AdminAutomations";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSupport from "./pages/admin/AdminSupport";
-import AdminSecurity from "./pages/admin/AdminSecurity";
+
 import AdminCMS from "./pages/admin/AdminCMS";
 import AdminMediaLibrary from "./pages/admin/AdminMediaLibrary";
 import AdminLandingSupport from "./pages/admin/AdminLandingSupport";
