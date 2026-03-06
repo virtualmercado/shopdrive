@@ -508,7 +508,9 @@ const AdminBrandTemplates = () => {
                         <TableHead>Marca</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Produtos</TableHead>
-                        <TableHead>Lojas Criadas</TableHead>
+                        <TableHead>Cliques</TableHead>
+                        <TableHead>Contas</TableHead>
+                        <TableHead>Conversão</TableHead>
                         <TableHead>Link</TableHead>
                         <TableHead>Última Atualização</TableHead>
                         <TableHead className="w-[50px]">Ações</TableHead>
@@ -536,7 +538,15 @@ const AdminBrandTemplates = () => {
                             <span className="font-medium">{template.products_count}</span>
                             <span className="text-muted-foreground">/{template.max_products}</span>
                           </TableCell>
+                          <TableCell>{template.link_clicks}</TableCell>
                           <TableCell>{template.stores_created}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono">
+                              {template.link_clicks > 0
+                                ? `${Math.round((template.stores_created / template.link_clicks) * 100)}%`
+                                : '0%'}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {getLinkBadge(template.is_link_active)}
@@ -713,13 +723,21 @@ const AdminBrandTemplates = () => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Lojas</p>
-                            <p className="font-medium">{template.stores_created}</p>
-                          </div>
-                          <div>
                             <p className="text-muted-foreground">Cliques</p>
                             <p className="font-medium">{template.link_clicks}</p>
                           </div>
+                          <div>
+                            <p className="text-muted-foreground">Contas</p>
+                            <p className="font-medium">{template.stores_created}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm">
+                          <span className="text-muted-foreground">Conversão: </span>
+                          <span className="font-medium">
+                            {template.link_clicks > 0
+                              ? `${Math.round((template.stores_created / template.link_clicks) * 100)}%`
+                              : '0%'}
+                          </span>
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">
