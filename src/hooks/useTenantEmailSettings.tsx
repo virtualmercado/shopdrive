@@ -167,6 +167,27 @@ export const useTenantEmailSettings = () => {
     }
   };
 
+  const removeCloudflareRecords = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.functions.invoke("verify-tenant-email-dns", {
+        body: {
+          tenant_id: user.id,
+          domain: settings?.email_domain || "",
+          action: "remove_cloudflare",
+        },
+      });
+
+      if (error) throw error;
+
+      await fetchSettings();
+      toast.success("Registros DNS removidos do Cloudflare!");
+    } catch (err) {
+      console.error("Error removing Cloudflare records:", err);
+      toast.error("Erro ao remover registros do Cloudflare");
+    }
+  };
+
   return {
     settings,
     dnsRecords,
@@ -176,6 +197,7 @@ export const useTenantEmailSettings = () => {
     saveSettings,
     verifyDomain,
     createCloudflareRecords,
+    removeCloudflareRecords,
     refetch: fetchSettings,
   };
 };
