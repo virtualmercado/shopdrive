@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Mail, MoreHorizontal, Pencil, Eye, Copy, RotateCcw, Send, Search, Settings2, FileText, History } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Mail, MoreHorizontal, Pencil, Eye, Copy, RotateCcw, Send, Search, Settings2, FileText, History, Server } from "lucide-react";
 import { useEmailTemplates, DYNAMIC_VARIABLES, type EmailTemplate } from "@/hooks/useEmailTemplates";
+import { useEmailSettings } from "@/hooks/useEmailSettings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
