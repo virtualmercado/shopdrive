@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { trackStoreEvent } from "@/hooks/useStoreEvents";
 
 interface ProductCardProps {
   product: {
