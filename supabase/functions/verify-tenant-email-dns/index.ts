@@ -10,7 +10,7 @@ const corsHeaders = {
 interface VerifyRequest {
   tenant_id: string;
   domain: string;
-  action?: "verify" | "create_cloudflare";
+  action?: "verify" | "create_cloudflare" | "remove_cloudflare";
   cloudflare_zone_id?: string;
 }
 
