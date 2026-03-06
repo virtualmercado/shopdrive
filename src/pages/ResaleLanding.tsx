@@ -43,12 +43,14 @@ const ResaleLanding = () => {
     if (BOT_PATTERNS.test(userAgent)) return;
 
     const sessionId = getOrCreateSessionId(slug);
-    supabase.rpc('track_template_click', {
-      p_template_slug: slug,
-      p_ip_address: null,
-      p_user_agent: userAgent,
-      p_session_id: sessionId,
-    }).then(() => {}).catch(console.error);
+    Promise.resolve(
+      supabase.rpc('track_template_click', {
+        p_template_slug: slug,
+        p_ip_address: null,
+        p_user_agent: userAgent,
+        p_session_id: sessionId,
+      })
+    ).catch(console.error);
   }, [template, slug]);
 
   const handleCreateStore = () => {
