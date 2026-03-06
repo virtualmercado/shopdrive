@@ -5082,6 +5082,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_email_metric_counters: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
       increment_template_link_clicks: {
         Args: { p_template_slug: string }
         Returns: boolean
