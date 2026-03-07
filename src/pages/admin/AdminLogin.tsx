@@ -37,7 +37,7 @@ const AdminLogin = () => {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, user, loading: authLoading, resetPassword } = useAuth();
   const { hasAnyRole, loading: roleLoading } = useRoleCheck();
 
   // Redirect if already logged in as admin
