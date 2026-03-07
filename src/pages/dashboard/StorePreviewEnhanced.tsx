@@ -22,6 +22,7 @@ import { RefreshCw } from "lucide-react";
 import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
+import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();

@@ -147,6 +147,7 @@ const ModuleComponents = {
 };
 
 // Define the order of modules for each layout
+// Note: "benefitBanners" is rendered separately in OnlineStore.tsx (above <main>), not here.
 const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = {
   layout_01: [
     "miniBanners",

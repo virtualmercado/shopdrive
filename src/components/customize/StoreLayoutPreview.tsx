@@ -42,6 +42,13 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
       <span className="text-[12px] font-semibold text-white/90">Banner Principal</span>
     </div>
   ),
+  benefitBanners: () => (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
+      ))}
+    </div>
+  ),
   promocoes: () => <CarouselSection label="Carrossel de Promoções" />,
   destaques: () => <CarouselSection label="Carrossel de Destaques" />,
   miniBanners: () => (
