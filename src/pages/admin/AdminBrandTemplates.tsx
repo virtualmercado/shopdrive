@@ -1059,6 +1059,15 @@ const AdminBrandTemplates = () => {
         allowedTypes={['image']}
         title="Selecionar Logo da Marca"
       />
+
+      {/* Report Preview Modal */}
+      <BrandReportPreviewModal
+        template={reportPreviewTemplate}
+        open={!!reportPreviewTemplate}
+        onOpenChange={(open) => !open && setReportPreviewTemplate(null)}
+        chartData={chartData}
+        periodLabel={periodLabel}
+      />
     </AdminLayout>
   );
 };
