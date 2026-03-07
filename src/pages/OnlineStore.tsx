@@ -126,6 +126,8 @@ const OnlineStoreContent = () => {
         store_layout: (data.store_layout as StoreData["store_layout"]) || "layout_01",
         // Store model
         store_model: ((data as any).store_model as StoreModelType) || "loja_virtual",
+        // Benefit banners
+        selected_benefit_banners: Array.isArray((data as any).selected_benefit_banners) ? (data as any).selected_benefit_banners : [],
       });
       setLoading(false);
     };
