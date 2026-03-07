@@ -112,6 +112,25 @@ const AdminLogin = () => {
     );
   }
 
+  const handleRecoverPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryLoading(true);
+    setError("");
+
+    const emailParsed = adminAuthSchema.shape.email.safeParse(email);
+    if (!emailParsed.success) {
+      setError("E-mail inválido.");
+      setRecoveryLoading(false);
+      return;
+    }
+
+    const { error: resetError } = await resetPassword(emailParsed.data);
+    if (!resetError) {
+      setRecoverySent(true);
+    }
+    setRecoveryLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#6a1b9a] to-[#4a148c] p-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -119,82 +138,161 @@ const AdminLogin = () => {
           <div className="mx-auto flex items-center justify-center mb-4">
             <img src={iconShopDrive} alt="ShopDrive" className="h-16 w-auto object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">Painel Master</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {isRecoveryMode ? "Recuperar senha" : "Painel Master"}
+          </CardTitle>
           <CardDescription>
-            Acesso exclusivo para administradores da ShopDrive
+            {isRecoveryMode
+              ? "Digite o e-mail cadastrado para receber o link de redefinição."
+              : "Acesso exclusivo para administradores da ShopDrive"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="login-email">E-mail</Label>
-              <Input
-                id="login-email"
-                type="email"
-                placeholder="admin@shopdrive.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          {isRecoveryMode ? (
+            recoverySent ? (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-[#6a1b9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold">E-mail enviado!</h2>
+                <p className="text-muted-foreground text-sm">
+                  Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => { setIsRecoveryMode(false); setRecoverySent(false); setEmail(""); setError(""); }}
+                  className="mt-4"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                  Voltar ao login
+                </Button>
               </div>
-            </div>
+            ) : (
+              <form onSubmit={handleRecoverPassword} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-            <Button 
-              type="submit" 
-              className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Entrando...
+                <div className="space-y-2">
+                  <Label htmlFor="recovery-email">E-mail</Label>
+                  <Input
+                    id="recovery-email"
+                    type="email"
+                    placeholder="admin@shopdrive.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={recoveryLoading}
+                  />
                 </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Acessar Painel Master
-                </div>
-              )}
-            </Button>
-          </form>
 
-          <div className="mt-6 pt-4 border-t text-center">
-            <p className="text-xs text-muted-foreground">
-              Área restrita. Todas as atividades são registradas.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Para solicitar acesso de administrador, entre em contato com um administrador existente.
-            </p>
-          </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
+                  disabled={recoveryLoading}
+                >
+                  {recoveryLoading ? "Enviando..." : "Enviar link de recuperação"}
+                </Button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setIsRecoveryMode(false); setError(""); }}
+                    className="text-sm text-[#6a1b9a] hover:underline"
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              </form>
+            )
+          ) : (
+            <>
+              <form onSubmit={handleLogin} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">E-mail</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="admin@shopdrive.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => { setIsRecoveryMode(true); setError(""); }}
+                    className="text-sm text-[#6a1b9a] hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#6a1b9a] hover:bg-[#5a1580]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Entrando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Acessar Painel Master
+                    </div>
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-6 pt-4 border-t text-center">
+                <p className="text-xs text-muted-foreground">
+                  Área restrita. Todas as atividades são registradas.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Para solicitar acesso de administrador, entre em contato com um administrador existente.
+                </p>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

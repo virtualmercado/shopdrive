@@ -51,6 +51,7 @@ import ComingSoon from "./pages/ComingSoon";
 import StoreSearchResults from "./pages/StoreSearchResults";
 import ResaleLanding from "./pages/ResaleLanding";
 import PublicQuote from "./pages/PublicQuote";
+import ResetPassword from "./pages/ResetPassword";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 
