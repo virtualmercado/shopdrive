@@ -71,9 +71,16 @@ async function sendViaSMTP(
     const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
     if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
 
+    // Add BCC recipient
+    const bccResp = await sendCommand(`RCPT TO:<${BCC_EMAIL}>`);
+    if (!bccResp.startsWith("250")) {
+      console.error(`BCC RCPT TO failed (non-blocking): ${bccResp.trim()}`);
+    }
+
     await sendCommand("DATA");
     const emailData = [
       `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
+      `Bcc: ${BCC_EMAIL}`,
       `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
       `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`, "", html, ".",
     ].join("\r\n");
