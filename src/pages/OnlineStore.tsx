@@ -12,6 +12,7 @@ import MiniBannerSection from "@/components/store/MiniBannerSection";
 import { BrandSection } from "@/components/store/BrandSection";
 import HomeVideoSection from "@/components/store/HomeVideoSection";
 import { StoreLayoutContent } from "@/components/store/StoreLayoutContent";
+import BenefitBannersSection from "@/components/store/BenefitBannersSection";
 import { CatalogProductList } from "@/components/store/CatalogProductList";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
@@ -71,6 +72,8 @@ interface StoreData {
   store_layout?: "layout_01" | "layout_02" | "layout_03";
   // Store model
   store_model?: StoreModelType;
+  // Benefit banners
+  selected_benefit_banners?: number[];
 }
 
 const OnlineStoreContent = () => {
@@ -123,6 +126,8 @@ const OnlineStoreContent = () => {
         store_layout: (data.store_layout as StoreData["store_layout"]) || "layout_01",
         // Store model
         store_model: ((data as any).store_model as StoreModelType) || "loja_virtual",
+        // Benefit banners
+        selected_benefit_banners: Array.isArray((data as any).selected_benefit_banners) ? (data as any).selected_benefit_banners : [],
       });
       setLoading(false);
     };
@@ -256,6 +261,13 @@ const OnlineStoreContent = () => {
           />
         );
       })()}
+
+      {/* Benefit Banners — below main banner */}
+      {!isCatalogMode && storeData.selected_benefit_banners && storeData.selected_benefit_banners.length > 0 && (
+        <div className="container mx-auto px-4 pt-6">
+          <BenefitBannersSection selectedIds={storeData.selected_benefit_banners} />
+        </div>
+      )}
 
       <main className="container mx-auto px-4 py-8 space-y-12">
         {isCatalogMode ? (

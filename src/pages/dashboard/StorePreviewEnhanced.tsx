@@ -22,6 +22,7 @@ import { RefreshCw } from "lucide-react";
 import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
+import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
@@ -1043,6 +1044,11 @@ const StorePreviewEnhanced = () => {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Benefit Banners Config */}
+            <div className="border-t pt-6">
+              <BenefitBannersConfig userId={user?.id ?? null} />
             </div>
 
             {/* Minibanners - 2 images per minibanner (Image 1 + Image 2 for hover effect) */}

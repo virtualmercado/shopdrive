@@ -5,12 +5,12 @@ interface StoreLayoutPreviewProps {
 }
 
 // Module IDs for the dynamic middle section
-type ModuleId = "banner" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video" | "reviews";
+type ModuleId = "banner" | "benefitBanners" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video" | "reviews";
 
 const layoutMiddleOrder: Record<StoreLayoutType, ModuleId[]> = {
-  layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video", "reviews"],
-  layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video", "reviews"],
-  layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos", "reviews"],
+  layout_01: ["banner", "benefitBanners", "miniBanners", "destaques", "promocoes", "todos", "video", "reviews"],
+  layout_02: ["banner", "benefitBanners", "promocoes", "destaques", "miniBanners", "todos", "video", "reviews"],
+  layout_03: ["banner", "benefitBanners", "video", "miniBanners", "destaques", "promocoes", "todos", "reviews"],
 };
 
 /* ── Tiny reusable wireframe pieces ── */
@@ -40,6 +40,13 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
   banner: () => (
     <div className="bg-[#9a9a9a] rounded-lg h-[90px] flex items-center justify-center">
       <span className="text-[12px] font-semibold text-white/90">Banner Principal</span>
+    </div>
+  ),
+  benefitBanners: () => (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
+      ))}
     </div>
   ),
   promocoes: () => <CarouselSection label="Carrossel de Promoções" />,

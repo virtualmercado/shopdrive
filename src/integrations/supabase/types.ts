@@ -3259,6 +3259,7 @@ export type Database = {
           return_policy_text: string | null
           reviews_section_title: string | null
           secondary_color: string | null
+          selected_benefit_banners: Json | null
           shipping_fixed_fee: number | null
           shipping_free_minimum: number | null
           show_whatsapp_button: boolean | null
@@ -3354,6 +3355,7 @@ export type Database = {
           return_policy_text?: string | null
           reviews_section_title?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
           show_whatsapp_button?: boolean | null
@@ -3449,6 +3451,7 @@ export type Database = {
           return_policy_text?: string | null
           reviews_section_title?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           shipping_fixed_fee?: number | null
           shipping_free_minimum?: number | null
           show_whatsapp_button?: boolean | null

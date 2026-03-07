@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS selected_benefit_banners jsonb DEFAULT '[]'::jsonb;
