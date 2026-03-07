@@ -468,15 +468,38 @@ const AdminBrandTemplates = () => {
           </Card>
         </div>
 
+        {/* Date Filter + Performance Chart */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-base font-semibold text-foreground">Análise de Desempenho</h2>
+            <BrandDateFilter
+              value={periodPreset}
+              dateRange={dateRange}
+              onChange={handleDateFilterChange}
+            />
+          </div>
+
+          {/* Period summary stat */}
+          {periodStats.totalClicks > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MousePointerClick className="h-4 w-4" />
+              <span><strong className="text-foreground">{periodStats.totalClicks}</strong> cliques no período: {periodLabel}</span>
+            </div>
+          )}
+
+          <BrandPerformanceChart
+            data={chartData}
+            granularity={chartGranularity}
+            onGranularityChange={setChartGranularity}
+          />
+        </div>
+
         {/* Tabs */}
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
             <TabsTrigger value="list">Lista de Templates</TabsTrigger>
             <TabsTrigger value="settings" disabled className="opacity-50">
               Configurações (Em breve)
-            </TabsTrigger>
-            <TabsTrigger value="metrics" disabled className="opacity-50">
-              Métricas (Em breve)
             </TabsTrigger>
           </TabsList>
 
