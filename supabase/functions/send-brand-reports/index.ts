@@ -7,40 +7,140 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const FALLBACK_EMAIL = "suporte@shopdrive.com.br";
+
+async function sendViaPlatformSMTP(
+  supabase: any,
+  to: string,
+  subject: string,
+  html: string
+): Promise<{ success: boolean; error?: string }> {
+  // Load platform email settings
+  const { data: settings, error: settingsErr } = await supabase
+    .from("platform_email_settings")
+    .select("*")
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (settingsErr || !settings) {
+    return { success: false, error: "Configurações de e-mail da plataforma não encontradas" };
+  }
+
+  const from = `${settings.sender_name} <${settings.sender_email}>`;
+  const replyTo = settings.reply_to || settings.sender_email;
+
+  if (settings.provider === "smtp") {
+    if (!settings.smtp_host || !settings.smtp_port) {
+      return { success: false, error: "Configuração SMTP incompleta" };
+    }
+
+    try {
+      const conn = settings.smtp_security === "ssl"
+        ? await Deno.connectTls({ hostname: settings.smtp_host, port: settings.smtp_port })
+        : await Deno.connect({ hostname: settings.smtp_host, port: settings.smtp_port });
+
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+
+      async function readResponse(): Promise<string> {
+        const buf = new Uint8Array(4096);
+        const n = await conn.read(buf);
+        return n ? decoder.decode(buf.subarray(0, n)) : "";
+      }
+      async function sendCommand(cmd: string): Promise<string> {
+        await conn.write(encoder.encode(cmd + "\r\n"));
+        return await readResponse();
+      }
+
+      await readResponse();
+      let ehloResp = await sendCommand("EHLO shopdrive.com.br");
+
+      if ((settings.smtp_security === "tls") && ehloResp.includes("STARTTLS")) {
+        await sendCommand("STARTTLS");
+        const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: settings.smtp_host });
+        conn.read = tlsConn.read.bind(tlsConn);
+        conn.write = tlsConn.write.bind(tlsConn);
+        ehloResp = await sendCommand("EHLO shopdrive.com.br");
+      }
+
+      if (settings.smtp_user && settings.smtp_password) {
+        await sendCommand("AUTH LOGIN");
+        await sendCommand(btoa(settings.smtp_user));
+        const authResp = await sendCommand(btoa(settings.smtp_password));
+        if (!authResp.startsWith("235")) {
+          conn.close();
+          return { success: false, error: `SMTP auth failed: ${authResp.trim()}` };
+        }
+      }
+
+      const senderEmail = settings.sender_email;
+      const mailFromResp = await sendCommand(`MAIL FROM:<${senderEmail}>`);
+      if (!mailFromResp.startsWith("250")) { conn.close(); return { success: false, error: `MAIL FROM failed: ${mailFromResp.trim()}` }; }
+
+      const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
+      if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
+
+      await sendCommand("DATA");
+      const emailData = [
+        `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
+        `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
+        `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`, "", html, ".",
+      ].join("\r\n");
+
+      const dataResp = await sendCommand(emailData);
+      if (!dataResp.startsWith("250")) { conn.close(); return { success: false, error: `DATA failed: ${dataResp.trim()}` }; }
+
+      await sendCommand("QUIT");
+      conn.close();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Unknown SMTP error" };
+    }
+  } else {
+    // Fallback to Resend if SMTP not configured
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      return { success: false, error: "Nenhum provedor de email configurado (SMTP ou Resend)" };
+    }
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      return { success: false, error: `Resend error [${res.status}]: ${errBody}` };
+    }
+    return { success: true };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Check for optional body params (manual send)
     let targetTemplateId: string | null = null;
     let reportType: string = "monthly";
 
     if (req.method === "POST") {
       try {
         const body = await req.json();
-        if (body.template_id) {
-          targetTemplateId = body.template_id;
-        }
-        if (body.report_type === "manual_test") {
-          reportType = "manual_test";
-        }
+        if (body.template_id) targetTemplateId = body.template_id;
+        if (body.report_type === "manual_test") reportType = "manual_test";
       } catch {
-        // No body or invalid JSON — treat as cron (all templates)
+        // No body — cron mode
       }
     }
 
-    // Build query for templates
     let query = supabase
       .from("brand_templates")
       .select("id, name, template_slug, link_clicks, stores_created, source_profile_id")
@@ -53,7 +153,6 @@ Deno.serve(async (req) => {
     }
 
     const { data: templates, error: tplError } = await query;
-
     if (tplError) throw tplError;
     if (!templates || templates.length === 0) {
       return new Response(JSON.stringify({ message: "No templates found" }), {
@@ -61,11 +160,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const results: { template: string; status: string; detail?: string }[] = [];
+    const results: { template: string; status: string; detail?: string; used_fallback?: boolean }[] = [];
 
     for (const tpl of templates) {
       try {
-        // Get email from the source profile
         const { data: profile } = await supabase
           .from("profiles")
           .select("email, store_name")
@@ -73,12 +171,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         const brandEmail = profile?.email;
-        const FALLBACK_EMAIL = "no-reply@shopdrive.com.br";
         const email = brandEmail || FALLBACK_EMAIL;
         const usedFallback = !brandEmail;
 
-        // For monthly (cron) sends, check if report was already sent this month
-        // For manual_test sends, skip this check so admins can always re-send
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -97,21 +192,17 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Calculate conversion rate
         const clicks = tpl.link_clicks || 0;
         const accounts = tpl.stores_created || 0;
         const conversion = clicks > 0 ? Math.round((accounts / clicks) * 100) : 0;
 
-        // Build visual bar chart
         const maxBar = Math.max(clicks, accounts, 1);
         const clicksBar = "█".repeat(Math.max(1, Math.round((clicks / maxBar) * 20)));
         const accountsBar = "█".repeat(Math.max(1, Math.round((accounts / maxBar) * 20)));
 
-        // Subject line differs for manual test
         const subjectPrefix = reportType === "manual_test" ? "[TESTE] " : "";
         const subject = `${subjectPrefix}Relatório mensal da marca ${tpl.name} — ${monthKey}`;
 
-        // Send email via Resend
         const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -121,6 +212,7 @@ Deno.serve(async (req) => {
     <h1 style="color: #111; font-size: 24px; margin-bottom: 4px;">Relatório mensal — ${tpl.name}</h1>
     <p style="color: #666; font-size: 14px;">Período: ${monthKey}</p>
     ${reportType === "manual_test" ? '<p style="color: #e67e22; font-size: 13px; font-weight: bold;">⚠️ Este é um envio de teste</p>' : ""}
+    ${usedFallback ? '<p style="color: #e67e22; font-size: 13px;">📧 Enviado para email administrativo (marca sem email configurado)</p>' : ""}
   </div>
 
   <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -165,23 +257,11 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-        const resendRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "ShopDrive <noreply@shopdrive.com.br>",
-            to: [email],
-            subject,
-            html: emailHtml,
-          }),
-        });
+        // Send via platform SMTP instead of Resend
+        const sendResult = await sendViaPlatformSMTP(supabase, email, subject, emailHtml);
 
-        if (!resendRes.ok) {
-          const errBody = await resendRes.text();
-          throw new Error(`Resend error [${resendRes.status}]: ${errBody}`);
+        if (!sendResult.success) {
+          throw new Error(sendResult.error || "Falha no envio via SMTP");
         }
 
         // Log successful send
@@ -195,10 +275,26 @@ Deno.serve(async (req) => {
           report_type: reportType,
         });
 
+        // Log in email_logs
+        await supabase.from("email_logs").insert({
+          template: "brand_report",
+          destinatario: email,
+          email_remetente: "plataforma",
+          status: "sent",
+        });
+
         results.push({ template: tpl.name, status: "sent", used_fallback: usedFallback });
       } catch (innerErr) {
         const msg = innerErr instanceof Error ? innerErr.message : "unknown";
         results.push({ template: tpl.name, status: "error", detail: msg });
+
+        // Log error
+        await supabase.from("email_logs").insert({
+          template: "brand_report",
+          destinatario: FALLBACK_EMAIL,
+          status: "error",
+          erro: msg,
+        });
       }
     }
 
