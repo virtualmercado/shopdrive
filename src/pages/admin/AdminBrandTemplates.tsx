@@ -317,7 +317,7 @@ const AdminBrandTemplates = () => {
     }
   };
 
-  const [sendingReportId, setSendingReportId] = useState<string | null>(null);
+  
 
   const handleToggleLink = (template: BrandTemplate) => {
     toggleLinkMutation.mutate({
