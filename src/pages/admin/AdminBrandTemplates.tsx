@@ -95,6 +95,10 @@ import { useCreateTemplateProfile, useSyncTemplateSnapshot, useOpenTemplateEdito
 import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
+import BrandReportPreviewModal from '@/components/admin/BrandReportPreviewModal';
+import BrandPerformanceChart, { ChartGranularity } from '@/components/admin/BrandPerformanceChart';
+import BrandDateFilter, { PeriodPreset, DateRange, getDateRangeForPreset, getPeriodLabel } from '@/components/admin/BrandDateFilter';
+import { useBrandClickEvents, aggregateClickData, computePeriodStats } from '@/hooks/useBrandClickEvents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -118,8 +122,17 @@ const AdminBrandTemplates = () => {
     description: '',
   });
 
+  // Report preview state
+  const [reportPreviewTemplate, setReportPreviewTemplate] = useState<BrandTemplate | null>(null);
+
+  // Date filter state
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('30d');
+  const [dateRange, setDateRange] = useState<DateRange>(getDateRangeForPreset('30d'));
+  const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('daily');
+
   const { data: templates, isLoading } = useBrandTemplates(statusFilter, searchTerm, linkStatusFilter);
   const { data: stats, isLoading: isLoadingStats } = useBrandTemplateStats();
+  const { data: clickEvents } = useBrandClickEvents(dateRange);
   const createTemplateMutation = useCreateTemplateProfile();
   const syncSnapshotMutation = useSyncTemplateSnapshot();
   const { openEditor, isOpening: isOpeningEditor } = useOpenTemplateEditor();
@@ -127,6 +140,16 @@ const AdminBrandTemplates = () => {
   const duplicateMutation = useDuplicateBrandTemplate();
   const toggleStatusMutation = useToggleBrandTemplateStatus();
   const toggleLinkMutation = useToggleLinkStatus();
+
+  // Compute chart data from click events
+  const chartData = clickEvents ? aggregateClickData(clickEvents, dateRange, chartGranularity) : [];
+  const periodStats = clickEvents ? computePeriodStats(clickEvents) : { totalClicks: 0 };
+  const periodLabel = getPeriodLabel(periodPreset, dateRange);
+
+  const handleDateFilterChange = (preset: PeriodPreset, range: DateRange) => {
+    setPeriodPreset(preset);
+    setDateRange(range);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -294,7 +317,7 @@ const AdminBrandTemplates = () => {
     }
   };
 
-  const [sendingReportId, setSendingReportId] = useState<string | null>(null);
+  
 
   const handleToggleLink = (template: BrandTemplate) => {
     toggleLinkMutation.mutate({
@@ -303,49 +326,8 @@ const AdminBrandTemplates = () => {
     });
   };
 
-  const handleSendReport = async (template: BrandTemplate) => {
-    if (!template?.id) {
-      toast.error('Template inválido: ID ausente.');
-      return;
-    }
-    setSendingReportId(template.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-brand-reports', {
-        body: { template_id: template.id, report_type: 'manual_test' },
-      });
-
-      if (error) {
-        // Extract meaningful message from FunctionsHttpError
-        const errorBody = typeof error === 'object' && 'message' in error ? error.message : String(error);
-        console.error('send-brand-reports error:', errorBody);
-        toast.error(`Erro ao enviar relatório: ${errorBody}`);
-        return;
-      }
-
-      if (data?.error) {
-        toast.error(`Erro: ${data.error}`);
-        return;
-      }
-
-      const result = data?.results?.[0];
-      if (result?.status === 'sent') {
-        if (result?.used_fallback) {
-          toast.warning('Esta marca não possui email configurado. O relatório foi enviado para o email administrativo da plataforma.');
-        } else {
-          toast.success('Relatório enviado com sucesso para o e-mail da marca.');
-        }
-      } else if (result?.status === 'skipped') {
-        toast.info(`Relatório já enviado este mês: ${result?.detail || ''}`);
-      } else {
-        toast.error(`Falha ao enviar: ${result?.detail || 'erro desconhecido'}`);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('Error sending report:', msg);
-      toast.error(`Falha ao enviar o relatório: ${msg}`);
-    } finally {
-      setSendingReportId(null);
-    }
+  const handleSendReport = (template: BrandTemplate) => {
+    setReportPreviewTemplate(template);
   };
 
   const getStatusBadge = (status: BrandTemplateStatus) => {
@@ -486,15 +468,38 @@ const AdminBrandTemplates = () => {
           </Card>
         </div>
 
+        {/* Date Filter + Performance Chart */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-base font-semibold text-foreground">Análise de Desempenho</h2>
+            <BrandDateFilter
+              value={periodPreset}
+              dateRange={dateRange}
+              onChange={handleDateFilterChange}
+            />
+          </div>
+
+          {/* Period summary stat */}
+          {periodStats.totalClicks > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MousePointerClick className="h-4 w-4" />
+              <span><strong className="text-foreground">{periodStats.totalClicks}</strong> cliques no período: {periodLabel}</span>
+            </div>
+          )}
+
+          <BrandPerformanceChart
+            data={chartData}
+            granularity={chartGranularity}
+            onGranularityChange={setChartGranularity}
+          />
+        </div>
+
         {/* Tabs */}
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
             <TabsTrigger value="list">Lista de Templates</TabsTrigger>
             <TabsTrigger value="settings" disabled className="opacity-50">
               Configurações (Em breve)
-            </TabsTrigger>
-            <TabsTrigger value="metrics" disabled className="opacity-50">
-              Métricas (Em breve)
             </TabsTrigger>
           </TabsList>
 
@@ -638,13 +643,8 @@ const AdminBrandTemplates = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleSendReport(template)}
-                                  disabled={sendingReportId === template.id}
                                 >
-                                  {sendingReportId === template.id ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <Send className="h-4 w-4 mr-2" />
-                                  )}
+                                  <Send className="h-4 w-4 mr-2" />
                                   Enviar relatório agora
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -737,13 +737,8 @@ const AdminBrandTemplates = () => {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleSendReport(template)}
-                                disabled={sendingReportId === template.id}
                               >
-                                {sendingReportId === template.id ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Send className="h-4 w-4 mr-2" />
-                                )}
+                                <Send className="h-4 w-4 mr-2" />
                                 Enviar relatório
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -1053,6 +1048,15 @@ const AdminBrandTemplates = () => {
         }}
         allowedTypes={['image']}
         title="Selecionar Logo da Marca"
+      />
+
+      {/* Report Preview Modal */}
+      <BrandReportPreviewModal
+        template={reportPreviewTemplate}
+        open={!!reportPreviewTemplate}
+        onOpenChange={(open) => !open && setReportPreviewTemplate(null)}
+        chartData={chartData}
+        periodLabel={periodLabel}
       />
     </AdminLayout>
   );
