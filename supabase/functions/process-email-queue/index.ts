@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const BATCH_SIZE = 50;
 const RATE_LIMIT_DELAY_MS = 200; // 5 emails per second
+const BCC_EMAIL = "suporte@shopdrive.com.br";
 
 async function sendViaResend(
   apiKey: string, from: string, replyTo: string,
@@ -17,7 +18,7 @@ async function sendViaResend(
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo }),
+    body: JSON.stringify({ from, to: [to], bcc: [BCC_EMAIL], subject, html, reply_to: replyTo }),
   });
   const data = await res.json();
   if (!res.ok) return { success: false, error: data.message || `Resend error [${res.status}]` };
@@ -70,9 +71,16 @@ async function sendViaSMTP(
     const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
     if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
 
+    // Add BCC recipient
+    const bccResp = await sendCommand(`RCPT TO:<${BCC_EMAIL}>`);
+    if (!bccResp.startsWith("250")) {
+      console.error(`BCC RCPT TO failed (non-blocking): ${bccResp.trim()}`);
+    }
+
     await sendCommand("DATA");
     const emailData = [
       `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
+      `Bcc: ${BCC_EMAIL}`,
       `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
       `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`, "", html, ".",
     ].join("\r\n");
