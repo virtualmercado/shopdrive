@@ -1045,6 +1045,11 @@ const StorePreviewEnhanced = () => {
               </div>
             </div>
 
+            {/* Benefit Banners Config */}
+            <div className="border-t pt-6">
+              <BenefitBannersConfig userId={user?.id ?? null} />
+            </div>
+
             {/* Minibanners - 2 images per minibanner (Image 1 + Image 2 for hover effect) */}
             <div className="border-t pt-6 space-y-6">
               {/* Minibanner 1 */}
