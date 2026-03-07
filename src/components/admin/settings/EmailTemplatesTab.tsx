@@ -318,50 +318,7 @@ const EmailTemplatesTab = () => {
 
         {/* Send Logs */}
         <TabsContent value="logs">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <History className="h-6 w-6 text-[#6a1b9a]" />
-                <div>
-                  <CardTitle>Logs de Envio</CardTitle>
-                  <CardDescription>Histórico de e-mails disparados pela plataforma</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {logs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Mail className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p>Nenhum envio registrado.</p>
-                </div>
-              ) : (
-                <div className="border rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Template</TableHead>
-                        <TableHead>Destinatário</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data/Hora</TableHead>
-                        <TableHead>Erro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {logs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-medium">{log.template_name || "—"}</TableCell>
-                          <TableCell>{log.recipient_email}</TableCell>
-                          <TableCell><Badge variant={log.status === "sent" || log.status === "test_sent" ? "default" : "destructive"}>{log.status}</Badge></TableCell>
-                          <TableCell className="text-sm">{format(new Date(log.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                          <TableCell className="text-sm text-destructive">{log.error_message || "—"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <EmailLogsTab />
         </TabsContent>
 
         {/* Reputation Shield */}
