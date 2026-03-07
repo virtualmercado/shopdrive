@@ -304,13 +304,28 @@ const AdminBrandTemplates = () => {
   };
 
   const handleSendReport = async (template: BrandTemplate) => {
+    if (!template?.id) {
+      toast.error('Template inválido: ID ausente.');
+      return;
+    }
     setSendingReportId(template.id);
     try {
       const { data, error } = await supabase.functions.invoke('send-brand-reports', {
         body: { template_id: template.id, report_type: 'manual_test' },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extract meaningful message from FunctionsHttpError
+        const errorBody = typeof error === 'object' && 'message' in error ? error.message : String(error);
+        console.error('send-brand-reports error:', errorBody);
+        toast.error(`Erro ao enviar relatório: ${errorBody}`);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(`Erro: ${data.error}`);
+        return;
+      }
 
       const result = data?.results?.[0];
       if (result?.status === 'sent') {
@@ -319,12 +334,15 @@ const AdminBrandTemplates = () => {
         } else {
           toast.success('Relatório enviado com sucesso para o e-mail da marca.');
         }
+      } else if (result?.status === 'skipped') {
+        toast.info(`Relatório já enviado este mês: ${result?.detail || ''}`);
       } else {
-        toast.error(`Falha ao enviar o relatório: ${result?.detail || 'erro desconhecido'}`);
+        toast.error(`Falha ao enviar: ${result?.detail || 'erro desconhecido'}`);
       }
     } catch (err) {
-      console.error('Error sending report:', err);
-      toast.error('Falha ao enviar o relatório. Verifique os logs da função send-brand-reports.');
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Error sending report:', msg);
+      toast.error(`Falha ao enviar o relatório: ${msg}`);
     } finally {
       setSendingReportId(null);
     }
