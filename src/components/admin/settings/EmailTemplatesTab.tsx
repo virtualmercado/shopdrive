@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ReputationShieldTab } from "./ReputationShieldTab";
+import EmailLogsTab from "./EmailLogsTab";
 
 const EmailTemplatesTab = () => {
   const { templates, logs, loading, saving, updateTemplate, duplicateTemplate, logSend } = useEmailTemplates();
