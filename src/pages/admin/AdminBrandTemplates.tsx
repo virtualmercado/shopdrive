@@ -737,13 +737,8 @@ const AdminBrandTemplates = () => {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleSendReport(template)}
-                                disabled={sendingReportId === template.id}
                               >
-                                {sendingReportId === template.id ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Send className="h-4 w-4 mr-2" />
-                                )}
+                                <Send className="h-4 w-4 mr-2" />
                                 Enviar relatório
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
