@@ -32,6 +32,9 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const navigate = useNavigate();
   const { signIn, user, loading: authLoading } = useAuth();
