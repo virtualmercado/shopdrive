@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const BATCH_SIZE = 50;
 const RATE_LIMIT_DELAY_MS = 200; // 5 emails per second
+const BCC_EMAIL = "suporte@shopdrive.com.br";
 
 async function sendViaResend(
   apiKey: string, from: string, replyTo: string,
