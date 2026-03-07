@@ -315,7 +315,7 @@ const AdminBrandTemplates = () => {
       const result = data?.results?.[0];
       if (result?.status === 'sent') {
         if (result?.used_fallback) {
-          toast.warning('Email da marca não configurado. Relatório enviado usando o email padrão da plataforma.');
+          toast.warning('Esta marca não possui email configurado. O relatório foi enviado para o email administrativo da plataforma.');
         } else {
           toast.success('Relatório enviado com sucesso para o e-mail da marca.');
         }
