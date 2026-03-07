@@ -122,8 +122,17 @@ const AdminBrandTemplates = () => {
     description: '',
   });
 
+  // Report preview state
+  const [reportPreviewTemplate, setReportPreviewTemplate] = useState<BrandTemplate | null>(null);
+
+  // Date filter state
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('30d');
+  const [dateRange, setDateRange] = useState<DateRange>(getDateRangeForPreset('30d'));
+  const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('daily');
+
   const { data: templates, isLoading } = useBrandTemplates(statusFilter, searchTerm, linkStatusFilter);
   const { data: stats, isLoading: isLoadingStats } = useBrandTemplateStats();
+  const { data: clickEvents } = useBrandClickEvents(dateRange);
   const createTemplateMutation = useCreateTemplateProfile();
   const syncSnapshotMutation = useSyncTemplateSnapshot();
   const { openEditor, isOpening: isOpeningEditor } = useOpenTemplateEditor();
@@ -131,6 +140,16 @@ const AdminBrandTemplates = () => {
   const duplicateMutation = useDuplicateBrandTemplate();
   const toggleStatusMutation = useToggleBrandTemplateStatus();
   const toggleLinkMutation = useToggleLinkStatus();
+
+  // Compute chart data from click events
+  const chartData = clickEvents ? aggregateClickData(clickEvents, dateRange, chartGranularity) : [];
+  const periodStats = clickEvents ? computePeriodStats(clickEvents) : { totalClicks: 0 };
+  const periodLabel = getPeriodLabel(periodPreset, dateRange);
+
+  const handleDateFilterChange = (preset: PeriodPreset, range: DateRange) => {
+    setPeriodPreset(preset);
+    setDateRange(range);
+  };
 
   const resetForm = () => {
     setFormData({
