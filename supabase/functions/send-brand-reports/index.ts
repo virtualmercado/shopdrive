@@ -9,115 +9,6 @@ const corsHeaders = {
 
 const FALLBACK_EMAIL = "suporte@shopdrive.com.br";
 
-async function sendViaPlatformSMTP(
-  supabase: any,
-  to: string,
-  subject: string,
-  html: string
-): Promise<{ success: boolean; error?: string }> {
-  // Load platform email settings
-  const { data: settings, error: settingsErr } = await supabase
-    .from("platform_email_settings")
-    .select("*")
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (settingsErr || !settings) {
-    return { success: false, error: "Configurações de e-mail da plataforma não encontradas" };
-  }
-
-  const from = `${settings.sender_name} <${settings.sender_email}>`;
-  const replyTo = settings.reply_to || settings.sender_email;
-
-  if (settings.provider === "smtp") {
-    if (!settings.smtp_host || !settings.smtp_port) {
-      return { success: false, error: "Configuração SMTP incompleta" };
-    }
-
-    try {
-      const conn = settings.smtp_security === "ssl"
-        ? await Deno.connectTls({ hostname: settings.smtp_host, port: settings.smtp_port })
-        : await Deno.connect({ hostname: settings.smtp_host, port: settings.smtp_port });
-
-      const encoder = new TextEncoder();
-      const decoder = new TextDecoder();
-
-      async function readResponse(): Promise<string> {
-        const buf = new Uint8Array(4096);
-        const n = await conn.read(buf);
-        return n ? decoder.decode(buf.subarray(0, n)) : "";
-      }
-      async function sendCommand(cmd: string): Promise<string> {
-        await conn.write(encoder.encode(cmd + "\r\n"));
-        return await readResponse();
-      }
-
-      await readResponse();
-      let ehloResp = await sendCommand("EHLO shopdrive.com.br");
-
-      if ((settings.smtp_security === "tls") && ehloResp.includes("STARTTLS")) {
-        await sendCommand("STARTTLS");
-        const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: settings.smtp_host });
-        conn.read = tlsConn.read.bind(tlsConn);
-        conn.write = tlsConn.write.bind(tlsConn);
-        ehloResp = await sendCommand("EHLO shopdrive.com.br");
-      }
-
-      if (settings.smtp_user && settings.smtp_password) {
-        await sendCommand("AUTH LOGIN");
-        await sendCommand(btoa(settings.smtp_user));
-        const authResp = await sendCommand(btoa(settings.smtp_password));
-        if (!authResp.startsWith("235")) {
-          conn.close();
-          return { success: false, error: `SMTP auth failed: ${authResp.trim()}` };
-        }
-      }
-
-      const senderEmail = settings.sender_email;
-      const mailFromResp = await sendCommand(`MAIL FROM:<${senderEmail}>`);
-      if (!mailFromResp.startsWith("250")) { conn.close(); return { success: false, error: `MAIL FROM failed: ${mailFromResp.trim()}` }; }
-
-      const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
-      if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
-
-      await sendCommand("DATA");
-      const emailData = [
-        `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
-        `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
-        `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`, "", html, ".",
-      ].join("\r\n");
-
-      const dataResp = await sendCommand(emailData);
-      if (!dataResp.startsWith("250")) { conn.close(); return { success: false, error: `DATA failed: ${dataResp.trim()}` }; }
-
-      await sendCommand("QUIT");
-      conn.close();
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Unknown SMTP error" };
-    }
-  } else {
-    // Fallback to Resend if SMTP not configured
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      return { success: false, error: "Nenhum provedor de email configurado (SMTP ou Resend)" };
-    }
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo }),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      return { success: false, error: `Resend error [${res.status}]: ${errBody}` };
-    }
-    return { success: true };
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -197,74 +88,93 @@ Deno.serve(async (req) => {
         const conversion = clicks > 0 ? Math.round((accounts / clicks) * 100) : 0;
 
         const maxBar = Math.max(clicks, accounts, 1);
-        const clicksBar = "█".repeat(Math.max(1, Math.round((clicks / maxBar) * 20)));
-        const accountsBar = "█".repeat(Math.max(1, Math.round((accounts / maxBar) * 20)));
+        const clicksBar = "\u2588".repeat(Math.max(1, Math.round((clicks / maxBar) * 20)));
+        const accountsBar = "\u2588".repeat(Math.max(1, Math.round((accounts / maxBar) * 20)));
 
         const subjectPrefix = reportType === "manual_test" ? "[TESTE] " : "";
-        const subject = `${subjectPrefix}Relatório mensal da marca ${tpl.name} — ${monthKey}`;
+        const subject = `${subjectPrefix}Relat\u00f3rio mensal da marca ${tpl.name} \u2014 ${monthKey}`;
 
-        const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-  <div style="text-align: center; margin-bottom: 30px;">
-    <h1 style="color: #111; font-size: 24px; margin-bottom: 4px;">Relatório mensal — ${tpl.name}</h1>
-    <p style="color: #666; font-size: 14px;">Período: ${monthKey}</p>
-    ${reportType === "manual_test" ? '<p style="color: #e67e22; font-size: 13px; font-weight: bold;">⚠️ Este é um envio de teste</p>' : ""}
-    ${usedFallback ? '<p style="color: #e67e22; font-size: 13px;">📧 Enviado para email administrativo (marca sem email configurado)</p>' : ""}
-  </div>
-
-  <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <table style="width: 100%; border-collapse: collapse;">
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-          <span style="color: #666; font-size: 14px;">Cliques no link de ativação</span>
-        </td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">
-          <strong style="font-size: 24px; color: #111;">${clicks}</strong>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-          <span style="color: #666; font-size: 14px;">Contas criadas</span>
-        </td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">
-          <strong style="font-size: 24px; color: #111;">${accounts}</strong>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 0;">
-          <span style="color: #666; font-size: 14px;">Taxa de conversão</span>
-        </td>
-        <td style="padding: 12px 0; text-align: right;">
-          <strong style="font-size: 24px; color: #111;">${conversion}%</strong>
-        </td>
-      </tr>
-    </table>
-  </div>
-
-  <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-    <p style="color: #666; font-size: 13px; margin: 0 0 8px 0;">Cliques &nbsp; <span style="font-family: monospace; color: #5B9BD5;">${clicksBar}</span> &nbsp; ${clicks}</p>
-    <p style="color: #666; font-size: 13px; margin: 0;">Contas &nbsp;&nbsp; <span style="font-family: monospace; color: #70AD47;">${accountsBar}</span> &nbsp; ${accounts}</p>
-  </div>
-
-  <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">
-    <p style="color: #999; font-size: 12px;">
-      Este relatório é gerado automaticamente pela ShopDrive.
-    </p>
-  </div>
-</body>
-</html>`;
-
-        // Send via platform SMTP instead of Resend
-        const sendResult = await sendViaPlatformSMTP(supabase, email, subject, emailHtml);
-
-        if (!sendResult.success) {
-          throw new Error(sendResult.error || "Falha no envio via SMTP");
+        // Validate inputs before building email
+        if (!subject || typeof subject !== "string") {
+          throw new Error("Subject inv\u00e1lido para o email");
         }
 
-        // Log successful send
+        const emailHtml = [
+          '<!DOCTYPE html>',
+          '<html>',
+          '<head><meta charset="utf-8"></head>',
+          '<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">',
+          '  <div style="text-align: center; margin-bottom: 30px;">',
+          `    <h1 style="color: #111; font-size: 24px; margin-bottom: 4px;">Relat\u00f3rio mensal \u2014 ${tpl.name}</h1>`,
+          `    <p style="color: #666; font-size: 14px;">Per\u00edodo: ${monthKey}</p>`,
+          reportType === "manual_test" ? '    <p style="color: #e67e22; font-size: 13px; font-weight: bold;">\u26a0\ufe0f Este \u00e9 um envio de teste</p>' : '',
+          usedFallback ? '    <p style="color: #e67e22; font-size: 13px;">\ud83d\udce7 Enviado para email administrativo (marca sem email configurado)</p>' : '',
+          '  </div>',
+          '  <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">',
+          '    <table style="width: 100%; border-collapse: collapse;">',
+          '      <tr>',
+          '        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">',
+          '          <span style="color: #666; font-size: 14px;">Cliques no link de ativa\u00e7\u00e3o</span>',
+          '        </td>',
+          '        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">',
+          `          <strong style="font-size: 24px; color: #111;">${clicks}</strong>`,
+          '        </td>',
+          '      </tr>',
+          '      <tr>',
+          '        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">',
+          '          <span style="color: #666; font-size: 14px;">Contas criadas</span>',
+          '        </td>',
+          '        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">',
+          `          <strong style="font-size: 24px; color: #111;">${accounts}</strong>`,
+          '        </td>',
+          '      </tr>',
+          '      <tr>',
+          '        <td style="padding: 12px 0;">',
+          `          <span style="color: #666; font-size: 14px;">Taxa de convers\u00e3o</span>`,
+          '        </td>',
+          '        <td style="padding: 12px 0; text-align: right;">',
+          `          <strong style="font-size: 24px; color: #111;">${conversion}%</strong>`,
+          '        </td>',
+          '      </tr>',
+          '    </table>',
+          '  </div>',
+          '  <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 24px;">',
+          `    <p style="color: #666; font-size: 13px; margin: 0 0 8px 0;">Cliques &nbsp; <span style="font-family: monospace; color: #5B9BD5;">${clicksBar}</span> &nbsp; ${clicks}</p>`,
+          `    <p style="color: #666; font-size: 13px; margin: 0;">Contas &nbsp;&nbsp; <span style="font-family: monospace; color: #70AD47;">${accountsBar}</span> &nbsp; ${accounts}</p>`,
+          '  </div>',
+          '  <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">',
+          '    <p style="color: #999; font-size: 12px;">',
+          '      Este relat\u00f3rio \u00e9 gerado automaticamente pela ShopDrive.',
+          '    </p>',
+          '  </div>',
+          '</body>',
+          '</html>',
+        ].join('\n');
+
+        // Validate HTML body is a proper string
+        if (!emailHtml || typeof emailHtml !== "string" || emailHtml.length < 10) {
+          throw new Error("Corpo do email inv\u00e1lido ou vazio");
+        }
+
+        // Enqueue via email_queue table (processed by process-email-queue worker)
+        const { error: queueErr } = await supabase.from("email_queue").insert({
+          tenant_id: null,
+          template: "brand_report",
+          template_name: "brand_report",
+          to_email: email,
+          subject,
+          html: emailHtml,
+          payload: { template_id: tpl.id, report_type: reportType },
+          status: "pending",
+          scheduled_at: new Date().toISOString(),
+          store_name: profile?.store_name || tpl.name,
+        });
+
+        if (queueErr) {
+          throw new Error(`Erro ao enfileirar email: ${queueErr.message}`);
+        }
+
+        // Log the report
         await supabase.from("brand_report_logs").insert({
           template_id: tpl.id,
           report_month: monthKey,
@@ -275,20 +185,11 @@ Deno.serve(async (req) => {
           report_type: reportType,
         });
 
-        // Log in email_logs
-        await supabase.from("email_logs").insert({
-          template: "brand_report",
-          destinatario: email,
-          email_remetente: "plataforma",
-          status: "sent",
-        });
-
         results.push({ template: tpl.name, status: "sent", used_fallback: usedFallback });
       } catch (innerErr) {
         const msg = innerErr instanceof Error ? innerErr.message : "unknown";
         results.push({ template: tpl.name, status: "error", detail: msg });
 
-        // Log error
         await supabase.from("email_logs").insert({
           template: "brand_report",
           destinatario: FALLBACK_EMAIL,
