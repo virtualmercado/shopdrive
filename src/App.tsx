@@ -92,6 +92,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/criar-conta" element={<TemplateSignup />} />
             <Route path="/link-indisponivel" element={<TemplateUnavailable />} />
