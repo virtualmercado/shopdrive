@@ -95,6 +95,10 @@ import { useCreateTemplateProfile, useSyncTemplateSnapshot, useOpenTemplateEdito
 import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
+import BrandReportPreviewModal from '@/components/admin/BrandReportPreviewModal';
+import BrandPerformanceChart, { ChartGranularity } from '@/components/admin/BrandPerformanceChart';
+import BrandDateFilter, { PeriodPreset, DateRange, getDateRangeForPreset, getPeriodLabel } from '@/components/admin/BrandDateFilter';
+import { useBrandClickEvents, aggregateClickData, computePeriodStats } from '@/hooks/useBrandClickEvents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
