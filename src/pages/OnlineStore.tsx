@@ -72,6 +72,8 @@ interface StoreData {
   store_layout?: "layout_01" | "layout_02" | "layout_03";
   // Store model
   store_model?: StoreModelType;
+  // Benefit banners
+  selected_benefit_banners?: number[];
 }
 
 const OnlineStoreContent = () => {
