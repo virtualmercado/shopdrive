@@ -18,7 +18,7 @@ async function sendViaResend(
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo }),
+    body: JSON.stringify({ from, to: [to], bcc: [BCC_EMAIL], subject, html, reply_to: replyTo }),
   });
   const data = await res.json();
   if (!res.ok) return { success: false, error: data.message || `Resend error [${res.status}]` };
