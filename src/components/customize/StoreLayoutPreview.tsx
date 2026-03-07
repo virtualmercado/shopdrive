@@ -5,12 +5,12 @@ interface StoreLayoutPreviewProps {
 }
 
 // Module IDs for the dynamic middle section
-type ModuleId = "banner" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video" | "reviews";
+type ModuleId = "banner" | "benefitBanners" | "miniBanners" | "destaques" | "promocoes" | "todos" | "video" | "reviews";
 
 const layoutMiddleOrder: Record<StoreLayoutType, ModuleId[]> = {
-  layout_01: ["banner", "miniBanners", "destaques", "promocoes", "todos", "video", "reviews"],
-  layout_02: ["banner", "promocoes", "destaques", "miniBanners", "todos", "video", "reviews"],
-  layout_03: ["banner", "video", "miniBanners", "destaques", "promocoes", "todos", "reviews"],
+  layout_01: ["banner", "benefitBanners", "miniBanners", "destaques", "promocoes", "todos", "video", "reviews"],
+  layout_02: ["banner", "benefitBanners", "promocoes", "destaques", "miniBanners", "todos", "video", "reviews"],
+  layout_03: ["banner", "benefitBanners", "video", "miniBanners", "destaques", "promocoes", "todos", "reviews"],
 };
 
 /* ── Tiny reusable wireframe pieces ── */
