@@ -1312,32 +1312,44 @@ export type Database = {
       }
       email_logs: {
         Row: {
+          bcc_email: string | null
           data_envio: string
           destinatario: string
           email_remetente: string | null
           erro: string | null
           id: string
+          sent_at: string | null
+          smtp_provider: string | null
           status: string
+          subject: string | null
           template: string | null
           tenant_id: string | null
         }
         Insert: {
+          bcc_email?: string | null
           data_envio?: string
           destinatario: string
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          sent_at?: string | null
+          smtp_provider?: string | null
           status?: string
+          subject?: string | null
           template?: string | null
           tenant_id?: string | null
         }
         Update: {
+          bcc_email?: string | null
           data_envio?: string
           destinatario?: string
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          sent_at?: string | null
+          smtp_provider?: string | null
           status?: string
+          subject?: string | null
           template?: string | null
           tenant_id?: string | null
         }

@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const BATCH_SIZE = 50;
-const RATE_LIMIT_DELAY_MS = 200; // 5 emails per second
+const RATE_LIMIT_DELAY_MS = 200;
 const BCC_EMAIL = "suporte@shopdrive.com.br";
 
 async function sendViaResend(
@@ -71,7 +71,6 @@ async function sendViaSMTP(
     const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
     if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
 
-    // Add BCC recipient
     const bccResp = await sendCommand(`RCPT TO:<${BCC_EMAIL}>`);
     if (!bccResp.startsWith("250")) {
       console.error(`BCC RCPT TO failed (non-blocking): ${bccResp.trim()}`);
@@ -110,7 +109,6 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch pending + retry emails ready for processing
     const { data: emails, error: fetchErr } = await supabase
       .from("email_queue")
       .select("*")
@@ -126,7 +124,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Load platform email settings
     const { data: settings } = await supabase
       .from("platform_email_settings")
       .select("*")
@@ -137,11 +134,11 @@ Deno.serve(async (req) => {
     if (!settings) throw new Error("Platform email settings not found");
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const providerName = settings.provider || "resend";
 
     let sent = 0, failed = 0, blocked = 0, retried = 0;
 
     for (const email of emails) {
-      // Mark as processing
       await supabase.from("email_queue").update({ status: "processing" }).eq("id", email.id);
 
       // Check reputation shield
@@ -162,8 +159,12 @@ Deno.serve(async (req) => {
             tenant_id: email.tenant_id,
             template: email.template,
             destinatario: email.to_email,
+            email_remetente: "",
             status: "blocked",
             erro: "Reputation Shield: tenant blocked",
+            subject: email.subject,
+            bcc_email: BCC_EMAIL,
+            smtp_provider: providerName,
           });
 
           blocked++;
@@ -207,10 +208,12 @@ Deno.serve(async (req) => {
         }
       }
 
+      const now = new Date().toISOString();
+
       if (result.success) {
         await supabase.from("email_queue").update({
           status: "sent",
-          sent_at: new Date().toISOString(),
+          sent_at: now,
         }).eq("id", email.id);
 
         await supabase.from("email_logs").insert({
@@ -219,9 +222,12 @@ Deno.serve(async (req) => {
           destinatario: email.to_email,
           email_remetente: fromHeader,
           status: "sent",
+          subject: email.subject,
+          bcc_email: BCC_EMAIL,
+          smtp_provider: providerName,
+          sent_at: now,
         });
 
-        // Update tenant metrics
         if (email.tenant_id) {
           await supabase.rpc("increment_email_metric_counters", { p_tenant_id: email.tenant_id });
         }
@@ -255,10 +261,12 @@ Deno.serve(async (req) => {
           email_remetente: fromHeader,
           status: "error",
           erro: result.error,
+          subject: email.subject,
+          bcc_email: BCC_EMAIL,
+          smtp_provider: providerName,
         });
       }
 
-      // Rate limiting: 5 emails/sec = 200ms delay
       await delay(RATE_LIMIT_DELAY_MS);
     }
 
