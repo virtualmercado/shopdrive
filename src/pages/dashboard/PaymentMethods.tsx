@@ -502,6 +502,87 @@ const PaymentMethodsContent = () => {
                   {hasPagbankCredentials ? "Editar credenciais" : "Configurar"}
                 </Button>
               </div>
+
+              {/* Stone / Ton */}
+              <div className={`p-4 rounded-lg border-2 ${hasStoneTonCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#00D563' }} />
+                    <span className="font-medium">Stone / Ton</span>
+                  </div>
+                  {hasStoneTonCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openStoneTonConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasStoneTonCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
+
+              {/* InfinitePay */}
+              <div className={`p-4 rounded-lg border-2 ${hasInfinitePayCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#FF6B35' }} />
+                    <span className="font-medium">InfinitePay</span>
+                  </div>
+                  {hasInfinitePayCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openInfinitePayConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasInfinitePayCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
+            </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openMercadoPagoConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasMercadoPagoCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
+
+              {/* PagBank */}
+              <div className={`p-4 rounded-lg border-2 ${hasPagbankCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#FFC700' }} />
+                    <span className="font-medium">PagBank</span>
+                  </div>
+                  {hasPagbankCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openPagbankConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasPagbankCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
             </div>
 
             {!hasAnyGateway && (
