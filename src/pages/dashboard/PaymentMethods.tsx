@@ -322,7 +322,53 @@ const PaymentMethodsContent = () => {
     setMercadoPagoDialogOpen(true);
   };
 
-  const openPagbankConfig = () => {
+  const saveStoneTonCredentials = async () => {
+    if (!tempStoneTon.publicKey.trim() || !tempStoneTon.secretKey.trim()) {
+      toast.error("Preencha pelo menos Public Key e Secret Key do Stone/Ton");
+      return;
+    }
+    
+    await saveSettings({
+      stone_ton_enabled: true,
+      stone_ton_public_key: tempStoneTon.publicKey,
+      stone_ton_secret_key: tempStoneTon.secretKey,
+      stone_ton_merchant_id: tempStoneTon.merchantId || null,
+    });
+    setStoneTonDialogOpen(false);
+  };
+
+  const saveInfinitePayCredentials = async () => {
+    if (!tempInfinitePay.clientId.trim() || !tempInfinitePay.clientSecret.trim()) {
+      toast.error("Preencha pelo menos Client ID e Client Secret do InfinitePay");
+      return;
+    }
+    
+    await saveSettings({
+      infinitepay_enabled: true,
+      infinitepay_client_id: tempInfinitePay.clientId,
+      infinitepay_client_secret: tempInfinitePay.clientSecret,
+      infinitepay_webhook_secret: tempInfinitePay.webhookSecret || null,
+    });
+    setInfinitePayDialogOpen(false);
+  };
+
+  const openStoneTonConfig = () => {
+    setTempStoneTon({
+      publicKey: settings?.stone_ton_public_key || "",
+      secretKey: settings?.stone_ton_secret_key || "",
+      merchantId: settings?.stone_ton_merchant_id || "",
+    });
+    setStoneTonDialogOpen(true);
+  };
+
+  const openInfinitePayConfig = () => {
+    setTempInfinitePay({
+      clientId: settings?.infinitepay_client_id || "",
+      clientSecret: settings?.infinitepay_client_secret || "",
+      webhookSecret: settings?.infinitepay_webhook_secret || "",
+    });
+    setInfinitePayDialogOpen(true);
+  };
     setTempPagbank({
       token: settings?.pagbank_token || "",
       email: settings?.pagbank_email || "",
