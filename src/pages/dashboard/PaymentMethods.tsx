@@ -89,6 +89,8 @@ const PaymentMethodsContent = () => {
   // Dialog states for gateway configuration
   const [mercadoPagoDialogOpen, setMercadoPagoDialogOpen] = useState(false);
   const [pagbankDialogOpen, setPagbankDialogOpen] = useState(false);
+  const [stoneTonDialogOpen, setStoneTonDialogOpen] = useState(false);
+  const [infinitePayDialogOpen, setInfinitePayDialogOpen] = useState(false);
   
   // Temp form states for gateway credentials
   const [tempMercadoPago, setTempMercadoPago] = useState({
@@ -99,6 +101,18 @@ const PaymentMethodsContent = () => {
   const [tempPagbank, setTempPagbank] = useState({
     token: "",
     email: "",
+  });
+
+  const [tempStoneTon, setTempStoneTon] = useState({
+    publicKey: "",
+    secretKey: "",
+    merchantId: "",
+  });
+
+  const [tempInfinitePay, setTempInfinitePay] = useState({
+    clientId: "",
+    clientSecret: "",
+    webhookSecret: "",
   });
 
   // Local state for payment methods configuration
