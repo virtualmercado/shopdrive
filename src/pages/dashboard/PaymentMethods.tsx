@@ -34,16 +34,16 @@ interface PaymentSettings {
   pagbank_enabled: boolean;
   pagbank_token: string | null;
   pagbank_email: string | null;
-  // New gateways
-  stone_ton_enabled: boolean;
-  stone_ton_public_key: string | null;
-  stone_ton_secret_key: string | null;
-  stone_ton_merchant_id: string | null;
-  infinitepay_enabled: boolean;
-  infinitepay_client_id: string | null;
-  infinitepay_client_secret: string | null;
-  infinitepay_webhook_secret: string | null;
-  // New payment method fields
+  // New gateways (optional for backwards compatibility)
+  stone_ton_enabled?: boolean;
+  stone_ton_public_key?: string | null;
+  stone_ton_secret_key?: string | null;
+  stone_ton_merchant_id?: string | null;
+  infinitepay_enabled?: boolean;
+  infinitepay_client_id?: string | null;
+  infinitepay_client_secret?: string | null;
+  infinitepay_webhook_secret?: string | null;
+  // Payment method fields
   pix_enabled: boolean;
   pix_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
   pix_discount_percent: number;
