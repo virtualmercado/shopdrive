@@ -129,7 +129,9 @@ const PaymentMethodsContent = () => {
 
   const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token && settings?.mercadopago_public_key);
   const hasPagbankCredentials = !!(settings?.pagbank_token && settings?.pagbank_email);
-  const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials;
+  const hasStoneTonCredentials = !!(settings?.stone_ton_public_key && settings?.stone_ton_secret_key);
+  const hasInfinitePayCredentials = !!(settings?.infinitepay_client_id && settings?.infinitepay_client_secret);
+  const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials || hasStoneTonCredentials || hasInfinitePayCredentials;
 
   useEffect(() => {
     if (user) {
