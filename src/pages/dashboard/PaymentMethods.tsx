@@ -245,6 +245,14 @@ const PaymentMethodsContent = () => {
       toast.error("Configure as credenciais do PagBank antes de ativar o Pix");
       return;
     }
+    if (pixEnabled && pixProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Pix");
+      return;
+    }
+    if (pixEnabled && pixProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Pix");
+      return;
+    }
     if (creditCardEnabled && creditCardProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
       toast.error("Configure as credenciais do Mercado Pago antes de ativar o Cartão");
       return;
@@ -253,12 +261,28 @@ const PaymentMethodsContent = () => {
       toast.error("Configure as credenciais do PagBank antes de ativar o Cartão");
       return;
     }
+    if (creditCardEnabled && creditCardProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Cartão");
+      return;
+    }
+    if (creditCardEnabled && creditCardProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Cartão");
+      return;
+    }
     if (boletoEnabled && boletoProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
       toast.error("Configure as credenciais do Mercado Pago antes de ativar o Boleto");
       return;
     }
     if (boletoEnabled && boletoProvider === "pagbank" && !hasPagbankCredentials) {
       toast.error("Configure as credenciais do PagBank antes de ativar o Boleto");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Boleto");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Boleto");
       return;
     }
 
