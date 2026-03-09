@@ -300,13 +300,13 @@ const PaymentMethodsContent = () => {
 
     await saveSettings({
       pix_enabled: pixEnabled,
-      pix_provider: pixEnabled && pixProvider ? (pixProvider as 'mercado_pago' | 'pagbank') : null,
+      pix_provider: pixEnabled && pixProvider ? (pixProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
       pix_discount_percent: pixDiscount,
       credit_card_enabled: creditCardEnabled,
-      credit_card_provider: creditCardEnabled && creditCardProvider ? (creditCardProvider as 'mercado_pago' | 'pagbank') : null,
+      credit_card_provider: creditCardEnabled && creditCardProvider ? (creditCardProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
       credit_card_installments_no_interest: creditCardInstallments,
       boleto_enabled: boletoEnabled,
-      boleto_provider: boletoEnabled && boletoProvider ? (boletoProvider as 'mercado_pago' | 'pagbank') : null,
+      boleto_provider: boletoEnabled && boletoProvider ? (boletoProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
     });
   };
 
