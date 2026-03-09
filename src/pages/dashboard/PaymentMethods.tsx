@@ -369,6 +369,8 @@ const PaymentMethodsContent = () => {
     });
     setInfinitePayDialogOpen(true);
   };
+
+  const openPagbankConfig = () => {
     setTempPagbank({
       token: settings?.pagbank_token || "",
       email: settings?.pagbank_email || "",
