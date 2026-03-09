@@ -34,15 +34,24 @@ interface PaymentSettings {
   pagbank_enabled: boolean;
   pagbank_token: string | null;
   pagbank_email: string | null;
-  // New payment method fields
+  // New gateways (optional for backwards compatibility)
+  stone_ton_enabled?: boolean;
+  stone_ton_public_key?: string | null;
+  stone_ton_secret_key?: string | null;
+  stone_ton_merchant_id?: string | null;
+  infinitepay_enabled?: boolean;
+  infinitepay_client_id?: string | null;
+  infinitepay_client_secret?: string | null;
+  infinitepay_webhook_secret?: string | null;
+  // Payment method fields
   pix_enabled: boolean;
-  pix_provider: 'mercado_pago' | 'pagbank' | null;
+  pix_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
   pix_discount_percent: number;
   credit_card_enabled: boolean;
-  credit_card_provider: 'mercado_pago' | 'pagbank' | null;
+  credit_card_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
   credit_card_installments_no_interest: number;
   boleto_enabled: boolean;
-  boleto_provider: 'mercado_pago' | 'pagbank' | null;
+  boleto_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
 }
 
 const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
@@ -52,6 +61,14 @@ const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   pagbank_enabled: false,
   pagbank_token: null,
   pagbank_email: null,
+  stone_ton_enabled: false,
+  stone_ton_public_key: null,
+  stone_ton_secret_key: null,
+  stone_ton_merchant_id: null,
+  infinitepay_enabled: false,
+  infinitepay_client_id: null,
+  infinitepay_client_secret: null,
+  infinitepay_webhook_secret: null,
   pix_enabled: false,
   pix_provider: null,
   pix_discount_percent: 0,
@@ -72,6 +89,8 @@ const PaymentMethodsContent = () => {
   // Dialog states for gateway configuration
   const [mercadoPagoDialogOpen, setMercadoPagoDialogOpen] = useState(false);
   const [pagbankDialogOpen, setPagbankDialogOpen] = useState(false);
+  const [stoneTonDialogOpen, setStoneTonDialogOpen] = useState(false);
+  const [infinitePayDialogOpen, setInfinitePayDialogOpen] = useState(false);
   
   // Temp form states for gateway credentials
   const [tempMercadoPago, setTempMercadoPago] = useState({
@@ -82,6 +101,18 @@ const PaymentMethodsContent = () => {
   const [tempPagbank, setTempPagbank] = useState({
     token: "",
     email: "",
+  });
+
+  const [tempStoneTon, setTempStoneTon] = useState({
+    publicKey: "",
+    secretKey: "",
+    merchantId: "",
+  });
+
+  const [tempInfinitePay, setTempInfinitePay] = useState({
+    clientId: "",
+    clientSecret: "",
+    webhookSecret: "",
   });
 
   // Local state for payment methods configuration
@@ -98,7 +129,9 @@ const PaymentMethodsContent = () => {
 
   const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token && settings?.mercadopago_public_key);
   const hasPagbankCredentials = !!(settings?.pagbank_token && settings?.pagbank_email);
-  const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials;
+  const hasStoneTonCredentials = !!(settings?.stone_ton_public_key && settings?.stone_ton_secret_key);
+  const hasInfinitePayCredentials = !!(settings?.infinitepay_client_id && settings?.infinitepay_client_secret);
+  const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials || hasStoneTonCredentials || hasInfinitePayCredentials;
 
   useEffect(() => {
     if (user) {
@@ -134,7 +167,7 @@ const PaymentMethodsContent = () => {
       }
 
       if (data) {
-        setSettings(data as PaymentSettings);
+        setSettings(data as any);
       } else {
         setSettings({ ...defaultSettings, user_id: user.id });
       }
@@ -171,7 +204,7 @@ const PaymentMethodsContent = () => {
         
         if (error) throw error;
         if (data) {
-          setSettings(data as PaymentSettings);
+          setSettings(data as any);
           return;
         }
       }
@@ -212,6 +245,14 @@ const PaymentMethodsContent = () => {
       toast.error("Configure as credenciais do PagBank antes de ativar o Pix");
       return;
     }
+    if (pixEnabled && pixProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Pix");
+      return;
+    }
+    if (pixEnabled && pixProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Pix");
+      return;
+    }
     if (creditCardEnabled && creditCardProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
       toast.error("Configure as credenciais do Mercado Pago antes de ativar o Cartão");
       return;
@@ -220,12 +261,28 @@ const PaymentMethodsContent = () => {
       toast.error("Configure as credenciais do PagBank antes de ativar o Cartão");
       return;
     }
+    if (creditCardEnabled && creditCardProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Cartão");
+      return;
+    }
+    if (creditCardEnabled && creditCardProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Cartão");
+      return;
+    }
     if (boletoEnabled && boletoProvider === "mercado_pago" && !hasMercadoPagoCredentials) {
       toast.error("Configure as credenciais do Mercado Pago antes de ativar o Boleto");
       return;
     }
     if (boletoEnabled && boletoProvider === "pagbank" && !hasPagbankCredentials) {
       toast.error("Configure as credenciais do PagBank antes de ativar o Boleto");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "stone_ton" && !hasStoneTonCredentials) {
+      toast.error("Configure as credenciais do Stone/Ton antes de ativar o Boleto");
+      return;
+    }
+    if (boletoEnabled && boletoProvider === "infinitepay" && !hasInfinitePayCredentials) {
+      toast.error("Configure as credenciais do InfinitePay antes de ativar o Boleto");
       return;
     }
 
@@ -243,13 +300,13 @@ const PaymentMethodsContent = () => {
 
     await saveSettings({
       pix_enabled: pixEnabled,
-      pix_provider: pixEnabled && pixProvider ? (pixProvider as 'mercado_pago' | 'pagbank') : null,
+      pix_provider: pixEnabled && pixProvider ? (pixProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
       pix_discount_percent: pixDiscount,
       credit_card_enabled: creditCardEnabled,
-      credit_card_provider: creditCardEnabled && creditCardProvider ? (creditCardProvider as 'mercado_pago' | 'pagbank') : null,
+      credit_card_provider: creditCardEnabled && creditCardProvider ? (creditCardProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
       credit_card_installments_no_interest: creditCardInstallments,
       boleto_enabled: boletoEnabled,
-      boleto_provider: boletoEnabled && boletoProvider ? (boletoProvider as 'mercado_pago' | 'pagbank') : null,
+      boleto_provider: boletoEnabled && boletoProvider ? (boletoProvider as 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay') : null,
     });
   };
 
@@ -281,6 +338,36 @@ const PaymentMethodsContent = () => {
     setPagbankDialogOpen(false);
   };
 
+  const saveStoneTonCredentials = async () => {
+    if (!tempStoneTon.publicKey.trim() || !tempStoneTon.secretKey.trim()) {
+      toast.error("Preencha pelo menos Public Key e Secret Key do Stone/Ton");
+      return;
+    }
+    
+    await saveSettings({
+      stone_ton_enabled: true,
+      stone_ton_public_key: tempStoneTon.publicKey,
+      stone_ton_secret_key: tempStoneTon.secretKey,
+      stone_ton_merchant_id: tempStoneTon.merchantId || null,
+    });
+    setStoneTonDialogOpen(false);
+  };
+
+  const saveInfinitePayCredentials = async () => {
+    if (!tempInfinitePay.clientId.trim() || !tempInfinitePay.clientSecret.trim()) {
+      toast.error("Preencha pelo menos Client ID e Client Secret do InfinitePay");
+      return;
+    }
+    
+    await saveSettings({
+      infinitepay_enabled: true,
+      infinitepay_client_id: tempInfinitePay.clientId,
+      infinitepay_client_secret: tempInfinitePay.clientSecret,
+      infinitepay_webhook_secret: tempInfinitePay.webhookSecret || null,
+    });
+    setInfinitePayDialogOpen(false);
+  };
+
   const openMercadoPagoConfig = () => {
     setTempMercadoPago({
       accessToken: settings?.mercadopago_access_token || "",
@@ -295,6 +382,24 @@ const PaymentMethodsContent = () => {
       email: settings?.pagbank_email || "",
     });
     setPagbankDialogOpen(true);
+  };
+
+  const openStoneTonConfig = () => {
+    setTempStoneTon({
+      publicKey: settings?.stone_ton_public_key || "",
+      secretKey: settings?.stone_ton_secret_key || "",
+      merchantId: settings?.stone_ton_merchant_id || "",
+    });
+    setStoneTonDialogOpen(true);
+  };
+
+  const openInfinitePayConfig = () => {
+    setTempInfinitePay({
+      clientId: settings?.infinitepay_client_id || "",
+      clientSecret: settings?.infinitepay_client_secret || "",
+      webhookSecret: settings?.infinitepay_webhook_secret || "",
+    });
+    setInfinitePayDialogOpen(true);
   };
 
   const noMethodsActive = !pixEnabled && !creditCardEnabled && !boletoEnabled;
@@ -322,8 +427,8 @@ const PaymentMethodsContent = () => {
       <div className="space-y-6 max-w-4xl lg:max-w-none">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
-              <CreditCard className="h-4 w-4 text-gray-600" />
+            <div className="flex items-center justify-center w-8 h-8 bg-muted rounded">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
             </div>
             <h2 className="text-lg font-semibold text-foreground">Formas de Pagamento</h2>
           </div>
@@ -397,6 +502,52 @@ const PaymentMethodsContent = () => {
                   {hasPagbankCredentials ? "Editar credenciais" : "Configurar"}
                 </Button>
               </div>
+
+              {/* Stone / Ton */}
+              <div className={`p-4 rounded-lg border-2 ${hasStoneTonCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#00D563' }} />
+                    <span className="font-medium">Stone / Ton</span>
+                  </div>
+                  {hasStoneTonCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openStoneTonConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasStoneTonCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
+
+              {/* InfinitePay */}
+              <div className={`p-4 rounded-lg border-2 ${hasInfinitePayCredentials ? 'border-green-200 bg-green-50' : 'border-muted bg-muted/30'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" style={{ color: '#FF6B35' }} />
+                    <span className="font-medium">InfinitePay</span>
+                  </div>
+                  {hasInfinitePayCredentials && (
+                    <span className="text-xs text-green-600 font-medium">Configurado</span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openInfinitePayConfig}
+                  className="w-full gateway-credentials-btn transition-colors"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  {hasInfinitePayCredentials ? "Editar credenciais" : "Configurar"}
+                </Button>
+              </div>
             </div>
 
             {!hasAnyGateway && (
@@ -406,7 +557,7 @@ const PaymentMethodsContent = () => {
                   <div className="text-sm text-amber-800">
                     <p className="font-medium">Configure pelo menos um gateway</p>
                     <p className="mt-1">
-                      Para ativar os métodos de pagamento, você precisa configurar as credenciais do Mercado Pago ou PagBank.
+                      Para ativar os métodos de pagamento, você precisa configurar as credenciais de pelo menos um gateway.
                     </p>
                   </div>
                 </div>
@@ -464,6 +615,12 @@ const PaymentMethodsContent = () => {
                           )}
                           {hasPagbankCredentials && (
                             <SelectItem value="pagbank">PagBank</SelectItem>
+                          )}
+                          {hasStoneTonCredentials && (
+                            <SelectItem value="stone_ton">Stone / Ton</SelectItem>
+                          )}
+                          {hasInfinitePayCredentials && (
+                            <SelectItem value="infinitepay">InfinitePay</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
@@ -535,6 +692,12 @@ const PaymentMethodsContent = () => {
                           {hasPagbankCredentials && (
                             <SelectItem value="pagbank">PagBank</SelectItem>
                           )}
+                          {hasStoneTonCredentials && (
+                            <SelectItem value="stone_ton">Stone / Ton</SelectItem>
+                          )}
+                          {hasInfinitePayCredentials && (
+                            <SelectItem value="infinitepay">InfinitePay</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -601,6 +764,12 @@ const PaymentMethodsContent = () => {
                         {hasPagbankCredentials && (
                           <SelectItem value="pagbank">PagBank</SelectItem>
                         )}
+                        {hasStoneTonCredentials && (
+                          <SelectItem value="stone_ton">Stone / Ton</SelectItem>
+                        )}
+                        {hasInfinitePayCredentials && (
+                          <SelectItem value="infinitepay">InfinitePay</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -646,6 +815,24 @@ const PaymentMethodsContent = () => {
               >
                 <ExternalLink className="h-4 w-4" />
                 Documentação PagBank
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open('https://docs.stone.co/docs', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Documentação Stone/Ton
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open('https://developers.infinitepay.io/', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Documentação InfinitePay
               </Button>
             </div>
           </CardContent>
@@ -807,6 +994,205 @@ const PaymentMethodsContent = () => {
               </Button>
               <Button 
                 onClick={savePagbankCredentials}
+                disabled={saving}
+                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+              >
+                {saving ? "Salvando..." : "Salvar Credenciais"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Stone/Ton Config Dialog */}
+        <Dialog open={stoneTonDialogOpen} onOpenChange={setStoneTonDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" style={{ color: '#00D563' }} />
+                Configurar Stone / Ton
+              </DialogTitle>
+              <DialogDescription>
+                Insira suas credenciais do Stone/Ton para habilitar pagamentos.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="st-public-key">Public Key *</Label>
+                <Input
+                  id="st-public-key"
+                  placeholder="Sua public key do Stone/Ton"
+                  value={tempStoneTon.publicKey}
+                  onChange={(e) => setTempStoneTon(prev => ({ ...prev, publicKey: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="st-secret-key">Secret Key *</Label>
+                <Input
+                  id="st-secret-key"
+                  type="password"
+                  placeholder="Sua secret key do Stone/Ton"
+                  value={tempStoneTon.secretKey}
+                  onChange={(e) => setTempStoneTon(prev => ({ ...prev, secretKey: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="st-merchant-id">Merchant ID (opcional)</Label>
+                <Input
+                  id="st-merchant-id"
+                  placeholder="ID do merchant (se aplicável)"
+                  value={tempStoneTon.merchantId}
+                  onChange={(e) => setTempStoneTon(prev => ({ ...prev, merchantId: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex gap-2">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p>Obtenha suas credenciais em:</p>
+                    <a 
+                      href="https://docs.stone.co/docs" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      docs.stone.co/docs
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setStoneTonDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={saveStoneTonCredentials}
+                disabled={saving}
+                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+              >
+                {saving ? "Salvando..." : "Salvar Credenciais"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* InfinitePay Config Dialog */}
+        <Dialog open={infinitePayDialogOpen} onOpenChange={setInfinitePayDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" style={{ color: '#FF6B35' }} />
+                Configurar InfinitePay
+              </DialogTitle>
+              <DialogDescription>
+                Insira suas credenciais do InfinitePay para habilitar pagamentos.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ip-client-id">Client ID *</Label>
+                <Input
+                  id="ip-client-id"
+                  placeholder="Seu Client ID do InfinitePay"
+                  value={tempInfinitePay.clientId}
+                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientId: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ip-client-secret">Client Secret *</Label>
+                <Input
+                  id="ip-client-secret"
+                  type="password"
+                  placeholder="Seu Client Secret do InfinitePay"
+                  value={tempInfinitePay.clientSecret}
+                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientSecret: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="ip-webhook-secret">Webhook Secret (opcional)</Label>
+                <Input
+                  id="ip-webhook-secret"
+                  type="password"
+                  placeholder="Secret para validação de webhooks"
+                  value={tempInfinitePay.webhookSecret}
+                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, webhookSecret: e.target.value }))}
+                  style={{ borderColor: primaryColor }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex gap-2">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p>Obtenha suas credenciais em:</p>
+                    <a 
+                      href="https://developers.infinitepay.io/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      developers.infinitepay.io
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setInfinitePayDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={saveInfinitePayCredentials}
                 disabled={saving}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
