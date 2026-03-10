@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
 import { useAuth } from "@/hooks/useAuth";
+import { useMerchantCheck } from "@/hooks/useMerchantCheck";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -59,6 +60,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { user, signIn, resetPassword, updatePassword } = useAuth();
+  const { isMerchant, loading: merchantLoading } = useMerchantCheck();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -115,10 +117,13 @@ const Login = () => {
   }, [toast]);
 
   useEffect(() => {
-    if (user && !isSetNewPasswordMode) {
-      navigate("/lojista", { replace: true });
+    if (user && !isSetNewPasswordMode && !merchantLoading) {
+      if (isMerchant) {
+        navigate("/lojista", { replace: true });
+      }
+      // If authenticated but not a merchant, stay on /login — don't redirect to /lojista
     }
-  }, [user, isSetNewPasswordMode, navigate]);
+  }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +135,7 @@ const Login = () => {
       const { error } = await signIn(validatedData.email, validatedData.password);
 
       if (!error) {
-        navigate("/lojista");
+        // The useEffect with isMerchant will handle the redirect after merchant check completes
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
