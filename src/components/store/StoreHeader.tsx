@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import CustomerServiceDropdown from "@/components/store/CustomerServiceDropdown";
+import CustomerAccountDropdown from "@/components/store/CustomerAccountDropdown";
 import { useMiniCart } from "@/contexts/MiniCartContext";
 
 interface StoreHeaderProps {
