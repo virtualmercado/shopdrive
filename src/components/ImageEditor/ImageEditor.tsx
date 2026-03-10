@@ -1920,7 +1920,7 @@ export const ImageEditor = ({
                           <Icon className="h-3 w-3" style={{ color: ie.textDim }} />
                           {label}
                         </label>
-                        <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments[key as keyof ImageAdjustments] !== 0 ? ie.accent : ie.textDim }}>
+                        <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments[key as keyof ImageAdjustments] !== 0 ? '#cfcfcf' : ie.textDim }}>
                           {adjustments[key as keyof ImageAdjustments]}
                         </span>
                       </div>
