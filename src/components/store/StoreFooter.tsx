@@ -2,6 +2,7 @@ import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle, MapPin 
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import paymentMethodsBanner from "@/assets/payment-methods-banner.png";
+import securitySeals from "@/assets/security-seals.png";
 import { buildGoogleMapsSearchUrl, buildAddressString } from "@/lib/maps";
 
 interface StoreFooterProps {
