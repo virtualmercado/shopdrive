@@ -461,7 +461,7 @@ const StoreHeader = ({
               />
               <div className="flex gap-4">
                 <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
-                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors">
+                  <Button variant="outline" className="w-full hover:bg-black/5 transition-colors">
                     <User className="h-4 w-4 mr-2" />
                     Minha Conta
                   </Button>
