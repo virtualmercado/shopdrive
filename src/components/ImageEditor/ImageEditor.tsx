@@ -1974,7 +1974,7 @@ export const ImageEditor = ({
                   onClick={handleSave}
                   disabled={isProcessing || !hasChanges}
                   className="w-full h-9 rounded-md text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: `linear-gradient(135deg, ${ie.accent}, ${ie.accentHover})`, color: '#fff', boxShadow: '0 2px 12px rgba(106,27,154,0.35)' }}
+                  style={{ backgroundColor: '#3a3a3a', color: '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                 >
                   <Save className="h-4 w-4" />
                   Salvar imagem
