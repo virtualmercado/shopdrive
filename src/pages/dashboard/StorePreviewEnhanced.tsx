@@ -24,6 +24,7 @@ import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
+import ContentBannerCard from "@/components/customize/ContentBannerCard";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
