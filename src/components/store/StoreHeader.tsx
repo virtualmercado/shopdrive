@@ -277,25 +277,34 @@ const StoreHeader = ({
           </div>
 
           {/* Actions */}
-          <div className={`header-actions flex items-center gap-2 ${
+          <div className={`header-actions flex items-center gap-4 ${
             logoPosition === "right" ? "justify-self-start" : "justify-self-end"
           }`}>
-            <CustomerServiceDropdown
-              storeOwnerId={storeOwnerId}
-              storeName={storeName}
-              primaryColor={primaryColor}
-              textColor={backgroundColor}
-              accentColor={accentColor}
-              onContactClick={onContactClick}
-            />
-            <CustomerAccountDropdown
-              storeSlug={storeSlug}
-              storeOwnerId={storeOwnerId}
-              textColor={backgroundColor}
-              accentColor={accentColor}
-            />
-            <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
-              <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
+            <div className="flex items-center justify-center min-h-[40px] rounded-md hover:bg-black/[0.04] transition-all duration-200 cursor-pointer">
+              <CustomerServiceDropdown
+                storeOwnerId={storeOwnerId}
+                storeName={storeName}
+                primaryColor={primaryColor}
+                textColor={backgroundColor}
+                accentColor={accentColor}
+                onContactClick={onContactClick}
+              />
+            </div>
+            <div className="flex items-center justify-center min-h-[40px] rounded-md hover:bg-black/[0.04] transition-all duration-200 cursor-pointer">
+              <CustomerAccountDropdown
+                storeSlug={storeSlug}
+                storeOwnerId={storeOwnerId}
+                textColor={backgroundColor}
+                accentColor={accentColor}
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-[40px] min-w-[40px] rounded-md hover:bg-black/[0.04] transition-all duration-200 relative"
+              onClick={() => openMiniCart()}
+            >
+              <ShoppingCart className="h-6 w-6" style={{ color: backgroundColor }} />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
                   style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
@@ -334,9 +343,14 @@ const StoreHeader = ({
             {logoPosition !== "center" && <div className="flex-1" />}
             
             {/* Mobile Actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
-                <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="min-h-[36px] min-w-[36px] rounded-md hover:bg-black/[0.04] transition-all duration-200 relative"
+                onClick={() => openMiniCart()}
+              >
+                <ShoppingCart className="h-[22px] w-[22px]" style={{ color: backgroundColor }} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
                     style={{ backgroundColor: accentColor, color: buttonTextColor || '#FFFFFF' }}>
@@ -347,9 +361,10 @@ const StoreHeader = ({
               <Button
                 variant="ghost"
                 size="icon"
+                className="min-h-[36px] min-w-[36px] rounded-md hover:bg-black/[0.04] transition-all duration-200"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? <X className="h-6 w-6" style={{ color: backgroundColor }} /> : <Menu className="h-6 w-6" style={{ color: backgroundColor }} />}
+                {mobileMenuOpen ? <X className="h-[22px] w-[22px]" style={{ color: backgroundColor }} /> : <Menu className="h-[22px] w-[22px]" style={{ color: backgroundColor }} />}
               </Button>
             </div>
           </div>
