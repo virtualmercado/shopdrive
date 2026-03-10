@@ -1984,8 +1984,8 @@ export const ImageEditor = ({
                   <button
                     onClick={handleApplyToOthers}
                     disabled={isProcessing || !!batchApplyStatus?.inProgress}
-                    className="w-full h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2 border"
-                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                    className="w-full h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2 border hover:bg-[#2c2c2c]"
+                    style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
                     <Copy className="h-3.5 w-3.5" />
                     Padronização em lote
