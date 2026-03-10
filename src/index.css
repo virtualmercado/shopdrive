@@ -659,23 +659,23 @@ All colors MUST be HSL.
 
 .img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child {
   background-color: #3a3a3a !important;
-  height: 3px !important;
+  height: 4px !important;
 }
 .img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child > span {
-  background-color: #6a1b9a !important;
+  background-color: #a6a6a6 !important;
 }
 .img-editor-dark .ie-slider span[role="slider"] {
-  background-color: #b388ff !important;
-  border-color: #6a1b9a !important;
-  width: 14px !important;
-  height: 14px !important;
+  background-color: #cfcfcf !important;
+  border-color: #a6a6a6 !important;
+  width: 10px !important;
+  height: 10px !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-  box-shadow: 0 0 0 0 rgba(106, 27, 154, 0) !important;
+  box-shadow: 0 0 0 0 rgba(166, 166, 166, 0) !important;
 }
 .img-editor-dark .ie-slider span[role="slider"]:hover,
 .img-editor-dark .ie-slider span[role="slider"]:active {
-  transform: scale(1.15) !important;
-  box-shadow: 0 0 8px 2px rgba(106, 27, 154, 0.35) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 0 6px 2px rgba(207, 207, 207, 0.25) !important;
 }
 .img-editor-dark .ie-input {
   background-color: var(--ie-input-bg) !important;
@@ -683,6 +683,6 @@ All colors MUST be HSL.
   color: var(--ie-text) !important;
 }
 .img-editor-dark .ie-input:focus {
-  border-color: var(--ie-accent) !important;
-  box-shadow: 0 0 0 1px var(--ie-accent) !important;
+  border-color: #a6a6a6 !important;
+  box-shadow: 0 0 0 1px rgba(166, 166, 166, 0.4) !important;
 }
