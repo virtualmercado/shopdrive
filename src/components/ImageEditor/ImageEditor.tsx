@@ -1684,17 +1684,19 @@ export const ImageEditor = ({
   // Dark theme inline styles
   const ie = {
     bg: '#1e1e1e',
-    workspace: '#121212',
+    workspace: '#111111',
     panel: '#262626',
-    divider: '#333333',
+    divider: '#2a2a2a',
     text: '#e6e6e6',
     textDim: '#a0a0a0',
+    sectionTitle: '#b0b0b0',
     accent: '#6a1b9a',
-    accentHover: '#7b27b0',
+    accentHover: '#7b1fa2',
     inputBg: '#2c2c2c',
     inputBorder: '#404040',
     btnGhost: '#333333',
-    btnGhostHover: '#404040',
+    btnGhostHover: '#2c2c2c',
+    btnOutlineBorder: '#3a3a3a',
   };
 
   return (
@@ -1900,7 +1902,7 @@ export const ImageEditor = ({
             <div className="w-72 flex flex-col overflow-hidden flex-shrink-0" style={{ backgroundColor: ie.panel, borderLeft: `1px solid ${ie.divider}` }}>
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {/* Section title */}
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-4" style={{ color: ie.textDim }}>Ajustes de Imagem</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.18em] mb-4" style={{ color: ie.sectionTitle, fontWeight: 600 }}>Ajustes de Imagem</h3>
 
                 {/* Tonal Adjustments */}
                 <div className="space-y-0.5">
@@ -1937,7 +1939,7 @@ export const ImageEditor = ({
                 <div className="my-3" style={{ height: 1, backgroundColor: ie.divider }} />
 
                 {/* Detail Section */}
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-3" style={{ color: ie.textDim }}>Detalhe</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.18em] mb-3" style={{ color: ie.sectionTitle, fontWeight: 600 }}>Detalhe</h3>
                 <div className="py-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
@@ -1972,7 +1974,7 @@ export const ImageEditor = ({
                   onClick={handleSave}
                   disabled={isProcessing || !hasChanges}
                   className="w-full h-9 rounded-md text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ backgroundColor: ie.accent, color: '#fff' }}
+                  style={{ background: `linear-gradient(135deg, ${ie.accent}, ${ie.accentHover})`, color: '#fff', boxShadow: '0 2px 12px rgba(106,27,154,0.35)' }}
                 >
                   <Save className="h-4 w-4" />
                   Salvar imagem
@@ -1982,8 +1984,8 @@ export const ImageEditor = ({
                   <button
                     onClick={handleApplyToOthers}
                     disabled={isProcessing || !!batchApplyStatus?.inProgress}
-                    className="w-full h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2 border"
-                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                    className="w-full h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2 border hover:bg-[#2c2c2c]"
+                    style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
                     <Copy className="h-3.5 w-3.5" />
                     Padronização em lote
@@ -2004,8 +2006,8 @@ export const ImageEditor = ({
                   <button
                     onClick={handleShare}
                     disabled={isProcessing || !originalImage}
-                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border"
-                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border hover:bg-[#2c2c2c]"
+                    style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
                     <Share2 className="h-3.5 w-3.5" />
                     Compartilhar
@@ -2013,8 +2015,8 @@ export const ImageEditor = ({
                   <button
                     onClick={handleUndo}
                     disabled={isProcessing || historyStack.length === 0}
-                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border"
-                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border hover:bg-[#2c2c2c]"
+                    style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
                     <Undo2 className="h-3.5 w-3.5" />
                     Desfazer
