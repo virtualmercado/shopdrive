@@ -34,6 +34,12 @@ const CarouselSection = ({ label }: { label: string }) => (
   </div>
 );
 
+const ContentBannerBlock = () => (
+  <div className="bg-[#9a9a9a] rounded-lg h-[48px] flex items-center justify-center">
+    <span className="text-[10px] font-semibold text-white/90">Banner de Conteúdo</span>
+  </div>
+);
+
 /* ── Module renderers ── */
 
 const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
