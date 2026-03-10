@@ -1902,7 +1902,7 @@ export const ImageEditor = ({
             <div className="w-72 flex flex-col overflow-hidden flex-shrink-0" style={{ backgroundColor: ie.panel, borderLeft: `1px solid ${ie.divider}` }}>
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {/* Section title */}
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-4" style={{ color: ie.textDim }}>Ajustes de Imagem</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.18em] mb-4" style={{ color: ie.sectionTitle, fontWeight: 600 }}>Ajustes de Imagem</h3>
 
                 {/* Tonal Adjustments */}
                 <div className="space-y-0.5">
