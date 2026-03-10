@@ -117,15 +117,16 @@ const Login = () => {
   }, [toast]);
 
   useEffect(() => {
-    if (user && !isSetNewPasswordMode && !merchantLoading) {
-      if (isMerchant) {
-        navigate("/lojista", { replace: true });
-      } else {
-        // User is authenticated but has no store_slug — likely incomplete onboarding.
-        // Redirect to home so they don't get stuck on the login page.
-        console.warn('[Auth] User authenticated but not a merchant. Redirecting to home.');
-        navigate("/", { replace: true });
-      }
+    // Wait until auth AND merchant check are both fully resolved
+    if (!user || isSetNewPasswordMode || merchantLoading) return;
+
+    if (isMerchant) {
+      console.info('[Auth] Merchant confirmed — redirecting to /lojista');
+      navigate("/lojista", { replace: true });
+    } else {
+      // Authenticated but not a merchant (customer or incomplete onboarding)
+      console.warn('[Auth] User authenticated but not a merchant — redirecting to home');
+      navigate("/", { replace: true });
     }
   }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
 
