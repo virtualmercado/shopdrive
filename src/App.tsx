@@ -52,8 +52,10 @@ import StoreSearchResults from "./pages/StoreSearchResults";
 import ResaleLanding from "./pages/ResaleLanding";
 import PublicQuote from "./pages/PublicQuote";
 import ResetPassword from "./pages/ResetPassword";
+import Onboarding from "./pages/Onboarding";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
