@@ -77,8 +77,7 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
     </div>
   ),
   reviews: () => (
-    <div className="bg-[#f5f0e0] rounded-lg h-[56px] flex items-center justify-center gap-1">
-      <span className="text-[10px]">⭐</span>
+    <div className="bg-[#f0f0f0] rounded-lg h-[56px] flex items-center justify-center">
       <span className="text-[10px] font-semibold text-[#555]">Avaliações</span>
     </div>
   ),
