@@ -98,6 +98,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/criar-conta" element={<TemplateSignup />} />
             <Route path="/link-indisponivel" element={<TemplateUnavailable />} />
+            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
             
             {/* Admin Master Panel Routes */}
             <Route path="/gestor/login" element={<AdminLogin />} />
