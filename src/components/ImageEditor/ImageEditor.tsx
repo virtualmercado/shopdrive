@@ -1737,7 +1737,7 @@ export const ImageEditor = ({
 
           {isProcessing && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(4px)' }}>
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: ie.accent }} />
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#cfcfcf' }} />
               <p className="text-sm font-medium" style={{ color: ie.text }}>{processingStep}</p>
               <div className="w-64">
                 <Progress value={processingProgress} className="h-1.5" />
