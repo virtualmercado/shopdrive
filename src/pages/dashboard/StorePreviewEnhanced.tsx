@@ -147,6 +147,14 @@ const StorePreviewEnhanced = () => {
           about_us_title: (data as any).about_us_title || "",
           about_us_text: (data as any).about_us_text || "",
         });
+
+        // Load appearance settings
+        if (data.font_family) setFontFamily(data.font_family);
+        if (data.font_weight) setFontWeight(data.font_weight);
+        if (data.header_logo_position) setHeaderLogoPosition(data.header_logo_position as "left" | "center" | "right");
+        if (data.button_border_style) setButtonBorderStyle(data.button_border_style);
+        if (data.product_button_display) setProductButtonDisplay(data.product_button_display);
+        if (data.product_text_alignment) setProductTextAlignment(data.product_text_alignment);
       }
     } catch (error) {
       console.error("Error:", error);
