@@ -155,6 +155,14 @@ const StorePreviewEnhanced = () => {
           // About Us fields
           about_us_title: (data as any).about_us_title || "",
           about_us_text: (data as any).about_us_text || "",
+          // Content Banner fields
+          content_banner_enabled: (data as any).content_banner_enabled || false,
+          content_banner_title: (data as any).content_banner_title || "",
+          content_banner_subtitle: (data as any).content_banner_subtitle || "",
+          content_banner_title_color: (data as any).content_banner_title_color || "#ffffff",
+          content_banner_subtitle_color: (data as any).content_banner_subtitle_color || "#ffffffcc",
+          content_banner_url: (data as any).content_banner_url || "",
+          content_banner_image_url: (data as any).content_banner_image_url || "",
         });
 
         // Load appearance settings
