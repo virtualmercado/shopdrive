@@ -1707,7 +1707,7 @@ export const ImageEditor = ({
           <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: ie.panel, borderBottom: `1px solid ${ie.divider}` }}>
             <DialogHeader className="p-0 space-y-0">
               <DialogTitle className="flex items-center gap-3 text-base font-semibold tracking-tight" style={{ color: ie.text }}>
-                <div className="w-1.5 h-5 rounded-sm" style={{ backgroundColor: ie.accent }} />
+                <div className="w-1.5 h-5 rounded-sm" style={{ backgroundColor: '#cfcfcf' }} />
                 Editor de Imagem
                 {hasChanges && <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ color: ie.textDim, backgroundColor: ie.btnGhost }}>alterações não salvas</span>}
               </DialogTitle>
