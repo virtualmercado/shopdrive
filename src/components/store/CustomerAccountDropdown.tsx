@@ -163,10 +163,10 @@ const CustomerAccountDropdown = ({
         }}
       >
         <div
-          className="flex items-center justify-center w-9 h-9 rounded-full border-2"
+          className="flex items-center justify-center w-7 h-7 rounded-full border-[1.5px]"
           style={{ borderColor: textColor }}
         >
-          <User className="h-5 w-5" style={{ color: textColor }} />
+          <User className="h-4 w-4" style={{ color: textColor }} />
         </div>
         <div className="flex flex-col leading-tight">
           <span className="text-xs" style={{ color: textColor }}>
