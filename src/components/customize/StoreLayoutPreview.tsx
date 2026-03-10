@@ -110,6 +110,11 @@ export const StoreLayoutPreview = ({ layoutType }: StoreLayoutPreviewProps) => {
           ))}
         </div>
 
+        {/* Content Banner — fixed above footer */}
+        <div className="px-2 pb-2 flex-shrink-0">
+          <ContentBannerBlock />
+        </div>
+
         {/* Footer */}
         <div className="bg-[#333] h-[42px] flex items-center justify-center flex-shrink-0">
           <span className="text-[11px] font-semibold text-gray-300">Rodapé</span>
