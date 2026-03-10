@@ -120,8 +120,12 @@ const Login = () => {
     if (user && !isSetNewPasswordMode && !merchantLoading) {
       if (isMerchant) {
         navigate("/lojista", { replace: true });
+      } else {
+        // User is authenticated but has no store_slug — likely incomplete onboarding.
+        // Redirect to home so they don't get stuck on the login page.
+        console.warn('[Auth] User authenticated but not a merchant. Redirecting to home.');
+        navigate("/", { replace: true });
       }
-      // If authenticated but not a merchant, stay on /login — don't redirect to /lojista
     }
   }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
 
