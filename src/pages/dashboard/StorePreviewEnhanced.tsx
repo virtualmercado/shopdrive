@@ -844,6 +844,24 @@ const StorePreviewEnhanced = () => {
           buttonTextColor={buttonTextColor}
         />
 
+        {/* Aparência da Loja */}
+        <StoreAppearanceCard
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
+          fontWeight={fontWeight}
+          setFontWeight={setFontWeight}
+          headerLogoPosition={headerLogoPosition}
+          setHeaderLogoPosition={setHeaderLogoPosition}
+          buttonBorderStyle={buttonBorderStyle}
+          setButtonBorderStyle={setButtonBorderStyle}
+          productButtonDisplay={productButtonDisplay}
+          setProductButtonDisplay={setProductButtonDisplay}
+          productTextAlignment={productTextAlignment}
+          setProductTextAlignment={setProductTextAlignment}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
+
         {/* Banners */}
         <Card className="p-6">
           <div className="space-y-1 mb-4">
