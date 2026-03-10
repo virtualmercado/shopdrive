@@ -657,11 +657,13 @@ All colors MUST be HSL.
 }
 
 
-.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child {
+.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child,
+.img-editor-dark .ie-slider .bg-secondary {
   background-color: #3a3a3a !important;
   height: 4px !important;
 }
-.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child > span {
+.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child > span,
+.img-editor-dark .ie-slider .bg-primary {
   background-color: #a6a6a6 !important;
 }
 .img-editor-dark .ie-slider span[role="slider"] {
