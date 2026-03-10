@@ -3243,6 +3243,7 @@ export type Database = {
           content_banner_title: string | null
           content_banner_title_color: string | null
           content_banner_url: string | null
+          content_banners: Json | null
           cpf_cnpj: string | null
           created_at: string
           deleted_at: string | null
@@ -3346,6 +3347,7 @@ export type Database = {
           content_banner_title?: string | null
           content_banner_title_color?: string | null
           content_banner_url?: string | null
+          content_banners?: Json | null
           cpf_cnpj?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -3449,6 +3451,7 @@ export type Database = {
           content_banner_title?: string | null
           content_banner_title_color?: string | null
           content_banner_url?: string | null
+          content_banners?: Json | null
           cpf_cnpj?: string | null
           created_at?: string
           deleted_at?: string | null
