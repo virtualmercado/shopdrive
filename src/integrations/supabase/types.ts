@@ -3236,6 +3236,13 @@ export type Database = {
           checkout_require_email: boolean | null
           checkout_require_payment_method: boolean | null
           checkout_require_personal_info: boolean | null
+          content_banner_enabled: boolean | null
+          content_banner_image_url: string | null
+          content_banner_subtitle: string | null
+          content_banner_subtitle_color: string | null
+          content_banner_title: string | null
+          content_banner_title_color: string | null
+          content_banner_url: string | null
           cpf_cnpj: string | null
           created_at: string
           deleted_at: string | null
@@ -3332,6 +3339,13 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -3428,6 +3442,13 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           deleted_at?: string | null

@@ -24,6 +24,7 @@ import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
+import ContentBannerCard from "@/components/customize/ContentBannerCard";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
@@ -84,6 +85,14 @@ const StorePreviewEnhanced = () => {
     // About Us fields
     about_us_title: "",
     about_us_text: "",
+    // Content Banner fields
+    content_banner_enabled: false,
+    content_banner_title: "",
+    content_banner_subtitle: "",
+    content_banner_title_color: "#ffffff",
+    content_banner_subtitle_color: "#ffffffcc",
+    content_banner_url: "",
+    content_banner_image_url: "",
   });
 
   useEffect(() => {
@@ -146,6 +155,14 @@ const StorePreviewEnhanced = () => {
           // About Us fields
           about_us_title: (data as any).about_us_title || "",
           about_us_text: (data as any).about_us_text || "",
+          // Content Banner fields
+          content_banner_enabled: (data as any).content_banner_enabled || false,
+          content_banner_title: (data as any).content_banner_title || "",
+          content_banner_subtitle: (data as any).content_banner_subtitle || "",
+          content_banner_title_color: (data as any).content_banner_title_color || "#ffffff",
+          content_banner_subtitle_color: (data as any).content_banner_subtitle_color || "#ffffffcc",
+          content_banner_url: (data as any).content_banner_url || "",
+          content_banner_image_url: (data as any).content_banner_image_url || "",
         });
 
         // Load appearance settings
@@ -1444,6 +1461,25 @@ const StorePreviewEnhanced = () => {
             home_video_description: storeData.home_video_description,
           }}
           onSaved={fetchStoreData}
+        />
+
+        {/* Banner de Conteúdo */}
+        <ContentBannerCard
+          data={{
+            content_banner_enabled: storeData.content_banner_enabled,
+            content_banner_title: storeData.content_banner_title,
+            content_banner_subtitle: storeData.content_banner_subtitle,
+            content_banner_title_color: storeData.content_banner_title_color,
+            content_banner_subtitle_color: storeData.content_banner_subtitle_color,
+            content_banner_url: storeData.content_banner_url,
+            content_banner_image_url: storeData.content_banner_image_url,
+          }}
+          onChange={(partial) => setStoreData({ ...storeData, ...partial })}
+          onImageUpload={(file) => handleImageUpload(file, "content_banner_image_url")}
+          onImageRemove={() => handleRemoveSingleImage("content_banner_image_url" as any)}
+          uploading={uploading}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
         />
 
         {/* Personalização do Rodapé */}
