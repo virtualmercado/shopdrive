@@ -42,11 +42,7 @@ const Register = () => {
   
   const { data: template } = useTemplateBySlug(templateSlug);
 
-  useEffect(() => {
-    if (user) {
-      navigate('/lojista', { replace: true });
-    }
-  }, [user, navigate]);
+  // Don't auto-redirect on mount — let the signup flow handle it
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
