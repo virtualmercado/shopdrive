@@ -80,7 +80,7 @@ const CustomerServiceDropdown = ({
           className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
           aria-label="Central de atendimento"
         >
-          <HelpCircle className="h-6 w-6" style={{ color: textColor }} />
+          <HelpCircle className="h-[26px] w-[26px]" style={{ color: textColor }} />
           <div className="hidden lg:flex flex-col items-start leading-tight">
             <span className="text-xs font-medium" style={{ color: textColor }}>Central de</span>
             <span className="text-xs font-medium" style={{ color: textColor }}>atendimento</span>
