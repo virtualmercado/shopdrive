@@ -627,6 +627,7 @@ const StorePreviewEnhanced = () => {
         .from("profiles")
         .update({
           ...payload,
+          content_banners: payload.content_banners as unknown as import("@/integrations/supabase/types").Json,
           banner_desktop_url: null,
           banner_mobile_url: null,
           font_family: fontFamily,
