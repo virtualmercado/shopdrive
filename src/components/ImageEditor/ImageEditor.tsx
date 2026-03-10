@@ -1946,7 +1946,7 @@ export const ImageEditor = ({
                       <Focus className="h-3 w-3" style={{ color: ie.textDim }} />
                       Nitidez
                     </label>
-                    <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments.sharpness !== 0 ? ie.accent : ie.textDim }}>
+                    <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments.sharpness !== 0 ? '#cfcfcf' : ie.textDim }}>
                       {adjustments.sharpness}
                     </span>
                   </div>
