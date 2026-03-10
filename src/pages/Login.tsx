@@ -135,7 +135,7 @@ const Login = () => {
       const { error } = await signIn(validatedData.email, validatedData.password);
 
       if (!error) {
-        navigate("/lojista");
+        // The useEffect with isMerchant will handle the redirect after merchant check completes
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
