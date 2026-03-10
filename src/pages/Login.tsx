@@ -124,9 +124,9 @@ const Login = () => {
       console.info('[Auth] Merchant confirmed — redirecting to /lojista');
       navigate("/lojista", { replace: true });
     } else {
-      // Authenticated but not a merchant (customer or incomplete onboarding)
-      console.warn('[Auth] User authenticated but not a merchant — redirecting to home');
-      navigate("/", { replace: true });
+      // Authenticated but no store — send to onboarding
+      console.info('[Auth] User authenticated but no store — redirecting to /onboarding');
+      navigate("/onboarding", { replace: true });
     }
   }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
 

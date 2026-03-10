@@ -32,9 +32,9 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
         if (isTemplateEditorMode) {
           return;
         }
-        // Usuário é cliente, não lojista - redirecionar para home
-        toast.error('Acesso não autorizado. Esta área é exclusiva para lojistas.');
-        navigate('/', { replace: true });
+        // Usuário sem loja — redirecionar para onboarding
+        console.info('[MerchantRoute] User has no store — redirecting to /onboarding');
+        navigate('/onboarding', { replace: true });
       }
     }
   }, [user, isMerchant, loading, navigate, hasChecked, isTemplateEditorMode]);
