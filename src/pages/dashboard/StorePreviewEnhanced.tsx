@@ -1477,18 +1477,39 @@ const StorePreviewEnhanced = () => {
 
         {/* Banner de Conteúdo */}
         <ContentBannerCard
-          data={{
-            content_banner_enabled: storeData.content_banner_enabled,
-            content_banner_title: storeData.content_banner_title,
-            content_banner_subtitle: storeData.content_banner_subtitle,
-            content_banner_title_color: storeData.content_banner_title_color,
-            content_banner_subtitle_color: storeData.content_banner_subtitle_color,
-            content_banner_url: storeData.content_banner_url,
-            content_banner_image_url: storeData.content_banner_image_url,
+          banners={storeData.content_banners.length > 0 ? storeData.content_banners : [
+            { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+            { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+            { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+          ]}
+          onChange={(banners) => setStoreData({ ...storeData, content_banners: banners })}
+          onImageUpload={async (file, index) => {
+            setUploading(true);
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) return;
+              const fileExt = file.name.split(".").pop();
+              const fileName = `${user.id}/content_banner_${index}_${Date.now()}.${fileExt}`;
+              const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
+              if (uploadError) throw uploadError;
+              const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+              const updated = [...storeData.content_banners];
+              if (!updated[index]) return;
+              updated[index] = { ...updated[index], image_url: publicUrl };
+              setStoreData({ ...storeData, content_banners: updated });
+              toast({ title: "Imagem enviada com sucesso!" });
+            } catch (error: any) {
+              toast({ title: "Erro ao enviar imagem", description: error.message, variant: "destructive" });
+            } finally {
+              setUploading(false);
+            }
           }}
-          onChange={(partial) => setStoreData({ ...storeData, ...partial })}
-          onImageUpload={(file) => handleImageUpload(file, "content_banner_image_url")}
-          onImageRemove={() => handleRemoveSingleImage("content_banner_image_url" as any)}
+          onImageRemove={(index) => {
+            const updated = [...storeData.content_banners];
+            if (!updated[index]) return;
+            updated[index] = { ...updated[index], image_url: "" };
+            setStoreData({ ...storeData, content_banners: updated });
+          }}
           uploading={uploading}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}

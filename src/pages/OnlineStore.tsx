@@ -305,13 +305,27 @@ const OnlineStoreContent = () => {
 
       {/* Content Banner — above footer */}
       <ContentBannerSection
-        enabled={(storeData as any).content_banner_enabled}
-        imageUrl={(storeData as any).content_banner_image_url}
-        title={(storeData as any).content_banner_title}
-        subtitle={(storeData as any).content_banner_subtitle}
-        titleColor={(storeData as any).content_banner_title_color}
-        subtitleColor={(storeData as any).content_banner_subtitle_color}
-        url={(storeData as any).content_banner_url}
+        banners={(() => {
+          const raw = (storeData as any).content_banners;
+          if (Array.isArray(raw) && raw.length > 0) return raw;
+          // Legacy fallback
+          const legacy = storeData as any;
+          if (legacy.content_banner_image_url) {
+            return [{
+              enabled: legacy.content_banner_enabled || false,
+              title: legacy.content_banner_title || "",
+              subtitle: legacy.content_banner_subtitle || "",
+              title_color: legacy.content_banner_title_color || "#ffffff",
+              subtitle_color: legacy.content_banner_subtitle_color || "#ffffffcc",
+              url: legacy.content_banner_url || "",
+              image_url: legacy.content_banner_image_url || "",
+              cta_text: "",
+              cta_bg_color: "#000000",
+              cta_text_color: "#ffffff",
+            }];
+          }
+          return [];
+        })()}
       />
 
       <StoreFooter storeData={storeData} />
