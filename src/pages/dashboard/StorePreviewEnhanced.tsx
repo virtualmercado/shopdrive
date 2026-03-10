@@ -23,6 +23,7 @@ import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
+import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
@@ -31,6 +32,14 @@ const StorePreviewEnhanced = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, primaryColor } = useTheme();
+
+  // Appearance states
+  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontWeight, setFontWeight] = useState(400);
+  const [headerLogoPosition, setHeaderLogoPosition] = useState<"left" | "center" | "right">("left");
+  const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
+  const [productButtonDisplay, setProductButtonDisplay] = useState("below");
+  const [productTextAlignment, setProductTextAlignment] = useState("left");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
@@ -138,6 +147,14 @@ const StorePreviewEnhanced = () => {
           about_us_title: (data as any).about_us_title || "",
           about_us_text: (data as any).about_us_text || "",
         });
+
+        // Load appearance settings
+        if (data.font_family) setFontFamily(data.font_family);
+        if (data.font_weight) setFontWeight(data.font_weight);
+        if (data.header_logo_position) setHeaderLogoPosition(data.header_logo_position as "left" | "center" | "right");
+        if (data.button_border_style) setButtonBorderStyle(data.button_border_style);
+        if (data.product_button_display) setProductButtonDisplay(data.product_button_display);
+        if (data.product_text_alignment) setProductTextAlignment(data.product_text_alignment);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -583,6 +600,12 @@ const StorePreviewEnhanced = () => {
           ...payload,
           banner_desktop_url: null,
           banner_mobile_url: null,
+          font_family: fontFamily,
+          font_weight: fontWeight,
+          header_logo_position: headerLogoPosition,
+          button_border_style: buttonBorderStyle,
+          product_button_display: productButtonDisplay,
+          product_text_alignment: productTextAlignment,
         })
         .eq("id", user.id);
 
@@ -817,6 +840,24 @@ const StorePreviewEnhanced = () => {
         <StoreModelSelector
           userId={user?.id || null}
           primaryColor={primaryColor}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
+
+        {/* Aparência da Loja */}
+        <StoreAppearanceCard
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
+          fontWeight={fontWeight}
+          setFontWeight={setFontWeight}
+          headerLogoPosition={headerLogoPosition}
+          setHeaderLogoPosition={setHeaderLogoPosition}
+          buttonBorderStyle={buttonBorderStyle}
+          setButtonBorderStyle={setButtonBorderStyle}
+          productButtonDisplay={productButtonDisplay}
+          setProductButtonDisplay={setProductButtonDisplay}
+          productTextAlignment={productTextAlignment}
+          setProductTextAlignment={setProductTextAlignment}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
         />
