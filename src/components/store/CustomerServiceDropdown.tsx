@@ -82,8 +82,8 @@ const CustomerServiceDropdown = ({
         >
           <HelpCircle className="h-6 w-6" style={{ color: textColor }} />
           <div className="hidden lg:flex flex-col items-start leading-tight">
-            <span className="text-xs" style={{ color: textColor, opacity: 0.7 }}>Central de</span>
-            <span className="text-sm font-medium" style={{ color: textColor }}>atendimento</span>
+            <span className="text-xs font-medium" style={{ color: textColor }}>Central de</span>
+            <span className="text-xs font-medium" style={{ color: textColor }}>atendimento</span>
           </div>
           <ChevronDown className="h-3 w-3 hidden lg:block" style={{ color: textColor, opacity: 0.5 }} />
         </button>

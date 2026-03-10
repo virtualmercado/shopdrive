@@ -169,7 +169,7 @@ const CustomerAccountDropdown = ({
           <User className="h-4 w-4" style={{ color: textColor }} />
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-xs" style={{ color: textColor }}>
+          <span className="text-xs font-medium" style={{ color: textColor }}>
             Olá, bem-vindo(a)
           </span>
           {!isLoggedIn && (
