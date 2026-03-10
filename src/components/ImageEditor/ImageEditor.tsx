@@ -1681,7 +1681,7 @@ export const ImageEditor = ({
     };
   }, []);
 
-  // Dark theme inline styles
+  // Dark theme inline styles – neutral professional palette (no purple/orange)
   const ie = {
     bg: '#1e1e1e',
     workspace: '#111111',
@@ -1690,8 +1690,8 @@ export const ImageEditor = ({
     text: '#e6e6e6',
     textDim: '#a0a0a0',
     sectionTitle: '#b0b0b0',
-    accent: '#6a1b9a',
-    accentHover: '#7b1fa2',
+    accent: '#a6a6a6',
+    accentHover: '#cfcfcf',
     inputBg: '#2c2c2c',
     inputBorder: '#404040',
     btnGhost: '#333333',
@@ -1707,7 +1707,7 @@ export const ImageEditor = ({
           <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: ie.panel, borderBottom: `1px solid ${ie.divider}` }}>
             <DialogHeader className="p-0 space-y-0">
               <DialogTitle className="flex items-center gap-3 text-base font-semibold tracking-tight" style={{ color: ie.text }}>
-                <div className="w-1.5 h-5 rounded-sm" style={{ backgroundColor: ie.accent }} />
+                <div className="w-1.5 h-5 rounded-sm" style={{ backgroundColor: '#cfcfcf' }} />
                 Editor de Imagem
                 {hasChanges && <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ color: ie.textDim, backgroundColor: ie.btnGhost }}>alterações não salvas</span>}
               </DialogTitle>
@@ -1737,7 +1737,7 @@ export const ImageEditor = ({
 
           {isProcessing && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(4px)' }}>
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: ie.accent }} />
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#cfcfcf' }} />
               <p className="text-sm font-medium" style={{ color: ie.text }}>{processingStep}</p>
               <div className="w-64">
                 <Progress value={processingProgress} className="h-1.5" />
@@ -1762,7 +1762,7 @@ export const ImageEditor = ({
                       onClick={() => handleCropPresetChange(preset)}
                       className="text-[11px] px-2.5 py-1 rounded-md transition-all duration-100 font-medium"
                       style={isActive 
-                        ? { backgroundColor: ie.accent, color: '#fff', boxShadow: `0 0 8px ${ie.accent}44` } 
+                        ? { backgroundColor: '#cfcfcf', color: '#1e1e1e', boxShadow: '0 0 6px rgba(207,207,207,0.2)' } 
                         : { backgroundColor: ie.btnGhost, color: ie.textDim }
                       }
                     >
@@ -1777,11 +1777,11 @@ export const ImageEditor = ({
                 <button
                   onClick={() => setShowGuides(!showGuides)}
                   className="absolute top-3 left-3 z-10 px-2 py-0.5 text-[9px] font-medium rounded-md transition-all hover:scale-105"
-                  style={{
-                    backgroundColor: showGuides ? ie.accent : 'rgba(255,255,255,0.08)',
-                    color: showGuides ? '#fff' : ie.textDim,
-                    border: `1px solid ${showGuides ? ie.accent : ie.divider}`,
-                  }}
+                    style={{
+                      backgroundColor: showGuides ? '#a6a6a6' : 'rgba(255,255,255,0.08)',
+                      color: showGuides ? '#1e1e1e' : ie.textDim,
+                      border: `1px solid ${showGuides ? '#a6a6a6' : ie.divider}`,
+                    }}
                 >
                   Grade {showGuides ? 'ON' : 'OFF'}
                 </button>
@@ -1920,7 +1920,7 @@ export const ImageEditor = ({
                           <Icon className="h-3 w-3" style={{ color: ie.textDim }} />
                           {label}
                         </label>
-                        <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments[key as keyof ImageAdjustments] !== 0 ? ie.accent : ie.textDim }}>
+                        <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments[key as keyof ImageAdjustments] !== 0 ? '#cfcfcf' : ie.textDim }}>
                           {adjustments[key as keyof ImageAdjustments]}
                         </span>
                       </div>
@@ -1946,7 +1946,7 @@ export const ImageEditor = ({
                       <Focus className="h-3 w-3" style={{ color: ie.textDim }} />
                       Nitidez
                     </label>
-                    <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments.sharpness !== 0 ? ie.accent : ie.textDim }}>
+                    <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments.sharpness !== 0 ? '#cfcfcf' : ie.textDim }}>
                       {adjustments.sharpness}
                     </span>
                   </div>
@@ -1964,7 +1964,7 @@ export const ImageEditor = ({
 
                 {/* Auto IA description */}
                 <p className="text-[10px] leading-relaxed" style={{ color: ie.textDim }}>
-                  O botão <span style={{ color: ie.accent }}>Auto IA</span> analisa a imagem e sugere ajustes profissionais otimizados para e-commerce.
+                  O botão <span style={{ color: '#cfcfcf', fontWeight: 500 }}>Auto IA</span> analisa a imagem e sugere ajustes profissionais otimizados para e-commerce.
                 </p>
               </div>
 
@@ -1974,7 +1974,7 @@ export const ImageEditor = ({
                   onClick={handleSave}
                   disabled={isProcessing || !hasChanges}
                   className="w-full h-9 rounded-md text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: `linear-gradient(135deg, ${ie.accent}, ${ie.accentHover})`, color: '#fff', boxShadow: '0 2px 12px rgba(106,27,154,0.35)' }}
+                  style={{ backgroundColor: '#3a3a3a', color: '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                 >
                   <Save className="h-4 w-4" />
                   Salvar imagem
