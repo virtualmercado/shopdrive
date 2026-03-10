@@ -1777,11 +1777,11 @@ export const ImageEditor = ({
                 <button
                   onClick={() => setShowGuides(!showGuides)}
                   className="absolute top-3 left-3 z-10 px-2 py-0.5 text-[9px] font-medium rounded-md transition-all hover:scale-105"
-                  style={{
-                    backgroundColor: showGuides ? ie.accent : 'rgba(255,255,255,0.08)',
-                    color: showGuides ? '#fff' : ie.textDim,
-                    border: `1px solid ${showGuides ? ie.accent : ie.divider}`,
-                  }}
+                    style={{
+                      backgroundColor: showGuides ? '#a6a6a6' : 'rgba(255,255,255,0.08)',
+                      color: showGuides ? '#1e1e1e' : ie.textDim,
+                      border: `1px solid ${showGuides ? '#a6a6a6' : ie.divider}`,
+                    }}
                 >
                   Grade {showGuides ? 'ON' : 'OFF'}
                 </button>
