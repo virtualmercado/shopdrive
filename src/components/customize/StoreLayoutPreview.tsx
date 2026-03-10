@@ -34,6 +34,12 @@ const CarouselSection = ({ label }: { label: string }) => (
   </div>
 );
 
+const ContentBannerBlock = () => (
+  <div className="bg-[#9a9a9a] rounded-lg h-[48px] flex items-center justify-center">
+    <span className="text-[10px] font-semibold text-white/90">Banner de Conteúdo</span>
+  </div>
+);
+
 /* ── Module renderers ── */
 
 const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
@@ -43,10 +49,13 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
     </div>
   ),
   benefitBanners: () => (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
-      ))}
+    <div className="bg-[#f0f0f0] rounded-lg px-3 py-2 space-y-1.5">
+      <p className="text-[11px] font-semibold text-[#555] text-center">Banners de Benefícios</p>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
+        ))}
+      </div>
     </div>
   ),
   promocoes: () => <CarouselSection label="Carrossel de Promoções" />,
@@ -68,8 +77,7 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
     </div>
   ),
   reviews: () => (
-    <div className="bg-[#f5f0e0] rounded-lg h-[56px] flex items-center justify-center gap-1">
-      <span className="text-[10px]">⭐</span>
+    <div className="bg-[#f0f0f0] rounded-lg h-[56px] flex items-center justify-center">
       <span className="text-[10px] font-semibold text-[#555]">Avaliações</span>
     </div>
   ),
@@ -100,6 +108,11 @@ export const StoreLayoutPreview = ({ layoutType }: StoreLayoutPreviewProps) => {
           {middleOrder.map((key) => (
             <div key={key}>{moduleRenderers[key]()}</div>
           ))}
+        </div>
+
+        {/* Content Banner — fixed above footer */}
+        <div className="px-2 pb-2 flex-shrink-0">
+          <ContentBannerBlock />
         </div>
 
         {/* Footer */}
