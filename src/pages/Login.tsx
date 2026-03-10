@@ -60,6 +60,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { user, signIn, resetPassword, updatePassword } = useAuth();
+  const { isMerchant, loading: merchantLoading } = useMerchantCheck();
   const { toast } = useToast();
 
   useEffect(() => {
