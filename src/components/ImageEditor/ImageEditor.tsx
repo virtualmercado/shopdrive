@@ -2015,8 +2015,8 @@ export const ImageEditor = ({
                   <button
                     onClick={handleUndo}
                     disabled={isProcessing || historyStack.length === 0}
-                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border"
-                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border hover:bg-[#2c2c2c]"
+                    style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
                     <Undo2 className="h-3.5 w-3.5" />
                     Desfazer
