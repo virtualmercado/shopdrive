@@ -1964,7 +1964,7 @@ export const ImageEditor = ({
 
                 {/* Auto IA description */}
                 <p className="text-[10px] leading-relaxed" style={{ color: ie.textDim }}>
-                  O botão <span style={{ color: ie.accent }}>Auto IA</span> analisa a imagem e sugere ajustes profissionais otimizados para e-commerce.
+                  O botão <span style={{ color: '#cfcfcf', fontWeight: 500 }}>Auto IA</span> analisa a imagem e sugere ajustes profissionais otimizados para e-commerce.
                 </p>
               </div>
 

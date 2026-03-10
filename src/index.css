@@ -642,16 +642,16 @@ All colors MUST be HSL.
 /* ===== Image Editor Dark Professional Theme ===== */
 .img-editor-dark {
   --ie-bg: #1e1e1e;
-  --ie-workspace: #121212;
+  --ie-workspace: #111111;
   --ie-panel: #262626;
   --ie-divider: #333333;
   --ie-text: #e6e6e6;
   --ie-text-dim: #a0a0a0;
-  --ie-accent: #6a1b9a;
-  --ie-accent-hover: #7b27b0;
+  --ie-accent: #a6a6a6;
+  --ie-accent-hover: #cfcfcf;
   --ie-input-bg: #2c2c2c;
   --ie-input-border: #404040;
-  --ie-track: #3c3c3c;
+  --ie-track: #3a3a3a;
   --ie-btn-ghost: #333333;
   --ie-btn-ghost-hover: #404040;
 }
