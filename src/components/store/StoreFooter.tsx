@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle, MapPin } from "lucide-react";
+import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle, MapPin, CheckCircle2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import paymentMethodsBanner from "@/assets/payment-methods-banner.png";
