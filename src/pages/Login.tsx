@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
 import { useAuth } from "@/hooks/useAuth";
+import { useMerchantCheck } from "@/hooks/useMerchantCheck";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
