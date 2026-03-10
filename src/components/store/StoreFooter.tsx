@@ -306,11 +306,39 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                     </div>
                   ))}
                 </div>
-                <img
-                  src={securitySeals}
-                  alt="Qualidade e Segurança: Compra Segura, Site Protegido, Certificado SSL, Safe Browsing Google"
-                  className="h-auto max-h-40 md:max-h-48 w-auto object-contain order-1 md:order-2"
-                />
+                {/* SVG Vectorial Security Seals — pixel-perfect at any resolution */}
+                <div className="order-1 md:order-2 flex flex-col items-center gap-3">
+                  <span className="text-[11px] md:text-xs font-semibold tracking-[0.15em] text-gray-500 uppercase">Qualidade e Segurança</span>
+                  <div className="flex items-center gap-5">
+                    {/* Selo 1 – Compra Segura / SSL */}
+                    <div className="flex items-center gap-2.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" className="w-8 h-10 md:w-10 md:h-12 flex-shrink-0">
+                        <path d="M20 2L4 10v12c0 11.1 6.8 21.4 16 26 9.2-4.6 16-14.9 16-26V10L20 2z" fill="#22c55e" opacity="0.15" stroke="#22c55e" strokeWidth="2"/>
+                        <path d="M20 2L4 10v12c0 11.1 6.8 21.4 16 26 9.2-4.6 16-14.9 16-26V10L20 2z" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinejoin="round"/>
+                        <path d="M13 24l5 5 9-10" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-[10px] md:text-[11px] font-bold text-gray-700 tracking-wide uppercase">Compra Segura</span>
+                        <span className="text-[9px] md:text-[10px] font-medium text-gray-500 tracking-wide uppercase">Site Protegido</span>
+                        <span className="text-[9px] md:text-[10px] font-medium text-gray-500 tracking-wide uppercase">Certificado SSL</span>
+                      </div>
+                    </div>
+                    {/* Divider */}
+                    <div className="w-px h-10 bg-gray-300" />
+                    {/* Selo 2 – Safe Browsing Google */}
+                    <div className="flex items-center gap-2.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" className="w-8 h-10 md:w-10 md:h-12 flex-shrink-0">
+                        <path d="M20 2L4 10v12c0 11.1 6.8 21.4 16 26 9.2-4.6 16-14.9 16-26V10L20 2z" fill="#3b82f6" opacity="0.12" stroke="#3b82f6" strokeWidth="2"/>
+                        <path d="M20 2L4 10v12c0 11.1 6.8 21.4 16 26 9.2-4.6 16-14.9 16-26V10L20 2z" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinejoin="round"/>
+                        <path d="M13 24l5 5 9-10" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-[10px] md:text-[11px] font-bold text-gray-700 tracking-wide uppercase">Safe Browsing</span>
+                        <span className="text-[13px] md:text-sm font-semibold text-gray-600">Google</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
