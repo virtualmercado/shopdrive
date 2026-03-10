@@ -1939,7 +1939,7 @@ export const ImageEditor = ({
                 <div className="my-3" style={{ height: 1, backgroundColor: ie.divider }} />
 
                 {/* Detail Section */}
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-3" style={{ color: ie.textDim }}>Detalhe</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.18em] mb-3" style={{ color: ie.sectionTitle, fontWeight: 600 }}>Detalhe</h3>
                 <div className="py-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
