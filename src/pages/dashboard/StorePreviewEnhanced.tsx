@@ -23,6 +23,7 @@ import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
+import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
@@ -31,6 +32,14 @@ const StorePreviewEnhanced = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, primaryColor } = useTheme();
+
+  // Appearance states
+  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontWeight, setFontWeight] = useState(400);
+  const [headerLogoPosition, setHeaderLogoPosition] = useState<"left" | "center" | "right">("left");
+  const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
+  const [productButtonDisplay, setProductButtonDisplay] = useState("below");
+  const [productTextAlignment, setProductTextAlignment] = useState("left");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
