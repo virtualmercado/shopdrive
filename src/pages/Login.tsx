@@ -117,10 +117,13 @@ const Login = () => {
   }, [toast]);
 
   useEffect(() => {
-    if (user && !isSetNewPasswordMode) {
-      navigate("/lojista", { replace: true });
+    if (user && !isSetNewPasswordMode && !merchantLoading) {
+      if (isMerchant) {
+        navigate("/lojista", { replace: true });
+      }
+      // If authenticated but not a merchant, stay on /login — don't redirect to /lojista
     }
-  }, [user, isSetNewPasswordMode, navigate]);
+  }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
