@@ -293,12 +293,24 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
               </div>
 
               {/* Selos de Segurança - Alinhados à direita */}
-              <div>
+              <div className="flex flex-col items-center md:items-end gap-3">
                 <img
                   src={securitySeals}
                   alt="Qualidade e Segurança: Compra Segura, Site Protegido, Certificado SSL, Safe Browsing Google"
-                  className="h-auto max-h-20 md:max-h-24 w-auto object-contain"
+                  className="h-auto max-h-32 md:max-h-40 w-auto object-contain"
                 />
+                <div className="flex flex-col gap-1 items-center md:items-end">
+                  {[
+                    "Pagamento 100% seguro",
+                    "Dados protegidos por criptografia SSL",
+                    "Ambiente verificado contra fraudes",
+                  ].map((text) => (
+                    <div key={text} className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-green-600" />
+                      <span className="text-xs text-gray-500">{text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
