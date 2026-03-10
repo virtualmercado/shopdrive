@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import CustomerServiceDropdown from "@/components/store/CustomerServiceDropdown";
+import CustomerAccountDropdown from "@/components/store/CustomerAccountDropdown";
 import { useMiniCart } from "@/contexts/MiniCartContext";
 
 interface StoreHeaderProps {
@@ -287,13 +288,12 @@ const StoreHeader = ({
               accentColor={accentColor}
               onContactClick={onContactClick}
             />
-            <Link 
-              to={`/loja/${storeSlug}/conta`}
-              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
-            >
-              <User className="h-5 w-5" style={{ color: backgroundColor }} />
-              <span className="text-sm font-medium" style={{ color: backgroundColor }}>Entrar</span>
-            </Link>
+            <CustomerAccountDropdown
+              storeSlug={storeSlug}
+              storeOwnerId={storeOwnerId}
+              textColor={backgroundColor}
+              accentColor={accentColor}
+            />
             <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
               <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
               {cartItemCount > 0 && (
@@ -461,7 +461,7 @@ const StoreHeader = ({
               />
               <div className="flex gap-4">
                 <Link to={`/loja/${storeSlug}/conta`} className="flex-1">
-                  <Button variant="outline" className="w-full hover:bg-gray-300 transition-colors">
+                  <Button variant="outline" className="w-full hover:bg-black/5 transition-colors">
                     <User className="h-4 w-4 mr-2" />
                     Minha Conta
                   </Button>
