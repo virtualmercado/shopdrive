@@ -5101,6 +5101,7 @@ export type Database = {
         Args: { p_store_owner_id: string }
         Returns: string
       }
+      generate_store_slug: { Args: { p_store_name: string }; Returns: string }
       generate_template_slug: {
         Args: { template_name: string }
         Returns: string
