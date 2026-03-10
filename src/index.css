@@ -638,3 +638,42 @@ All colors MUST be HSL.
     opacity: 1;
   }
 }
+
+/* ===== Image Editor Dark Professional Theme ===== */
+.img-editor-dark {
+  --ie-bg: #1e1e1e;
+  --ie-workspace: #121212;
+  --ie-panel: #262626;
+  --ie-divider: #333333;
+  --ie-text: #e6e6e6;
+  --ie-text-dim: #a0a0a0;
+  --ie-accent: #6a1b9a;
+  --ie-accent-hover: #7b27b0;
+  --ie-input-bg: #2c2c2c;
+  --ie-input-border: #404040;
+  --ie-track: #3c3c3c;
+  --ie-btn-ghost: #333333;
+  --ie-btn-ghost-hover: #404040;
+}
+
+.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child {
+  background-color: var(--ie-track) !important;
+}
+.img-editor-dark .ie-slider [data-orientation="horizontal"] > span:first-child > span {
+  background-color: var(--ie-accent) !important;
+}
+.img-editor-dark .ie-slider span[role="slider"] {
+  background-color: var(--ie-text) !important;
+  border-color: var(--ie-accent) !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+.img-editor-dark .ie-input {
+  background-color: var(--ie-input-bg) !important;
+  border-color: var(--ie-input-border) !important;
+  color: var(--ie-text) !important;
+}
+.img-editor-dark .ie-input:focus {
+  border-color: var(--ie-accent) !important;
+  box-shadow: 0 0 0 1px var(--ie-accent) !important;
+}

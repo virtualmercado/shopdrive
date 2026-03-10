@@ -1681,99 +1681,112 @@ export const ImageEditor = ({
     };
   }, []);
 
+  // Dark theme inline styles
+  const ie = {
+    bg: '#1e1e1e',
+    workspace: '#121212',
+    panel: '#262626',
+    divider: '#333333',
+    text: '#e6e6e6',
+    textDim: '#a0a0a0',
+    accent: '#6a1b9a',
+    accentHover: '#7b27b0',
+    inputBg: '#2c2c2c',
+    inputBorder: '#404040',
+    btnGhost: '#333333',
+    btnGhostHover: '#404040',
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden p-0">
+      <DialogContent className="img-editor-dark max-w-5xl max-h-[95vh] overflow-hidden p-0 border-0" style={{ backgroundColor: ie.bg, color: ie.text }}>
         <div className="flex flex-col h-full max-h-[95vh]">
-          <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              Editor de Imagem
-              {hasChanges && <span className="text-xs text-muted-foreground">(alterações não salvas)</span>}
-            </DialogTitle>
-          </DialogHeader>
+          {/* ── Top Bar ── */}
+          <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: ie.panel, borderBottom: `1px solid ${ie.divider}` }}>
+            <DialogHeader className="p-0 space-y-0">
+              <DialogTitle className="flex items-center gap-3 text-base font-semibold tracking-tight" style={{ color: ie.text }}>
+                <div className="w-1.5 h-5 rounded-sm" style={{ backgroundColor: ie.accent }} />
+                Editor de Imagem
+                {hasChanges && <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ color: ie.textDim, backgroundColor: ie.btnGhost }}>alterações não salvas</span>}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleAutoAdjust}
+                disabled={isProcessing || isAnimatingAuto || !originalImage}
+                size="sm"
+                className="text-xs h-7 rounded-md border-0"
+                style={{ backgroundColor: ie.btnGhost, color: ie.text }}
+              >
+                <Wand2 className="h-3 w-3 mr-1.5" />
+                Auto IA
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleResetTransform}
+                className="text-xs h-7 rounded-md border-0"
+                style={{ backgroundColor: ie.btnGhost, color: ie.textDim }}
+              >
+                <RefreshCw className="h-3 w-3 mr-1.5" />
+                Reset
+              </Button>
+            </div>
+          </div>
 
           {isProcessing && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: buttonBgColor }} />
-              <p className="text-sm font-medium">{processingStep}</p>
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(4px)' }}>
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: ie.accent }} />
+              <p className="text-sm font-medium" style={{ color: ie.text }}>{processingStep}</p>
               <div className="w-64">
-                <Progress value={processingProgress} className="h-2" />
+                <Progress value={processingProgress} className="h-1.5" />
               </div>
             </div>
           )}
 
           <div className="flex flex-1 overflow-hidden">
+            {/* ── Left: Canvas + Transforms ── */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Crop Presets + Reset Button */}
-              <div className="px-4 py-2 border-b flex items-center gap-2 flex-wrap justify-between">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
-                    <Crop className="h-3 w-3" />
-                    Corte:
-                  </span>
-                  {(Object.keys(cropPresets) as CropPreset[]).map((preset) => {
-                    const isActive = cropPreset === preset;
-                    return (
-                      <Button
-                        key={preset}
-                        variant={isActive ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleCropPresetChange(preset)}
-                        className={`text-xs px-3 h-7 ${buttonRadius} transition-all duration-100`}
-                        style={isActive 
-                          ? { 
-                              backgroundColor: buttonBgColor, 
-                              color: buttonTextColor,
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                              transform: 'scale(1.02)',
-                            } 
-                          : { 
-                              borderColor: buttonBgColor, 
-                              color: buttonBgColor,
-                              opacity: 0.8,
-                            }
-                        }
-                      >
-                        {cropPresets[preset].label}
-                      </Button>
-                    );
-                  })}
-                </div>
-                {/* Reset Button - moved to header, right aligned */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleResetTransform}
-                  className={`text-xs h-7 ${buttonRadius}`}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Resetar
-                </Button>
+              {/* Crop Presets */}
+              <div className="px-4 py-2 flex items-center gap-2 flex-wrap" style={{ backgroundColor: ie.panel, borderBottom: `1px solid ${ie.divider}` }}>
+                <span className="text-[10px] font-medium flex items-center gap-1 uppercase tracking-wider" style={{ color: ie.textDim }}>
+                  <Crop className="h-3 w-3" />
+                  Corte
+                </span>
+                {(Object.keys(cropPresets) as CropPreset[]).map((preset) => {
+                  const isActive = cropPreset === preset;
+                  return (
+                    <button
+                      key={preset}
+                      onClick={() => handleCropPresetChange(preset)}
+                      className="text-[11px] px-2.5 py-1 rounded-md transition-all duration-100 font-medium"
+                      style={isActive 
+                        ? { backgroundColor: ie.accent, color: '#fff', boxShadow: `0 0 8px ${ie.accent}44` } 
+                        : { backgroundColor: ie.btnGhost, color: ie.textDim }
+                      }
+                    >
+                      {cropPresets[preset].label}
+                    </button>
+                  );
+                })}
               </div>
               
-              {/* Preview Area */}
-              <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto relative">
-                {/* Grid Toggle Button - positioned at top-left of preview area to avoid overlapping image */}
+              {/* Preview / Workspace Area */}
+              <div className="flex-1 flex items-center justify-center p-6 overflow-auto relative" style={{ backgroundColor: ie.workspace }}>
                 <button
                   onClick={() => setShowGuides(!showGuides)}
-                  className="absolute top-3 left-3 z-10 px-1.5 py-0.5 text-[9px] font-medium rounded shadow-sm transition-all hover:scale-105"
+                  className="absolute top-3 left-3 z-10 px-2 py-0.5 text-[9px] font-medium rounded-md transition-all hover:scale-105"
                   style={{
-                    backgroundColor: showGuides ? buttonBgColor : 'rgba(0, 0, 0, 0.5)',
-                    color: showGuides ? buttonTextColor : 'white',
-                    border: `1px solid ${showGuides ? buttonBgColor : 'rgba(255, 255, 255, 0.25)'}`,
+                    backgroundColor: showGuides ? ie.accent : 'rgba(255,255,255,0.08)',
+                    color: showGuides ? '#fff' : ie.textDim,
+                    border: `1px solid ${showGuides ? ie.accent : ie.divider}`,
                   }}
                 >
-                  Grade: {showGuides ? 'ON' : 'OFF'}
+                  Grade {showGuides ? 'ON' : 'OFF'}
                 </button>
                 
-                {/* Preview container - receives pointer events for drag/pan (always enabled) */}
                 <div 
                   className="relative"
-                  style={{ 
-                    // Normal cursor on hover, grabbing only during active drag
-                    cursor: isDragging ? 'grabbing' : 'default',
-                    touchAction: 'none', // Prevent browser gestures interfering with drag
-                  }}
+                  style={{ cursor: isDragging ? 'grabbing' : 'default', touchAction: 'none' }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -1781,35 +1794,31 @@ export const ImageEditor = ({
                 >
                   <canvas
                     ref={canvasRef}
-                    className={`max-w-full max-h-full object-contain border rounded shadow-sm transition-opacity duration-100 ${isTransitioningPreset ? 'opacity-80' : 'opacity-100'}`}
+                    className={`max-w-full max-h-full object-contain transition-opacity duration-100 ${isTransitioningPreset ? 'opacity-80' : 'opacity-100'}`}
                     style={{ 
-                      maxHeight: '400px',
-                      // Disable native image/canvas drag
+                      maxHeight: '420px',
                       userSelect: 'none',
                       WebkitUserDrag: 'none',
                       pointerEvents: 'auto',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
                     } as React.CSSProperties}
                     draggable={false}
                   />
-                  {/* Guides overlay canvas */}
                   {showGuides && (
-                    <canvas
-                      ref={guidesCanvasRef}
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ maxHeight: '400px' }}
-                    />
+                    <canvas ref={guidesCanvasRef} className="absolute inset-0 pointer-events-none" style={{ maxHeight: '420px' }} />
                   )}
                 </div>
               </div>
 
-              {/* Transform Controls */}
-              <div className="px-4 py-3 border-t space-y-3 flex-shrink-0">
-                {/* Rotation Control */}
+              {/* ── Transform Controls Panel ── */}
+              <div className="px-4 py-3 space-y-3 flex-shrink-0" style={{ backgroundColor: ie.panel, borderTop: `1px solid ${ie.divider}` }}>
+                {/* Section: Rotation */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium flex items-center gap-1">
-                      <RotateCw className="h-3 w-3" />
-                      Rotação (°)
+                    <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
+                      <RotateCw className="h-3 w-3" style={{ color: ie.textDim }} />
+                      Rotação
                     </label>
                     <div className="flex items-center gap-1">
                       <Input
@@ -1817,9 +1826,9 @@ export const ImageEditor = ({
                         value={rotationInput}
                         onChange={(e) => handleRotationInputChange(e.target.value)}
                         onBlur={handleRotationInputBlur}
-                        className="w-16 h-7 text-xs text-center"
+                        className="ie-input w-14 h-6 text-[11px] text-center rounded-md border"
                       />
-                      <span className="text-xs text-muted-foreground">°</span>
+                      <span className="text-[10px]" style={{ color: ie.textDim }}>°</span>
                     </div>
                   </div>
                   <Slider
@@ -1828,246 +1837,189 @@ export const ImageEditor = ({
                     min={-180}
                     max={180}
                     step={rotationStep}
-                    className="w-full"
+                    className="ie-slider w-full"
                   />
-                  <div className="flex justify-between gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickRotate(-90)}
-                      className={`text-xs px-2 ${buttonRadius}`}
-                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                    >
-                      -90°
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleRotateLeft}
-                      className={`h-8 w-8 ${buttonRadius}`}
-                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleRotateRight}
-                      className={`h-8 w-8 ${buttonRadius}`}
-                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                    >
-                      <RotateCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickRotate(90)}
-                      className={`text-xs px-2 ${buttonRadius}`}
-                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                    >
-                      +90°
-                    </Button>
+                  <div className="flex justify-between gap-1.5">
+                    <button onClick={() => handleQuickRotate(-90)} className="text-[10px] px-2 py-1 rounded-md font-medium transition-colors" style={{ backgroundColor: ie.btnGhost, color: ie.textDim }}>-90°</button>
+                    <button onClick={handleRotateLeft} className="p-1.5 rounded-md transition-colors" style={{ backgroundColor: ie.btnGhost, color: ie.textDim }}>
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={handleRotateRight} className="p-1.5 rounded-md transition-colors" style={{ backgroundColor: ie.btnGhost, color: ie.textDim }}>
+                      <RotateCw className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => handleQuickRotate(90)} className="text-[10px] px-2 py-1 rounded-md font-medium transition-colors" style={{ backgroundColor: ie.btnGhost, color: ie.textDim }}>+90°</button>
                   </div>
                 </div>
 
-                {/* Zoom/Scale Control - centered at 100% */}
+                <div style={{ height: 1, backgroundColor: ie.divider }} />
+
+                {/* Section: Zoom */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium flex items-center gap-1">
-                      <ZoomIn className="h-3 w-3" />
-                      Zoom / Escala (%)
+                    <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
+                      <ZoomIn className="h-3 w-3" style={{ color: ie.textDim }} />
+                      Zoom
                     </label>
                     <div className="flex items-center gap-1">
-                      <Input
-                        type="text"
-                        value={scaleInput}
-                        onChange={(e) => handleScaleInputChange(e.target.value)}
-                        onBlur={handleScaleInputBlur}
-                        className="w-14 h-7 text-xs text-center"
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
+                      <Input type="text" value={scaleInput} onChange={(e) => handleScaleInputChange(e.target.value)} onBlur={handleScaleInputBlur} className="ie-input w-12 h-6 text-[11px] text-center rounded-md border" />
+                      <span className="text-[10px]" style={{ color: ie.textDim }}>%</span>
                     </div>
                   </div>
-                  <Slider
-                    value={[scaleSliderPos]}
-                    onValueChange={([pos]) => handleScaleSliderChange(pos)}
-                    min={-100}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
+                  <Slider value={[scaleSliderPos]} onValueChange={([pos]) => handleScaleSliderChange(pos)} min={-100} max={100} step={1} className="ie-slider w-full" />
                 </div>
 
-                {/* Horizontal Position Control */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 8L22 12L18 16" />
-                        <path d="M6 8L2 12L6 16" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                      </svg>
-                      Posição horizontal (X)
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      {offsetX > 0 ? '+' : ''}{offsetX.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[offsetX]}
-                    onValueChange={([value]) => handleOffsetChange(value)}
-                    min={-30}
-                    max={30}
-                    step={offsetStep}
-                    className="w-full"
-                  />
-                </div>
+                <div style={{ height: 1, backgroundColor: ie.divider }} />
 
-                {/* Vertical Position Control (Y) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8 6L12 2L16 6" />
-                        <path d="M8 18L12 22L16 18" />
-                        <line x1="12" y1="2" x2="12" y2="22" />
-                      </svg>
-                      Posição vertical (Y)
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      {offsetY > 0 ? '+' : ''}{offsetY.toFixed(1)}%
-                    </span>
+                {/* Section: Position */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-medium flex items-center gap-1" style={{ color: ie.text }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8L22 12L18 16" /><path d="M6 8L2 12L6 16" /><line x1="2" y1="12" x2="22" y2="12" /></svg>
+                        Pos. X
+                      </label>
+                      <span className="text-[10px]" style={{ color: ie.textDim }}>{offsetX > 0 ? '+' : ''}{offsetX.toFixed(1)}%</span>
+                    </div>
+                    <Slider value={[offsetX]} onValueChange={([value]) => handleOffsetChange(value)} min={-30} max={30} step={offsetStep} className="ie-slider w-full" />
                   </div>
-                  <Slider
-                    value={[offsetY]}
-                    onValueChange={([value]) => handleOffsetYChange(value)}
-                    min={-30}
-                    max={30}
-                    step={offsetStep}
-                    className="w-full"
-                  />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-medium flex items-center gap-1" style={{ color: ie.text }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L12 2L16 6" /><path d="M8 18L12 22L16 18" /><line x1="12" y1="2" x2="12" y2="22" /></svg>
+                        Pos. Y
+                      </label>
+                      <span className="text-[10px]" style={{ color: ie.textDim }}>{offsetY > 0 ? '+' : ''}{offsetY.toFixed(1)}%</span>
+                    </div>
+                    <Slider value={[offsetY]} onValueChange={([value]) => handleOffsetYChange(value)} min={-30} max={30} step={offsetStep} className="ie-slider w-full" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Side Panel - Adjustments Only */}
-            <div className="w-80 border-l flex flex-col overflow-hidden bg-background flex-shrink-0">
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Ajustes</h3>
-                  
-                  {/* Auto Button */}
-                  <div className="space-y-2">
-                    <Button
-                      onClick={handleAutoAdjust}
-                      disabled={isProcessing || isAnimatingAuto || !originalImage}
-                      variant="outline"
-                      className={`w-full ${buttonRadius}`}
-                      style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                    >
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Auto
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                      Auto usa IA para analisar a imagem e sugerir ajustes profissionais para e-commerce.
-                    </p>
-                  </div>
+            {/* ── Right Side Panel: Adjustments ── */}
+            <div className="w-72 flex flex-col overflow-hidden flex-shrink-0" style={{ backgroundColor: ie.panel, borderLeft: `1px solid ${ie.divider}` }}>
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {/* Section title */}
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-4" style={{ color: ie.textDim }}>Ajustes de Imagem</h3>
 
-                  <div className="border-t pt-4">
-                    {[
-                      { key: 'exposure', label: 'Exposição', icon: Sun, min: -100, max: 100 },
-                      { key: 'contrast', label: 'Contraste', icon: Contrast, min: -100, max: 100 },
-                      { key: 'highlights', label: 'Realces', icon: Sparkles, min: -100, max: 100 },
-                      { key: 'shadows', label: 'Sombras', icon: Cloud, min: -100, max: 100 },
-                      { key: 'whites', label: 'Brancos', icon: CircleDot, min: -100, max: 100 },
-                      { key: 'blacks', label: 'Pretos', icon: Square, min: -100, max: 100 },
-                      { key: 'sharpness', label: 'Nitidez', icon: Focus, min: 0, max: 30 },
-                    ].map(({ key, label, icon: Icon, min, max }) => (
-                      <div key={key} className="space-y-2 mb-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-medium flex items-center gap-1">
-                            <Icon className="h-3 w-3" />
-                            {label}
-                          </label>
-                          <span className="text-xs text-muted-foreground">
-                            {adjustments[key as keyof ImageAdjustments]}
-                          </span>
-                        </div>
-                        <Slider
-                          value={[adjustments[key as keyof ImageAdjustments]]}
-                          onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
-                          min={min}
-                          max={max}
-                          step={1}
-                          className="w-full"
-                        />
+                {/* Tonal Adjustments */}
+                <div className="space-y-0.5">
+                  {[
+                    { key: 'exposure', label: 'Exposição', icon: Sun, min: -100, max: 100 },
+                    { key: 'contrast', label: 'Contraste', icon: Contrast, min: -100, max: 100 },
+                    { key: 'highlights', label: 'Realces', icon: Sparkles, min: -100, max: 100 },
+                    { key: 'shadows', label: 'Sombras', icon: Cloud, min: -100, max: 100 },
+                    { key: 'whites', label: 'Brancos', icon: CircleDot, min: -100, max: 100 },
+                    { key: 'blacks', label: 'Pretos', icon: Square, min: -100, max: 100 },
+                  ].map(({ key, label, icon: Icon, min, max }) => (
+                    <div key={key} className="py-1.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
+                          <Icon className="h-3 w-3" style={{ color: ie.textDim }} />
+                          {label}
+                        </label>
+                        <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments[key as keyof ImageAdjustments] !== 0 ? ie.accent : ie.textDim }}>
+                          {adjustments[key as keyof ImageAdjustments]}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                  
+                      <Slider
+                        value={[adjustments[key as keyof ImageAdjustments]]}
+                        onValueChange={([value]) => handleAdjustmentChange(key as keyof ImageAdjustments, value)}
+                        min={min}
+                        max={max}
+                        step={1}
+                        className="ie-slider w-full"
+                      />
+                    </div>
+                  ))}
                 </div>
+
+                <div className="my-3" style={{ height: 1, backgroundColor: ie.divider }} />
+
+                {/* Detail Section */}
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-3" style={{ color: ie.textDim }}>Detalhe</h3>
+                <div className="py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: ie.text }}>
+                      <Focus className="h-3 w-3" style={{ color: ie.textDim }} />
+                      Nitidez
+                    </label>
+                    <span className="text-[10px] font-mono tabular-nums w-8 text-right" style={{ color: adjustments.sharpness !== 0 ? ie.accent : ie.textDim }}>
+                      {adjustments.sharpness}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[adjustments.sharpness]}
+                    onValueChange={([value]) => handleAdjustmentChange('sharpness', value)}
+                    min={0}
+                    max={30}
+                    step={1}
+                    className="ie-slider w-full"
+                  />
+                </div>
+
+                <div className="my-3" style={{ height: 1, backgroundColor: ie.divider }} />
+
+                {/* Auto IA description */}
+                <p className="text-[10px] leading-relaxed" style={{ color: ie.textDim }}>
+                  O botão <span style={{ color: ie.accent }}>Auto IA</span> analisa a imagem e sugere ajustes profissionais otimizados para e-commerce.
+                </p>
               </div>
 
-              {/* Save Actions - Increased padding for visibility */}
-              <div className="p-4 pt-5 border-t space-y-3 flex-shrink-0 bg-muted/20">
-                <Button
+              {/* ── Bottom Actions ── */}
+              <div className="p-4 space-y-2.5 flex-shrink-0" style={{ borderTop: `1px solid ${ie.divider}`, backgroundColor: ie.bg }}>
+                <button
                   onClick={handleSave}
                   disabled={isProcessing || !hasChanges}
-                  className={`w-full ${buttonRadius}`}
-                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+                  className="w-full h-9 rounded-md text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ backgroundColor: ie.accent, color: '#fff' }}
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar imagem processada
-                </Button>
+                  <Save className="h-4 w-4" />
+                  Salvar imagem
+                </button>
                 
-                {/* Batch Standardization Button - Always visible below Save */}
                 {otherProductImages && otherProductImages.length > 0 && onApplyToOthers && (
-                  <Button
+                  <button
                     onClick={handleApplyToOthers}
                     disabled={isProcessing || !!batchApplyStatus?.inProgress}
-                    variant="outline"
-                    className={`w-full ${buttonRadius} text-xs`}
-                    style={{ borderColor: buttonBgColor, color: buttonBgColor }}
+                    className="w-full h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-2 border"
+                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
                   >
-                    <Copy className="h-4 w-4 mr-2" />
+                    <Copy className="h-3.5 w-3.5" />
                     Padronização em lote
-                  </Button>
+                  </button>
                 )}
 
                 {batchApplyStatus?.inProgress && batchApplyStatus.total > 0 && (
                   <div className="space-y-1">
-                    <Progress
-                      value={Math.round((batchApplyStatus.completed / batchApplyStatus.total) * 100)}
-                      className="h-2"
-                      merchantStyled
-                    />
-                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                      Aplicando em lote… {batchApplyStatus.completed}/{batchApplyStatus.total} concluídas
+                    <Progress value={Math.round((batchApplyStatus.completed / batchApplyStatus.total) * 100)} className="h-1.5" merchantStyled />
+                    <p className="text-[10px] text-center leading-tight" style={{ color: ie.textDim }}>
+                      Aplicando… {batchApplyStatus.completed}/{batchApplyStatus.total}
                       {batchApplyStatus.failed > 0 ? ` • ${batchApplyStatus.failed} falha(s)` : ""}
                     </p>
                   </div>
                 )}
                 
-                <Button
-                  variant="outline"
-                  onClick={handleShare}
-                  disabled={isProcessing || !originalImage}
-                  className={`w-full ${buttonRadius}`}
-                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Compartilhar imagem
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleUndo}
-                  disabled={isProcessing || historyStack.length === 0}
-                  className={`w-full ${buttonRadius}`}
-                  style={{ borderColor: buttonBgColor, color: buttonBgColor }}
-                >
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Desfazer última alteração
-                </Button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleShare}
+                    disabled={isProcessing || !originalImage}
+                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border"
+                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Compartilhar
+                  </button>
+                  <button
+                    onClick={handleUndo}
+                    disabled={isProcessing || historyStack.length === 0}
+                    className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border"
+                    style={{ borderColor: ie.divider, color: ie.textDim, backgroundColor: 'transparent' }}
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                    Desfazer
+                  </button>
+                </div>
               </div>
             </div>
           </div>
