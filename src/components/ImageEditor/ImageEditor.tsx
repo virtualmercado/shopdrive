@@ -1684,17 +1684,19 @@ export const ImageEditor = ({
   // Dark theme inline styles
   const ie = {
     bg: '#1e1e1e',
-    workspace: '#121212',
+    workspace: '#111111',
     panel: '#262626',
-    divider: '#333333',
+    divider: '#2a2a2a',
     text: '#e6e6e6',
     textDim: '#a0a0a0',
+    sectionTitle: '#b0b0b0',
     accent: '#6a1b9a',
-    accentHover: '#7b27b0',
+    accentHover: '#7b1fa2',
     inputBg: '#2c2c2c',
     inputBorder: '#404040',
     btnGhost: '#333333',
-    btnGhostHover: '#404040',
+    btnGhostHover: '#2c2c2c',
+    btnOutlineBorder: '#3a3a3a',
   };
 
   return (
