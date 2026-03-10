@@ -3236,6 +3236,7 @@ export type Database = {
           checkout_require_email: boolean | null
           checkout_require_payment_method: boolean | null
           checkout_require_personal_info: boolean | null
+          city: string | null
           content_banner_enabled: boolean | null
           content_banner_image_url: string | null
           content_banner_subtitle: string | null
@@ -3296,6 +3297,7 @@ export type Database = {
           shipping_free_minimum: number | null
           show_whatsapp_button: boolean | null
           source_template_id: string | null
+          store_category: string | null
           store_description: string | null
           store_layout: string | null
           store_logo_url: string | null
@@ -3340,6 +3342,7 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          city?: string | null
           content_banner_enabled?: boolean | null
           content_banner_image_url?: string | null
           content_banner_subtitle?: string | null
@@ -3400,6 +3403,7 @@ export type Database = {
           shipping_free_minimum?: number | null
           show_whatsapp_button?: boolean | null
           source_template_id?: string | null
+          store_category?: string | null
           store_description?: string | null
           store_layout?: string | null
           store_logo_url?: string | null
@@ -3444,6 +3448,7 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          city?: string | null
           content_banner_enabled?: boolean | null
           content_banner_image_url?: string | null
           content_banner_subtitle?: string | null
@@ -3504,6 +3509,7 @@ export type Database = {
           shipping_free_minimum?: number | null
           show_whatsapp_button?: boolean | null
           source_template_id?: string | null
+          store_category?: string | null
           store_description?: string | null
           store_layout?: string | null
           store_logo_url?: string | null
