@@ -600,6 +600,12 @@ const StorePreviewEnhanced = () => {
           ...payload,
           banner_desktop_url: null,
           banner_mobile_url: null,
+          font_family: fontFamily,
+          font_weight: fontWeight,
+          header_logo_position: headerLogoPosition,
+          button_border_style: buttonBorderStyle,
+          product_button_display: productButtonDisplay,
+          product_text_alignment: productTextAlignment,
         })
         .eq("id", user.id);
 
