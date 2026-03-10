@@ -49,10 +49,13 @@ const moduleRenderers: Record<ModuleId, () => React.ReactNode> = {
     </div>
   ),
   benefitBanners: () => (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
-      ))}
+    <div className="bg-[#f0f0f0] rounded-lg px-3 py-2 space-y-1.5">
+      <p className="text-[11px] font-semibold text-[#555] text-center">Banners de Benefícios</p>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex-1 bg-[#c0c0c0] rounded h-[18px]" />
+        ))}
+      </div>
     </div>
   ),
   promocoes: () => <CarouselSection label="Carrossel de Promoções" />,
