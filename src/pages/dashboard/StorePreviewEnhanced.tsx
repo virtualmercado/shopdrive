@@ -85,14 +85,8 @@ const StorePreviewEnhanced = () => {
     // About Us fields
     about_us_title: "",
     about_us_text: "",
-    // Content Banner fields
-    content_banner_enabled: false,
-    content_banner_title: "",
-    content_banner_subtitle: "",
-    content_banner_title_color: "#ffffff",
-    content_banner_subtitle_color: "#ffffffcc",
-    content_banner_url: "",
-    content_banner_image_url: "",
+    // Content Banners (multi-banner array)
+    content_banners: [] as import("@/components/customize/ContentBannerCard").ContentBannerItem[],
   });
 
   useEffect(() => {
