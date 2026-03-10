@@ -149,14 +149,32 @@ const StorePreviewEnhanced = () => {
           // About Us fields
           about_us_title: (data as any).about_us_title || "",
           about_us_text: (data as any).about_us_text || "",
-          // Content Banner fields
-          content_banner_enabled: (data as any).content_banner_enabled || false,
-          content_banner_title: (data as any).content_banner_title || "",
-          content_banner_subtitle: (data as any).content_banner_subtitle || "",
-          content_banner_title_color: (data as any).content_banner_title_color || "#ffffff",
-          content_banner_subtitle_color: (data as any).content_banner_subtitle_color || "#ffffffcc",
-          content_banner_url: (data as any).content_banner_url || "",
-          content_banner_image_url: (data as any).content_banner_image_url || "",
+          // Content Banners — migrate from legacy single fields if needed
+          content_banners: (() => {
+            const raw = (data as any).content_banners;
+            if (Array.isArray(raw) && raw.length > 0) return raw;
+            // Legacy migration: convert old single-banner fields to array
+            const legacy = (data as any);
+            if (legacy.content_banner_image_url) {
+              return [{
+                enabled: legacy.content_banner_enabled || false,
+                title: legacy.content_banner_title || "",
+                subtitle: legacy.content_banner_subtitle || "",
+                title_color: legacy.content_banner_title_color || "#ffffff",
+                subtitle_color: legacy.content_banner_subtitle_color || "#ffffffcc",
+                url: legacy.content_banner_url || "",
+                image_url: legacy.content_banner_image_url || "",
+                cta_text: "",
+                cta_bg_color: "#000000",
+                cta_text_color: "#ffffff",
+              }];
+            }
+            return [
+              { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+              { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+              { enabled: false, title: "", subtitle: "", title_color: "#ffffff", subtitle_color: "#ffffffcc", url: "", image_url: "", cta_text: "", cta_bg_color: "#000000", cta_text_color: "#ffffff" },
+            ];
+          })(),
         });
 
         // Load appearance settings
