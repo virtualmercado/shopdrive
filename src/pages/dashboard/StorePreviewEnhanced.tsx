@@ -1463,6 +1463,25 @@ const StorePreviewEnhanced = () => {
           onSaved={fetchStoreData}
         />
 
+        {/* Banner de Conteúdo */}
+        <ContentBannerCard
+          data={{
+            content_banner_enabled: storeData.content_banner_enabled,
+            content_banner_title: storeData.content_banner_title,
+            content_banner_subtitle: storeData.content_banner_subtitle,
+            content_banner_title_color: storeData.content_banner_title_color,
+            content_banner_subtitle_color: storeData.content_banner_subtitle_color,
+            content_banner_url: storeData.content_banner_url,
+            content_banner_image_url: storeData.content_banner_image_url,
+          }}
+          onChange={(partial) => setStoreData({ ...storeData, ...partial })}
+          onImageUpload={(file) => handleImageUpload(file, "content_banner_image_url")}
+          onImageRemove={() => handleRemoveSingleImage("content_banner_image_url" as any)}
+          uploading={uploading}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+        />
+
         {/* Personalização do Rodapé */}
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Personalização do Rodapé</h2>

@@ -303,6 +303,17 @@ const OnlineStoreContent = () => {
         )}
       </main>
 
+      {/* Content Banner — above footer */}
+      <ContentBannerSection
+        enabled={(storeData as any).content_banner_enabled}
+        imageUrl={(storeData as any).content_banner_image_url}
+        title={(storeData as any).content_banner_title}
+        subtitle={(storeData as any).content_banner_subtitle}
+        titleColor={(storeData as any).content_banner_title_color}
+        subtitleColor={(storeData as any).content_banner_subtitle_color}
+        url={(storeData as any).content_banner_url}
+      />
+
       <StoreFooter storeData={storeData} />
 
       {storeData.whatsapp_number && (
