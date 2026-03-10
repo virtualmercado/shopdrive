@@ -13,6 +13,7 @@ import { BrandSection } from "@/components/store/BrandSection";
 import HomeVideoSection from "@/components/store/HomeVideoSection";
 import { StoreLayoutContent } from "@/components/store/StoreLayoutContent";
 import BenefitBannersSection from "@/components/store/BenefitBannersSection";
+import ContentBannerSection from "@/components/store/ContentBannerSection";
 import { CatalogProductList } from "@/components/store/CatalogProductList";
 import { MiniCartProvider } from "@/contexts/MiniCartContext";
 import { CartProvider, useCart } from "@/contexts/CartContext";
