@@ -1762,7 +1762,7 @@ export const ImageEditor = ({
                       onClick={() => handleCropPresetChange(preset)}
                       className="text-[11px] px-2.5 py-1 rounded-md transition-all duration-100 font-medium"
                       style={isActive 
-                        ? { backgroundColor: ie.accent, color: '#fff', boxShadow: `0 0 8px ${ie.accent}44` } 
+                        ? { backgroundColor: '#cfcfcf', color: '#1e1e1e', boxShadow: '0 0 6px rgba(207,207,207,0.2)' } 
                         : { backgroundColor: ie.btnGhost, color: ie.textDim }
                       }
                     >
