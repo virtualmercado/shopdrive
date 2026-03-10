@@ -288,13 +288,12 @@ const StoreHeader = ({
               accentColor={accentColor}
               onContactClick={onContactClick}
             />
-            <Link 
-              to={`/loja/${storeSlug}/conta`}
-              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors"
-            >
-              <User className="h-5 w-5" style={{ color: backgroundColor }} />
-              <span className="text-sm font-medium" style={{ color: backgroundColor }}>Entrar</span>
-            </Link>
+            <CustomerAccountDropdown
+              storeSlug={storeSlug}
+              storeOwnerId={storeOwnerId}
+              textColor={backgroundColor}
+              accentColor={accentColor}
+            />
             <Button variant="ghost" size="icon" className="hover:bg-gray-300 transition-colors relative" onClick={() => openMiniCart()}>
               <ShoppingCart className="h-5 w-5" style={{ color: backgroundColor }} />
               {cartItemCount > 0 && (
