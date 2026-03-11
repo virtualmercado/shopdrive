@@ -326,21 +326,27 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   key={item.path}
                   to={getNavPath(item.path)}
                   onClick={(e) => {
-                    if (window.innerWidth < 768) {
-                      if (mobileNavLocked) {
-                        e.preventDefault();
-                        return;
-                      }
+                    if (mobileNavLocked) {
                       e.preventDefault();
-                      setMobileNavLocked(true);
-                      // Brief highlight delay, then animate close
+                      return;
+                    }
+                    e.preventDefault();
+                    setMobileNavLocked(true);
+
+                    if (window.innerWidth < 768) {
+                      // Mobile: highlight → close sidebar → navigate after transition
                       setTimeout(() => {
                         setSidebarOpen(false);
-                        // Navigate after the CSS transition completes (300ms)
                         setTimeout(() => {
                           setMobileNavLocked(false);
                           navigate(getNavPath(item.path));
                         }, 300);
+                      }, 100);
+                    } else {
+                      // Desktop/Tablet: highlight → micro-delay → navigate, menu stays open
+                      setTimeout(() => {
+                        setMobileNavLocked(false);
+                        navigate(getNavPath(item.path));
                       }, 100);
                     }
                   }}
