@@ -38,7 +38,15 @@ import {
   Download,
   ExternalLink,
   AlertTriangle,
-  Globe
+  Globe,
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ShieldOff,
+  Lock,
+  FileWarning,
+  UserX
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
