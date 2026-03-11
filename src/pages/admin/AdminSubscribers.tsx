@@ -315,14 +315,14 @@ const AdminSubscribers = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">Gerenciar Assinantes</h2>
             <p className="text-sm text-muted-foreground">
-              {subscribers?.length || 0} assinantes cadastrados
+              {totalCount} assinantes cadastrados
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -333,12 +333,14 @@ const AdminSubscribers = () => {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-52">
                 <SelectValue placeholder="Filtrar status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+                <SelectItem value="pending">Pagamento pendente</SelectItem>
                 <SelectItem value="suspenso">Suspensos</SelectItem>
                 <SelectItem value="bloqueado">Bloqueados</SelectItem>
                 <SelectItem value="exclusao_solicitada">Exclusão solicitada</SelectItem>
@@ -350,6 +352,29 @@ const AdminSubscribers = () => {
               Atualizar
             </Button>
           </div>
+        </div>
+
+        {/* Status Quick-Filter Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {STATUS_CARDS.map(({ key, label, icon: Icon, color }) => {
+            const count = key === 'all' ? totalCount : (statusCounts[key] || 0);
+            const isActive = statusFilter === key;
+            return (
+              <Card
+                key={key}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  isActive ? 'ring-2 ring-primary shadow-md' : ''
+                }`}
+                onClick={() => setStatusFilter(key)}
+              >
+                <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
+                  <Icon className={`h-5 w-5 ${color}`} />
+                  <span className="text-xs text-muted-foreground leading-tight">{label}</span>
+                  <span className="text-lg font-bold">{count}</span>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Subscribers Table */}
