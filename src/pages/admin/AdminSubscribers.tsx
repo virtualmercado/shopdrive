@@ -360,8 +360,12 @@ const AdminSubscribers = () => {
                 <SelectItem value="excluida">Excluídos</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Atualizar
             </Button>
           </div>
