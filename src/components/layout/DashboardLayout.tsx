@@ -325,17 +325,30 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Link
                   key={item.path}
                   to={getNavPath(item.path)}
-                  onClick={() => {
-                    // Close sidebar on mobile after navigation
+                  onClick={(e) => {
                     if (window.innerWidth < 768) {
-                      setSidebarOpen(false);
+                      if (mobileNavLocked) {
+                        e.preventDefault();
+                        return;
+                      }
+                      e.preventDefault();
+                      setMobileNavLocked(true);
+                      // Brief highlight delay, then animate close
+                      setTimeout(() => {
+                        setSidebarOpen(false);
+                        // Navigate after the CSS transition completes (300ms)
+                        setTimeout(() => {
+                          setMobileNavLocked(false);
+                          navigate(getNavPath(item.path));
+                        }, 300);
+                      }, 100);
                     }
                   }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
                     isActive 
                       ? "bg-white/20 font-medium" 
-                      : "hover:bg-white/10"
+                      : "hover:bg-white/10 active:bg-white/25"
                   )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
