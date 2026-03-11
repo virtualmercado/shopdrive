@@ -75,6 +75,18 @@ const AdminSubscribers = () => {
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast.success("Dados atualizados com sucesso");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, refetch]);
 
   const { data: allSubscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm],
