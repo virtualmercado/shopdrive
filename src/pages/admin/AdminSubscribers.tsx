@@ -46,14 +46,15 @@ import {
   ShieldOff,
   Lock,
   FileWarning,
-  UserX
+  UserX,
+  Loader2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { AccountDeletionModal } from "@/components/admin/AccountDeletionModal";
 import { DataExportModal } from "@/components/admin/DataExportModal";
@@ -74,6 +75,7 @@ const AdminSubscribers = () => {
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: allSubscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm],
@@ -215,6 +217,17 @@ const AdminSubscribers = () => {
     ? allSubscribers
     : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
 
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast.success("Dados atualizados com sucesso");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, refetch]);
+
   const STATUS_CARDS = [
     { key: 'all', label: 'Todos', icon: Users, color: 'text-foreground' },
     { key: 'active', label: 'Ativos', icon: CheckCircle, color: 'text-green-600' },
@@ -347,8 +360,12 @@ const AdminSubscribers = () => {
                 <SelectItem value="excluida">Excluídos</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Atualizar
             </Button>
           </div>
