@@ -217,6 +217,17 @@ const AdminSubscribers = () => {
     ? allSubscribers
     : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
 
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast.success("Dados atualizados com sucesso");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, refetch]);
+
   const STATUS_CARDS = [
     { key: 'all', label: 'Todos', icon: Users, color: 'text-foreground' },
     { key: 'active', label: 'Ativos', icon: CheckCircle, color: 'text-green-600' },
