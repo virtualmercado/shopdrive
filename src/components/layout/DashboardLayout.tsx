@@ -64,6 +64,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
+  const [mobileNavLocked, setMobileNavLocked] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
