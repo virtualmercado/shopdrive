@@ -54,7 +54,7 @@ interface TemplateEditorContext {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [storeUrl, setStoreUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
