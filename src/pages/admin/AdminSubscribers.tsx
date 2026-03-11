@@ -75,8 +75,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
-  const { data: subscribers, isLoading, refetch } = useQuery({
-    queryKey: ['admin-subscribers', searchTerm, statusFilter],
+  const { data: allSubscribers, isLoading, refetch } = useQuery({
+    queryKey: ['admin-subscribers', searchTerm],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
@@ -95,23 +95,10 @@ const AdminSubscribers = () => {
         query = query.or(`store_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter === "active") {
-        query = query.eq('account_status', 'active');
-      } else if (statusFilter === "suspenso") {
-        query = query.eq('account_status', 'suspenso');
-      } else if (statusFilter === "bloqueado") {
-        query = query.eq('account_status', 'bloqueado');
-      } else if (statusFilter === "exclusao_solicitada") {
-        query = query.eq('account_status', 'exclusao_solicitada');
-      } else if (statusFilter === "excluida") {
-        query = query.eq('account_status', 'excluida');
-      }
-
-      const { data: profiles, error } = await query.limit(50);
+      const { data: profiles, error } = await query.limit(200);
 
       if (error) throw error;
 
-      // Fetch master_subscriptions for all profiles
       const profileIds = (profiles || []).map(p => p.id);
       
       const { data: allMasterSubs } = await supabase
@@ -120,7 +107,6 @@ const AdminSubscribers = () => {
         .in('user_id', profileIds)
         .order('created_at', { ascending: false });
 
-      // Build map: user_id -> latest master subscription
       const masterSubMap = new Map<string, any>();
       allMasterSubs?.forEach((sub) => {
         if (!masterSubMap.has(sub.user_id)) {
@@ -128,7 +114,6 @@ const AdminSubscribers = () => {
         }
       });
 
-      // Fetch latest paid invoices per subscriber
       const { data: allInvoices } = await supabase
         .from('invoices')
         .select('subscriber_id, status, paid_at, plan')
@@ -152,7 +137,6 @@ const AdminSubscribers = () => {
           const masterSub = masterSubMap.get(profile.id);
           const latestInvoice = invoiceMap.get(profile.id);
 
-          // Derive plan name
           let planName = 'Grátis';
           if (masterSub) {
             const pid = masterSub.plan_id;
@@ -162,7 +146,6 @@ const AdminSubscribers = () => {
             else planName = pid || 'Grátis';
           }
 
-          // Derive status using master_subscriptions + invoices
           let subscriptionStatus = 'inactive';
           if (masterSub) {
             if (masterSub.plan_id === 'gratis') {
@@ -182,7 +165,6 @@ const AdminSubscribers = () => {
             }
           }
 
-          // Override with invoice data if more recent
           if (latestInvoice) {
             if (latestInvoice.status === 'paid' && subscriptionStatus !== 'active') {
               subscriptionStatus = 'active';
@@ -206,6 +188,43 @@ const AdminSubscribers = () => {
       return subscriberData;
     }
   });
+
+  // Derive a unified filter status for each subscriber
+  const getFilterStatus = (subscriber: any): string => {
+    const acct = subscriber.account_status;
+    if (acct === 'excluida') return 'excluida';
+    if (acct === 'exclusao_solicitada') return 'exclusao_solicitada';
+    if (acct === 'bloqueado') return 'bloqueado';
+    if (acct === 'suspenso') return 'suspenso';
+    if (subscriber.subscriptionStatus === 'pending') return 'pending';
+    if (subscriber.subscriptionStatus === 'active') return 'active';
+    return 'inactive';
+  };
+
+  // Compute counts for each filter
+  const statusCounts = (allSubscribers || []).reduce((acc, sub) => {
+    const s = getFilterStatus(sub);
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalCount = allSubscribers?.length || 0;
+
+  // Apply filter client-side
+  const subscribers = statusFilter === 'all'
+    ? allSubscribers
+    : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
+
+  const STATUS_CARDS = [
+    { key: 'all', label: 'Todos', icon: Users, color: 'text-foreground' },
+    { key: 'active', label: 'Ativos', icon: CheckCircle, color: 'text-green-600' },
+    { key: 'inactive', label: 'Inativos', icon: XCircle, color: 'text-muted-foreground' },
+    { key: 'pending', label: 'Pagamento pendente', icon: Clock, color: 'text-blue-600' },
+    { key: 'suspenso', label: 'Suspensos', icon: ShieldOff, color: 'text-amber-600' },
+    { key: 'bloqueado', label: 'Bloqueados', icon: Lock, color: 'text-destructive' },
+    { key: 'exclusao_solicitada', label: 'Exclusão solicitada', icon: FileWarning, color: 'text-orange-600' },
+    { key: 'excluida', label: 'Excluídos', icon: UserX, color: 'text-muted-foreground' },
+  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
