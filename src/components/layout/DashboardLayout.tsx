@@ -64,6 +64,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
+  const [mobileNavLocked, setMobileNavLocked] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -324,17 +325,30 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Link
                   key={item.path}
                   to={getNavPath(item.path)}
-                  onClick={() => {
-                    // Close sidebar on mobile after navigation
+                  onClick={(e) => {
                     if (window.innerWidth < 768) {
-                      setSidebarOpen(false);
+                      if (mobileNavLocked) {
+                        e.preventDefault();
+                        return;
+                      }
+                      e.preventDefault();
+                      setMobileNavLocked(true);
+                      // Brief highlight delay, then animate close
+                      setTimeout(() => {
+                        setSidebarOpen(false);
+                        // Navigate after the CSS transition completes (300ms)
+                        setTimeout(() => {
+                          setMobileNavLocked(false);
+                          navigate(getNavPath(item.path));
+                        }, 300);
+                      }, 100);
                     }
                   }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-white",
                     isActive 
                       ? "bg-white/20 font-medium" 
-                      : "hover:bg-white/10"
+                      : "hover:bg-white/10 active:bg-white/25"
                   )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -360,13 +374,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </aside>
       
-      {/* Mobile overlay backdrop */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile overlay backdrop with fade transition */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300",
+          sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <div 
