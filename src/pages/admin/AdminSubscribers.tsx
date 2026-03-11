@@ -38,7 +38,15 @@ import {
   Download,
   ExternalLink,
   AlertTriangle,
-  Globe
+  Globe,
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ShieldOff,
+  Lock,
+  FileWarning,
+  UserX
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,8 +75,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
-  const { data: subscribers, isLoading, refetch } = useQuery({
-    queryKey: ['admin-subscribers', searchTerm, statusFilter],
+  const { data: allSubscribers, isLoading, refetch } = useQuery({
+    queryKey: ['admin-subscribers', searchTerm],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
@@ -87,23 +95,10 @@ const AdminSubscribers = () => {
         query = query.or(`store_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      if (statusFilter === "active") {
-        query = query.eq('account_status', 'active');
-      } else if (statusFilter === "suspenso") {
-        query = query.eq('account_status', 'suspenso');
-      } else if (statusFilter === "bloqueado") {
-        query = query.eq('account_status', 'bloqueado');
-      } else if (statusFilter === "exclusao_solicitada") {
-        query = query.eq('account_status', 'exclusao_solicitada');
-      } else if (statusFilter === "excluida") {
-        query = query.eq('account_status', 'excluida');
-      }
-
-      const { data: profiles, error } = await query.limit(50);
+      const { data: profiles, error } = await query.limit(200);
 
       if (error) throw error;
 
-      // Fetch master_subscriptions for all profiles
       const profileIds = (profiles || []).map(p => p.id);
       
       const { data: allMasterSubs } = await supabase
@@ -112,7 +107,6 @@ const AdminSubscribers = () => {
         .in('user_id', profileIds)
         .order('created_at', { ascending: false });
 
-      // Build map: user_id -> latest master subscription
       const masterSubMap = new Map<string, any>();
       allMasterSubs?.forEach((sub) => {
         if (!masterSubMap.has(sub.user_id)) {
@@ -120,7 +114,6 @@ const AdminSubscribers = () => {
         }
       });
 
-      // Fetch latest paid invoices per subscriber
       const { data: allInvoices } = await supabase
         .from('invoices')
         .select('subscriber_id, status, paid_at, plan')
@@ -144,7 +137,6 @@ const AdminSubscribers = () => {
           const masterSub = masterSubMap.get(profile.id);
           const latestInvoice = invoiceMap.get(profile.id);
 
-          // Derive plan name
           let planName = 'Grátis';
           if (masterSub) {
             const pid = masterSub.plan_id;
@@ -154,7 +146,6 @@ const AdminSubscribers = () => {
             else planName = pid || 'Grátis';
           }
 
-          // Derive status using master_subscriptions + invoices
           let subscriptionStatus = 'inactive';
           if (masterSub) {
             if (masterSub.plan_id === 'gratis') {
@@ -174,7 +165,6 @@ const AdminSubscribers = () => {
             }
           }
 
-          // Override with invoice data if more recent
           if (latestInvoice) {
             if (latestInvoice.status === 'paid' && subscriptionStatus !== 'active') {
               subscriptionStatus = 'active';
@@ -198,6 +188,43 @@ const AdminSubscribers = () => {
       return subscriberData;
     }
   });
+
+  // Derive a unified filter status for each subscriber
+  const getFilterStatus = (subscriber: any): string => {
+    const acct = subscriber.account_status;
+    if (acct === 'excluida') return 'excluida';
+    if (acct === 'exclusao_solicitada') return 'exclusao_solicitada';
+    if (acct === 'bloqueado') return 'bloqueado';
+    if (acct === 'suspenso') return 'suspenso';
+    if (subscriber.subscriptionStatus === 'pending') return 'pending';
+    if (subscriber.subscriptionStatus === 'active') return 'active';
+    return 'inactive';
+  };
+
+  // Compute counts for each filter
+  const statusCounts = (allSubscribers || []).reduce((acc, sub) => {
+    const s = getFilterStatus(sub);
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalCount = allSubscribers?.length || 0;
+
+  // Apply filter client-side
+  const subscribers = statusFilter === 'all'
+    ? allSubscribers
+    : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
+
+  const STATUS_CARDS = [
+    { key: 'all', label: 'Todos', icon: Users, color: 'text-foreground' },
+    { key: 'active', label: 'Ativos', icon: CheckCircle, color: 'text-green-600' },
+    { key: 'inactive', label: 'Inativos', icon: XCircle, color: 'text-muted-foreground' },
+    { key: 'pending', label: 'Pagamento pendente', icon: Clock, color: 'text-blue-600' },
+    { key: 'suspenso', label: 'Suspensos', icon: ShieldOff, color: 'text-amber-600' },
+    { key: 'bloqueado', label: 'Bloqueados', icon: Lock, color: 'text-destructive' },
+    { key: 'exclusao_solicitada', label: 'Exclusão solicitada', icon: FileWarning, color: 'text-orange-600' },
+    { key: 'excluida', label: 'Excluídos', icon: UserX, color: 'text-muted-foreground' },
+  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -288,14 +315,14 @@ const AdminSubscribers = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">Gerenciar Assinantes</h2>
             <p className="text-sm text-muted-foreground">
-              {subscribers?.length || 0} assinantes cadastrados
+              {totalCount} assinantes cadastrados
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -306,12 +333,14 @@ const AdminSubscribers = () => {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-52">
                 <SelectValue placeholder="Filtrar status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+                <SelectItem value="pending">Pagamento pendente</SelectItem>
                 <SelectItem value="suspenso">Suspensos</SelectItem>
                 <SelectItem value="bloqueado">Bloqueados</SelectItem>
                 <SelectItem value="exclusao_solicitada">Exclusão solicitada</SelectItem>
@@ -323,6 +352,29 @@ const AdminSubscribers = () => {
               Atualizar
             </Button>
           </div>
+        </div>
+
+        {/* Status Quick-Filter Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {STATUS_CARDS.map(({ key, label, icon: Icon, color }) => {
+            const count = key === 'all' ? totalCount : (statusCounts[key] || 0);
+            const isActive = statusFilter === key;
+            return (
+              <Card
+                key={key}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  isActive ? 'ring-2 ring-primary shadow-md' : ''
+                }`}
+                onClick={() => setStatusFilter(key)}
+              >
+                <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
+                  <Icon className={`h-5 w-5 ${color}`} />
+                  <span className="text-xs text-muted-foreground leading-tight">{label}</span>
+                  <span className="text-lg font-bold">{count}</span>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Subscribers Table */}
