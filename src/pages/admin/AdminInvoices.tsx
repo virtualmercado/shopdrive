@@ -27,19 +27,23 @@ import {
   Clock,
   XCircle,
   RefreshCw,
-  Calendar
+  Calendar,
+  Wallet,
+  Loader2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
 const AdminInvoices = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-invoices', statusFilter, searchTerm],
@@ -65,8 +69,15 @@ const AdminInvoices = () => {
       const { data: invoices, error } = await query;
       if (error) throw error;
 
-      // Calculate totals
+      // Calculate totals — use paid_at for "received this month" and due_date for MRR
       const { data: monthlyPaid } = await supabase
+        .from('invoices')
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('paid_at', monthStart)
+        .lte('paid_at', monthEnd);
+
+      const { data: monthlyMRR } = await supabase
         .from('invoices')
         .select('amount')
         .eq('status', 'paid')
@@ -77,8 +88,8 @@ const AdminInvoices = () => {
         .from('invoices')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'paid')
-        .gte('created_at', monthStart)
-        .lte('created_at', monthEnd);
+        .gte('paid_at', monthStart)
+        .lte('paid_at', monthEnd);
 
       const { count: overdueCount } = await supabase
         .from('invoices')
@@ -90,17 +101,32 @@ const AdminInvoices = () => {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
 
-      const totalMRR = monthlyPaid?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+      const totalMRR = monthlyMRR?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+      const totalReceived = monthlyPaid?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+
+      setLastUpdated(new Date());
 
       return {
         invoices: invoices || [],
         totalMRR,
+        totalReceived,
         paidCount: paidCount || 0,
         overdueCount: overdueCount || 0,
         pendingCount: pendingCount || 0
       };
     }
   });
+
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast.success("Dados atualizados com sucesso");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, refetch]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -122,72 +148,62 @@ const AdminInvoices = () => {
     }
   };
 
-  const handleExport = (format: string) => {
-    toast.success(`Exportação em ${format.toUpperCase()} será iniciada em breve`);
+  const handleExport = (fmt: string) => {
+    toast.success(`Exportação em ${fmt.toUpperCase()} será iniciada em breve`);
   };
+
+  // Quick-filter cards config
+  const STAT_CARDS = [
+    { key: 'all', label: 'Receita do Mês (MRR)', icon: DollarSign, getValue: () => formatCurrency(data?.totalMRR || 0), color: 'text-green-600' },
+    { key: 'received', label: 'Recebido no Mês', icon: Wallet, getValue: () => formatCurrency(data?.totalReceived || 0), color: 'text-emerald-600' },
+    { key: 'paid', label: 'Faturas Pagas', icon: CheckCircle, getValue: () => String(data?.paidCount || 0), color: 'text-green-500' },
+    { key: 'pending', label: 'Faturas Pendentes', icon: Clock, getValue: () => String(data?.pendingCount || 0), color: 'text-amber-500' },
+    { key: 'overdue', label: 'Faturas Atrasadas', icon: XCircle, getValue: () => String(data?.overdueCount || 0), color: 'text-red-500' },
+  ];
+
+  const handleCardClick = (key: string) => {
+    // MRR and Received cards don't filter
+    if (key === 'all' || key === 'received') {
+      setStatusFilter('all');
+    } else {
+      setStatusFilter(key);
+    }
+  };
+
+  const activeCardKey = statusFilter === 'all' ? 'all' : statusFilter;
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita do Mês (MRR)</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-28" />
-              ) : (
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(data?.totalMRR || 0)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturas Pagas</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold">{data?.paidCount}</div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturas Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold">{data?.pendingCount}</div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturas Atrasadas</CardTitle>
-              <XCircle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-red-600">{data?.overdueCount}</div>
-              )}
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {STAT_CARDS.map(({ key, label, icon: Icon, getValue, color }) => {
+            const isActive = key === activeCardKey || (key === 'all' && statusFilter === 'all' && activeCardKey === 'all') || (key === 'received' && statusFilter === 'all');
+            const isClickable = key !== 'all' && key !== 'received';
+            return (
+              <Card
+                key={key}
+                className={`transition-all ${isClickable ? 'cursor-pointer hover:shadow-md' : ''} ${
+                  isClickable && statusFilter === key ? 'ring-2 ring-primary shadow-md' : ''
+                }`}
+                onClick={() => handleCardClick(key)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                  <Icon className={`h-4 w-4 ${color}`} />
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <div className={`text-2xl font-bold ${key === 'overdue' ? 'text-red-600' : key === 'all' || key === 'received' ? 'text-green-600' : ''}`}>
+                      {getValue()}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Filters and Actions */}
@@ -215,6 +231,11 @@ const AdminInvoices = () => {
             </Select>
           </div>
           <div className="flex items-center gap-2">
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                Última atualização: {format(lastUpdated, "HH:mm")}
+              </span>
+            )}
             <Button variant="outline" onClick={() => handleExport('csv')}>
               <Download className="h-4 w-4 mr-2" />
               CSV
@@ -223,8 +244,12 @@ const AdminInvoices = () => {
               <Download className="h-4 w-4 mr-2" />
               PDF
             </Button>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Atualizar
             </Button>
           </div>

@@ -53,7 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { AccountDeletionModal } from "@/components/admin/AccountDeletionModal";
 import { DataExportModal } from "@/components/admin/DataExportModal";
