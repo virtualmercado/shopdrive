@@ -2,6 +2,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PeriodComparisonIndicator, CancellationComparisonIndicator } from "@/components/admin/PeriodComparisonIndicator";
 import {
   Select,
   SelectContent,
@@ -56,7 +57,6 @@ const AdminReports = () => {
         const start = format(startOfMonth(date), 'yyyy-MM-dd');
         const end = format(endOfMonth(date), 'yyyy-MM-dd');
 
-        // Get subscribers count for this month
         const { count: newSubscribers } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
@@ -64,7 +64,6 @@ const AdminReports = () => {
           .gte('created_at', start)
           .lte('created_at', end);
 
-        // Get invoices paid this month
         const { data: paidInvoices } = await supabase
           .from('invoices')
           .select('amount')
@@ -74,7 +73,6 @@ const AdminReports = () => {
 
         const revenue = paidInvoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
 
-        // Get cancellations from master_subscriptions
         const { count: cancellations } = await supabase
           .from('master_subscriptions')
           .select('*', { count: 'exact', head: true })
@@ -90,7 +88,53 @@ const AdminReports = () => {
         });
       }
 
-      // Get plan distribution from master_subscriptions (current active, not filtered by period)
+      // === Previous period data for comparison ===
+      const prevStart = format(startOfMonth(subMonths(new Date(), months * 2 - 1)), 'yyyy-MM-dd');
+      const prevEnd = format(endOfMonth(subMonths(new Date(), months)), 'yyyy-MM-dd');
+
+      // Previous period revenue
+      const { data: prevPaidInvoices } = await supabase
+        .from('invoices')
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('paid_at', prevStart)
+        .lte('paid_at', prevEnd);
+      const prevRevenue = prevPaidInvoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+
+      // Previous period cancellations
+      const { count: prevCancellations } = await supabase
+        .from('master_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'cancelled')
+        .gte('updated_at', prevStart)
+        .lte('updated_at', prevEnd);
+
+      // Previous period active subscribers (active at end of prev period)
+      // We approximate by: current active - net gained in current period
+      // Or query subscriptions created before prev period end that were active
+      const { count: prevActiveSubscribers } = await supabase
+        .from('master_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .lte('created_at', prevEnd);
+
+      // Previous period inadimplência
+      const { count: prevOverdueCount } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'overdue')
+        .lte('created_at', prevEnd);
+
+      const { count: prevTotalInvoices } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .lte('created_at', prevEnd);
+
+      const prevInadimplenciaRate = prevTotalInvoices && prevTotalInvoices > 0
+        ? ((prevOverdueCount || 0) / prevTotalInvoices) * 100
+        : 0;
+
+      // === Current period totals ===
       const { data: activeSubscriptions } = await supabase
         .from('master_subscriptions')
         .select('plan_id')
@@ -109,19 +153,15 @@ const AdminReports = () => {
         value
       }));
 
-      // Calculate totals
       const totalRevenue = monthlyData.reduce((sum, m) => sum + m.receita, 0);
       const totalNewSubscribers = monthlyData.reduce((sum, m) => sum + m.assinantes, 0);
       const totalCancellations = monthlyData.reduce((sum, m) => sum + m.cancelamentos, 0);
 
-      // Get current active count
-      // Current active subscribers count (NOT filtered by period)
       const { count: activeSubscribers } = await supabase
         .from('master_subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
-      // Calculate inadimplência
       const { count: overdueCount } = await supabase
         .from('invoices')
         .select('*', { count: 'exact', head: true })
@@ -142,7 +182,12 @@ const AdminReports = () => {
         totalNewSubscribers,
         totalCancellations,
         activeSubscribers: activeSubscribers || 0,
-        inadimplenciaRate: inadimplenciaRate.toFixed(1)
+        inadimplenciaRate: parseFloat(inadimplenciaRate.toFixed(1)),
+        // Previous period comparison data
+        prevRevenue,
+        prevCancellations: prevCancellations || 0,
+        prevActiveSubscribers: prevActiveSubscribers || 0,
+        prevInadimplenciaRate: parseFloat(prevInadimplenciaRate.toFixed(1)),
       };
     }
   });
@@ -203,6 +248,9 @@ const AdminReports = () => {
                   {formatCurrency(data?.totalRevenue || 0)}
                 </div>
               )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.totalRevenue} previous={data.prevRevenue} type="currency" />
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Últimos {period} meses
               </p>
@@ -219,6 +267,9 @@ const AdminReports = () => {
                 <Skeleton className="h-8 w-16" />
               ) : (
                 <div className="text-2xl font-bold">{data?.activeSubscribers}</div>
+              )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.activeSubscribers} previous={data.prevActiveSubscribers} type="count" />
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 +{data?.totalNewSubscribers || 0} novos no período
@@ -238,6 +289,9 @@ const AdminReports = () => {
                 <div className="text-2xl font-bold text-red-600">
                   {data?.totalCancellations}
                 </div>
+              )}
+              {!isLoading && data && (
+                <CancellationComparisonIndicator current={data.totalCancellations} previous={data.prevCancellations} />
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 No período selecionado
@@ -259,6 +313,9 @@ const AdminReports = () => {
                 }`}>
                   {data?.inadimplenciaRate}%
                 </div>
+              )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.inadimplenciaRate} previous={data.prevInadimplenciaRate} type="percentage" />
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 Taxa atual
