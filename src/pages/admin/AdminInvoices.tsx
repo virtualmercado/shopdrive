@@ -291,7 +291,7 @@ const AdminInvoices = () => {
                   data?.invoices.map((invoice: any) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-mono text-xs">
-                        {invoice.id.slice(0, 8)}...
+                        {invoice.invoice_id || invoice.id.slice(0, 8) + '...'}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">
