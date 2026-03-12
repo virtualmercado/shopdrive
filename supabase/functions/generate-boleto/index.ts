@@ -230,7 +230,7 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: errorMessage, details: mpData }),
+        JSON.stringify({ error: "Erro ao gerar boleto. Tente novamente." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
