@@ -798,19 +798,13 @@ serve(async (req) => {
         metadata: { paymentId: mpData.id, expiresAt: boletoExpiration.toISOString() }
       });
 
-      // Create invoice record for boleto payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: "pending",
-        due_date: boletoExpiration.toISOString(),
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "boleto",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          due_date: boletoExpiration.toISOString(),
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: true,
