@@ -248,6 +248,9 @@ const AdminReports = () => {
                   {formatCurrency(data?.totalRevenue || 0)}
                 </div>
               )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.totalRevenue} previous={data.prevRevenue} type="currency" />
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Últimos {period} meses
               </p>
