@@ -261,8 +261,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: errorMessage, 
           status: mpData.status,
-          statusDetail: mpData.status_detail,
-          details: mpData 
+          statusDetail: mpData.status_detail
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
