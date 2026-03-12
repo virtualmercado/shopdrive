@@ -526,9 +526,21 @@ const AdminLandingSupport = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" onClick={() => refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
+              <Button variant="outline" onClick={async () => {
+                setIsRefreshing(true);
+                await Promise.all([
+                  refetch(),
+                  queryClient.invalidateQueries({ queryKey: ['landing-tickets-stats'] }),
+                ]);
+                setIsRefreshing(false);
+                toast.success("Tickets atualizados");
+              }} disabled={isRefreshing}>
+                {isRefreshing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                {isRefreshing ? "Atualizando..." : "Atualizar"}
               </Button>
             </div>
 
