@@ -93,6 +93,13 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Log before signing out (while still authenticated)
+    await logAuditEvent({
+      action: "logout",
+      entityType: "auth",
+      description: "Usuário saiu do sistema",
+    });
+
     const { error } = await supabase.auth.signOut();
     
     if (error) {
