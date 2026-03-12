@@ -268,6 +268,9 @@ const AdminReports = () => {
               ) : (
                 <div className="text-2xl font-bold">{data?.activeSubscribers}</div>
               )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.activeSubscribers} previous={data.prevActiveSubscribers} type="count" />
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 +{data?.totalNewSubscribers || 0} novos no período
               </p>
