@@ -1888,6 +1888,7 @@ export type Database = {
           is_default: boolean
           mercadopago_access_token: string | null
           mercadopago_public_key: string | null
+          mercadopago_webhook_secret: string | null
           pagbank_email: string | null
           pagbank_token: string | null
           updated_at: string
@@ -1902,6 +1903,7 @@ export type Database = {
           is_default?: boolean
           mercadopago_access_token?: string | null
           mercadopago_public_key?: string | null
+          mercadopago_webhook_secret?: string | null
           pagbank_email?: string | null
           pagbank_token?: string | null
           updated_at?: string
@@ -1916,6 +1918,7 @@ export type Database = {
           is_default?: boolean
           mercadopago_access_token?: string | null
           mercadopago_public_key?: string | null
+          mercadopago_webhook_secret?: string | null
           pagbank_email?: string | null
           pagbank_token?: string | null
           updated_at?: string
