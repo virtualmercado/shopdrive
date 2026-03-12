@@ -143,7 +143,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Erro ao calcular frete", 
-          details: responseText,
           quotes: [] 
         }),
         { 

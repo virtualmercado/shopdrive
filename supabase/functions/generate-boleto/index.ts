@@ -230,7 +230,7 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: errorMessage, details: mpData }),
+        JSON.stringify({ error: "Erro ao gerar boleto. Tente novamente." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -261,8 +261,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: errorMessage, 
           status: mpData.status,
-          statusDetail: mpData.status_detail,
-          details: mpData 
+          statusDetail: mpData.status_detail
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -283,9 +282,8 @@ serve(async (req) => {
       console.error("No boleto URL in response:", mpData);
       return new Response(
         JSON.stringify({ 
-          error: "Falha ao gerar boleto - URL não retornada pelo gateway. Verifique as configurações da conta Mercado Pago.",
-          paymentStatus: mpData.status,
-          details: mpData
+          error: "Falha ao gerar boleto. Verifique as configurações do gateway de pagamento.",
+          paymentStatus: mpData.status
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

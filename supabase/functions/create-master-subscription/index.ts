@@ -420,8 +420,7 @@ serve(async (req) => {
           JSON.stringify({ 
             error: userMessage, 
             statusDetail: statusDetail,
-            declineType: isHardDecline ? "hard" : "soft",
-            details: mpData
+            declineType: isHardDecline ? "hard" : "soft"
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
