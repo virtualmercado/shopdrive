@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logAuditEvent } from '@/lib/auditLog';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -76,6 +77,13 @@ export const useAuth = () => {
       return { error };
     }
 
+    // Log successful login
+    logAuditEvent({
+      action: "login",
+      entityType: "auth",
+      description: "Usuário realizou login no sistema",
+    });
+
     toast({
       title: "Login realizado!",
       description: "Redirecionando para o painel...",
@@ -85,6 +93,13 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Log before signing out (while still authenticated)
+    await logAuditEvent({
+      action: "logout",
+      entityType: "auth",
+      description: "Usuário saiu do sistema",
+    });
+
     const { error } = await supabase.auth.signOut();
     
     if (error) {

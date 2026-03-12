@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { logAuditEvent } from "@/lib/auditLog";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
@@ -786,6 +787,13 @@ const CheckoutContent = () => {
             throw new Error("Pagamento aprovado, mas houve erro ao criar o pedido. Entre em contato com a loja.");
           }
 
+          logAuditEvent({
+            action: "order_created",
+            entityType: "order",
+            entityId: order.id,
+            description: "Novo pedido registrado na loja",
+          });
+
           // Insert order items
           const orderItems = cart.map((item) => ({
             order_id: order.id,
@@ -910,6 +918,13 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         .single();
 
       if (orderError || !order) throw new Error("Erro ao criar pedido");
+
+      logAuditEvent({
+        action: "order_created",
+        entityType: "order",
+        entityId: order.id,
+        description: "Novo pedido registrado na loja",
+      });
 
       const orderItems = cart.map((item) => ({
         order_id: order.id,

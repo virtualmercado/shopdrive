@@ -10,22 +10,26 @@ import {
 } from "@/components/ui/select";
 import {
   Shield, Search, Filter, Download, AlertTriangle, CheckCircle, XCircle,
-  User, CreditCard, Link as LinkIcon, FileText, Clock, HardDrive, RotateCcw, RefreshCw,
+  User, CreditCard, Link as LinkIcon, FileText, Clock, HardDrive, RotateCcw, RefreshCw, Eye,
+  Package, ShoppingCart, LogOut,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import LogDetailModal from "./LogDetailModal";
 
 const SecurityLogsTab = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['admin-audit-logs-tab', typeFilter, searchTerm],
+  const { data: logs, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['admin-audit-logs-tab', typeFilter],
     queryFn: async () => {
       let query = supabase
         .from('audit_logs')
@@ -39,11 +43,30 @@ const SecurityLogsTab = () => {
         query = query.eq('entity_type', typeFilter);
       }
 
-      const { data, error } = await query.limit(100);
+      const { data, error } = await query.limit(200);
       if (error) throw error;
       return data;
     }
   });
+
+  // Client-side search filter
+  const filteredLogs = useMemo(() => {
+    if (!logs) return [];
+    if (!searchTerm.trim()) return logs;
+    const term = searchTerm.toLowerCase();
+    return logs.filter((log: any) => {
+      const meta = log.metadata || {};
+      return (
+        (log.action || "").toLowerCase().includes(term) ||
+        (log.entity_type || "").toLowerCase().includes(term) ||
+        (log.profiles?.store_name || "").toLowerCase().includes(term) ||
+        (log.profiles?.email || "").toLowerCase().includes(term) ||
+        (meta.user_name || "").toLowerCase().includes(term) ||
+        (meta.user_email || "").toLowerCase().includes(term) ||
+        (meta.description || "").toLowerCase().includes(term)
+      );
+    });
+  }, [logs, searchTerm]);
 
   const { data: securityAlerts } = useQuery({
     queryKey: ['admin-security-alerts-tab'],
@@ -63,9 +86,14 @@ const SecurityLogsTab = () => {
     switch (action) {
       case 'login': return <User className="h-4 w-4 text-green-500" />;
       case 'login_failed': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'payment': return <CreditCard className="h-4 w-4 text-blue-500" />;
+      case 'logout': return <LogOut className="h-4 w-4 text-muted-foreground" />;
+      case 'payment': case 'payment_confirmed': return <CreditCard className="h-4 w-4 text-blue-500" />;
       case 'integration': return <LinkIcon className="h-4 w-4 text-purple-500" />;
-      case 'plan_change': return <FileText className="h-4 w-4 text-amber-500" />;
+      case 'plan_change': case 'plan_changed': return <FileText className="h-4 w-4 text-amber-500" />;
+      case 'product_created': case 'product_updated': return <Package className="h-4 w-4 text-emerald-500" />;
+      case 'order_created': return <ShoppingCart className="h-4 w-4 text-blue-500" />;
+      case 'subscription_canceled': return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'system_backup': return <HardDrive className="h-4 w-4 text-muted-foreground" />;
       default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -74,9 +102,15 @@ const SecurityLogsTab = () => {
     switch (action) {
       case 'login': return <Badge className="bg-green-100 text-green-800">Login</Badge>;
       case 'login_failed': return <Badge variant="destructive">Falha Login</Badge>;
-      case 'payment': return <Badge className="bg-blue-100 text-blue-800">Pagamento</Badge>;
+      case 'logout': return <Badge className="bg-gray-100 text-gray-800">Logout</Badge>;
+      case 'payment': case 'payment_confirmed': return <Badge className="bg-blue-100 text-blue-800">Pagamento</Badge>;
       case 'integration': return <Badge className="bg-purple-100 text-purple-800">Integração</Badge>;
-      case 'plan_change': return <Badge className="bg-amber-100 text-amber-800">Alteração Plano</Badge>;
+      case 'plan_change': case 'plan_changed': return <Badge className="bg-amber-100 text-amber-800">Alteração Plano</Badge>;
+      case 'product_created': return <Badge className="bg-emerald-100 text-emerald-800">Produto Criado</Badge>;
+      case 'product_updated': return <Badge className="bg-emerald-100 text-emerald-800">Produto Editado</Badge>;
+      case 'order_created': return <Badge className="bg-blue-100 text-blue-800">Pedido Criado</Badge>;
+      case 'subscription_canceled': return <Badge variant="destructive">Cancelamento</Badge>;
+      case 'system_backup': return <Badge className="bg-gray-100 text-gray-800">Backup</Badge>;
       default: return <Badge variant="secondary">{action}</Badge>;
     }
   };
@@ -100,6 +134,16 @@ const SecurityLogsTab = () => {
 
   const handleRestore = () => {
     toast.info('Funcionalidade de restauração será implementada em breve');
+  };
+
+  const handleViewDetail = (log: any) => {
+    setSelectedLog(log);
+    setDetailOpen(true);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success('Logs atualizados');
   };
 
   return (
@@ -202,6 +246,8 @@ const SecurityLogsTab = () => {
               <SelectItem value="payment">Pagamento</SelectItem>
               <SelectItem value="integration">Integração</SelectItem>
               <SelectItem value="subscription">Assinatura</SelectItem>
+              <SelectItem value="product">Produto</SelectItem>
+              <SelectItem value="order">Pedido</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -210,8 +256,8 @@ const SecurityLogsTab = () => {
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={handleRefresh} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
@@ -235,6 +281,7 @@ const SecurityLogsTab = () => {
                 <TableHead>Tipo</TableHead>
                 <TableHead>IP</TableHead>
                 <TableHead>Data/Hora</TableHead>
+                <TableHead className="w-24">Detalhes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -246,47 +293,68 @@ const SecurityLogsTab = () => {
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   </TableRow>
                 ))
-              ) : logs?.length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhum log encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                logs?.map((log: any) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getActionIcon(log.action)}
-                        {getActionBadge(log.action)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {log.profiles?.store_name || 'Sistema'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {log.profiles?.email || '-'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{log.entity_type}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {log.ip_address || '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredLogs.map((log: any) => {
+                  const meta = log.metadata || {};
+                  return (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getActionIcon(log.action)}
+                          {getActionBadge(log.action)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {meta.user_name || log.profiles?.store_name || 'Sistema'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {meta.user_email || log.profiles?.email || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{log.entity_type}</Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {log.ip_address || '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetail(log)}
+                          className="gap-1 text-xs"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Ver
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <LogDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        log={selectedLog}
+      />
     </div>
   );
 };
