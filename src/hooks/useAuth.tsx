@@ -77,6 +77,13 @@ export const useAuth = () => {
       return { error };
     }
 
+    // Log successful login
+    logAuditEvent({
+      action: "login",
+      entityType: "auth",
+      description: "Usuário realizou login no sistema",
+    });
+
     toast({
       title: "Login realizado!",
       description: "Redirecionando para o painel...",
