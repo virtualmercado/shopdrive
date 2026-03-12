@@ -153,6 +153,7 @@ const AdminLandingSupport = () => {
   const [editingTemplate, setEditingTemplate] = useState<ResponseTemplate | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   // Fetch tickets
