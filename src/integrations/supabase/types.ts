@@ -2401,6 +2401,8 @@ export type Database = {
           deleted_by_admin: boolean
           deleted_by_merchant: boolean
           id: string
+          last_interaction_at: string | null
+          last_interaction_by: string | null
           merchant_id: string
           message: string
           read_at: string | null
@@ -2415,6 +2417,8 @@ export type Database = {
           deleted_by_admin?: boolean
           deleted_by_merchant?: boolean
           id?: string
+          last_interaction_at?: string | null
+          last_interaction_by?: string | null
           merchant_id: string
           message: string
           read_at?: string | null
@@ -2429,6 +2433,8 @@ export type Database = {
           deleted_by_admin?: boolean
           deleted_by_merchant?: boolean
           id?: string
+          last_interaction_at?: string | null
+          last_interaction_by?: string | null
           merchant_id?: string
           message?: string
           read_at?: string | null
