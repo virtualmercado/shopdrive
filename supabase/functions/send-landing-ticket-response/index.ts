@@ -20,7 +20,6 @@ interface SendEmailRequest {
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-landing-ticket-response: Request received");
   
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -39,20 +38,34 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("RESEND_API_KEY não configurada");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get user from authorization header
+    // --- Mandatory JWT Authentication ---
     const authHeader = req.headers.get("authorization");
-    let userId: string | null = null;
-    
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && user) {
-        userId = user.id;
-        console.log("Authenticated user:", userId);
-      }
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
+
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+    console.log("Authenticated user:", userId);
+    // --- End Auth ---
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { ticketId, to, subject, message, ticketProtocolo }: SendEmailRequest = await req.json();
 
@@ -197,7 +210,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (insertError) {
       console.error("Error recording response:", insertError);
-      // Don't throw - email was sent successfully
     }
 
     // Update ticket status to "aguardando_cliente"
@@ -211,7 +223,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating ticket status:", updateError);
-      // Don't throw - email was sent successfully
     }
 
     return new Response(
