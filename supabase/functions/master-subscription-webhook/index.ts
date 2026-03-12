@@ -221,16 +221,9 @@ serve(async (req) => {
 
     console.log("Found payment:", payment.id, "subscription:", payment.subscription_id);
 
-    // Get gateway credentials to fetch payment details from MP
-    const { data: gateway } = await supabase
-      .from("master_payment_gateways")
-      .select("mercadopago_access_token")
-      .eq("is_active", true)
-      .eq("is_default", true)
-      .maybeSingle();
-
+    // Gateway credentials already fetched during signature verification
     if (!gateway?.mercadopago_access_token) {
-      console.error("No gateway credentials found");
+      console.error("No gateway access token found");
       return new Response(
         JSON.stringify({ error: "Gateway credentials not found" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
