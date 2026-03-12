@@ -200,6 +200,33 @@ serve(async (req) => {
       );
     }
 
+    // Dedup: check if this webhook event was already processed
+    const eventId = body.id?.toString() || body.data?.id?.toString() || "";
+    if (eventId) {
+      const { data: existingEvent } = await supabase
+        .from("webhook_events")
+        .select("id")
+        .eq("gateway", "mercadopago_master")
+        .eq("gateway_event_id", eventId)
+        .maybeSingle();
+
+      if (existingEvent) {
+        console.log("Duplicate webhook event, skipping:", eventId);
+        return new Response(
+          JSON.stringify({ received: true, duplicate: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Record this event
+      await supabase.from("webhook_events").insert({
+        gateway: "mercadopago_master",
+        gateway_event_id: eventId,
+        event_type: topic,
+        payload: body,
+      });
+    }
+
     // Find payment in our database
     const { data: payment, error: paymentError } = await supabase
       .from("master_subscription_payments")

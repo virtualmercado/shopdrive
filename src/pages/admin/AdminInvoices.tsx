@@ -291,7 +291,7 @@ const AdminInvoices = () => {
                   data?.invoices.map((invoice: any) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-mono text-xs">
-                        {invoice.id.slice(0, 8)}...
+                        {invoice.invoice_id || invoice.id.slice(0, 8) + '...'}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">
@@ -335,30 +335,31 @@ const AdminInvoices = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-sm">MP</span>
+              {[
+                { code: "MP", name: "Mercado Pago", active: true, bgColor: "bg-blue-100", textColor: "text-blue-600" },
+                { code: "PB", name: "PagBank", active: true, bgColor: "bg-green-100", textColor: "text-green-600" },
+                { code: "ST", name: "Stone / Ton", active: false, bgColor: "bg-gray-100", textColor: "text-gray-600" },
+                { code: "IP", name: "InfinitePay", active: false, bgColor: "bg-gray-100", textColor: "text-gray-600" },
+              ].map((gw) => (
+                <div key={gw.code} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 ${gw.bgColor} rounded-lg flex items-center justify-center`}>
+                      <span className={`${gw.textColor} font-bold text-sm`}>{gw.code}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{gw.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {gw.active ? "Webhook ativo" : "Webhook não configurado"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">Mercado Pago</p>
-                    <p className="text-xs text-muted-foreground">Webhook ativo</p>
-                  </div>
+                  {gw.active ? (
+                    <Badge className="bg-green-100 text-green-800">Conectado</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-500">Não configurado</Badge>
+                  )}
                 </div>
-                <Badge className="bg-green-100 text-green-800">Conectado</Badge>
-              </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <span className="text-green-600 font-bold text-sm">PB</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">PagBank</p>
-                    <p className="text-xs text-muted-foreground">Webhook ativo</p>
-                  </div>
-                </div>
-                <Badge className="bg-green-100 text-green-800">Conectado</Badge>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>

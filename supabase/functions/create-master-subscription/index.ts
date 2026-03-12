@@ -306,6 +306,36 @@ serve(async (req) => {
     // Process payment based on method and cycle
     let paymentResult: any = null;
 
+    // Pre-create invoice to get invoice_id for external_reference
+    const invoiceDueDate = paymentMethod === "pix" 
+      ? new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      : paymentMethod === "boleto"
+        ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+        : new Date().toISOString();
+
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
+      .insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: paymentMethod === "credit_card" && billingCycle === "monthly" ? monthlyPrice : totalAmount,
+        status: "pending",
+        due_date: invoiceDueDate,
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: paymentMethod,
+        plan: planId,
+      })
+      .select("invoice_id, id")
+      .single();
+
+    if (invoiceError) {
+      console.error("Invoice pre-creation error:", invoiceError);
+    }
+
+    const invoiceRef = invoice?.invoice_id || subscription.id;
+    console.log("Invoice pre-created with invoice_id:", invoiceRef);
+
     if (billingCycle === "monthly" && paymentMethod === "credit_card") {
       // Create recurring subscription with Mercado Pago Preapproval
       if (!cardToken) {
@@ -332,7 +362,7 @@ serve(async (req) => {
           }
         },
         statement_descriptor: "VIRTUALMERCADO",
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
         capture: true,
       };
 
@@ -441,20 +471,14 @@ serve(async (req) => {
         });
       }
 
-      // Create invoice record for monthly card payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: monthlyPrice,
-        status: mpData.status === "approved" ? "paid" : "pending",
-        due_date: new Date().toISOString(),
-        paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "credit_card",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          status: mpData.status === "approved" ? "paid" : "pending",
+          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: mpData.status === "approved",
@@ -489,7 +513,7 @@ serve(async (req) => {
           }
         },
         statement_descriptor: "VIRTUALMERCADO",
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
         capture: true,
       };
 
@@ -569,20 +593,15 @@ serve(async (req) => {
         });
       }
 
-      // Create invoice record for annual card payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: mpData.status === "approved" ? "paid" : "pending",
-        due_date: new Date().toISOString(),
-        paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "credit_card",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          amount: totalAmount,
+          status: mpData.status === "approved" ? "paid" : "pending",
+          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: mpData.status === "approved",
@@ -622,7 +641,7 @@ serve(async (req) => {
           }
         },
         date_of_expiration: pixExpiration.toISOString(),
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
       };
 
       console.log("Generating PIX for annual payment...");
@@ -677,19 +696,13 @@ serve(async (req) => {
         metadata: { paymentId: mpData.id, expiresAt: pixExpiration.toISOString() }
       });
 
-      // Create invoice record for PIX payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: "pending",
-        due_date: pixExpiration.toISOString(),
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "pix",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          due_date: pixExpiration.toISOString(),
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: true,
@@ -729,7 +742,7 @@ serve(async (req) => {
           }
         },
         date_of_expiration: boletoExpiration.toISOString(),
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
       };
 
       console.log("Generating Boleto for annual payment...");
@@ -785,19 +798,13 @@ serve(async (req) => {
         metadata: { paymentId: mpData.id, expiresAt: boletoExpiration.toISOString() }
       });
 
-      // Create invoice record for boleto payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: "pending",
-        due_date: boletoExpiration.toISOString(),
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "boleto",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          due_date: boletoExpiration.toISOString(),
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: true,
