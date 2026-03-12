@@ -199,9 +199,13 @@ serve(async (req) => {
               { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-        } else {
-          // No webhook secret configured - log warning but allow for backwards compatibility
-          console.warn(`No webhook secret configured for ${gateway} - signature verification skipped. Configure webhook secrets for better security.`);
+      } else {
+          // No webhook secret configured - reject for security
+          console.error(`No webhook secret configured for ${gateway} - rejecting unsigned webhook`);
+          return new Response(
+            JSON.stringify({ error: "Webhook secret not configured. Configure webhook secrets in payment settings." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
     }
