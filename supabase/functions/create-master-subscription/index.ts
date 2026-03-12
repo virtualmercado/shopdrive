@@ -513,7 +513,7 @@ serve(async (req) => {
           }
         },
         statement_descriptor: "VIRTUALMERCADO",
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
         capture: true,
       };
 
