@@ -912,6 +912,13 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
       if (orderError || !order) throw new Error("Erro ao criar pedido");
 
+      logAuditEvent({
+        action: "order_created",
+        entityType: "order",
+        entityId: order.id,
+        description: "Novo pedido registrado na loja",
+      });
+
       const orderItems = cart.map((item) => ({
         order_id: order.id,
         product_id: item.id,
