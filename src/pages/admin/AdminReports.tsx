@@ -115,8 +115,9 @@ const AdminReports = () => {
       const totalCancellations = monthlyData.reduce((sum, m) => sum + m.cancelamentos, 0);
 
       // Get current active count
+      // Current active subscribers count (NOT filtered by period)
       const { count: activeSubscribers } = await supabase
-        .from('subscriptions')
+        .from('master_subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
