@@ -2,6 +2,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PeriodComparisonIndicator, CancellationComparisonIndicator } from "@/components/admin/PeriodComparisonIndicator";
 import {
   Select,
   SelectContent,
