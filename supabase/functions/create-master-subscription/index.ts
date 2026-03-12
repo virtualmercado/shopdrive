@@ -306,6 +306,36 @@ serve(async (req) => {
     // Process payment based on method and cycle
     let paymentResult: any = null;
 
+    // Pre-create invoice to get invoice_id for external_reference
+    const invoiceDueDate = paymentMethod === "pix" 
+      ? new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      : paymentMethod === "boleto"
+        ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+        : new Date().toISOString();
+
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
+      .insert({
+        subscriber_id: userId,
+        subscription_id: subscription.id,
+        amount: paymentMethod === "credit_card" && billingCycle === "monthly" ? monthlyPrice : totalAmount,
+        status: "pending",
+        due_date: invoiceDueDate,
+        reference_period_start: periodStart,
+        reference_period_end: periodEnd,
+        payment_method: paymentMethod,
+        plan: planId,
+      })
+      .select("invoice_id, id")
+      .single();
+
+    if (invoiceError) {
+      console.error("Invoice pre-creation error:", invoiceError);
+    }
+
+    const invoiceRef = invoice?.invoice_id || subscription.id;
+    console.log("Invoice pre-created with invoice_id:", invoiceRef);
+
     if (billingCycle === "monthly" && paymentMethod === "credit_card") {
       // Create recurring subscription with Mercado Pago Preapproval
       if (!cardToken) {
@@ -332,7 +362,7 @@ serve(async (req) => {
           }
         },
         statement_descriptor: "VIRTUALMERCADO",
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
         capture: true,
       };
 
