@@ -111,7 +111,9 @@ const Support = () => {
       .insert({
         merchant_id: user.id,
         message: message.trim(),
-        status: 'pending'
+        status: 'pending',
+        last_interaction_by: 'lojista',
+        last_interaction_at: new Date().toISOString(),
       });
 
     if (error) {
