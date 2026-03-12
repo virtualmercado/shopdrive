@@ -593,20 +593,15 @@ serve(async (req) => {
         });
       }
 
-      // Create invoice record for annual card payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: mpData.status === "approved" ? "paid" : "pending",
-        due_date: new Date().toISOString(),
-        paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "credit_card",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          amount: totalAmount,
+          status: mpData.status === "approved" ? "paid" : "pending",
+          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: mpData.status === "approved",
