@@ -37,12 +37,13 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -57,11 +58,42 @@ interface MerchantTicket {
   answered_at: string | null;
   read_at: string | null;
   updated_at: string;
+  last_interaction_by: string | null;
+  last_interaction_at: string | null;
   profiles?: {
     store_name: string | null;
     email: string | null;
   };
 }
+
+/**
+ * Returns SLA status based on hours since creation for unanswered tickets.
+ */
+const getSlaStatus = (ticket: MerchantTicket) => {
+  // Only show SLA for open (pending) tickets
+  if (ticket.status !== "pending") return null;
+
+  const createdAt = new Date(ticket.created_at).getTime();
+  const now = Date.now();
+  const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+
+  if (hoursElapsed <= 4) return "ok";
+  if (hoursElapsed <= 24) return "warning";
+  return "overdue";
+};
+
+const SlaBadge = ({ ticket }: { ticket: MerchantTicket }) => {
+  const sla = getSlaStatus(ticket);
+  if (!sla) return null;
+
+  const config = {
+    ok: { label: "Dentro do prazo", className: "bg-green-100 text-green-800" },
+    warning: { label: "Atenção", className: "bg-amber-100 text-amber-800" },
+    overdue: { label: "Atrasado", className: "bg-red-100 text-red-800" },
+  }[sla];
+
+  return <Badge className={config.className}>{config.label}</Badge>;
+};
 
 const AdminSupport = () => {
   const queryClient = useQueryClient();
@@ -72,11 +104,12 @@ const AdminSupport = () => {
   const [responseText, setResponseText] = useState("");
   const [sendingResponse, setSendingResponse] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: tickets, isLoading, refetch } = useQuery({
-    queryKey: ['admin-merchant-tickets', statusFilter, searchTerm],
+    queryKey: ['admin-merchant-tickets', statusFilter],
     queryFn: async () => {
-  let query = supabase
+      let query = supabase
         .from('merchant_support_tickets')
         .select('*')
         .eq('deleted_by_admin', false)
@@ -86,17 +119,21 @@ const AdminSupport = () => {
         query = query.eq('status', statusFilter);
       }
 
-      const { data: ticketsData, error } = await query.limit(50);
+      const { data: ticketsData, error } = await query.limit(200);
       if (error) throw error;
 
       // Fetch profiles for each unique merchant_id
       const merchantIds = [...new Set(ticketsData?.map(t => t.merchant_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, store_name, email')
-        .in('id', merchantIds);
+      let profilesMap = new Map<string, { store_name: string | null; email: string | null }>();
 
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      if (merchantIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, store_name, email')
+          .in('id', merchantIds);
+
+        profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      }
 
       return (ticketsData || []).map(ticket => ({
         ...ticket,
@@ -105,7 +142,7 @@ const AdminSupport = () => {
     }
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['admin-merchant-tickets-stats'],
     queryFn: async () => {
       const { count: pendingCount } = await supabase
@@ -134,6 +171,18 @@ const AdminSupport = () => {
     }
   });
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([refetch(), refetchStats()]);
+    setIsRefreshing(false);
+    toast.success("Tickets atualizados");
+  };
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets-stats'] });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -148,7 +197,11 @@ const AdminSupport = () => {
   };
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
-    const updateData: Record<string, any> = { status: newStatus };
+    const updateData: Record<string, any> = {
+      status: newStatus,
+      last_interaction_by: 'admin',
+      last_interaction_at: new Date().toISOString(),
+    };
     
     if (newStatus === 'answered') {
       updateData.answered_at = new Date().toISOString();
@@ -167,8 +220,7 @@ const AdminSupport = () => {
     }
 
     toast.success("Status atualizado com sucesso");
-    refetch();
-    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets-stats'] });
+    invalidateAll();
     
     if (selectedTicket?.id === ticketId) {
       setSelectedTicket({ ...selectedTicket, status: newStatus });
@@ -180,12 +232,15 @@ const AdminSupport = () => {
 
     setSendingResponse(true);
 
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from('merchant_support_tickets')
       .update({
         response: responseText.trim(),
         status: 'answered',
-        answered_at: new Date().toISOString()
+        answered_at: now,
+        last_interaction_by: 'admin',
+        last_interaction_at: now,
       })
       .eq('id', selectedTicket.id);
 
@@ -198,14 +253,15 @@ const AdminSupport = () => {
     toast.success("Resposta enviada com sucesso!");
     setResponseText("");
     setSendingResponse(false);
-    refetch();
-    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets-stats'] });
+    invalidateAll();
     
     setSelectedTicket({
       ...selectedTicket,
       response: responseText.trim(),
       status: 'answered',
-      answered_at: new Date().toISOString()
+      answered_at: now,
+      last_interaction_by: 'admin',
+      last_interaction_at: now,
     });
   };
 
@@ -228,19 +284,29 @@ const AdminSupport = () => {
     }
 
     toast.success("Ticket excluído com sucesso");
-    refetch();
-    queryClient.invalidateQueries({ queryKey: ['admin-merchant-tickets-stats'] });
+    invalidateAll();
   };
 
   const filteredTickets = tickets?.filter(ticket => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
+      ticket.id?.toLowerCase().includes(search) ||
       ticket.message?.toLowerCase().includes(search) ||
       ticket.profiles?.store_name?.toLowerCase().includes(search) ||
       ticket.profiles?.email?.toLowerCase().includes(search)
     );
   });
+
+  const formatLastInteraction = (ticket: MerchantTicket) => {
+    if (!ticket.last_interaction_at) return null;
+    const who = ticket.last_interaction_by === "admin" ? "ShopDrive" : "Lojista";
+    const timeAgo = formatDistanceToNow(new Date(ticket.last_interaction_at), {
+      addSuffix: true,
+      locale: ptBR,
+    });
+    return `${who} — ${timeAgo}`;
+  };
 
   return (
     <AdminLayout>
@@ -306,9 +372,13 @@ const AdminSupport = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            {isRefreshing ? "Atualizando..." : "Atualizar"}
           </Button>
         </div>
 
@@ -320,6 +390,7 @@ const AdminSupport = () => {
                 <TableRow>
                   <TableHead>Ticket</TableHead>
                   <TableHead>Assinante</TableHead>
+                  <TableHead>Última Interação</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -330,13 +401,14 @@ const AdminSupport = () => {
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredTickets?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       Nenhum ticket encontrado
                     </TableCell>
                   </TableRow>
@@ -346,8 +418,9 @@ const AdminSupport = () => {
                       <TableCell>
                         <div className="max-w-md">
                           <p className="text-sm font-medium truncate">{ticket.message}</p>
-                          <div className="mt-1">
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {getStatusBadge(ticket.status)}
+                            <SlaBadge ticket={ticket} />
                           </div>
                         </div>
                       </TableCell>
@@ -358,6 +431,15 @@ const AdminSupport = () => {
                         <div className="text-xs text-muted-foreground">
                           {ticket.profiles?.email}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {formatLastInteraction(ticket) ? (
+                          <span className="text-xs text-muted-foreground">
+                            {formatLastInteraction(ticket)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(ticket.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
@@ -407,7 +489,7 @@ const AdminSupport = () => {
             {selectedTicket && (
               <div className="space-y-4 mt-2">
                 {/* Ticket info */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
                     <p className="text-sm font-medium">
                       {selectedTicket.profiles?.store_name || 'Lojista'}
@@ -416,20 +498,31 @@ const AdminSupport = () => {
                       {selectedTicket.profiles?.email}
                     </p>
                   </div>
-                  <Select 
-                    value={selectedTicket.status} 
-                    onValueChange={(value) => handleStatusChange(selectedTicket.id, value)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Aberto</SelectItem>
-                      <SelectItem value="answered">Em Andamento</SelectItem>
-                      <SelectItem value="read">Resolvido</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <SlaBadge ticket={selectedTicket} />
+                    <Select 
+                      value={selectedTicket.status} 
+                      onValueChange={(value) => handleStatusChange(selectedTicket.id, value)}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Aberto</SelectItem>
+                        <SelectItem value="answered">Em Andamento</SelectItem>
+                        <SelectItem value="read">Resolvido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {/* Last interaction */}
+                {formatLastInteraction(selectedTicket) && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Última interação: {formatLastInteraction(selectedTicket)}
+                  </div>
+                )}
 
                 {/* Message from merchant - click to expand */}
                 <div className="border rounded-lg overflow-hidden">
@@ -489,7 +582,11 @@ const AdminSupport = () => {
                       disabled={!responseText.trim() || sendingResponse}
                       className="bg-[#6a1b9a] hover:bg-[#5a1580] gap-2"
                     >
-                      <Send className="h-4 w-4" />
+                      {sendingResponse ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                       Enviar
                     </Button>
                   </div>
