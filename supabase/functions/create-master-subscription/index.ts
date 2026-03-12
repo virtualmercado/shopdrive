@@ -696,19 +696,13 @@ serve(async (req) => {
         metadata: { paymentId: mpData.id, expiresAt: pixExpiration.toISOString() }
       });
 
-      // Create invoice record for PIX payment
-      await supabase.from("invoices").insert({
-        subscriber_id: userId,
-        subscription_id: subscription.id,
-        amount: totalAmount,
-        status: "pending",
-        due_date: pixExpiration.toISOString(),
-        reference_period_start: periodStart,
-        reference_period_end: periodEnd,
-        payment_method: "pix",
-        mp_payment_id: mpData.id?.toString(),
-        plan: planId,
-      });
+      // Update pre-created invoice with payment data
+      if (invoice?.id) {
+        await supabase.from("invoices").update({
+          due_date: pixExpiration.toISOString(),
+          mp_payment_id: mpData.id?.toString(),
+        }).eq("id", invoice.id);
+      }
 
       paymentResult = {
         success: true,
