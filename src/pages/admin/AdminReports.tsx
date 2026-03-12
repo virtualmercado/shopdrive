@@ -74,9 +74,9 @@ const AdminReports = () => {
 
         const revenue = paidInvoices?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
 
-        // Get cancellations
+        // Get cancellations from master_subscriptions
         const { count: cancellations } = await supabase
-          .from('subscriptions')
+          .from('master_subscriptions')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'cancelled')
           .gte('updated_at', start)
@@ -90,15 +90,17 @@ const AdminReports = () => {
         });
       }
 
-      // Get plan distribution
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select('subscription_plans(name)')
+      // Get plan distribution from master_subscriptions (current active, not filtered by period)
+      const { data: activeSubscriptions } = await supabase
+        .from('master_subscriptions')
+        .select('plan_id')
         .eq('status', 'active');
 
       const planCounts: Record<string, number> = {};
-      subscriptions?.forEach((sub) => {
-        const planName = (sub.subscription_plans as any)?.name || 'Grátis';
+      activeSubscriptions?.forEach((sub) => {
+        const planName = sub.plan_id === 'premium' ? 'Premium' 
+          : sub.plan_id === 'pro' ? 'Pro' 
+          : 'Grátis';
         planCounts[planName] = (planCounts[planName] || 0) + 1;
       });
 
@@ -113,8 +115,9 @@ const AdminReports = () => {
       const totalCancellations = monthlyData.reduce((sum, m) => sum + m.cancelamentos, 0);
 
       // Get current active count
+      // Current active subscribers count (NOT filtered by period)
       const { count: activeSubscribers } = await supabase
-        .from('subscriptions')
+        .from('master_subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
