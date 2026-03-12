@@ -290,6 +290,9 @@ const AdminReports = () => {
                   {data?.totalCancellations}
                 </div>
               )}
+              {!isLoading && data && (
+                <CancellationComparisonIndicator current={data.totalCancellations} previous={data.prevCancellations} />
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 No período selecionado
               </p>
