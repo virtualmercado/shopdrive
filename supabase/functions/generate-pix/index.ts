@@ -132,9 +132,9 @@ serve(async (req) => {
       const mpData = await mpResponse.json();
 
       if (!mpResponse.ok) {
-        console.error("Mercado Pago error:", mpData);
+        console.error("Mercado Pago error:", JSON.stringify(mpData));
         return new Response(
-          JSON.stringify({ error: "Erro ao gerar PIX no Mercado Pago", details: mpData }),
+          JSON.stringify({ error: "Erro ao gerar PIX. Tente novamente." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

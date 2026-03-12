@@ -213,8 +213,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          error: errorMessage, 
-          details: mpData,
+          error: "Erro ao processar pagamento. Tente novamente.", 
           status: "error"
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

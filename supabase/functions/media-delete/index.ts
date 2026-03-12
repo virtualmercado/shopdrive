@@ -70,6 +70,24 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "objectKey inválido" }, 400);
     }
 
+    // --- Ownership verification ---
+    const userId = claimsData.claims.sub as string;
+    const pathParts = objectKey.split("/");
+    // Expected path: products/{product_id}/yyyy/mm/uuid.ext
+    if (pathParts[0] === "products" && pathParts[1]) {
+      const productId = pathParts[1];
+      const supabaseService = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: product, error: productError } = await supabaseService
+        .from("products")
+        .select("user_id")
+        .eq("id", productId)
+        .single();
+
+      if (productError || !product || product.user_id !== userId) {
+        return jsonResponse({ ok: false, error: "Sem permissão para deletar este arquivo" }, 403);
+      }
+    }
+
     // Delete from MinIO
     const s3 = new S3Client({
       endpoint: Deno.env.get("MINIO_ENDPOINT")!,

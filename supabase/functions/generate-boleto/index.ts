@@ -282,9 +282,8 @@ serve(async (req) => {
       console.error("No boleto URL in response:", mpData);
       return new Response(
         JSON.stringify({ 
-          error: "Falha ao gerar boleto - URL não retornada pelo gateway. Verifique as configurações da conta Mercado Pago.",
-          paymentStatus: mpData.status,
-          details: mpData
+          error: "Falha ao gerar boleto. Verifique as configurações do gateway de pagamento.",
+          paymentStatus: mpData.status
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
