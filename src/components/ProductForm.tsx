@@ -606,16 +606,32 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
         if (error) throw error;
 
+        logAuditEvent({
+          action: "product_updated",
+          entityType: "product",
+          entityId: product.id,
+          description: `Produto "${name.trim()}" atualizado pelo lojista`,
+        });
+
         toast({
           title: "Sucesso",
           description: "Produto atualizado com sucesso",
         });
       } else {
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('products')
-          .insert([productData]);
+          .insert([productData])
+          .select('id')
+          .maybeSingle();
 
         if (error) throw error;
+
+        logAuditEvent({
+          action: "product_created",
+          entityType: "product",
+          entityId: insertedData?.id ?? undefined,
+          description: `Produto "${name.trim()}" criado pelo lojista`,
+        });
 
         toast({
           title: "Sucesso",
