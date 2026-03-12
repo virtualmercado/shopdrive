@@ -646,7 +646,7 @@ serve(async (req) => {
           }
         },
         date_of_expiration: pixExpiration.toISOString(),
-        external_reference: subscription.id,
+        external_reference: invoiceRef,
       };
 
       console.log("Generating PIX for annual payment...");
