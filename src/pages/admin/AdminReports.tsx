@@ -314,6 +314,9 @@ const AdminReports = () => {
                   {data?.inadimplenciaRate}%
                 </div>
               )}
+              {!isLoading && data && (
+                <PeriodComparisonIndicator current={data.inadimplenciaRate} previous={data.prevInadimplenciaRate} type="percentage" />
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Taxa atual
               </p>
