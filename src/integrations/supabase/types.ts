@@ -1644,6 +1644,7 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          invoice_id: string | null
           mp_payment_id: string | null
           notes: string | null
           paid_at: string | null
@@ -1662,6 +1663,7 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          invoice_id?: string | null
           mp_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
@@ -1680,6 +1682,7 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          invoice_id?: string | null
           mp_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
@@ -4645,6 +4648,36 @@ export type Database = {
           subtitle?: string | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          event_type: string | null
+          gateway: string
+          gateway_event_id: string
+          id: string
+          invoice_id: string | null
+          payload: Json | null
+          processed_at: string
+        }
+        Insert: {
+          event_type?: string | null
+          gateway: string
+          gateway_event_id: string
+          id?: string
+          invoice_id?: string | null
+          payload?: Json | null
+          processed_at?: string
+        }
+        Update: {
+          event_type?: string | null
+          gateway?: string
+          gateway_event_id?: string
+          id?: string
+          invoice_id?: string | null
+          payload?: Json | null
+          processed_at?: string
         }
         Relationships: []
       }
