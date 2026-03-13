@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, ArrowDownAZ } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ interface Product {
   category_id: string | null;
   image_adjustments?: ImageAdjustments[];
   is_active: boolean;
+  created_at?: string;
 }
 
 interface Category {
@@ -55,6 +57,7 @@ const Products = () => {
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("name-asc");
   const { toast } = useToast();
 
   const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
@@ -200,18 +203,38 @@ const Products = () => {
     }
   };
 
-  const filteredProducts = products
-    .filter(product => {
+  const getSortedProducts = (list: Product[]) => {
+    const copy = [...list];
+    switch (sortBy) {
+      case "name-desc":
+        return copy.sort((a, b) => (b.name || "").trim().localeCompare((a.name || "").trim(), "pt-BR", { sensitivity: "base", numeric: true }));
+      case "newest":
+        return copy.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      case "oldest":
+        return copy.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+      case "price-desc":
+        return copy.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      case "price-asc":
+        return copy.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      case "name-asc":
+      default:
+        return copy.sort((a, b) => (a.name || "").trim().localeCompare((b.name || "").trim(), "pt-BR", { sensitivity: "base", numeric: true }));
+    }
+  };
+
+  const categoryCounts = products.reduce<Record<string, number>>((acc, p) => {
+    const catId = p.category_id || "__none__";
+    acc[catId] = (acc[catId] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredProducts = getSortedProducts(
+    products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) =>
-      (a.name || "").trim().localeCompare((b.name || "").trim(), "pt-BR", {
-        sensitivity: "base",
-        numeric: true,
-      })
-    );
+  );
 
   return (
     <DashboardLayout>
@@ -235,7 +258,21 @@ const Products = () => {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[200px] gap-2">
+                  <ArrowDownAZ className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Alfabética: A → Z</SelectItem>
+                  <SelectItem value="name-desc">Alfabética: Z → A</SelectItem>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                  <SelectItem value="oldest">Mais antigos</SelectItem>
+                  <SelectItem value="price-desc">Maior preço</SelectItem>
+                  <SelectItem value="price-asc">Menor preço</SelectItem>
+                </SelectContent>
+              </Select>
               <Button 
                 variant="outline"
                 className="gap-2"
@@ -263,17 +300,17 @@ const Products = () => {
                 className="rounded-lg transition-all"
                 onClick={() => setSelectedCategory("")}
               >
-                Todas
+                Todas ({products.length})
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? "default" : "outline"}
                   size="sm"
-                  className="rounded-lg transition-all"
+                  className="rounded-lg transition-all whitespace-nowrap"
                   onClick={() => setSelectedCategory(category.id)}
                 >
-                  {category.name}
+                  {category.name} ({categoryCounts[category.id] || 0})
                 </Button>
               ))}
             </div>
