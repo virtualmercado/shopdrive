@@ -40,6 +40,37 @@ interface ProductVariation {
   values: string[];
 }
 
+/**
+ * Safely parse variations from a DB Json value into ProductVariation[].
+ * Handles: null, undefined, string (double-serialized JSON), array, or invalid shapes.
+ */
+function parseVariations(raw: unknown): ProductVariation[] {
+  if (raw == null) return [];
+
+  let parsed: unknown = raw;
+
+  // Handle double-serialized JSON string (e.g. '"[{...}]"')
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((item: any) => {
+    if (typeof item !== 'object' || item === null) return false;
+    if (typeof item.name !== 'string' || !item.name.trim()) return false;
+    if (!Array.isArray(item.values)) return false;
+    return true;
+  }).map((item: any) => ({
+    name: String(item.name).trim(),
+    values: item.values.filter((v: any) => typeof v === 'string' && v.trim()).map((v: any) => String(v)),
+  }));
+}
+
 interface Product {
   id: string;
   name: string;
@@ -183,7 +214,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       imageAdjustmentsRef.current = nextAdj;
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
-      setVariations(product.variations || []);
+      setVariations(parseVariations(product.variations));
       if (product.weight != null && product.weight > 0) {
         setWeight((product.weight * 1000).toString());
         setWeightUnit("g");
@@ -598,7 +629,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         is_featured: isFeatured,
         is_new: isNew,
         user_id: user.id,
-        variations: JSON.parse(JSON.stringify(variations)),
+        variations: variations.length > 0 ? variations.map(v => ({ name: v.name, values: [...v.values] })) : [],
         weight: weight ? (weightUnit === "g" ? parseFloat(weight) / 1000 : parseFloat(weight)) : null,
         length: length ? parseFloat(length) : null,
         height: height ? parseFloat(height) : null,
