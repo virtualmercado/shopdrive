@@ -38,6 +38,14 @@ interface Product {
   image_adjustments?: ImageAdjustments[];
   is_active: boolean;
   created_at?: string;
+  brand_id?: string | null;
+  is_featured?: boolean;
+  is_new?: boolean;
+  variations?: any;
+  weight?: number | null;
+  length?: number | null;
+  height?: number | null;
+  width?: number | null;
 }
 
 interface Category {

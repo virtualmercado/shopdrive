@@ -40,6 +40,37 @@ interface ProductVariation {
   values: string[];
 }
 
+/**
+ * Safely parse variations from a DB Json value into ProductVariation[].
+ * Handles: null, undefined, string (double-serialized JSON), array, or invalid shapes.
+ */
+function parseVariations(raw: unknown): ProductVariation[] {
+  if (raw == null) return [];
+
+  let parsed: unknown = raw;
+
+  // Handle double-serialized JSON string (e.g. '"[{...}]"')
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((item: any) => {
+    if (typeof item !== 'object' || item === null) return false;
+    if (typeof item.name !== 'string' || !item.name.trim()) return false;
+    if (!Array.isArray(item.values)) return false;
+    return true;
+  }).map((item: any) => ({
+    name: String(item.name).trim(),
+    values: item.values.filter((v: any) => typeof v === 'string' && v.trim()).map((v: any) => String(v)),
+  }));
+}
+
 interface Product {
   id: string;
   name: string;
