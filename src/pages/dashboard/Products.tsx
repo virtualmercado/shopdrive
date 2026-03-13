@@ -56,6 +56,7 @@ const Products = () => {
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("name-asc");
   const { toast } = useToast();
 
   const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
