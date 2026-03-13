@@ -686,6 +686,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setEditVariationName("");
     setEditVariationValues("");
     setWeight("");
+    setWeightUnit("g");
     setLength("");
     setHeight("");
     setWidth("");
