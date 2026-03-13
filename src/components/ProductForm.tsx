@@ -116,6 +116,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   
   // Weight and dimensions state
   const [weight, setWeight] = useState("");
+  const [weightUnit, setWeightUnit] = useState<"g" | "kg">("g");
   const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
