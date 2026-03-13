@@ -120,7 +120,7 @@ export const BenefitBannersConfig = ({ userId }: BenefitBannersConfigProps) => {
               }
             >
               {/* Thumbnail */}
-              <div className="flex-shrink-0 w-[120px] sm:w-[140px] h-[60px] sm:h-[70px] rounded-lg overflow-hidden bg-gray-50 border border-border/50 flex items-center justify-center p-1">
+              <div className="flex-shrink-0 w-[120px] sm:w-[140px] h-[60px] sm:h-[70px] rounded-lg overflow-hidden bg-muted/30 border border-border/50 flex items-center justify-center p-1">
                 <img
                   src={banner.image}
                   alt={banner.name}
