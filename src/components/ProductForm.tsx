@@ -184,7 +184,13 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(product.variations || []);
-      setWeight(product.weight?.toString() || "");
+      if (product.weight != null && product.weight > 0) {
+        setWeight((product.weight * 1000).toString());
+        setWeightUnit("g");
+      } else {
+        setWeight("");
+        setWeightUnit("g");
+      }
       setLength(product.length?.toString() || "");
       setHeight(product.height?.toString() || "");
       setWidth(product.width?.toString() || "");
