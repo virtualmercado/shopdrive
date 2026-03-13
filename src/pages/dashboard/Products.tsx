@@ -202,18 +202,38 @@ const Products = () => {
     }
   };
 
-  const filteredProducts = products
-    .filter(product => {
+  const getSortedProducts = (list: Product[]) => {
+    const copy = [...list];
+    switch (sortBy) {
+      case "name-desc":
+        return copy.sort((a, b) => (b.name || "").trim().localeCompare((a.name || "").trim(), "pt-BR", { sensitivity: "base", numeric: true }));
+      case "newest":
+        return copy.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      case "oldest":
+        return copy.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+      case "price-desc":
+        return copy.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      case "price-asc":
+        return copy.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      case "name-asc":
+      default:
+        return copy.sort((a, b) => (a.name || "").trim().localeCompare((b.name || "").trim(), "pt-BR", { sensitivity: "base", numeric: true }));
+    }
+  };
+
+  const categoryCounts = products.reduce<Record<string, number>>((acc, p) => {
+    const catId = p.category_id || "__none__";
+    acc[catId] = (acc[catId] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredProducts = getSortedProducts(
+    products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) =>
-      (a.name || "").trim().localeCompare((b.name || "").trim(), "pt-BR", {
-        sensitivity: "base",
-        numeric: true,
-      })
-    );
+  );
 
   return (
     <DashboardLayout>
