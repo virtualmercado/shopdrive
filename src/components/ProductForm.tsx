@@ -1429,7 +1429,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                     <option value="kg">kg</option>
                   </select>
                 </div>
-                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="length" className="text-xs">Comprimento (cm)</Label>
