@@ -214,7 +214,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       imageAdjustmentsRef.current = nextAdj;
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
-      setVariations(product.variations || []);
+      setVariations(parseVariations(product.variations));
       if (product.weight != null && product.weight > 0) {
         setWeight((product.weight * 1000).toString());
         setWeightUnit("g");
