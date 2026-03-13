@@ -599,7 +599,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         is_new: isNew,
         user_id: user.id,
         variations: JSON.parse(JSON.stringify(variations)),
-        weight: weight ? parseFloat(weight) : null,
+        weight: weight ? (weightUnit === "g" ? parseFloat(weight) / 1000 : parseFloat(weight)) : null,
         length: length ? parseFloat(length) : null,
         height: height ? parseFloat(height) : null,
         width: width ? parseFloat(width) : null,
