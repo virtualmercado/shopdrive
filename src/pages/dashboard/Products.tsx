@@ -258,7 +258,21 @@ const Products = () => {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[200px] gap-2">
+                  <ArrowDownAZ className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Alfabética: A → Z</SelectItem>
+                  <SelectItem value="name-desc">Alfabética: Z → A</SelectItem>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                  <SelectItem value="oldest">Mais antigos</SelectItem>
+                  <SelectItem value="price-desc">Maior preço</SelectItem>
+                  <SelectItem value="price-asc">Menor preço</SelectItem>
+                </SelectContent>
+              </Select>
               <Button 
                 variant="outline"
                 className="gap-2"
@@ -286,17 +300,17 @@ const Products = () => {
                 className="rounded-lg transition-all"
                 onClick={() => setSelectedCategory("")}
               >
-                Todas
+                Todas ({products.length})
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? "default" : "outline"}
                   size="sm"
-                  className="rounded-lg transition-all"
+                  className="rounded-lg transition-all whitespace-nowrap"
                   onClick={() => setSelectedCategory(category.id)}
                 >
-                  {category.name}
+                  {category.name} ({categoryCounts[category.id] || 0})
                 </Button>
               ))}
             </div>
