@@ -108,24 +108,38 @@ export const BenefitBannersConfig = ({ userId }: BenefitBannersConfigProps) => {
           return (
             <div
               key={banner.id}
-              className={`border rounded-lg p-3 flex items-center gap-3 transition-all ${
-                isActive ? "border-2" : "border"
-              } ${isDisabled ? "opacity-50" : ""}`}
-              style={{
-                borderColor: isActive ? SD_PRIMARY : undefined,
-                backgroundColor: isActive ? SD_PRIMARY + "08" : undefined,
-              }}
+              className={`bg-white rounded-xl p-3 flex items-center gap-4 transition-all shadow-sm ${
+                isActive
+                  ? "ring-2 shadow-md"
+                  : "border border-border"
+              } ${isDisabled ? "opacity-40 cursor-not-allowed" : "hover:shadow-md"}`}
+              style={
+                isActive
+                  ? { boxShadow: `0 0 0 2px ${SD_PRIMARY}, 0 4px 12px -2px rgba(106,27,154,0.12)` }
+                  : undefined
+              }
             >
-              <img
-                src={banner.image}
-                alt={banner.name}
-                className="w-28 h-20 rounded border border-border object-contain bg-white flex-shrink-0"
-              />
+              {/* Thumbnail */}
+              <div className="flex-shrink-0 w-[120px] sm:w-[140px] h-[60px] sm:h-[70px] rounded-lg overflow-hidden bg-muted/30 border border-border/50 flex items-center justify-center p-1">
+                <img
+                  src={banner.image}
+                  alt={banner.name}
+                  className="max-w-full max-h-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* Text */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-sm font-semibold text-foreground truncate">
                   {banner.name}
                 </p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  {banner.subtitle}
+                </p>
               </div>
+
+              {/* Toggle */}
               <Switch
                 checked={isActive}
                 onCheckedChange={() => toggleBanner(banner.id)}
