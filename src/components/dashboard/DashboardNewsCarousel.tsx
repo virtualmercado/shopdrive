@@ -199,9 +199,8 @@ const DashboardNewsCarousel = () => {
             <div
               key={banner.id}
               onClick={() => handleBannerClick(banner)}
-              className="relative rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border w-full aspect-[16/10] sm:aspect-[2/1]"
+              className="rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border w-full flex items-center justify-center"
             >
-              {/* Background Image - No overlay for maximum clarity */}
               <img
                 src={
                   (visibleCount === 1 && banner.image_mobile_url) 
@@ -209,7 +208,7 @@ const DashboardNewsCarousel = () => {
                     : banner.image_desktop_url
                 }
                 alt={banner.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
               />
               
