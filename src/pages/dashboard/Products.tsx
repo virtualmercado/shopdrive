@@ -37,6 +37,7 @@ interface Product {
   category_id: string | null;
   image_adjustments?: ImageAdjustments[];
   is_active: boolean;
+  created_at?: string;
 }
 
 interface Category {
