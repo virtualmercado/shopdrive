@@ -193,17 +193,13 @@ const DashboardNewsCarousel = () => {
         
         {/* Banner Cards */}
         <div 
-          className="grid gap-4 px-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+          className="grid gap-4 px-2 sm:px-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
         >
           {visibleBanners.map((banner) => (
             <div
               key={banner.id}
               onClick={() => handleBannerClick(banner)}
-              className="relative rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border"
-              style={{ 
-                height: visibleCount === 1 ? "280px" : "200px",
-                aspectRatio: visibleCount === 1 ? "1/1" : "2/1"
-              }}
+              className="relative rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border w-full aspect-[16/10] sm:aspect-[2/1]"
             >
               {/* Background Image - No overlay for maximum clarity */}
               <img
