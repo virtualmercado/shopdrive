@@ -200,11 +200,18 @@ const Products = () => {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = products
+    .filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) =>
+      (a.name || "").trim().localeCompare((b.name || "").trim(), "pt-BR", {
+        sensitivity: "base",
+        numeric: true,
+      })
+    );
 
   return (
     <DashboardLayout>
