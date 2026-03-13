@@ -116,6 +116,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   
   // Weight and dimensions state
   const [weight, setWeight] = useState("");
+  const [weightUnit, setWeightUnit] = useState<"g" | "kg">("g");
   const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
@@ -183,7 +184,13 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(product.variations || []);
-      setWeight(product.weight?.toString() || "");
+      if (product.weight != null && product.weight > 0) {
+        setWeight((product.weight * 1000).toString());
+        setWeightUnit("g");
+      } else {
+        setWeight("");
+        setWeightUnit("g");
+      }
       setLength(product.length?.toString() || "");
       setHeight(product.height?.toString() || "");
       setWidth(product.width?.toString() || "");
@@ -592,7 +599,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         is_new: isNew,
         user_id: user.id,
         variations: JSON.parse(JSON.stringify(variations)),
-        weight: weight ? parseFloat(weight) : null,
+        weight: weight ? (weightUnit === "g" ? parseFloat(weight) / 1000 : parseFloat(weight)) : null,
         length: length ? parseFloat(length) : null,
         height: height ? parseFloat(height) : null,
         width: width ? parseFloat(width) : null,
@@ -679,6 +686,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setEditVariationName("");
     setEditVariationValues("");
     setWeight("");
+    setWeightUnit("g");
     setLength("");
     setHeight("");
     setWidth("");
@@ -1389,17 +1397,38 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="weight" className="text-xs">Peso (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  placeholder="0.00"
-                  className="text-sm"
-                />
+                <Label htmlFor="weight" className="text-xs">Peso do produto</Label>
+                <div className="flex gap-1">
+                  <Input
+                    id="weight"
+                    type="number"
+                    step={weightUnit === "g" ? "1" : "0.01"}
+                    min="0"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder={weightUnit === "g" ? "250" : "0.25"}
+                    className="text-sm flex-1"
+                  />
+                  <select
+                    value={weightUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value as "g" | "kg";
+                      const currentVal = parseFloat(weight);
+                      if (!isNaN(currentVal) && currentVal > 0) {
+                        if (weightUnit === "g" && newUnit === "kg") {
+                          setWeight((currentVal / 1000).toString());
+                        } else if (weightUnit === "kg" && newUnit === "g") {
+                          setWeight((currentVal * 1000).toString());
+                        }
+                      }
+                      setWeightUnit(newUnit);
+                    }}
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm w-16 shrink-0"
+                  >
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="length" className="text-xs">Comprimento (cm)</Label>
@@ -1575,7 +1604,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         }
       }}
     />
-
     {/* Plan block modal for image editor */}
     <PlanFeatureBlockModal
       open={imageEditorBlockOpen}
