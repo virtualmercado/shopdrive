@@ -119,7 +119,7 @@ export const BenefitBannersConfig = ({ userId }: BenefitBannersConfigProps) => {
               <img
                 src={banner.image}
                 alt={banner.name}
-                className="w-24 h-auto rounded object-cover flex-shrink-0"
+                className="w-28 h-20 rounded border border-border object-contain bg-white flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
