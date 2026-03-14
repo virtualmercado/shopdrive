@@ -91,6 +91,7 @@ function App() {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <AuthProvider>
           <CookieConsentBanner />
           <Routes>
             <Route path="/" element={<Home />} />
