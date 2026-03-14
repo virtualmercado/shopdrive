@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, type RefObject } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const PARTICLE_COUNT_DESKTOP = 35;
@@ -15,7 +15,11 @@ interface Particle {
   hue: number;
 }
 
-const HeroInteractiveBackground = () => {
+interface HeroInteractiveBackgroundProps {
+  trackingRef?: RefObject<HTMLElement | null>;
+}
+
+const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
@@ -47,15 +51,15 @@ const HeroInteractiveBackground = () => {
   }, [isMobile]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
     mouseRef.current = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
       active: true,
     };
-  }, []);
+  }, [trackingRef]);
 
   const handleMouseLeave = useCallback(() => {
     mouseRef.current.active = false;
@@ -66,6 +70,7 @@ const HeroInteractiveBackground = () => {
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    const trackingElement = trackingRef?.current ?? container;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -91,8 +96,8 @@ const HeroInteractiveBackground = () => {
     window.addEventListener("resize", resize);
 
     if (!isMobile) {
-      container.addEventListener("mousemove", handleMouseMove);
-      container.addEventListener("mouseleave", handleMouseLeave);
+      trackingElement.addEventListener("mousemove", handleMouseMove);
+      trackingElement.addEventListener("mouseleave", handleMouseLeave);
     }
 
     const animate = () => {
@@ -211,14 +216,18 @@ const HeroInteractiveBackground = () => {
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener("resize", resize);
       if (!isMobile) {
-        container.removeEventListener("mousemove", handleMouseMove);
-        container.removeEventListener("mouseleave", handleMouseLeave);
+        trackingElement.removeEventListener("mousemove", handleMouseMove);
+        trackingElement.removeEventListener("mouseleave", handleMouseLeave);
       }
     };
-  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave]);
+  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave, trackingRef]);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+    <div
+      ref={containerRef}
+      className="absolute inset-0"
+      style={{ zIndex: 0, pointerEvents: "none" }}
+    >
       <div
         className="absolute inset-0"
         style={{
@@ -252,7 +261,7 @@ const HeroInteractiveBackground = () => {
         ref={canvasRef}
         className="absolute inset-0"
         style={{
-          zIndex: 5,
+          zIndex: 6,
           pointerEvents: "none",
           opacity: ready ? 1 : 0,
           transition: "opacity 0.5s ease",

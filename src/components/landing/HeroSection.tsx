@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import HeroContentLeft from "./HeroContentLeft";
 import HeroCarousel from "./HeroCarousel";
 import HeroInteractiveBackground from "./HeroInteractiveBackground";
@@ -34,6 +35,7 @@ interface HeroSectionProps {
 
 const HeroSection = ({ heroContent, demoVideoContent }: HeroSectionProps) => {
   const { data: cmsBanners, isLoading } = useCMSBanners();
+  const heroRef = useRef<HTMLElement | null>(null);
 
   // Get hero carousel images from CMS - only when data is loaded
   // Use empty strings while loading to avoid showing fallback image
@@ -55,11 +57,11 @@ const HeroSection = ({ heroContent, demoVideoContent }: HeroSectionProps) => {
   } : undefined;
 
   return (
-    <section className="relative py-16 md:py-24 px-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
+    <section ref={heroRef} className="hero relative py-16 md:py-24 px-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
       {/* Interactive background layers 1-4 */}
-      <HeroInteractiveBackground />
+      <HeroInteractiveBackground trackingRef={heroRef} />
 
-      <div className="container mx-auto relative" style={{ zIndex: 10 }}>
+      <div className="hero-content container mx-auto relative" style={{ zIndex: 10 }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}
           <div className="order-1">
