@@ -4,8 +4,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const PARTICLE_COUNT_DESKTOP = 35;
 const PARTICLE_COUNT_MOBILE = 15;
 const LERP_FACTOR = 0.15;
+const LERP_FACTOR_MOBILE = 0.18;
 const SPEED_SMOOTH = 0.12;
 const TURBULENCE_SPEED = 0.0025;
+const TOUCH_FADE_DURATION = 350; // ms
 
 interface Particle {
   x: number;
@@ -35,6 +37,8 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
   const [ready, setReady] = useState(false);
   const autoPhaseRef = useRef(0);
   const turbPhaseRef = useRef(0);
+  const touchFadeRef = useRef(1); // 1 = fully visible, 0 = hidden
+  const touchEndTimeRef = useRef(0);
 
   const initParticles = useCallback((width: number, height: number) => {
     const count = isMobile ? PARTICLE_COUNT_MOBILE : PARTICLE_COUNT_DESKTOP;
@@ -66,6 +70,37 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
 
   const handleMouseLeave = useCallback(() => {
     mouseRef.current.active = false;
+  }, []);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouseRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      active: true,
+    };
+    touchFadeRef.current = 1;
+    touchEndTimeRef.current = 0;
+  }, [trackingRef]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouseRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      active: true,
+    };
+  }, [trackingRef]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchEndTimeRef.current = performance.now();
+    // active will be faded out in the animation loop
   }, []);
 
   useEffect(() => {
@@ -101,6 +136,10 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
     if (!isMobile) {
       trackingElement.addEventListener("mousemove", handleMouseMove);
       trackingElement.addEventListener("mouseleave", handleMouseLeave);
+    } else {
+      trackingElement.addEventListener("touchstart", handleTouchStart, { passive: true });
+      trackingElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+      trackingElement.addEventListener("touchend", handleTouchEnd, { passive: true });
     }
 
     const animate = () => {
@@ -113,10 +152,31 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       prevGlowRef.current.x = glowRef.current.x;
       prevGlowRef.current.y = glowRef.current.y;
 
+      // --- Touch fade-out logic for mobile ---
+      if (isMobile && touchEndTimeRef.current > 0) {
+        const elapsed = performance.now() - touchEndTimeRef.current;
+        touchFadeRef.current = Math.max(0, 1 - elapsed / TOUCH_FADE_DURATION);
+        if (touchFadeRef.current <= 0) {
+          mouseRef.current.active = false;
+          touchEndTimeRef.current = 0;
+        }
+      }
+
+      const isActive = mouseRef.current.active || (isMobile && touchFadeRef.current > 0);
+      const fadeMult = isMobile ? touchFadeRef.current : 1;
+
       if (isMobile) {
-        autoPhaseRef.current += 0.003;
-        glowRef.current.x = w * (0.5 + Math.sin(autoPhaseRef.current) * 0.2);
-        glowRef.current.y = h * (0.5 + Math.cos(autoPhaseRef.current * 0.7) * 0.15);
+        if (isActive) {
+          const targetX = mouseRef.current.x;
+          const targetY = mouseRef.current.y;
+          glowRef.current.x += (targetX - glowRef.current.x) * LERP_FACTOR_MOBILE;
+          glowRef.current.y += (targetY - glowRef.current.y) * LERP_FACTOR_MOBILE;
+        } else {
+          // Idle: gentle auto-drift
+          autoPhaseRef.current += 0.003;
+          glowRef.current.x = w * (0.5 + Math.sin(autoPhaseRef.current) * 0.2);
+          glowRef.current.y = h * (0.5 + Math.cos(autoPhaseRef.current * 0.7) * 0.15);
+        }
       } else {
         const targetX = mouseRef.current.active ? mouseRef.current.x : w / 2;
         const targetY = mouseRef.current.active ? mouseRef.current.y : h / 2;
@@ -144,19 +204,20 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
 
       const angle = angleRef.current;
 
-      // Velocity-reactive tail length & opacity (Improvement 2)
-      const tailLength = Math.min(420, Math.max(200, spd * 8));
-      const tailOpacity = Math.min(0.6, Math.max(0.2, spd * 0.015));
-      const tailWidth = 140;
+      // Velocity-reactive tail length & opacity — softened purple
+      const mobileTailScale = isMobile ? 0.6 : 1;
+      const tailLength = Math.min(420 * mobileTailScale, Math.max(140 * mobileTailScale, spd * 8 * mobileTailScale));
+      const tailOpacity = Math.min(0.35, Math.max(0.12, spd * 0.012)) * fadeMult;
+      const tailWidth = isMobile ? 90 : 140;
 
-      // Turbulence phase (Improvement 1)
+      // Turbulence phase
       turbPhaseRef.current += TURBULENCE_SPEED;
       const turbT = turbPhaseRef.current;
       const turbScaleY = 1 + Math.sin(turbT * 2.5) * 0.08;
       const turbSkew = Math.sin(turbT * 1.7) * 1.5;
 
       // --- Comet tail with turbulence ---
-      if (!isMobile && mouseRef.current.active && spd > 0.2) {
+      if (isActive && spd > 0.2) {
         ctx.save();
         ctx.translate(gx, gy);
         ctx.rotate(angle + Math.PI);
@@ -166,12 +227,12 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
 
         const tailGrad = ctx.createLinearGradient(0, 0, tailLength, 0);
         tailGrad.addColorStop(0, `rgba(106,27,154,${tailOpacity})`);
-        tailGrad.addColorStop(0.3, `rgba(106,27,154,${tailOpacity * 0.4})`);
-        tailGrad.addColorStop(0.6, `rgba(106,27,154,${tailOpacity * 0.18})`);
+        tailGrad.addColorStop(0.3, `rgba(106,27,154,${tailOpacity * 0.38})`);
+        tailGrad.addColorStop(0.6, `rgba(106,27,154,${tailOpacity * 0.14})`);
         tailGrad.addColorStop(1, `rgba(106,27,154,0)`);
 
         ctx.filter = "blur(40px)";
-        ctx.globalAlpha = 0.85 + Math.sin(turbT * 3.1) * 0.15;
+        ctx.globalAlpha = (0.85 + Math.sin(turbT * 3.1) * 0.15) * fadeMult;
         ctx.fillStyle = tailGrad;
         ctx.beginPath();
         ctx.ellipse(tailLength / 2, 0, tailLength / 2, tailWidth / 2, 0, 0, Math.PI * 2);
@@ -181,14 +242,16 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
         ctx.restore();
       }
 
-      // --- Comet core ---
-      const coreRadius = 80;
+      // --- Comet core — softened purple transitions ---
+      const coreRadius = isMobile ? 60 : 80;
       const coreGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, coreRadius);
-      const coreOpacity = isMobile ? 0.18 : (mouseRef.current.active ? 0.8 : 0.15);
+      const baseCoreOp = isActive ? (isMobile ? 0.55 : 0.8) : 0.12;
+      const coreOpacity = baseCoreOp * fadeMult;
       coreGrad.addColorStop(0, `rgba(255,255,255,${coreOpacity})`);
-      coreGrad.addColorStop(0.3, `rgba(255,255,255,${coreOpacity * 0.5})`);
-      coreGrad.addColorStop(0.55, `rgba(106,27,154,${coreOpacity * 0.3})`);
-      coreGrad.addColorStop(0.7, `rgba(106,27,154,${coreOpacity * 0.1})`);
+      coreGrad.addColorStop(0.22, `rgba(255,255,255,${coreOpacity * 0.42})`);
+      coreGrad.addColorStop(0.46, `rgba(106,27,154,${coreOpacity * 0.18})`);
+      coreGrad.addColorStop(0.62, `rgba(106,27,154,${coreOpacity * 0.08})`);
+      coreGrad.addColorStop(0.76, `rgba(106,27,154,${coreOpacity * 0.03})`);
       coreGrad.addColorStop(1, `rgba(106,27,154,0)`);
 
       ctx.save();
@@ -198,15 +261,16 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       ctx.filter = "none";
       ctx.restore();
 
-      // --- Velocity-reactive aura (Improvement 3) ---
-      if (!isMobile && mouseRef.current.active) {
-        const auraScale = Math.min(1.6, 1 + spd * 0.02);
-        const auraOp = Math.min(0.7, Math.max(0.2, spd * 0.02));
+      // --- Velocity-reactive aura — softened ---
+      if (isActive) {
+        const mobileAuraScale = isMobile ? 0.7 : 1;
+        const auraScale = Math.min(1.6, 1 + spd * 0.02) * mobileAuraScale;
+        const auraOp = Math.min(0.4, Math.max(0.1, spd * 0.012)) * fadeMult;
         const auraR = 110 * auraScale;
         const auraGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, auraR);
-        auraGrad.addColorStop(0, `rgba(106,27,154,${auraOp * 0.35})`);
-        auraGrad.addColorStop(0.35, `rgba(106,27,154,${auraOp * 0.18})`);
-        auraGrad.addColorStop(0.55, `rgba(106,27,154,${auraOp * 0.08})`);
+        auraGrad.addColorStop(0, `rgba(106,27,154,${auraOp * 0.18})`);
+        auraGrad.addColorStop(0.38, `rgba(106,27,154,${auraOp * 0.10})`);
+        auraGrad.addColorStop(0.56, `rgba(106,27,154,${auraOp * 0.05})`);
         auraGrad.addColorStop(1, `rgba(106,27,154,0)`);
 
         ctx.save();
@@ -217,9 +281,9 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
         ctx.restore();
       }
 
-      // --- Ambient purple glow ---
+      // --- Ambient purple glow — softened ---
       const ambientGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 300);
-      const ambientOp = mouseRef.current.active ? 0.12 : 0.06;
+      const ambientOp = (isActive ? 0.07 : 0.03) * fadeMult;
       ambientGrad.addColorStop(0, `rgba(106,27,154,${ambientOp})`);
       ambientGrad.addColorStop(1, "transparent");
       ctx.fillStyle = ambientGrad;
@@ -254,9 +318,13 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       if (!isMobile) {
         trackingElement.removeEventListener("mousemove", handleMouseMove);
         trackingElement.removeEventListener("mouseleave", handleMouseLeave);
+      } else {
+        trackingElement.removeEventListener("touchstart", handleTouchStart);
+        trackingElement.removeEventListener("touchmove", handleTouchMove);
+        trackingElement.removeEventListener("touchend", handleTouchEnd);
       }
     };
-  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave, trackingRef]);
+  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave, handleTouchStart, handleTouchMove, handleTouchEnd, trackingRef]);
 
   return (
     <div
