@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { logAuditEvent } from "@/lib/auditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trash2, Upload, Pencil, Plus, Sparkles, Bot, Star } from "lucide-react";
+import { Loader2, Trash2, Upload, Pencil, Plus, Sparkles, Bot, Star, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -1077,6 +1077,35 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               required
             />
           </div>
+
+          {/* SKU (read-only, auto-generated) */}
+          {product?.id && (() => {
+            const skuValue = `SD-${product.id.slice(0, 8).toUpperCase()}`;
+            return (
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={skuValue}
+                    readOnly
+                    className="font-mono text-sm bg-muted cursor-default"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 h-10 w-10"
+                    onClick={() => {
+                      navigator.clipboard.writeText(skuValue);
+                      toast({ title: "SKU copiado!", description: skuValue });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
