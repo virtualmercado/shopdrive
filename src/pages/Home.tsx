@@ -83,8 +83,9 @@ const ensureWhatsAppSocialLink = (links: any[]) => {
     },
   ];
 };
+
+const Home = () => {
   const { data: cmsBanners } = useCMSBanners();
-  const { data: cmsContent } = useCMSContent();
   const navigate = useNavigate();
   
   // Get banner URLs from CMS or use defaults (for non-hero sections)

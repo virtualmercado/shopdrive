@@ -66,6 +66,7 @@ const ensureWhatsAppSocialLink = (links: any[]) => {
     },
   ];
 };
+interface LandingLayoutProps {
   children: React.ReactNode;
 }
 
