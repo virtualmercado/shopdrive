@@ -1702,7 +1702,7 @@ export const ImageEditor = ({
               </div>
               
               {/* Preview / Workspace Area */}
-              <div className="flex-1 flex items-center justify-center p-6 overflow-auto relative" style={{ backgroundColor: ie.workspace }}>
+              <div className="flex-1 flex items-center justify-center p-6 overflow-auto relative" style={{ backgroundColor: '#1f1f1f' }}>
                 <button
                   onClick={() => setShowGuides(!showGuides)}
                   className="absolute top-3 left-3 z-10 px-2 py-0.5 text-[9px] font-medium rounded-md transition-all hover:scale-105"
@@ -1717,7 +1717,7 @@ export const ImageEditor = ({
                 
                 <div 
                   className="relative"
-                  style={{ cursor: isDragging ? 'grabbing' : 'default', touchAction: 'none' }}
+                  style={{ cursor: isDragging ? 'grabbing' : 'default', touchAction: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', boxShadow: '0 8px 30px rgba(0,0,0,0.45)' }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -1732,7 +1732,6 @@ export const ImageEditor = ({
                       WebkitUserDrag: 'none',
                       pointerEvents: 'auto',
                       borderRadius: '4px',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
                     } as React.CSSProperties}
                     draggable={false}
                   />
