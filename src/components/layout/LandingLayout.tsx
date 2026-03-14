@@ -141,7 +141,7 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
     // Block dangerous schemes
     if (/^(javascript|data|vbscript):/i.test(trimmed)) return "";
     // Add https:// if missing protocol
-    if (/^(www\.|youtube\.com|youtu\.be|instagram\.com|facebook\.com|twitter\.com|tiktok\.com|linkedin\.com|pinterest\.com)/i.test(trimmed)) {
+    if (/^(www\.|youtube\.com|youtu\.be|instagram\.com|facebook\.com|twitter\.com|tiktok\.com|linkedin\.com|pinterest\.com|wa\.me|whatsapp\.com)/i.test(trimmed)) {
       trimmed = `https://${trimmed}`;
     }
     if (!/^https?:\/\//i.test(trimmed)) return "";
