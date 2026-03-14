@@ -53,6 +53,8 @@ interface Category {
   name: string;
 }
 
+const PRODUCTS_PER_PAGE = 30;
+
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -66,6 +68,8 @@ const Products = () => {
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
