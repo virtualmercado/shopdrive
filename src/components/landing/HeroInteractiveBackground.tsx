@@ -4,8 +4,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const PARTICLE_COUNT_DESKTOP = 35;
 const PARTICLE_COUNT_MOBILE = 15;
 const LERP_FACTOR = 0.15;
+const LERP_FACTOR_MOBILE = 0.18;
 const SPEED_SMOOTH = 0.12;
 const TURBULENCE_SPEED = 0.0025;
+const TOUCH_FADE_DURATION = 350; // ms
 
 interface Particle {
   x: number;
