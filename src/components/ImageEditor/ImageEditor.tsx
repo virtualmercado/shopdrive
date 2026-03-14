@@ -367,212 +367,109 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   };
 };
 
-// Helper: simulate adjustment result and compare quality
-const simulateAdjustmentQuality = (
-  originalAnalysis: HistogramAnalysis,
-  adjustments: ImageAdjustments
-): { wouldImprove: boolean; qualityDelta: number } => {
-  // Estimate resulting metrics based on adjustments
-  const estimatedMedian = Math.max(0.1, Math.min(0.9, 
-    originalAnalysis.median * Math.pow(2, adjustments.exposure / 100)
-  ));
-  
-  const estimatedStdDev = originalAnalysis.stdDev * (1 + adjustments.contrast / 200);
-  
-  // Quality score: closer to ideal = better
-  const idealMedian = 0.52;
-  const idealStdDev = 0.22;
-  
-  const originalScore = 
-    (1 - Math.abs(originalAnalysis.median - idealMedian) * 2) +
-    (1 - Math.abs(originalAnalysis.stdDev - idealStdDev) * 3) +
-    (originalAnalysis.hasGoodContrast ? 0.5 : 0) +
-    (originalAnalysis.productReadability * 0.5);
-    
-  const estimatedScore = 
-    (1 - Math.abs(estimatedMedian - idealMedian) * 2) +
-    (1 - Math.abs(estimatedStdDev - idealStdDev) * 3) +
-    (originalAnalysis.hasGoodContrast ? 0.5 : 0) + // Preserved
-    (originalAnalysis.productReadability * 0.5); // Preserved
-  
-  const qualityDelta = estimatedScore - originalScore;
-  
-  // Only consider improvement if delta is meaningfully positive
-  return {
-    wouldImprove: qualityDelta > 0.05,
-    qualityDelta
-  };
-};
-
-// Helper: calculate auto adjustments based on histogram (ULTRA-CONSERVATIVE for e-commerce)
+// Helper: calculate auto adjustments based on histogram (PROFESSIONAL pipeline)
 const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
   const { 
     median, stdDev, 
     clippingHighlights, clippingShadows,
-    hasWhiteBackground, isWellExposed, isBalanced,
-    hasGoodContrast, isEcommerceReady,
-    productReadability
+    hasWhiteBackground, dynamicRange,
   } = analysis;
 
-  // ========== RULE 1: E-COMMERCE READY = NO ADJUSTMENTS ==========
-  // If image already meets all e-commerce criteria, return zeros
-  if (isEcommerceReady) {
-    return {
-      exposure: 0,
-      contrast: 0,
-      highlights: 0,
-      shadows: 0,
-      whites: 0,
-      blacks: 0,
-      sharpness: 0,
-    };
-  }
-
-  // ========== RULE 2: MOSTLY GOOD = MINIMAL ADJUSTMENTS ==========
-  // If image is 3 out of 4 quality checks, only tiny corrections
-  const qualityChecks = [isWellExposed, isBalanced, hasGoodContrast, productReadability >= 0.35];
-  const passedChecks = qualityChecks.filter(Boolean).length;
-  
-  if (passedChecks >= 3) {
-    // Very subtle corrections only
-    let tinyExposure = 0;
-    if (!isWellExposed && median < 0.40) {
-      tinyExposure = Math.min(8, (0.48 - median) * 25); // Max +8
-    }
-    
-    return {
-      exposure: Math.round(tinyExposure),
-      contrast: 0,
-      highlights: 0,
-      shadows: 0,
-      whites: 0,
-      blacks: 0,
-      sharpness: 0,
-    };
-  }
-
-  // ========== RULE 3: WHITE BACKGROUND ABSOLUTE PROTECTION ==========
-  const isWhiteBgProtected = hasWhiteBackground;
-  // White bg = studio photo = correct as-is
-
-  // === EXPOSURE ===
-  // Target median ~0.52 for e-commerce, but use VERY SUBTLE corrections
-  let exposure = 0;
+  // === STEP 1: AUTO WHITE BALANCE (via exposure correction) ===
   const targetMedian = 0.52;
-  const exposureDeviation = Math.abs(median - targetMedian);
-  
-  // Only adjust if SIGNIFICANTLY off (>0.12 deviation)
-  if (exposureDeviation > 0.12) {
-    if (median < targetMedian - 0.12) {
-      // Underexposed - gentle lift, max +18
-      exposure = Math.min(18, (targetMedian - median) * 45);
-    } else if (median > targetMedian + 0.15 && !isWhiteBgProtected) {
-      // Overexposed - only reduce if NOT white background
-      exposure = Math.max(-12, (targetMedian - median) * 35);
-    }
+  let exposure = 0;
+  const medianDev = median - targetMedian;
+  if (medianDev < -0.05) {
+    // Underexposed → lift
+    exposure = Math.min(45, Math.abs(medianDev) * 130);
+  } else if (medianDev > 0.08 && !hasWhiteBackground) {
+    // Overexposed → pull down (skip for white bg)
+    exposure = Math.max(-35, -medianDev * 110);
   }
-  
-  // WHITE BG: NEVER reduce exposure (absolute rule)
-  if (isWhiteBgProtected && exposure < 0) {
-    exposure = 0;
+  // White bg: never reduce exposure
+  if (hasWhiteBackground && exposure < 0) exposure = 0;
+  // Minimum visible change
+  if (Math.abs(exposure) > 0 && Math.abs(exposure) < 5) {
+    exposure = exposure > 0 ? 5 : -5;
   }
 
-  // === CONTRAST ===
-  // Ultra-subtle contrast adjustments
+  // === STEP 2: DYNAMIC RANGE EXPANSION (contrast) ===
   let contrast = 0;
-  if (stdDev < 0.10) {
-    // Severely washed out - mild contrast boost, max +10
-    contrast = Math.min(10, (0.16 - stdDev) * 55);
+  if (stdDev < 0.16) {
+    // Washed out → boost contrast
+    contrast = Math.min(30, (0.22 - stdDev) * 220);
+  } else if (stdDev > 0.34) {
+    // Too harsh → soften
+    contrast = Math.max(-20, (0.28 - stdDev) * 120);
   }
-  // NEVER increase contrast for white bg images
-  if (isWhiteBgProtected) {
-    contrast = 0;
-  }
-  // If already balanced, no contrast change
-  if (isBalanced) {
-    contrast = 0;
-  }
-
-  // === WHITES ===
-  // Only pull back whites if SEVERE clipping (>10%)
-  let whites = 0;
-  if (clippingHighlights > 0.10) {
-    whites = Math.max(-20, -clippingHighlights * 150);
-  }
-  // WHITE BG: NEVER touch whites (absolute rule)
-  if (isWhiteBgProtected) {
-    whites = 0;
+  // White bg: limit contrast to preserve background
+  if (hasWhiteBackground) contrast = Math.min(contrast, 10);
+  // Ensure minimum visible change
+  if (Math.abs(contrast) > 0 && Math.abs(contrast) < 4) {
+    contrast = contrast > 0 ? 4 : -4;
   }
 
-  // === BLACKS ===
-  // Ultra-conservative - only adjust if shadows are SEVERELY crushed
-  let blacks = 0;
-  if (clippingShadows > 0.06) {
-    // Lift crushed shadows slightly
-    blacks = Math.max(-15, -clippingShadows * 180);
-  }
-  // WHITE BG: NEVER darken blacks (would gray out background)
-  if (isWhiteBgProtected) {
-    blacks = 0;
-  }
-
-  // === HIGHLIGHTS ===
-  // Only recover if significant clipping (>7%)
+  // === STEP 3: HIGHLIGHT RECOVERY ===
   let highlights = 0;
-  if (clippingHighlights > 0.07 && !isWhiteBgProtected) {
-    highlights = Math.max(-15, -clippingHighlights * 180);
+  if (clippingHighlights > 0.02) {
+    highlights = Math.max(-50, -clippingHighlights * 350);
   }
-  // White bg: NO highlight adjustments
-  if (isWhiteBgProtected) {
-    highlights = 0;
-  }
+  // White bg: gentle recovery only
+  if (hasWhiteBackground) highlights = Math.max(highlights, -8);
 
-  // === SHADOWS ===
-  // Gentle shadow lift only if truly crushed (>5%)
+  // === STEP 4: SHADOW RECOVERY ===
   let shadows = 0;
-  if (clippingShadows > 0.05) {
-    shadows = Math.min(12, clippingShadows * 150);
+  if (clippingShadows > 0.015) {
+    shadows = Math.min(40, clippingShadows * 500);
+  } else if (median < 0.45) {
+    // Dark image: lift shadows even without clipping
+    shadows = Math.min(25, (0.45 - median) * 100);
+  }
+  // Ensure minimum visible change
+  if (shadows > 0 && shadows < 5) shadows = 5;
+
+  // === STEP 5: WHITES COMPRESSION ===
+  let whites = 0;
+  if (clippingHighlights > 0.04 && !hasWhiteBackground) {
+    whites = Math.max(-35, -clippingHighlights * 300);
   }
 
-  // ========== RULE 4: SIMULATE & VALIDATE ==========
-  const proposedAdjustments: ImageAdjustments = {
+  // === STEP 6: BLACKS (depth) ===
+  let blacks = 0;
+  if (dynamicRange < 0.55) {
+    // Low dynamic range: add depth via blacks
+    blacks = Math.min(20, (0.65 - dynamicRange) * 100);
+  }
+  if (hasWhiteBackground) blacks = 0;
+
+  // === STEP 7: CLARITY / SHARPNESS ===
+  // Always add moderate sharpness for e-commerce crispness
+  let sharpness = 10;
+  if (dynamicRange < 0.45) sharpness = 15;
+  if (dynamicRange > 0.7) sharpness = 6;
+
+  // === FINAL: ensure at least SOME visible change ===
+  const proposed = {
     exposure: Math.round(exposure),
     contrast: Math.round(contrast),
     highlights: Math.round(highlights),
     shadows: Math.round(shadows),
     whites: Math.round(whites),
     blacks: Math.round(blacks),
-    sharpness: 0,
+    sharpness: Math.round(sharpness),
   };
-  
-  const simulation = simulateAdjustmentQuality(analysis, proposedAdjustments);
-  
-  // If simulation suggests no improvement or degradation, return zeros
-  if (!simulation.wouldImprove || simulation.qualityDelta < 0.03) {
-    return {
-      exposure: 0,
-      contrast: 0,
-      highlights: 0,
-      shadows: 0,
-      whites: 0,
-      blacks: 0,
-      sharpness: 0,
-    };
+
+  // If all tonal adjustments are zero, force a minimal enhancement
+  const tonalSum = Math.abs(proposed.exposure) + Math.abs(proposed.contrast) + 
+    Math.abs(proposed.highlights) + Math.abs(proposed.shadows);
+  if (tonalSum === 0) {
+    // Image is near-perfect but apply subtle professional polish
+    proposed.contrast = 5;
+    proposed.shadows = 8;
+    proposed.sharpness = 8;
   }
 
-  // ========== RULE 5: FINAL SAFETY CAPS ==========
-  const capAdjustment = (val: number, max: number) => 
-    Math.max(-max, Math.min(max, val));
-
-  return {
-    exposure: Math.round(capAdjustment(exposure, 18)),
-    contrast: Math.round(capAdjustment(contrast, 10)),
-    highlights: Math.round(capAdjustment(highlights, 15)),
-    shadows: Math.round(capAdjustment(shadows, 12)),
-    whites: Math.round(capAdjustment(whites, 20)),
-    blacks: Math.round(capAdjustment(blacks, 15)),
-    sharpness: 0,
-  };
+  return proposed;
 };
 
 export const ImageEditor = ({ 
@@ -627,6 +524,8 @@ export const ImageEditor = ({
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guidesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sourceDataRef = useRef<ImageData | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
   const autoAnimationRef = useRef<number | null>(null);
@@ -710,63 +609,78 @@ export const ImageEditor = ({
     };
   }, []);
 
-  // Draw safe area guides - Rule of Thirds (3x3 grid) + Frame (Lightroom style)
+  // Draw safe area guides - Retina-aware grid + Rule of Thirds + Frame
   const drawGuides = useCallback((canvasWidth: number, canvasHeight: number) => {
     const guidesCanvas = guidesCanvasRef.current;
     if (!guidesCanvas || !showGuides) return;
     
-    guidesCanvas.width = canvasWidth;
-    guidesCanvas.height = canvasHeight;
+    const dpr = window.devicePixelRatio || 1;
+    guidesCanvas.width = Math.round(canvasWidth * dpr);
+    guidesCanvas.height = Math.round(canvasHeight * dpr);
     
     const ctx = guidesCanvas.getContext('2d');
     if (!ctx) return;
     
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
-    // Helper function to draw line with shadow for contrast on any background
-    const drawLineWithShadow = (x1: number, y1: number, x2: number, y2: number) => {
-      // Shadow (dark) for contrast on light backgrounds
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.lineWidth = 2;
+    // ─── Background grid (32px spacing) ───
+    const gridSpacing = 32;
+    const gridColor = 'rgba(0, 0, 0, 0.22)';
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = Math.max(1, dpr * 0.5);
+    
+    for (let x = gridSpacing; x < canvasWidth; x += gridSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, canvasHeight);
+      ctx.stroke();
+    }
+    for (let y = gridSpacing; y < canvasHeight; y += gridSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(canvasWidth, y + 0.5);
+      ctx.stroke();
+    }
+    
+    // ─── Rule of Thirds (strong dual-stroke for visibility) ───
+    const drawThirdLine = (x1: number, y1: number, x2: number, y2: number) => {
+      // Dark stroke for contrast on light areas
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
+      ctx.lineWidth = Math.max(2, dpr);
       ctx.beginPath();
       ctx.moveTo(x1 + 0.5, y1 + 0.5);
       ctx.lineTo(x2 + 0.5, y2 + 0.5);
       ctx.stroke();
       
-      // Main line (white) for contrast on dark backgrounds
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-      ctx.lineWidth = 1;
+      // Light stroke for contrast on dark areas
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.80)';
+      ctx.lineWidth = Math.max(1, dpr * 0.7);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
     };
     
-    // Frame (outer border) - with shadow for visibility
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.rect(1, 1, canvasWidth - 2, canvasHeight - 2);
-    ctx.stroke();
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.rect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
-    ctx.stroke();
-    
-    // Calculate 1/3 and 2/3 positions
     const oneThirdX = Math.round(canvasWidth / 3);
     const twoThirdsX = Math.round((canvasWidth * 2) / 3);
     const oneThirdY = Math.round(canvasHeight / 3);
     const twoThirdsY = Math.round((canvasHeight * 2) / 3);
     
-    // Rule of Thirds grid lines - 2 vertical + 2 horizontal (with shadow)
-    drawLineWithShadow(oneThirdX, 0, oneThirdX, canvasHeight);
-    drawLineWithShadow(twoThirdsX, 0, twoThirdsX, canvasHeight);
-    drawLineWithShadow(0, oneThirdY, canvasWidth, oneThirdY);
-    drawLineWithShadow(0, twoThirdsY, canvasWidth, twoThirdsY);
+    drawThirdLine(oneThirdX, 0, oneThirdX, canvasHeight);
+    drawThirdLine(twoThirdsX, 0, twoThirdsX, canvasHeight);
+    drawThirdLine(0, oneThirdY, canvasWidth, oneThirdY);
+    drawThirdLine(0, twoThirdsY, canvasWidth, twoThirdsY);
+    
+    // ─── Frame border ───
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = Math.max(2, dpr);
+    ctx.setLineDash([]);
+    ctx.strokeRect(1, 1, canvasWidth - 2, canvasHeight - 2);
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(1, dpr * 0.7);
+    ctx.strokeRect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
   }, [showGuides]);
 
   // Capture state BEFORE an interaction begins (called once at start of interaction)
@@ -849,6 +763,22 @@ export const ImageEditor = ({
         img = await loadImageFromUrl(imageUrl);
       }
 
+      setProcessingProgress(60);
+      setProcessingStep('Preparando preview...');
+
+      // Create downscaled preview for real-time 60fps editing
+      const PREVIEW_MAX = 1024;
+      const pScale = Math.min(1, PREVIEW_MAX / Math.max(img.width, img.height));
+      const preview = document.createElement('canvas');
+      preview.width = Math.round(img.width * pScale);
+      preview.height = Math.round(img.height * pScale);
+      const pCtx = preview.getContext('2d');
+      if (pCtx) {
+        pCtx.drawImage(img, 0, 0, preview.width, preview.height);
+        previewCanvasRef.current = preview;
+        sourceDataRef.current = pCtx.getImageData(0, 0, preview.width, preview.height);
+      }
+
       setOriginalImage(img);
       setProcessingProgress(100);
       setIsProcessing(false);
@@ -866,7 +796,7 @@ export const ImageEditor = ({
     }
   };
 
-  // Unified draw function that applies both transforms and adjustments
+  // Unified draw function — uses downscaled preview for 60fps performance
   const drawImage = useCallback((img: HTMLImageElement, currentAdjustments?: ImageAdjustments) => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -879,11 +809,18 @@ export const ImageEditor = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Calculate crop dimensions
+      // Calculate crop dimensions (in original image space)
       const crop = getCropDimensions(img.width, img.height, cropPreset);
       
-      canvas.width = crop.width;
-      canvas.height = crop.height;
+      // Use preview resolution for display performance
+      const hasPreview = !!(previewCanvasRef.current && sourceDataRef.current);
+      const pScale = hasPreview ? previewCanvasRef.current!.width / img.width : 1;
+      
+      const displayWidth = Math.round(crop.width * pScale);
+      const displayHeight = Math.round(crop.height * pScale);
+      
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const offsetPixelsX = (offsetX / 100) * canvas.width;
@@ -892,19 +829,23 @@ export const ImageEditor = ({
       const adj = currentAdjustments || adjustments;
       const hasAdjustments = Object.values(adj).some(v => v !== 0);
 
-      // Create source image data from original image
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = img.width;
-      tempCanvas.height = img.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      tempCtx.drawImage(img, 0, 0);
-      const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      // Use cached preview source data (much smaller than full res)
+      let sourceData: ImageData;
+      if (hasPreview) {
+        sourceData = sourceDataRef.current!;
+      } else {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+        tempCtx.drawImage(img, 0, 0);
+        sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      }
 
-      // Apply adjustments if any
+      // Apply tonal adjustments (applyAdjustmentsToImageData creates a copy internally)
       const adjustedData = hasAdjustments ? applyAdjustmentsToImageData(sourceData, adj) : sourceData;
 
-      // Create temp canvas with adjusted data
       const adjustedCanvas = document.createElement('canvas');
       adjustedCanvas.width = adjustedData.width;
       adjustedCanvas.height = adjustedData.height;
@@ -912,12 +853,14 @@ export const ImageEditor = ({
       if (!adjustedCtx) return;
       adjustedCtx.putImageData(adjustedData, 0, 0);
 
-      // Apply transforms and draw (translateX + translateY)
+      const srcWidth = hasPreview ? previewCanvasRef.current!.width : img.width;
+      const srcHeight = hasPreview ? previewCanvasRef.current!.height : img.height;
+
       ctx.save();
       ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(scaleFactor, scaleFactor);
-      ctx.translate(-img.width / 2, -img.height / 2);
+      ctx.translate(-srcWidth / 2, -srcHeight / 2);
       ctx.drawImage(adjustedCanvas, 0, 0);
       ctx.restore();
       
@@ -1314,14 +1257,19 @@ export const ImageEditor = ({
     // Push current state to history before auto adjustment
     pushToHistoryImmediate();
 
-    // Get source image data
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = originalImage.width;
-    tempCanvas.height = originalImage.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
-    tempCtx.drawImage(originalImage, 0, 0);
-    const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    // Use cached preview data for fast histogram analysis
+    let sourceData: ImageData;
+    if (sourceDataRef.current) {
+      sourceData = sourceDataRef.current;
+    } else {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = originalImage.width;
+      tempCanvas.height = originalImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      tempCtx.drawImage(originalImage, 0, 0);
+      sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    }
 
     // Analyze histogram
     const analysis = analyzeImageHistogram(sourceData);
