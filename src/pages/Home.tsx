@@ -222,7 +222,7 @@ const ensureWhatsAppSocialLink = (links: any[]) => {
     logo_url: getContent(cmsContent, "footer", "logo_url", ""),
     logo_alt: getContent(cmsContent, "footer", "logo_alt", "ShopDrive"),
     subtitle: getContent(cmsContent, "footer", "subtitle", "Sua loja no digital."),
-    social_links: getContentArray(cmsContent, "footer", "social_links", [
+    social_links: ensureWhatsAppSocialLink(getContentArray(cmsContent, "footer", "social_links", [
       { id: "1", name: "Instagram", icon: "Instagram", url: "https://instagram.com", open_new_tab: true, is_active: true },
       { id: "2", name: "Facebook", icon: "Facebook", url: "https://facebook.com", open_new_tab: true, is_active: true },
       { id: "3", name: "YouTube", icon: "Youtube", url: "https://youtube.com", open_new_tab: true, is_active: true },
@@ -231,7 +231,7 @@ const ensureWhatsAppSocialLink = (links: any[]) => {
       { id: "6", name: "Pinterest", icon: "Pinterest", url: "https://pinterest.com", open_new_tab: true, is_active: true },
       { id: "7", name: "X", icon: "Twitter", url: "https://x.com", open_new_tab: true, is_active: true },
       { id: "8", name: "WhatsApp", icon: "WhatsApp", url: "https://wa.me", open_new_tab: true, is_active: true },
-    ]),
+    ])) ,
     columns: getContentArray(cmsContent, "footer", "columns", [
       { id: "1", title: "Institucional", links: [
         { id: "1", text: "Sobre Nós", type: "internal", route: "/sobre-nos", is_active: true },
