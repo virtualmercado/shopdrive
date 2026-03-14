@@ -1257,14 +1257,19 @@ export const ImageEditor = ({
     // Push current state to history before auto adjustment
     pushToHistoryImmediate();
 
-    // Get source image data
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = originalImage.width;
-    tempCanvas.height = originalImage.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
-    tempCtx.drawImage(originalImage, 0, 0);
-    const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    // Use cached preview data for fast histogram analysis
+    let sourceData: ImageData;
+    if (sourceDataRef.current) {
+      sourceData = sourceDataRef.current;
+    } else {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = originalImage.width;
+      tempCanvas.height = originalImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+      tempCtx.drawImage(originalImage, 0, 0);
+      sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    }
 
     // Analyze histogram
     const analysis = analyzeImageHistogram(sourceData);
