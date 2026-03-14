@@ -4,6 +4,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const PARTICLE_COUNT_DESKTOP = 35;
 const PARTICLE_COUNT_MOBILE = 15;
 const LERP_FACTOR = 0.15;
+const SPEED_SMOOTH = 0.12;
+const TURBULENCE_SPEED = 0.0025;
 
 interface Particle {
   x: number;
@@ -32,6 +34,7 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
   const isMobile = useIsMobile();
   const [ready, setReady] = useState(false);
   const autoPhaseRef = useRef(0);
+  const turbPhaseRef = useRef(0);
 
   const initParticles = useCallback((width: number, height: number) => {
     const count = isMobile ? PARTICLE_COUNT_MOBILE : PARTICLE_COUNT_DESKTOP;
@@ -128,7 +131,8 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       const dx = gx - prevGlowRef.current.x;
       const dy = gy - prevGlowRef.current.y;
       const currentSpeed = Math.sqrt(dx * dx + dy * dy);
-      speedRef.current += (currentSpeed - speedRef.current) * 0.1;
+      speedRef.current += (currentSpeed - speedRef.current) * SPEED_SMOOTH;
+      const spd = speedRef.current;
 
       if (currentSpeed > 0.3) {
         const targetAngle = Math.atan2(dy, dx);
@@ -139,27 +143,40 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       }
 
       const angle = angleRef.current;
-      const tailLength = Math.min(400, 120 + speedRef.current * 30);
+
+      // Velocity-reactive tail length & opacity (Improvement 2)
+      const tailLength = Math.min(420, Math.max(200, spd * 8));
+      const tailOpacity = Math.min(0.6, Math.max(0.2, spd * 0.015));
       const tailWidth = 140;
 
-      // --- Comet tail (behind core, opposite to movement) ---
-      if (!isMobile && mouseRef.current.active && speedRef.current > 0.2) {
+      // Turbulence phase (Improvement 1)
+      turbPhaseRef.current += TURBULENCE_SPEED;
+      const turbT = turbPhaseRef.current;
+      const turbScaleY = 1 + Math.sin(turbT * 2.5) * 0.08;
+      const turbSkew = Math.sin(turbT * 1.7) * 1.5;
+
+      // --- Comet tail with turbulence ---
+      if (!isMobile && mouseRef.current.active && spd > 0.2) {
         ctx.save();
         ctx.translate(gx, gy);
         ctx.rotate(angle + Math.PI);
 
+        // Apply turbulence: skew + scaleY
+        ctx.transform(1, Math.sin(turbSkew * Math.PI / 180), 0, turbScaleY, 0, 0);
+
         const tailGrad = ctx.createLinearGradient(0, 0, tailLength, 0);
-        const tailIntensity = Math.min(0.45, 0.15 + speedRef.current * 0.03);
-        tailGrad.addColorStop(0, `rgba(106,27,154,${tailIntensity})`);
-        tailGrad.addColorStop(0.3, `rgba(106,27,154,${tailIntensity * 0.4})`);
-        tailGrad.addColorStop(0.6, `rgba(106,27,154,${tailIntensity * 0.18})`);
+        tailGrad.addColorStop(0, `rgba(106,27,154,${tailOpacity})`);
+        tailGrad.addColorStop(0.3, `rgba(106,27,154,${tailOpacity * 0.4})`);
+        tailGrad.addColorStop(0.6, `rgba(106,27,154,${tailOpacity * 0.18})`);
         tailGrad.addColorStop(1, `rgba(106,27,154,0)`);
 
         ctx.filter = "blur(40px)";
+        ctx.globalAlpha = 0.85 + Math.sin(turbT * 3.1) * 0.15;
         ctx.fillStyle = tailGrad;
         ctx.beginPath();
         ctx.ellipse(tailLength / 2, 0, tailLength / 2, tailWidth / 2, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
         ctx.filter = "none";
         ctx.restore();
       }
@@ -180,6 +197,25 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       ctx.fillRect(gx - coreRadius * 2, gy - coreRadius * 2, coreRadius * 4, coreRadius * 4);
       ctx.filter = "none";
       ctx.restore();
+
+      // --- Velocity-reactive aura (Improvement 3) ---
+      if (!isMobile && mouseRef.current.active) {
+        const auraScale = Math.min(1.6, 1 + spd * 0.02);
+        const auraOp = Math.min(0.7, Math.max(0.2, spd * 0.02));
+        const auraR = 110 * auraScale;
+        const auraGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, auraR);
+        auraGrad.addColorStop(0, `rgba(106,27,154,${auraOp * 0.35})`);
+        auraGrad.addColorStop(0.35, `rgba(106,27,154,${auraOp * 0.18})`);
+        auraGrad.addColorStop(0.55, `rgba(106,27,154,${auraOp * 0.08})`);
+        auraGrad.addColorStop(1, `rgba(106,27,154,0)`);
+
+        ctx.save();
+        ctx.filter = "blur(40px)";
+        ctx.fillStyle = auraGrad;
+        ctx.fillRect(gx - auraR, gy - auraR, auraR * 2, auraR * 2);
+        ctx.filter = "none";
+        ctx.restore();
+      }
 
       // --- Ambient purple glow ---
       const ambientGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 300);
