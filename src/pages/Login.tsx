@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
 import { useAuth } from "@/hooks/useAuth";
-import { useMerchantCheck } from "@/hooks/useMerchantCheck";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -44,11 +44,9 @@ const Login = () => {
   const [isSetNewPasswordMode, setIsSetNewPasswordMode] = useState(() => {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const queryParams = new URLSearchParams(window.location.search);
-
     const type = hashParams.get("type") || queryParams.get("type");
     const mode = queryParams.get("mode");
     const hasCode = queryParams.has("code");
-
     return type === "recovery" || mode === "recovery" || hasCode;
   });
   const [isValidatingRecoveryLink, setIsValidatingRecoveryLink] = useState(false);
@@ -60,29 +58,25 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { user, signIn, resetPassword, updatePassword } = useAuth();
-  const { isMerchant, loading: merchantLoading } = useMerchantCheck();
+  const { isMerchant, loading: globalLoading, profileStatus } = useAuthContext();
   const { toast } = useToast();
 
+  // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      // When the user comes from the recovery email, Supabase will emit PASSWORD_RECOVERY.
-      // We must NOT auto-redirect them to /lojista before they can set a new password.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsSetNewPasswordMode(true);
         setIsRecoveryMode(false);
         setRecoverySent(false);
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
+  // Handle PKCE recovery code exchange
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const queryParams = new URLSearchParams(window.location.search);
-
     const type = hashParams.get("type") || queryParams.get("type");
     const mode = queryParams.get("mode");
     const code = queryParams.get("code");
@@ -93,7 +87,6 @@ const Login = () => {
       setRecoverySent(false);
     }
 
-    // PKCE-style recovery links include ?code=...
     if (!code) return;
 
     setIsValidatingRecoveryLink(true);
@@ -111,24 +104,22 @@ const Login = () => {
       })
       .finally(() => {
         setIsValidatingRecoveryLink(false);
-        // Remove code param from URL to avoid re-exchange on refresh.
         window.history.replaceState({}, document.title, "/login?mode=recovery");
       });
   }, [toast]);
 
+  // Redirect after login — only when global auth+profile loading is done
   useEffect(() => {
-    // Wait until auth AND merchant check are both fully resolved
-    if (!user || isSetNewPasswordMode || merchantLoading) return;
+    if (!user || isSetNewPasswordMode || globalLoading) return;
 
     if (isMerchant) {
-      console.info('[Auth] Merchant confirmed — redirecting to /lojista');
+      console.log('[Auth] redirecting to dashboard');
       navigate("/lojista", { replace: true });
     } else {
-      // Authenticated but no store — send to onboarding
-      console.info('[Auth] User authenticated but no store — redirecting to /onboarding');
+      console.log('[Auth] redirecting to onboarding');
       navigate("/onboarding", { replace: true });
     }
-  }, [user, isSetNewPasswordMode, navigate, isMerchant, merchantLoading]);
+  }, [user, isSetNewPasswordMode, navigate, isMerchant, globalLoading, profileStatus]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,12 +127,8 @@ const Login = () => {
 
     try {
       const validatedData = loginSchema.parse({ email, password });
-
-      const { error } = await signIn(validatedData.email, validatedData.password);
-
-      if (!error) {
-        // The useEffect with isMerchant will handle the redirect after merchant check completes
-      }
+      await signIn(validatedData.email, validatedData.password);
+      // Redirect handled by useEffect above after AuthProvider resolves profile
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
@@ -163,10 +150,7 @@ const Login = () => {
     try {
       const emailValidation = z.string().email("Email inválido").parse(email);
       const { error } = await resetPassword(emailValidation);
-
-      if (!error) {
-        setRecoverySent(true);
-      }
+      if (!error) setRecoverySent(true);
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -194,11 +178,7 @@ const Login = () => {
         return;
       }
 
-      const validated = passwordResetSchema.parse({
-        newPassword,
-        confirmNewPassword,
-      });
-
+      const validated = passwordResetSchema.parse({ newPassword, confirmNewPassword });
       const { error } = await updatePassword(validated.newPassword);
       if (!error) {
         window.history.replaceState({}, document.title, "/login");
@@ -276,11 +256,7 @@ const Login = () => {
                   onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showConfirmNewPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -290,11 +266,7 @@ const Login = () => {
               className="w-full bg-primary hover:bg-primary/90"
               disabled={loading || isValidatingRecoveryLink}
             >
-              {isValidatingRecoveryLink
-                ? "Validando link..."
-                : loading
-                  ? "Salvando..."
-                  : "Salvar nova senha"}
+              {isValidatingRecoveryLink ? "Validando link..." : loading ? "Salvando..." : "Salvar nova senha"}
             </Button>
 
             <div className="text-center">
