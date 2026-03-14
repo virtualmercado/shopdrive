@@ -47,7 +47,42 @@ const socialIconMap: Record<string, any> = {
   ),
 };
 
-const Home = () => {
+const normalizeSocialIcon = (icon?: string, name?: string): string => {
+  const raw = (icon || name || "").trim().toLowerCase();
+
+  if (["instagram"].includes(raw)) return "Instagram";
+  if (["facebook"].includes(raw)) return "Facebook";
+  if (["youtube", "you tube"].includes(raw)) return "Youtube";
+  if (["twitter", "x"].includes(raw)) return "Twitter";
+  if (["linkedin"].includes(raw)) return "Linkedin";
+  if (["tiktok", "tik tok"].includes(raw)) return "TikTok";
+  if (["pinterest"].includes(raw)) return "Pinterest";
+  if (["whatsapp", "whats app", "what's app"].includes(raw)) return "WhatsApp";
+
+  return icon || "";
+};
+
+const ensureWhatsAppSocialLink = (links: any[]) => {
+  const safeLinks = Array.isArray(links) ? links : [];
+  const hasWhatsApp = safeLinks.some((link: any) => {
+    const normalized = normalizeSocialIcon(link?.icon, link?.name);
+    return normalized === "WhatsApp";
+  });
+
+  if (hasWhatsApp) return safeLinks;
+
+  return [
+    ...safeLinks,
+    {
+      id: "whatsapp-auto",
+      name: "WhatsApp",
+      icon: "WhatsApp",
+      url: "https://wa.me",
+      open_new_tab: true,
+      is_active: true,
+    },
+  ];
+};
   const { data: cmsBanners } = useCMSBanners();
   const { data: cmsContent } = useCMSContent();
   const navigate = useNavigate();
