@@ -334,10 +334,10 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
                         href={normalizedUrl} 
                         target="_blank"
                         rel="noopener noreferrer" 
-                        className="transition-all duration-300 hover:scale-110 hover:opacity-80" 
+                        className="transition-all duration-300 hover:scale-110 hover:opacity-80 [&>svg]:w-6 [&>svg]:h-6" 
                         style={{ color: '#6A1B9A' }}
                       >
-                        <IconComponent size={24} strokeWidth={1.5} />
+                        <IconComponent />
                       </a>
                     );
                   })}
