@@ -609,63 +609,78 @@ export const ImageEditor = ({
     };
   }, []);
 
-  // Draw safe area guides - Rule of Thirds (3x3 grid) + Frame (Lightroom style)
+  // Draw safe area guides - Retina-aware grid + Rule of Thirds + Frame
   const drawGuides = useCallback((canvasWidth: number, canvasHeight: number) => {
     const guidesCanvas = guidesCanvasRef.current;
     if (!guidesCanvas || !showGuides) return;
     
-    guidesCanvas.width = canvasWidth;
-    guidesCanvas.height = canvasHeight;
+    const dpr = window.devicePixelRatio || 1;
+    guidesCanvas.width = Math.round(canvasWidth * dpr);
+    guidesCanvas.height = Math.round(canvasHeight * dpr);
     
     const ctx = guidesCanvas.getContext('2d');
     if (!ctx) return;
     
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
-    // Helper function to draw line with shadow for contrast on any background
-    const drawLineWithShadow = (x1: number, y1: number, x2: number, y2: number) => {
-      // Shadow (dark) for contrast on light backgrounds
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.lineWidth = 2;
+    // ─── Background grid (32px spacing) ───
+    const gridSpacing = 32;
+    const gridColor = 'rgba(0, 0, 0, 0.22)';
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = Math.max(1, dpr * 0.5);
+    
+    for (let x = gridSpacing; x < canvasWidth; x += gridSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, canvasHeight);
+      ctx.stroke();
+    }
+    for (let y = gridSpacing; y < canvasHeight; y += gridSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(canvasWidth, y + 0.5);
+      ctx.stroke();
+    }
+    
+    // ─── Rule of Thirds (strong dual-stroke for visibility) ───
+    const drawThirdLine = (x1: number, y1: number, x2: number, y2: number) => {
+      // Dark stroke for contrast on light areas
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
+      ctx.lineWidth = Math.max(2, dpr);
       ctx.beginPath();
       ctx.moveTo(x1 + 0.5, y1 + 0.5);
       ctx.lineTo(x2 + 0.5, y2 + 0.5);
       ctx.stroke();
       
-      // Main line (white) for contrast on dark backgrounds
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-      ctx.lineWidth = 1;
+      // Light stroke for contrast on dark areas
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.80)';
+      ctx.lineWidth = Math.max(1, dpr * 0.7);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
     };
     
-    // Frame (outer border) - with shadow for visibility
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.rect(1, 1, canvasWidth - 2, canvasHeight - 2);
-    ctx.stroke();
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.rect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
-    ctx.stroke();
-    
-    // Calculate 1/3 and 2/3 positions
     const oneThirdX = Math.round(canvasWidth / 3);
     const twoThirdsX = Math.round((canvasWidth * 2) / 3);
     const oneThirdY = Math.round(canvasHeight / 3);
     const twoThirdsY = Math.round((canvasHeight * 2) / 3);
     
-    // Rule of Thirds grid lines - 2 vertical + 2 horizontal (with shadow)
-    drawLineWithShadow(oneThirdX, 0, oneThirdX, canvasHeight);
-    drawLineWithShadow(twoThirdsX, 0, twoThirdsX, canvasHeight);
-    drawLineWithShadow(0, oneThirdY, canvasWidth, oneThirdY);
-    drawLineWithShadow(0, twoThirdsY, canvasWidth, twoThirdsY);
+    drawThirdLine(oneThirdX, 0, oneThirdX, canvasHeight);
+    drawThirdLine(twoThirdsX, 0, twoThirdsX, canvasHeight);
+    drawThirdLine(0, oneThirdY, canvasWidth, oneThirdY);
+    drawThirdLine(0, twoThirdsY, canvasWidth, twoThirdsY);
+    
+    // ─── Frame border ───
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = Math.max(2, dpr);
+    ctx.setLineDash([]);
+    ctx.strokeRect(1, 1, canvasWidth - 2, canvasHeight - 2);
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(1, dpr * 0.7);
+    ctx.strokeRect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
   }, [showGuides]);
 
   // Capture state BEFORE an interaction begins (called once at start of interaction)
