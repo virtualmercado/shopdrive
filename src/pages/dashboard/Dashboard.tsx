@@ -170,12 +170,13 @@ const Dashboard = () => {
                       width={80}
                     />
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
                       contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                     />
                     <Bar 
@@ -230,7 +231,14 @@ const Dashboard = () => {
                       ))}
                     </Pie>
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number, name: string) => [`${value} pedidos`, name]}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -261,12 +269,13 @@ const Dashboard = () => {
                       tick={{ fill: '#666', fontSize: 12 }}
                     />
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
                       contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                     />
                     <Bar 
@@ -322,12 +331,13 @@ const Dashboard = () => {
                       tickFormatter={(value) => value.length > 18 ? `${value.substring(0, 18)}...` : value}
                     />
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number) => [`${value} unidades`, 'Quantidade']}
                       contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                     />
                     <Bar 
@@ -380,12 +390,13 @@ const Dashboard = () => {
                       tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
                     />
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number) => [formatCurrency(value), 'Total']}
                       contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                     />
                     <Bar 
