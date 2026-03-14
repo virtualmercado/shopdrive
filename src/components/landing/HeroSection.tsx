@@ -1,5 +1,6 @@
 import HeroContentLeft from "./HeroContentLeft";
 import HeroCarousel from "./HeroCarousel";
+import HeroInteractiveBackground from "./HeroInteractiveBackground";
 import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
 import heroImageDefault from "@/assets/hero-banner.jpg";
 
