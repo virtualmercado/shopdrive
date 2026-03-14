@@ -72,6 +72,37 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
     mouseRef.current.active = false;
   }, []);
 
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouseRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      active: true,
+    };
+    touchFadeRef.current = 1;
+    touchEndTimeRef.current = 0;
+  }, [trackingRef]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouseRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      active: true,
+    };
+  }, [trackingRef]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchEndTimeRef.current = performance.now();
+    // active will be faded out in the animation loop
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
