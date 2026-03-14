@@ -624,8 +624,8 @@ const ProductDetailContent = () => {
                   {category.name}
                 </p>
               )}
-              <p className="text-xs text-foreground/90 mt-1">
-                Ref: {product.id.slice(0, 8).toUpperCase()}
+              <p className="text-xs text-foreground/90 mt-1 font-mono">
+                SKU: SD-{product.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
 

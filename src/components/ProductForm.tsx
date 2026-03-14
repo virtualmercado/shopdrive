@@ -1078,6 +1078,35 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             />
           </div>
 
+          {/* SKU (read-only, auto-generated) */}
+          {product?.id && (() => {
+            const skuValue = `SD-${product.id.slice(0, 8).toUpperCase()}`;
+            return (
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={skuValue}
+                    readOnly
+                    className="font-mono text-sm bg-muted cursor-default"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 h-10 w-10"
+                    onClick={() => {
+                      navigator.clipboard.writeText(skuValue);
+                      toast({ title: "SKU copiado!", description: skuValue });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="description">Descrição</Label>
