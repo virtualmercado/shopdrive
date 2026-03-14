@@ -51,15 +51,15 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
   }, [isMobile]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
+    const trackingElement = trackingRef?.current ?? containerRef.current;
+    if (!trackingElement) return;
+    const rect = trackingElement.getBoundingClientRect();
     mouseRef.current = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
       active: true,
     };
-  }, []);
+  }, [trackingRef]);
 
   const handleMouseLeave = useCallback(() => {
     mouseRef.current.active = false;
