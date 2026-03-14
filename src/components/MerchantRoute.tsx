@@ -1,46 +1,37 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useMerchantCheck } from '@/hooks/useMerchantCheck';
-import { toast } from 'sonner';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface MerchantRouteProps {
   children: React.ReactNode;
 }
 
 export const MerchantRoute = ({ children }: MerchantRouteProps) => {
-  const { user, isMerchant, loading } = useMerchantCheck();
+  const { user, isMerchant, loading, profileStatus } = useAuthContext();
   const navigate = useNavigate();
   const [hasChecked, setHasChecked] = useState(false);
   const [searchParams] = useSearchParams();
 
-  // Check if we're in template editor mode (session switch in progress)
   const isTemplateEditorMode = searchParams.get('mode') === 'template-editor';
 
   useEffect(() => {
-    if (!loading && !hasChecked) {
-      setHasChecked(true);
-      
-      if (!user) {
-        // Template editor mode - wait for login to complete
-        if (isTemplateEditorMode) {
-          return;
-        }
-        // Usuário não autenticado - redirecionar para login
-        navigate('/login', { replace: true });
-      } else if (!isMerchant) {
-        // Template editor mode - may still be switching sessions
-        if (isTemplateEditorMode) {
-          return;
-        }
-        // Usuário sem loja — redirecionar para onboarding
-        console.info('[MerchantRoute] User has no store — redirecting to /onboarding');
-        navigate('/onboarding', { replace: true });
-      }
-    }
-  }, [user, isMerchant, loading, navigate, hasChecked, isTemplateEditorMode]);
+    if (loading || hasChecked) return;
 
-  // IMPORTANT: In template editor mode, we must not block rendering.
-  // The session switch (signOut/signIn) happens inside DashboardLayout.
+    setHasChecked(true);
+
+    if (!user) {
+      if (isTemplateEditorMode) return;
+      console.log('[MerchantRoute] No user — redirecting to /login');
+      navigate('/login', { replace: true });
+    } else if (!isMerchant) {
+      if (isTemplateEditorMode) return;
+      console.log('[MerchantRoute] User has no store — redirecting to /onboarding');
+      navigate('/onboarding', { replace: true });
+    } else {
+      console.log('[MerchantRoute] Merchant confirmed — rendering dashboard');
+    }
+  }, [user, isMerchant, loading, navigate, hasChecked, isTemplateEditorMode, profileStatus]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -49,8 +40,6 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
     );
   }
 
-  // Allow access in template editor mode even before the new session is established.
-  // (User can be null momentarily during the signOut/signIn process.)
   if (isTemplateEditorMode) {
     return <>{children}</>;
   }

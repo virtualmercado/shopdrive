@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 type AppRole = 'admin' | 'user' | 'financeiro' | 'suporte' | 'tecnico';
 
 export const useRoleCheck = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuthContext();
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +29,6 @@ export const useRoleCheck = () => {
   }, []);
 
   useEffect(() => {
-    // Wait for auth to finish loading before fetching roles
     if (authLoading) {
       setLoading(true);
       return;
@@ -65,7 +64,6 @@ export const useRoleCheck = () => {
 
     const requiredRoles = routePermissions[path];
     if (!requiredRoles) return false;
-    
     return hasAnyRole(requiredRoles);
   }, [hasAnyRole]);
 
@@ -87,11 +85,8 @@ export const useRoleCheck = () => {
 
     const requiredRoles = actionPermissions[action];
     if (!requiredRoles) return false;
-    
     return hasAnyRole(requiredRoles);
   }, [hasAnyRole]);
 
-  // Expose user/authLoading so route guards can avoid instantiating a second
-  // useAuth() instance (which can cause a brief mismatch on cold loads/new tabs).
   return { user, authLoading, roles, hasRole, hasAnyRole, canAccess, canPerformAction, loading };
 };
