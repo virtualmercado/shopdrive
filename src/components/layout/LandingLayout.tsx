@@ -359,7 +359,8 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
                 {footerContent.social_links
                   .filter((link: any) => link.is_active && link.url)
                   .map((link: any) => {
-                    const IconComponent = socialIconMap[link.icon];
+                    const iconKey = normalizeSocialIcon(link.icon, link.name);
+                    const IconComponent = socialIconMap[iconKey];
                     if (!IconComponent) return null;
                     const normalizedUrl = normalizeExternalUrl(link.url);
                     if (!normalizedUrl) return null;

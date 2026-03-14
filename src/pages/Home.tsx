@@ -568,7 +568,8 @@ const ensureWhatsAppSocialLink = (links: any[]) => {
                 {footerContent.social_links
                   .filter((link: any) => link.is_active && link.url)
                   .map((link: any) => {
-                    const IconComponent = socialIconMap[link.icon];
+                    const iconKey = normalizeSocialIcon(link.icon, link.name);
+                    const IconComponent = socialIconMap[iconKey];
                     if (!IconComponent) return null;
                     return (
                       <a 
