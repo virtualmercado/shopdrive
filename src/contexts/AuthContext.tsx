@@ -100,38 +100,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     console.log('[Auth] auth started');
 
-    // 1. Restore session from storage first
-    supabase.auth.getSession().then(({ data: { session: restored } }) => {
-      console.log('[Auth] session loaded', restored ? 'with user' : 'no session');
-      setSession(restored);
-      setUser(restored?.user ?? null);
-      setAuthReady(true);
-
-      // Fetch profile for restored session
-      fetchProfile(restored?.user ?? null);
-    });
-
-    // 2. Listen for subsequent auth changes (sign in / sign out / token refresh)
+    // 1. Set up listener FIRST (Supabase best practice)
+    // This fires INITIAL_SESSION synchronously on setup
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log(`[Auth] onAuthStateChange: ${event}`);
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        setAuthReady(true);
 
-        // On sign in or token refresh with a different user, re-fetch profile
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          // Reset profile cache so it re-fetches for new user
+        if (event === 'INITIAL_SESSION') {
+          // Session restored from storage — fetch profile immediately
+          setAuthReady(true);
+          fetchProfile(newSession?.user ?? null);
+        } else if (event === 'SIGNED_IN') {
+          setAuthReady(true);
+          // Reset profile cache for new/different user
           if (newSession?.user?.id !== profileFetchRef.current) {
             profileFetchRef.current = null;
           }
           fetchProfile(newSession?.user ?? null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          setAuthReady(true);
+          // Only re-fetch if user changed (shouldn't happen, but safety)
+          if (newSession?.user?.id !== profileFetchRef.current) {
+            profileFetchRef.current = null;
+            fetchProfile(newSession?.user ?? null);
+          }
         } else if (event === 'SIGNED_OUT') {
+          setAuthReady(true);
           profileFetchRef.current = null;
           fetchProfile(null);
         }
       }
     );
+
+    // 2. Fallback: if INITIAL_SESSION didn't fire (older Supabase versions),
+    // ensure we still restore the session
+    supabase.auth.getSession().then(({ data: { session: restored } }) => {
+      console.log('[Auth] getSession fallback', restored ? 'with user' : 'no session');
+      if (!profileFetchRef.current && restored?.user) {
+        // Profile wasn't fetched by INITIAL_SESSION — do it now
+        setSession(restored);
+        setUser(restored.user);
+        setAuthReady(true);
+        fetchProfile(restored.user);
+      } else if (!restored) {
+        // No session at all — ensure auth is ready
+        setAuthReady(true);
+        if (profileFetchRef.current === null) {
+          fetchProfile(null);
+        }
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);

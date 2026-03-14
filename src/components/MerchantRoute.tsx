@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 
@@ -7,17 +7,14 @@ interface MerchantRouteProps {
 }
 
 export const MerchantRoute = ({ children }: MerchantRouteProps) => {
-  const { user, isMerchant, loading, profileStatus } = useAuthContext();
+  const { user, isMerchant, loading } = useAuthContext();
   const navigate = useNavigate();
-  const [hasChecked, setHasChecked] = useState(false);
   const [searchParams] = useSearchParams();
 
   const isTemplateEditorMode = searchParams.get('mode') === 'template-editor';
 
   useEffect(() => {
-    if (loading || hasChecked) return;
-
-    setHasChecked(true);
+    if (loading) return;
 
     if (!user) {
       if (isTemplateEditorMode) return;
@@ -30,7 +27,7 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
     } else {
       console.log('[MerchantRoute] Merchant confirmed — rendering dashboard');
     }
-  }, [user, isMerchant, loading, navigate, hasChecked, isTemplateEditorMode, profileStatus]);
+  }, [user, isMerchant, loading, navigate, isTemplateEditorMode]);
 
   if (loading) {
     return (
