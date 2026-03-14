@@ -1702,7 +1702,7 @@ export const ImageEditor = ({
               </div>
               
               {/* Preview / Workspace Area */}
-              <div className="flex-1 flex items-center justify-center p-6 overflow-auto relative" style={{ backgroundColor: ie.workspace }}>
+              <div className="flex-1 flex items-center justify-center p-6 overflow-auto relative" style={{ backgroundColor: '#1f1f1f' }}>
                 <button
                   onClick={() => setShowGuides(!showGuides)}
                   className="absolute top-3 left-3 z-10 px-2 py-0.5 text-[9px] font-medium rounded-md transition-all hover:scale-105"
