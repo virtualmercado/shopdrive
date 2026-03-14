@@ -4,6 +4,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const PARTICLE_COUNT_DESKTOP = 35;
 const PARTICLE_COUNT_MOBILE = 15;
 const LERP_FACTOR = 0.15;
+const SPEED_SMOOTH = 0.12;
+const TURBULENCE_SPEED = 0.0025;
 
 interface Particle {
   x: number;
