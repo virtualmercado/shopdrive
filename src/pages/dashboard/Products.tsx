@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag, ArrowDownAZ } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,8 @@ interface Category {
   name: string;
 }
 
+const PRODUCTS_PER_PAGE = 30;
+
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -66,6 +68,8 @@ const Products = () => {
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
@@ -244,6 +248,36 @@ const Products = () => {
     })
   );
 
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+  const visibleProducts = filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, sortBy]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    gridRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const getPaginationPages = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -331,84 +365,125 @@ const Products = () => {
             <p className="text-muted-foreground">Carregando produtos...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-3">
-            {filteredProducts.map((product) => (
-              <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
-                <div className="absolute top-2 right-2 z-10">
-                  <Switch
-                    checked={product.is_active}
-                    onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
-                  />
-                </div>
-                {!product.is_active && (
-                  <div className="absolute top-2 left-2 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
-                    Inativo
-                  </div>
-                )}
-                <div className="aspect-square bg-muted">
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
+          <div className="space-y-8">
+            <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+              {visibleProducts.map((product) => (
+                <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
+                  <div className="absolute top-2 right-2 z-10">
+                    <Switch
+                      checked={product.is_active}
+                      onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
+                      className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  {!product.is_active && (
+                    <div className="absolute top-2 left-2 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
+                      Inativo
                     </div>
                   )}
-                </div>
-                {/* Top section: title + description — stretches to fill */}
-                <div className="p-4 flex-1">
-                  <h3 className="font-semibold mb-1">{product.name}</h3>
-                  {product.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {product.description}
-                    </p>
-                  )}
-                </div>
-                {/* Bottom section: price, stock, actions — always pinned */}
-                <div className="px-4 pb-4 mt-auto">
-                  <div className="mb-2">
-                    {product.promotional_price ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-base font-bold text-muted-foreground line-through">
-                          R$ {product.price.toFixed(2)}
-                        </p>
-                        <p className="text-xl font-bold text-foreground">
-                          R$ {product.promotional_price.toFixed(2)}
-                        </p>
-                      </div>
+                  <div className="aspect-square bg-muted">
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <p className="text-xl font-bold text-foreground">
-                        R$ {product.price.toFixed(2)}
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex-1">
+                    <h3 className="font-semibold mb-1">{product.name}</h3>
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {product.description}
                       </p>
                     )}
                   </div>
-                  <p className="text-sm text-foreground mb-4">
-                    Estoque: <span className="font-bold">{product.stock}</span> unidades
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <Edit className="h-4 w-4" />
-                      Editar
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg"
-                      onClick={() => openDeleteDialog(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div className="px-4 pb-4 mt-auto">
+                    <div className="mb-2">
+                      {product.promotional_price ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-base font-bold text-muted-foreground line-through">
+                            R$ {product.price.toFixed(2)}
+                          </p>
+                          <p className="text-xl font-bold text-foreground">
+                            R$ {product.promotional_price.toFixed(2)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xl font-bold text-foreground">
+                          R$ {product.price.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground mb-4">
+                      Estoque: <span className="font-bold">{product.stock}</span> unidades
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg"
+                        onClick={() => openDeleteDialog(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {getPaginationPages().map((page, idx) =>
+                  page === "ellipsis" ? (
+                    <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      className={`min-w-[36px] rounded-lg ${currentPage === page ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <Card className="p-12 text-center">
