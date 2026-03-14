@@ -763,6 +763,22 @@ export const ImageEditor = ({
         img = await loadImageFromUrl(imageUrl);
       }
 
+      setProcessingProgress(60);
+      setProcessingStep('Preparando preview...');
+
+      // Create downscaled preview for real-time 60fps editing
+      const PREVIEW_MAX = 1024;
+      const pScale = Math.min(1, PREVIEW_MAX / Math.max(img.width, img.height));
+      const preview = document.createElement('canvas');
+      preview.width = Math.round(img.width * pScale);
+      preview.height = Math.round(img.height * pScale);
+      const pCtx = preview.getContext('2d');
+      if (pCtx) {
+        pCtx.drawImage(img, 0, 0, preview.width, preview.height);
+        previewCanvasRef.current = preview;
+        sourceDataRef.current = pCtx.getImageData(0, 0, preview.width, preview.height);
+      }
+
       setOriginalImage(img);
       setProcessingProgress(100);
       setIsProcessing(false);
