@@ -39,7 +39,7 @@ export const StatCard = ({
   };
 
   return (
-    <Card className="p-6 hover:shadow-md transition-shadow">
+    <Card className="p-6">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>

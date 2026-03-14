@@ -199,7 +199,7 @@ const DashboardNewsCarousel = () => {
             <div
               key={banner.id}
               onClick={() => handleBannerClick(banner)}
-              className="rounded-lg overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] bg-white border w-full flex items-center justify-center"
+              className="rounded-xl overflow-hidden cursor-pointer group transition-all duration-200 ease-out shadow-sm hover:shadow-md bg-card border border-border w-full flex items-center justify-center"
             >
               <img
                 src={
