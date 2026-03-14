@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, type RefObject } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const PARTICLE_COUNT_DESKTOP = 35;
@@ -15,7 +15,11 @@ interface Particle {
   hue: number;
 }
 
-const HeroInteractiveBackground = () => {
+interface HeroInteractiveBackgroundProps {
+  trackingRef?: RefObject<HTMLElement | null>;
+}
+
+const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0, y: 0, active: false });

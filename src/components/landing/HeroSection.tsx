@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import HeroContentLeft from "./HeroContentLeft";
 import HeroCarousel from "./HeroCarousel";
 import HeroInteractiveBackground from "./HeroInteractiveBackground";
