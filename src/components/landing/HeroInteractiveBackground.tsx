@@ -37,6 +37,8 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
   const [ready, setReady] = useState(false);
   const autoPhaseRef = useRef(0);
   const turbPhaseRef = useRef(0);
+  const touchFadeRef = useRef(1); // 1 = fully visible, 0 = hidden
+  const touchEndTimeRef = useRef(0);
 
   const initParticles = useCallback((width: number, height: number) => {
     const count = isMobile ? PARTICLE_COUNT_MOBILE : PARTICLE_COUNT_DESKTOP;
