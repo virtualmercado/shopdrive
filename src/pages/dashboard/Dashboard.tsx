@@ -408,7 +408,7 @@ const Dashboard = () => {
           {/* Card 6 - Revenue Stats (2 stacked cards) - Last position */}
           <TooltipProvider>
           <div className="flex flex-col gap-8">
-            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px] hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
+            <Card className="p-6 flex-1 flex flex-col justify-center min-h-[148px]">
               <div className="flex items-center justify-center gap-1.5 mb-6">
                 <h3 className="text-base font-medium text-muted-foreground text-center">
                   Faturamento / últimos 30 dias
