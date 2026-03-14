@@ -56,6 +56,7 @@ import Onboarding from "./pages/Onboarding";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
