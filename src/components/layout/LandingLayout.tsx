@@ -57,6 +57,11 @@ const LandingLayout = ({ children }: LandingLayoutProps) => {
       { id: "1", name: "Instagram", icon: "Instagram", url: "https://instagram.com", open_new_tab: true, is_active: true },
       { id: "2", name: "Facebook", icon: "Facebook", url: "https://facebook.com", open_new_tab: true, is_active: true },
       { id: "3", name: "YouTube", icon: "Youtube", url: "https://youtube.com", open_new_tab: true, is_active: true },
+      { id: "4", name: "TikTok", icon: "TikTok", url: "https://tiktok.com", open_new_tab: true, is_active: true },
+      { id: "5", name: "LinkedIn", icon: "Linkedin", url: "https://linkedin.com", open_new_tab: true, is_active: true },
+      { id: "6", name: "Pinterest", icon: "Pinterest", url: "https://pinterest.com", open_new_tab: true, is_active: true },
+      { id: "7", name: "X", icon: "Twitter", url: "https://x.com", open_new_tab: true, is_active: true },
+      { id: "8", name: "WhatsApp", icon: "WhatsApp", url: "https://wa.me", open_new_tab: true, is_active: true },
     ]),
     columns: getContentArray(cmsContent, "footer", "columns", [
       { id: "1", title: "Institucional", links: [
