@@ -624,26 +624,7 @@ export const ImageEditor = ({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
-    // ─── Background grid (32px spacing) ───
-    const gridSpacing = 32;
-    const gridColor = 'rgba(0, 0, 0, 0.22)';
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = Math.max(1, dpr * 0.5);
-    
-    for (let x = gridSpacing; x < canvasWidth; x += gridSpacing) {
-      ctx.beginPath();
-      ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, canvasHeight);
-      ctx.stroke();
-    }
-    for (let y = gridSpacing; y < canvasHeight; y += gridSpacing) {
-      ctx.beginPath();
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(canvasWidth, y + 0.5);
-      ctx.stroke();
-    }
-    
-    // ─── Rule of Thirds (strong dual-stroke for visibility) ───
+    // ─── Rule of Thirds only (no background subdivisions) ───
     const drawThirdLine = (x1: number, y1: number, x2: number, y2: number) => {
       // Dark stroke for contrast on light areas
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
@@ -653,8 +634,8 @@ export const ImageEditor = ({
       ctx.lineTo(x2 + 0.5, y2 + 0.5);
       ctx.stroke();
       
-      // Light stroke for contrast on dark areas
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.80)';
+      // Light stroke for visibility on dark areas
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
       ctx.lineWidth = Math.max(1, dpr * 0.7);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
