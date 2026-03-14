@@ -1641,7 +1641,7 @@ export const ImageEditor = ({
                 {hasChanges && <span className="text-[10px] font-normal px-2 py-0.5 rounded" style={{ color: ie.textDim, backgroundColor: ie.btnGhost }}>alterações não salvas</span>}
               </DialogTitle>
             </DialogHeader>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-4">
               <Button
                 onClick={handleAutoAdjust}
                 disabled={isProcessing || isAnimatingAuto || !originalImage}
