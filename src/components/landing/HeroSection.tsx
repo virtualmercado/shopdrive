@@ -1,5 +1,6 @@
 import HeroContentLeft from "./HeroContentLeft";
 import HeroCarousel from "./HeroCarousel";
+import HeroInteractiveBackground from "./HeroInteractiveBackground";
 import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
 import heroImageDefault from "@/assets/hero-banner.jpg";
 
@@ -54,8 +55,11 @@ const HeroSection = ({ heroContent, demoVideoContent }: HeroSectionProps) => {
   } : undefined;
 
   return (
-    <section className="relative py-16 md:py-24 px-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5 overflow-hidden">
-      <div className="container mx-auto">
+    <section className="relative py-16 md:py-24 px-4 overflow-hidden" style={{ background: '#FFFFFF' }}>
+      {/* Interactive background layers 1-4 */}
+      <HeroInteractiveBackground />
+
+      <div className="container mx-auto relative" style={{ zIndex: 10 }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Content */}
           <div className="order-1">

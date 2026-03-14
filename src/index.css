@@ -688,3 +688,23 @@ All colors MUST be HSL.
   border-color: #a6a6a6 !important;
   box-shadow: 0 0 0 1px rgba(166, 166, 166, 0.4) !important;
 }
+
+/* Aurora animation for hero interactive background */
+@keyframes auroraMove {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  25% {
+    transform: translate(3%, -2%) scale(1.03);
+  }
+  50% {
+    transform: translate(-2%, 3%) scale(0.98);
+  }
+  75% {
+    transform: translate(1%, 1%) scale(1.02);
+  }
+  100% {
+    transform: translate(-1%, -1%) scale(1);
+  }
+}
+
