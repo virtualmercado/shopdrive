@@ -232,7 +232,7 @@ const Home = () => {
       { id: "6", name: "Pinterest", icon: "Pinterest", url: "https://pinterest.com", open_new_tab: true, is_active: true },
       { id: "7", name: "X", icon: "Twitter", url: "https://x.com", open_new_tab: true, is_active: true },
       { id: "8", name: "WhatsApp", icon: "WhatsApp", url: "https://wa.me", open_new_tab: true, is_active: true },
-    ])) ,
+    ])),
     columns: getContentArray(cmsContent, "footer", "columns", [
       { id: "1", title: "Institucional", links: [
         { id: "1", text: "Sobre Nós", type: "internal", route: "/sobre-nos", is_active: true },
