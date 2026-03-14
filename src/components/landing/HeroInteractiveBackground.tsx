@@ -216,14 +216,18 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener("resize", resize);
       if (!isMobile) {
-        container.removeEventListener("mousemove", handleMouseMove);
-        container.removeEventListener("mouseleave", handleMouseLeave);
+        trackingElement.removeEventListener("mousemove", handleMouseMove);
+        trackingElement.removeEventListener("mouseleave", handleMouseLeave);
       }
     };
-  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave]);
+  }, [isMobile, initParticles, handleMouseMove, handleMouseLeave, trackingRef]);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+    <div
+      ref={containerRef}
+      className="absolute inset-0"
+      style={{ zIndex: 0, pointerEvents: "none" }}
+    >
       <div
         className="absolute inset-0"
         style={{
