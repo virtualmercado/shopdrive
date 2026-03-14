@@ -261,7 +261,7 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
         ref={canvasRef}
         className="absolute inset-0"
         style={{
-          zIndex: 5,
+          zIndex: 6,
           pointerEvents: "none",
           opacity: ready ? 1 : 0,
           transition: "opacity 0.5s ease",
