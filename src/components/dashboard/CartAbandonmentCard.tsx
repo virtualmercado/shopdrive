@@ -55,14 +55,9 @@ const CartAbandonmentCard = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex items-start gap-3 mb-6">
-        <div className="p-2 rounded-full" style={{ backgroundColor: `${SD_ORANGE}15` }}>
-          <ShoppingCart className="h-5 w-5" style={{ color: SD_ORANGE }} />
-        </div>
-        <div>
-          <h3 className="text-base font-medium text-foreground">Abandono de carrinho</h3>
-          <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
-        </div>
+      <div className="mb-6">
+        <h3 className="text-base font-medium text-foreground">Abandono de carrinho</h3>
+        <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
       </div>
 
       {loading ? (
