@@ -796,7 +796,7 @@ export const ImageEditor = ({
     }
   };
 
-  // Unified draw function that applies both transforms and adjustments
+  // Unified draw function — uses downscaled preview for 60fps performance
   const drawImage = useCallback((img: HTMLImageElement, currentAdjustments?: ImageAdjustments) => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -809,11 +809,18 @@ export const ImageEditor = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Calculate crop dimensions
+      // Calculate crop dimensions (in original image space)
       const crop = getCropDimensions(img.width, img.height, cropPreset);
       
-      canvas.width = crop.width;
-      canvas.height = crop.height;
+      // Use preview resolution for display performance
+      const hasPreview = !!(previewCanvasRef.current && sourceDataRef.current);
+      const pScale = hasPreview ? previewCanvasRef.current!.width / img.width : 1;
+      
+      const displayWidth = Math.round(crop.width * pScale);
+      const displayHeight = Math.round(crop.height * pScale);
+      
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const offsetPixelsX = (offsetX / 100) * canvas.width;
@@ -822,19 +829,23 @@ export const ImageEditor = ({
       const adj = currentAdjustments || adjustments;
       const hasAdjustments = Object.values(adj).some(v => v !== 0);
 
-      // Create source image data from original image
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = img.width;
-      tempCanvas.height = img.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      tempCtx.drawImage(img, 0, 0);
-      const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      // Use cached preview source data (much smaller than full res)
+      let sourceData: ImageData;
+      if (hasPreview) {
+        sourceData = sourceDataRef.current!;
+      } else {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+        tempCtx.drawImage(img, 0, 0);
+        sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      }
 
-      // Apply adjustments if any
+      // Apply tonal adjustments (applyAdjustmentsToImageData creates a copy internally)
       const adjustedData = hasAdjustments ? applyAdjustmentsToImageData(sourceData, adj) : sourceData;
 
-      // Create temp canvas with adjusted data
       const adjustedCanvas = document.createElement('canvas');
       adjustedCanvas.width = adjustedData.width;
       adjustedCanvas.height = adjustedData.height;
@@ -842,12 +853,14 @@ export const ImageEditor = ({
       if (!adjustedCtx) return;
       adjustedCtx.putImageData(adjustedData, 0, 0);
 
-      // Apply transforms and draw (translateX + translateY)
+      const srcWidth = hasPreview ? previewCanvasRef.current!.width : img.width;
+      const srcHeight = hasPreview ? previewCanvasRef.current!.height : img.height;
+
       ctx.save();
       ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.scale(scaleFactor, scaleFactor);
-      ctx.translate(-img.width / 2, -img.height / 2);
+      ctx.translate(-srcWidth / 2, -srcHeight / 2);
       ctx.drawImage(adjustedCanvas, 0, 0);
       ctx.restore();
       
