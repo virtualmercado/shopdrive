@@ -136,6 +136,10 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
     if (!isMobile) {
       trackingElement.addEventListener("mousemove", handleMouseMove);
       trackingElement.addEventListener("mouseleave", handleMouseLeave);
+    } else {
+      trackingElement.addEventListener("touchstart", handleTouchStart, { passive: true });
+      trackingElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+      trackingElement.addEventListener("touchend", handleTouchEnd, { passive: true });
     }
 
     const animate = () => {
