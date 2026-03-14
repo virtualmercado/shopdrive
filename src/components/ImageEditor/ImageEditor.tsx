@@ -524,6 +524,8 @@ export const ImageEditor = ({
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guidesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sourceDataRef = useRef<ImageData | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const resetAnimationRef = useRef<number | null>(null);
   const autoAnimationRef = useRef<number | null>(null);
