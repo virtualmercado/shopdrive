@@ -170,12 +170,13 @@ const Dashboard = () => {
                       width={80}
                     />
                     <RechartsTooltip 
+                      cursor={{ fill: 'transparent' }}
                       formatter={(value: number) => [`${value} pedidos`, 'Vendas']}
                       contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                     />
                     <Bar 
