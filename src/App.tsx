@@ -56,6 +56,7 @@ import Onboarding from "./pages/Onboarding";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -90,6 +91,7 @@ function App() {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <AuthProvider>
           <CookieConsentBanner />
           <Routes>
             <Route path="/" element={<Home />} />
@@ -189,6 +191,7 @@ function App() {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

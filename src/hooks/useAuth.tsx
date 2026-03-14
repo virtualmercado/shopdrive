@@ -1,36 +1,14 @@
-import { useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { useCallback } from 'react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logAuditEvent } from '@/lib/auditLog';
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, session, loading } = useAuthContext();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signUp = async (email: string, password: string, fullName: string, storeName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, storeName: string) => {
     const redirectUrl = `${window.location.origin}/lojista`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -60,9 +38,9 @@ export const useAuth = () => {
     });
 
     return { data, error: null };
-  };
+  }, [toast]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -77,7 +55,6 @@ export const useAuth = () => {
       return { error };
     }
 
-    // Log successful login
     logAuditEvent({
       action: "login",
       entityType: "auth",
@@ -90,10 +67,9 @@ export const useAuth = () => {
     });
 
     return { data, error: null };
-  };
+  }, [toast]);
 
-  const signOut = async () => {
-    // Log before signing out (while still authenticated)
+  const signOut = useCallback(async () => {
     await logAuditEvent({
       action: "logout",
       entityType: "auth",
@@ -114,9 +90,9 @@ export const useAuth = () => {
         description: "Até logo!",
       });
     }
-  };
+  }, [toast]);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     const redirectUrl = `${window.location.origin}/reset-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -138,9 +114,9 @@ export const useAuth = () => {
     });
 
     return { error: null };
-  };
+  }, [toast]);
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = useCallback(async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
@@ -160,7 +136,7 @@ export const useAuth = () => {
     });
 
     return { error: null };
-  };
+  }, [toast]);
 
   return {
     user,
