@@ -3,6 +3,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const PARTICLE_COUNT_DESKTOP = 35;
 const PARTICLE_COUNT_MOBILE = 15;
+const LERP_FACTOR = 0.15;
 
 interface Particle {
   x: number;
@@ -11,20 +12,21 @@ interface Particle {
   opacity: number;
   speedX: number;
   speedY: number;
-  hue: number; // 0 = white-ish, 1 = lilac
+  hue: number;
 }
 
 const HeroInteractiveBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseRef = useRef({ x: 0.5, y: 0.5, active: false });
-  const glowRef = useRef({ x: 0.5, y: 0.5 });
+  const mouseRef = useRef({ x: 0, y: 0, active: false });
+  const glowRef = useRef({ x: 0, y: 0 });
+  const prevGlowRef = useRef({ x: 0, y: 0 });
+  const angleRef = useRef(0);
+  const speedRef = useRef(0);
   const animFrameRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
   const isMobile = useIsMobile();
   const [ready, setReady] = useState(false);
-
-  // Autonomous glow phase for mobile
   const autoPhaseRef = useRef(0);
 
   const initParticles = useCallback((width: number, height: number) => {
@@ -49,8 +51,8 @@ const HeroInteractiveBackground = () => {
     if (!container) return;
     const rect = container.getBoundingClientRect();
     mouseRef.current = {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       active: true,
     };
   }, []);
@@ -74,8 +76,14 @@ const HeroInteractiveBackground = () => {
       canvas.height = rect.height * dpr;
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       initParticles(rect.width, rect.height);
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      glowRef.current = { x: cx, y: cy };
+      prevGlowRef.current = { x: cx, y: cy };
+      mouseRef.current.x = cx;
+      mouseRef.current.y = cy;
       setReady(true);
     };
 
@@ -93,50 +101,104 @@ const HeroInteractiveBackground = () => {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      // --- Smooth glow position interpolation ---
-      const targetX = mouseRef.current.active ? mouseRef.current.x : 0.5;
-      const targetY = mouseRef.current.active ? mouseRef.current.y : 0.5;
-      
+      // Save previous position for direction calculation
+      prevGlowRef.current.x = glowRef.current.x;
+      prevGlowRef.current.y = glowRef.current.y;
+
       if (isMobile) {
         autoPhaseRef.current += 0.003;
-        glowRef.current.x = 0.5 + Math.sin(autoPhaseRef.current) * 0.2;
-        glowRef.current.y = 0.5 + Math.cos(autoPhaseRef.current * 0.7) * 0.15;
+        glowRef.current.x = w * (0.5 + Math.sin(autoPhaseRef.current) * 0.2);
+        glowRef.current.y = h * (0.5 + Math.cos(autoPhaseRef.current * 0.7) * 0.15);
       } else {
-        glowRef.current.x += (targetX - glowRef.current.x) * 0.04;
-        glowRef.current.y += (targetY - glowRef.current.y) * 0.04;
+        const targetX = mouseRef.current.active ? mouseRef.current.x : w / 2;
+        const targetY = mouseRef.current.active ? mouseRef.current.y : h / 2;
+        glowRef.current.x += (targetX - glowRef.current.x) * LERP_FACTOR;
+        glowRef.current.y += (targetY - glowRef.current.y) * LERP_FACTOR;
       }
 
-      // --- Layer 4: Mouse / auto glow ---
-      const gx = glowRef.current.x * w;
-      const gy = glowRef.current.y * h;
-      const glowRadius = isMobile ? 200 : 300;
-      const glowGradient = ctx.createRadialGradient(gx, gy, 0, gx, gy, glowRadius);
-      const glowOpacity = isMobile ? 0.18 : (mouseRef.current.active ? 0.30 : 0.12);
-      glowGradient.addColorStop(0, `rgba(255,255,255,${glowOpacity})`);
-      glowGradient.addColorStop(0.4, `rgba(106,27,154,${glowOpacity * 0.4})`);
-      glowGradient.addColorStop(1, "transparent");
-      ctx.fillStyle = glowGradient;
+      const gx = glowRef.current.x;
+      const gy = glowRef.current.y;
+
+      // Movement direction & speed
+      const dx = gx - prevGlowRef.current.x;
+      const dy = gy - prevGlowRef.current.y;
+      const currentSpeed = Math.sqrt(dx * dx + dy * dy);
+      speedRef.current += (currentSpeed - speedRef.current) * 0.1;
+
+      if (currentSpeed > 0.3) {
+        const targetAngle = Math.atan2(dy, dx);
+        let angleDiff = targetAngle - angleRef.current;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        angleRef.current += angleDiff * 0.15;
+      }
+
+      const angle = angleRef.current;
+      const tailLength = Math.min(400, 120 + speedRef.current * 30);
+      const tailWidth = 140;
+
+      // --- Comet tail (behind core, opposite to movement) ---
+      if (!isMobile && mouseRef.current.active && speedRef.current > 0.2) {
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.rotate(angle + Math.PI);
+
+        const tailGrad = ctx.createLinearGradient(0, 0, tailLength, 0);
+        const tailIntensity = Math.min(0.45, 0.15 + speedRef.current * 0.03);
+        tailGrad.addColorStop(0, `rgba(106,27,154,${tailIntensity})`);
+        tailGrad.addColorStop(0.3, `rgba(106,27,154,${tailIntensity * 0.4})`);
+        tailGrad.addColorStop(0.6, `rgba(106,27,154,${tailIntensity * 0.18})`);
+        tailGrad.addColorStop(1, `rgba(106,27,154,0)`);
+
+        ctx.filter = "blur(40px)";
+        ctx.fillStyle = tailGrad;
+        ctx.beginPath();
+        ctx.ellipse(tailLength / 2, 0, tailLength / 2, tailWidth / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.filter = "none";
+        ctx.restore();
+      }
+
+      // --- Comet core ---
+      const coreRadius = 80;
+      const coreGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, coreRadius);
+      const coreOpacity = isMobile ? 0.18 : (mouseRef.current.active ? 0.8 : 0.15);
+      coreGrad.addColorStop(0, `rgba(255,255,255,${coreOpacity})`);
+      coreGrad.addColorStop(0.3, `rgba(255,255,255,${coreOpacity * 0.5})`);
+      coreGrad.addColorStop(0.55, `rgba(106,27,154,${coreOpacity * 0.3})`);
+      coreGrad.addColorStop(0.7, `rgba(106,27,154,${coreOpacity * 0.1})`);
+      coreGrad.addColorStop(1, `rgba(106,27,154,0)`);
+
+      ctx.save();
+      ctx.filter = "blur(18px)";
+      ctx.fillStyle = coreGrad;
+      ctx.fillRect(gx - coreRadius * 2, gy - coreRadius * 2, coreRadius * 4, coreRadius * 4);
+      ctx.filter = "none";
+      ctx.restore();
+
+      // --- Ambient purple glow ---
+      const ambientGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 300);
+      const ambientOp = mouseRef.current.active ? 0.12 : 0.06;
+      ambientGrad.addColorStop(0, `rgba(106,27,154,${ambientOp})`);
+      ambientGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = ambientGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // --- Layer 3: Particles ---
+      // --- Particles ---
       const particles = particlesRef.current;
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.x += p.speedX;
         p.y += p.speedY;
-
-        // Wrap around
         if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
         if (p.x < -10) p.x = w + 10;
         if (p.x > w + 10) p.x = -10;
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        if (p.hue === 0) {
-          ctx.fillStyle = `rgba(255,255,255,${p.opacity})`;
-        } else {
-          ctx.fillStyle = `rgba(170,120,220,${p.opacity * 0.7})`;
-        }
+        ctx.fillStyle = p.hue === 0
+          ? `rgba(255,255,255,${p.opacity})`
+          : `rgba(170,120,220,${p.opacity * 0.7})`;
         ctx.fill();
       }
 
@@ -157,7 +219,6 @@ const HeroInteractiveBackground = () => {
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-      {/* Layer 1: Static base gradient */}
       <div
         className="absolute inset-0"
         style={{
@@ -169,8 +230,6 @@ const HeroInteractiveBackground = () => {
           zIndex: 1,
         }}
       />
-
-      {/* Layer 2: Aurora / light fog */}
       <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: "none" }}>
         <div
           className="absolute"
@@ -189,13 +248,11 @@ const HeroInteractiveBackground = () => {
           }}
         />
       </div>
-
-      {/* Layer 3 & 4: Canvas (particles + glow) */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
         style={{
-          zIndex: 3,
+          zIndex: 5,
           pointerEvents: "none",
           opacity: ready ? 1 : 0,
           transition: "opacity 0.5s ease",
