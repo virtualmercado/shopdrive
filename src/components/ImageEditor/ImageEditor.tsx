@@ -1732,7 +1732,6 @@ export const ImageEditor = ({
                       WebkitUserDrag: 'none',
                       pointerEvents: 'auto',
                       borderRadius: '4px',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
                     } as React.CSSProperties}
                     draggable={false}
                   />
