@@ -70,6 +70,7 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    const trackingElement = trackingRef?.current ?? container;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -95,8 +96,8 @@ const HeroInteractiveBackground = ({ trackingRef }: HeroInteractiveBackgroundPro
     window.addEventListener("resize", resize);
 
     if (!isMobile) {
-      container.addEventListener("mousemove", handleMouseMove);
-      container.addEventListener("mouseleave", handleMouseLeave);
+      trackingElement.addEventListener("mousemove", handleMouseMove);
+      trackingElement.addEventListener("mouseleave", handleMouseLeave);
     }
 
     const animate = () => {
