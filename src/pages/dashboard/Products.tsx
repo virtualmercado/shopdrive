@@ -368,7 +368,7 @@ const Products = () => {
           <div className="space-y-8">
             <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {visibleProducts.map((product) => (
-                <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
+              <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
                   <div className="absolute top-2 right-2 z-10">
                     <Switch
                       checked={product.is_active}
@@ -381,62 +381,62 @@ const Products = () => {
                       Inativo
                     </div>
                   )}
-                  <div className="aspect-square bg-muted">
+                  <div className="h-[130px] sm:h-[190px] bg-muted flex items-center justify-center">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package className="h-12 w-12 text-muted-foreground" />
-                      </div>
+                      <Package className="h-10 w-10 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="p-4 flex-1">
-                    <h3 className="font-semibold mb-1">{product.name}</h3>
+                  <div className="p-3 sm:p-4 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-sm mb-1 line-clamp-4 sm:line-clamp-3 leading-snug">{product.name}</h3>
                     {product.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-3">
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {product.description}
                       </p>
                     )}
                   </div>
-                  <div className="px-4 pb-4 mt-auto">
-                    <div className="mb-2">
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 mt-auto">
+                    <div className="mb-1.5">
                       {product.promotional_price ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-base font-bold text-muted-foreground line-through">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-bold text-muted-foreground line-through">
                             R$ {product.price.toFixed(2)}
                           </p>
-                          <p className="text-xl font-bold text-foreground">
+                          <p className="text-base font-bold text-foreground">
                             R$ {product.promotional_price.toFixed(2)}
                           </p>
                         </div>
                       ) : (
-                        <p className="text-xl font-bold text-foreground">
+                        <p className="text-base font-bold text-foreground">
                           R$ {product.price.toFixed(2)}
                         </p>
                       )}
                     </div>
-                    <p className="text-sm text-foreground mb-4">
-                      Estoque: <span className="font-bold">{product.stock}</span> unidades
+                    <p className="text-xs text-foreground mb-2.5">
+                      Estoque: <span className="font-bold">{product.stock}</span> un.
                     </p>
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 
-                        className="flex-1 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+                        size="sm"
+                        className="flex-1 gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 border-primary h-9"
                         onClick={() => handleEdit(product)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3.5 w-3.5" />
                         Editar
                       </Button>
                       <Button 
                         variant="outline" 
-                        className="gap-2 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg"
+                        size="sm"
+                        className="gap-1.5 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg h-9 w-9 p-0"
                         onClick={() => openDeleteDialog(product.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
