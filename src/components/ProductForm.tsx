@@ -1073,10 +1073,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value.slice(0, 200))}
+              maxLength={200}
               placeholder="Ex: Camiseta Básica"
               required
             />
+            <div className="text-xs text-muted-foreground text-right mt-1">
+              {name.length}/200 caracteres
+            </div>
           </div>
 
           {/* SKU (read-only, auto-generated) */}
