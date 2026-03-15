@@ -947,7 +947,7 @@ const CatalogPDF = () => {
         pdf.setFillColor(r, g, b);
         pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
         
-        const btnFontSize = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 6 : 7));
+        const btnFontSize = productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 6 : 7);
         pdf.setFontSize(btnFontSize);
         pdf.setTextColor(255, 255, 255);
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
