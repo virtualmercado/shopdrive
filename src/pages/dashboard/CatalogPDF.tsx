@@ -1796,10 +1796,10 @@ const CatalogPDF = () => {
                                 <span className="font-semibold flex-1 pl-2">Produto</span>
                                 {showPrices && <span className="font-semibold pr-1">Valor</span>}
                               </div>
-                              {pageItems.slice(0, 8).map((product, index) => (
-                                <div key={product.id} className="flex items-center py-1 px-1 text-[7px]" style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}>
-                                  <span className="w-5 text-center text-muted-foreground">{startIdx + index + 1}</span>
-                                  <div className="w-4 h-4 flex-shrink-0 mx-1 flex items-center justify-center overflow-hidden rounded-sm bg-white">
+                              {pageItems.map((product, index) => (
+                                <div key={product.id} className="flex items-center py-[2px] px-1 text-[5px]" style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}>
+                                  <span className="w-4 text-center text-muted-foreground">{startIdx + index + 1}</span>
+                                  <div className="w-3 h-3 flex-shrink-0 mx-1 flex items-center justify-center overflow-hidden rounded-sm bg-white">
                                     {product.image_url ? (
                                       <img src={product.image_url} alt={product.name} className="max-w-full max-h-full object-contain" />
                                     ) : (
@@ -1810,9 +1810,6 @@ const CatalogPDF = () => {
                                   {showPrices && <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>}
                                 </div>
                               ))}
-                              {pageItems.length > 8 && (
-                                <p className="text-[8px] text-center text-muted-foreground mt-1">+{pageItems.length - 8} itens nesta página</p>
-                              )}
                             </div>
                           </div>
                         );
