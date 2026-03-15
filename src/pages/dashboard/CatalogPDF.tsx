@@ -1553,14 +1553,6 @@ const CatalogPDF = () => {
                         <Grid2X2 className="h-5 w-5" />
                         <span className="text-xs font-medium">4 produtos</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setProductsPerPage(2)}
-                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 2 ? 'selected' : ''}`}
-                      >
-                        <LayoutList className="h-5 w-5" />
-                        <span className="text-xs font-medium">2 produtos</span>
-                      </button>
                     </div>
                   </div>
                 )}
