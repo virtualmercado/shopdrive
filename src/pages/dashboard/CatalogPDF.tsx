@@ -1684,7 +1684,7 @@ const CatalogPDF = () => {
                                 )}
                               </div>
                               <h3 className="text-xs font-bold text-foreground px-2">{filteredProducts[0].name}</h3>
-                              <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>
+                              {showPrices && <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>}
                               <div className="text-[8px] text-white rounded py-1 px-4" style={{ backgroundColor: previewColor }}>Ver produto</div>
                             </div>
                           </div>
