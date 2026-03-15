@@ -1749,7 +1749,7 @@ const CatalogPDF = () => {
                                     )}
                                   </div>
                                   <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium truncate`}>{product.name}</p>
-                                  <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>
+                                  {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
                                   <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`} style={{ backgroundColor: previewColor }}>Ver produto</div>
                                 </div>
                               ))}
