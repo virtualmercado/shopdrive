@@ -72,6 +72,8 @@ const CatalogPDF = () => {
   const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
+  const [showPrices, setShowPrices] = useState(true);
+  const [coverMessage, setCoverMessage] = useState('');
 
   useEffect(() => {
     if (user) {
