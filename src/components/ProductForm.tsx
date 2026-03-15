@@ -1657,7 +1657,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       generateTitle={aiGenerateTitle}
       onApply={(result) => {
         if (result.title && aiGenerateTitle) {
-          setName(result.title);
+          setName(result.title.slice(0, 200));
         }
         if (result.description) {
           setDescription(result.description);
