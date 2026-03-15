@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +76,8 @@ const CatalogPDF = () => {
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
   const [showPrices, setShowPrices] = useState(true);
   const [coverMessage, setCoverMessage] = useState('');
-
+  const [campaignMessage, setCampaignMessage] = useState('');
+  const [campaignCopied, setCampaignCopied] = useState(false);
   useEffect(() => {
     if (user) {
       fetchData();
@@ -1210,7 +1212,65 @@ const CatalogPDF = () => {
     setCatalogLayout('layout_01');
     setShowPrices(true);
     setCoverMessage('');
+    setCampaignMessage('');
+    setCampaignCopied(false);
   };
+
+  const getStoreUrl = () => {
+    if (!storeProfile?.store_slug) return '';
+    return `${window.location.origin}/loja/${storeProfile.store_slug}`;
+  };
+
+  const getWhatsAppDisplay = () => {
+    if (!storeProfile?.whatsapp_number) return '';
+    const raw = storeProfile.whatsapp_number.replace(/\D/g, '');
+    let d = raw;
+    if (raw.startsWith('55') && raw.length > 11) d = raw.substring(2);
+    if (d.length === 11) return `(${d.substring(0, 2)}) ${d.substring(2, 7)}-${d.substring(7)}`;
+    if (d.length === 10) return `(${d.substring(0, 2)}) ${d.substring(2, 6)}-${d.substring(6)}`;
+    return d;
+  };
+
+  const buildCampaignMessage = (url: string) => {
+    const storeUrl = getStoreUrl();
+    const whatsappDisplay = getWhatsAppDisplay();
+    let msg = `Olá! 😊\n\nPreparamos nosso catálogo atualizado com vários produtos disponíveis.\n\n📄 Veja o catálogo completo:\n${url}`;
+    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
+    if (whatsappDisplay) msg += `\n\n📲 Fale conosco no WhatsApp:\n${whatsappDisplay}`;
+    msg += `\n\nEsperamos seu pedido!`;
+    return msg;
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!catalogUrl) {
+      toast.error("Aguarde a geração do link do catálogo");
+      return;
+    }
+    const storeUrl = getStoreUrl();
+    let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
+    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
+    msg += `\n\nResponderemos com prazer!`;
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyCampaignMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(campaignMessage);
+      setCampaignCopied(true);
+      toast.success("Mensagem copiada!");
+      setTimeout(() => setCampaignCopied(false), 2000);
+    } catch {
+      toast.error("Erro ao copiar mensagem");
+    }
+  };
+
+  // Build campaign message when catalog URL becomes available
+  useEffect(() => {
+    if (catalogUrl && pdfGenerated) {
+      setCampaignMessage(buildCampaignMessage(catalogUrl));
+    }
+  }, [catalogUrl, pdfGenerated]);
 
   const canGenerate = filterType === "all" || 
     filterType === "list" ||
@@ -1299,6 +1359,14 @@ const CatalogPDF = () => {
                   Copiar Link
                 </Button>
                 <Button 
+                  onClick={handleShareWhatsApp}
+                  disabled={!catalogUrl}
+                  className="gap-2 bg-green-600 text-white hover:bg-green-700"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Enviar pelo WhatsApp
+                </Button>
+                <Button 
                   variant="outline" 
                   onClick={handleNewCatalog}
                   className="gap-2"
@@ -1308,6 +1376,34 @@ const CatalogPDF = () => {
                   Gerar Novo Catálogo
                 </Button>
               </div>
+
+              {/* Campaign message card */}
+              {campaignMessage && (
+                <div className="mt-8 max-w-xl mx-auto">
+                  <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyCampaignMessage}
+                        className="gap-1.5"
+                        style={{ borderColor: primaryColor, color: primaryColor }}
+                      >
+                        {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={campaignMessage}
+                      onChange={(e) => setCampaignMessage(e.target.value)}
+                      rows={10}
+                      className="text-sm bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground">Edite a mensagem acima antes de compartilhar, se desejar.</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -1635,6 +1731,10 @@ const CatalogPDF = () => {
                       </button>
                     </div>
 
+                    {/* Workspace area with "real page" effect */}
+                    <div className="rounded-lg p-6" style={{ backgroundColor: '#ECEFF1' }}>
+                      <div style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
+
                     {/* Main preview area */}
                     {currentPreviewPage === 0 && (
                       <CatalogCoverPreview
@@ -1771,6 +1871,9 @@ const CatalogPDF = () => {
                         </div>
                       );
                     })()}
+
+                      </div>
+                    </div>
 
                     {/* Filmstrip thumbnails */}
                     <div className="flex gap-2 overflow-x-auto pb-2 pt-1 px-1">
