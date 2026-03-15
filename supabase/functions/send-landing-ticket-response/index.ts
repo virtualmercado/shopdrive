@@ -144,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
       <body>
         <div class="header">
           <h1 style="margin: 0; font-size: 24px;">ShopDrive</h1>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;">Suporte ao Cliente</p>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;">Sua loja no digital</p>
         </div>
         <div class="content">
           <p style="color: #666; font-size: 14px;">
