@@ -1731,6 +1731,49 @@ const CatalogPDF = () => {
                       </button>
                     </div>
 
+                    {/* Workspace area with "real page" effect */}
+                    <div className="rounded-lg p-6" style={{ backgroundColor: '#ECEFF1' }}>
+                    <p className="text-muted-foreground">
+                      Escolha uma opção para visualizar o catálogo
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Structure bar */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs text-muted-foreground">
+                      {pageLabels.map((label, idx) => (
+                        <span key={idx} className="flex items-center gap-1 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded ${idx === currentPreviewPage ? 'bg-muted font-semibold text-foreground' : ''}`}
+                          >
+                            {label}
+                          </span>
+                          {idx < pageLabels.length - 1 && <span className="text-muted-foreground/50">|</span>}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Page indicator */}
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => setCurrentPreviewPage(Math.max(0, currentPreviewPage - 1))}
+                        disabled={currentPreviewPage === 0}
+                        className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Página {currentPreviewPage + 1} de {totalPreviewPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPreviewPage(Math.min(totalPreviewPages - 1, currentPreviewPage + 1))}
+                        disabled={currentPreviewPage >= totalPreviewPages - 1}
+                        className="p-1 rounded-md hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </div>
+
                     {/* Main preview area */}
                     {currentPreviewPage === 0 && (
                       <CatalogCoverPreview
