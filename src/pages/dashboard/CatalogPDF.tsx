@@ -774,11 +774,13 @@ const CatalogPDF = () => {
     currentY += 5;
 
     // Price
-    const price = product.promotional_price || product.price;
-    pdf.setFontSize(18);
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
-    currentY += 12;
+    if (showPrices) {
+      const price = product.promotional_price || product.price;
+      pdf.setFontSize(18);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
+      currentY += 12;
+    }
 
     // "Ver produto" button
     const btnWidth = 50;
