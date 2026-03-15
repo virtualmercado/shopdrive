@@ -1068,10 +1068,12 @@ const CatalogPDF = () => {
         pdf.text(displayName, contentStartX + 28, currentY);
 
         // Price
-        const price = product.promotional_price || product.price;
-        pdf.setFont("helvetica", "bold");
-        pdf.text(formatPrice(price), contentStartX + contentWidth - 5, currentY, { align: "right" });
-        pdf.setFont("helvetica", "normal");
+        if (showPrices) {
+          const price = product.promotional_price || product.price;
+          pdf.setFont("helvetica", "bold");
+          pdf.text(formatPrice(price), contentStartX + contentWidth - 5, currentY, { align: "right" });
+          pdf.setFont("helvetica", "normal");
+        }
 
         // Make row clickable
         if (storeProfile?.store_slug) {
