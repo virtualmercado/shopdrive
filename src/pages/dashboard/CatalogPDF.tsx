@@ -1368,9 +1368,9 @@ const CatalogPDF = () => {
                       style={{
                         padding: `${TWO_PRODUCTS_PREVIEW.cardPaddingPx}px`,
                         gridTemplateRows: showPrices
-                          ? 'minmax(0, 1fr) 2.4rem 1.4rem 1.9rem'
-                          : 'minmax(0, 1fr) 2.6rem 1.9rem',
-                        rowGap: '6px',
+                          ? '60% auto 1.4rem 1.9rem'
+                          : '65% auto 1.9rem',
+                        rowGap: '4px',
                       }}
                     >
                       <div className="min-h-0 rounded bg-muted/30 flex items-center justify-center overflow-hidden">
