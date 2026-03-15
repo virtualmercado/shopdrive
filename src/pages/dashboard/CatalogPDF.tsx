@@ -1812,9 +1812,6 @@ const CatalogPDF = () => {
                       const startIdx = pageIndex * perPage;
                       const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
 
-                      if (productsPerPage === 2) {
-                        return renderTwoProductsPreviewPage(pageProducts, pageIndex, previewColor);
-                      }
 
                       const { cols, rows } = getGridDimensions();
                       // Build a fixed grid: rows x cols, fill with products or empty
