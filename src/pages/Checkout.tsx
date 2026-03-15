@@ -293,7 +293,7 @@ const CheckoutContent = () => {
           width: item.width || 11,
           height: item.height || 2,
           length: item.length || 16,
-          weight: item.weight || 0.3,
+          weight: (item.shipping_weight && item.shipping_weight > 0 ? item.shipping_weight : item.weight) || 0.3,
           insurance_value: (item.promotional_price || item.price) * item.quantity,
           quantity: item.quantity,
         }));
