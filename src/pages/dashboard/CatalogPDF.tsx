@@ -1704,7 +1704,7 @@ const CatalogPDF = () => {
                               <div className="rounded p-1 mb-1 flex items-center text-white text-[8px]" style={{ backgroundColor: previewColor }}>
                                 <span className="font-semibold w-6 text-center">Item</span>
                                 <span className="font-semibold flex-1 pl-2">Produto</span>
-                                <span className="font-semibold pr-1">Valor</span>
+                                {showPrices && <span className="font-semibold pr-1">Valor</span>}
                               </div>
                               {pageItems.slice(0, 8).map((product, index) => (
                                 <div key={product.id} className="flex items-center py-1 px-1 text-[7px]" style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}>
