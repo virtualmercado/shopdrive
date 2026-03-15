@@ -1219,22 +1219,13 @@ const CatalogPDF = () => {
 
   const showProductsPerPageSelector = filterType === "all" || filterType === "category";
 
-  // Get preview grid cols based on products per page
-  const getPreviewGridCols = () => {
+  // Get preview grid dimensions matching PDF exactly
+  const getGridDimensions = (): { cols: number; rows: number } => {
     switch (productsPerPage) {
-      case 2: return 'grid-cols-1';
-      case 4: return 'grid-cols-2';
-      case 12: return 'grid-cols-4';
-      default: return 'grid-cols-3';
-    }
-  };
-
-  const getPreviewProductCount = () => {
-    switch (productsPerPage) {
-      case 2: return 2;
-      case 4: return 4;
-      case 12: return 12;
-      default: return 9;
+      case 12: return { cols: 4, rows: 3 };
+      case 4: return { cols: 2, rows: 2 };
+      case 2: return { cols: 1, rows: 2 };
+      default: return { cols: 3, rows: 3 }; // 9
     }
   };
 
