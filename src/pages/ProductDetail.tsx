@@ -328,6 +328,7 @@ const ProductDetailContent = () => {
       promotional_price: product.promotional_price,
       image_url: product.image_url || (product.images && product.images[0]) || "/placeholder.svg",
       weight: product.weight,
+      shipping_weight: (product as any).shipping_weight,
       height: product.height,
       width: product.width,
       length: product.length,
