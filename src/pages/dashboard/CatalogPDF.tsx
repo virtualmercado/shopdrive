@@ -1219,22 +1219,13 @@ const CatalogPDF = () => {
 
   const showProductsPerPageSelector = filterType === "all" || filterType === "category";
 
-  // Get preview grid cols based on products per page
-  const getPreviewGridCols = () => {
+  // Get preview grid dimensions matching PDF exactly
+  const getGridDimensions = (): { cols: number; rows: number } => {
     switch (productsPerPage) {
-      case 2: return 'grid-cols-1';
-      case 4: return 'grid-cols-2';
-      case 12: return 'grid-cols-4';
-      default: return 'grid-cols-3';
-    }
-  };
-
-  const getPreviewProductCount = () => {
-    switch (productsPerPage) {
-      case 2: return 2;
-      case 4: return 4;
-      case 12: return 12;
-      default: return 9;
+      case 12: return { cols: 4, rows: 3 };
+      case 4: return { cols: 2, rows: 2 };
+      case 2: return { cols: 1, rows: 2 };
+      default: return { cols: 3, rows: 3 }; // 9
     }
   };
 
@@ -1728,29 +1719,51 @@ const CatalogPDF = () => {
                         );
                       }
 
-                      // Grid layout (all / category)
+                      // Grid layout (all / category) - Fixed grid matching PDF exactly
                       const perPage = productsPerPage;
                       const startIdx = pageIndex * perPage;
                       const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
+                      const { cols, rows } = getGridDimensions();
+                      // Build a fixed grid: rows x cols, fill with products or empty
+                      const gridSlots: (typeof pageProducts[0] | null)[] = [];
+                      for (let i = 0; i < rows * cols; i++) {
+                        gridSlots.push(i < pageProducts.length ? pageProducts[i] : null);
+                      }
                       return (
-                        <div className="relative rounded-lg overflow-hidden bg-white border aspect-[210/297]">
+                        <div className="relative rounded-lg overflow-hidden bg-white border" style={{ aspectRatio: '210 / 297' }}>
                           <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
                             <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
                           </div>
-                          <div className="ml-5 p-2">
-                            <div className={`grid ${getPreviewGridCols()} gap-1`}>
-                              {pageProducts.map((product) => (
-                                <div key={product.id} className="bg-white border border-border rounded p-1 text-center">
-                                  <div className={`${productsPerPage === 12 ? 'aspect-[4/3]' : 'aspect-square'} rounded mb-1 overflow-hidden flex items-center justify-center bg-white`}>
-                                    {product.image_url ? (
-                                      <img src={product.image_url} alt={product.name} className="max-w-full max-h-full object-contain" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-muted">Sem imagem</div>
-                                    )}
-                                  </div>
-                                  <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium truncate`}>{product.name}</p>
-                                  {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
-                                  <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`} style={{ backgroundColor: previewColor }}>Ver produto</div>
+                          <div className="ml-5 p-2 h-full flex flex-col">
+                            <div
+                              className="flex-1 grid gap-1"
+                              style={{
+                                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                                gridTemplateRows: `repeat(${rows}, 1fr)`,
+                              }}
+                            >
+                              {gridSlots.map((product, idx) => (
+                                <div
+                                  key={product?.id || `empty-${idx}`}
+                                  className="bg-white border border-border rounded p-1 flex flex-col items-center overflow-hidden"
+                                  style={{ minHeight: 0 }}
+                                >
+                                  {product ? (
+                                    <>
+                                      <div className="flex-1 w-full flex items-center justify-center overflow-hidden min-h-0">
+                                        {product.image_url ? (
+                                          <img src={product.image_url} alt={product.name} className="max-w-full max-h-full object-contain" />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-muted rounded">Sem imagem</div>
+                                        )}
+                                      </div>
+                                      <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium w-full text-center truncate mt-0.5`}>{product.name}</p>
+                                      {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
+                                      <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 px-2 mt-0.5 w-full text-center`} style={{ backgroundColor: previewColor }}>Ver produto</div>
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full" />
+                                  )}
                                 </div>
                               ))}
                             </div>
