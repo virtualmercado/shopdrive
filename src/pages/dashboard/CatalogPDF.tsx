@@ -432,7 +432,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 16;
+    currentY += 8;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 8;
+    }
+    currentY += 8;
 
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "normal");
