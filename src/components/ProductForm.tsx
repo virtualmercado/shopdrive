@@ -594,7 +594,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       // Validate input data
       const parsedPrice = parseFloat(price);
       const parsedPromotionalPrice = promotionalPrice ? parseFloat(promotionalPrice) : undefined;
-      const parsedStock = parseInt(stock);
+      const parsedStock = stock === "" ? 0 : Math.round(Number(stock));
 
       try {
         productSchema.parse({
