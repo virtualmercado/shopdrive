@@ -851,10 +851,6 @@ const CatalogPDF = () => {
         cols = 2;
         rows = 2;
         break;
-      case 2:
-        cols = 1;
-        rows = 2;
-        break;
       default: // 9
         cols = 3;
         rows = 3;
