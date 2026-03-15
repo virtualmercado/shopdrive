@@ -11,12 +11,15 @@ interface CatalogBackCoverPreviewProps {
   fullAddress?: string;
 }
 
-// Neutral grays for preview
-const NEUTRAL = {
-  dark: '#9E9E9E',
-  medium: '#BDBDBD',
-  light: '#E0E0E0',
-  lightest: '#F5F5F5',
+// Helper: lighten a hex color by mixing with white
+const lightenHex = (hex: string, amount: number): string => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lr = Math.min(255, Math.round(r + (255 - r) * amount));
+  const lg = Math.min(255, Math.round(g + (255 - g) * amount));
+  const lb = Math.min(255, Math.round(b + (255 - b) * amount));
+  return `rgb(${lr},${lg},${lb})`;
 };
 
 const formatWhatsApp = (number: string) => {
@@ -30,16 +33,20 @@ const formatWhatsApp = (number: string) => {
 
 export const CatalogBackCoverPreview = ({
   layoutType,
+  primaryColor,
   logoUrl,
   storeSlug,
   whatsappNumber,
   fullAddress,
 }: CatalogBackCoverPreviewProps) => {
+  const color = primaryColor || '#6a1b9a';
+  const colorLight = lightenHex(color, 0.35);
+  const colorLightest = lightenHex(color, 0.7);
 
   const ContactInfo = () => (
     <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
       {storeSlug && (
-        <p className="font-semibold cursor-pointer hover:underline" style={{ color: NEUTRAL.dark }}>
+        <p className="font-semibold cursor-pointer hover:underline" style={{ color }}>
           {window.location.origin}/loja/{storeSlug}
         </p>
       )}
@@ -73,7 +80,7 @@ export const CatalogBackCoverPreview = ({
       case 'layout_01':
         return (
           <>
-            <div className="absolute top-0 left-0 right-0 h-1/2" style={{ backgroundColor: NEUTRAL.dark }} />
+            <div className="absolute top-0 left-0 right-0 h-1/2" style={{ backgroundColor: color }} />
             <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-white" />
           </>
         );
@@ -81,10 +88,10 @@ export const CatalogBackCoverPreview = ({
         return (
           <>
             <div className="absolute inset-0 bg-white" />
-            <div className="absolute left-0 top-0 bottom-0" style={{ width: '6%', backgroundColor: NEUTRAL.dark }} />
-            <div className="absolute top-0 bottom-0" style={{ left: '8%', width: '3%', backgroundColor: NEUTRAL.medium }} />
-            <div className="absolute top-0 bottom-0 right-0" style={{ width: '6%', backgroundColor: NEUTRAL.dark }} />
-            <div className="absolute top-0 bottom-0" style={{ right: '8%', width: '3%', backgroundColor: NEUTRAL.medium }} />
+            <div className="absolute left-0 top-0 bottom-0" style={{ width: '6%', backgroundColor: color }} />
+            <div className="absolute top-0 bottom-0" style={{ left: '8%', width: '3%', backgroundColor: colorLight }} />
+            <div className="absolute top-0 bottom-0 right-0" style={{ width: '6%', backgroundColor: color }} />
+            <div className="absolute top-0 bottom-0" style={{ right: '8%', width: '3%', backgroundColor: colorLight }} />
           </>
         );
       case 'layout_03':
@@ -92,9 +99,9 @@ export const CatalogBackCoverPreview = ({
           <>
             <div className="absolute inset-0 bg-white" />
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 210 297" preserveAspectRatio="none">
-              <polygon points="0,0 210,0 210,90" fill={NEUTRAL.lightest} />
-              <polygon points="0,297 0,250 80,297" fill={NEUTRAL.dark} />
-              <polygon points="210,297 210,260 140,297" fill={NEUTRAL.medium} />
+              <polygon points="0,0 210,0 210,90" fill={colorLightest} />
+              <polygon points="0,297 0,250 80,297" fill={color} />
+              <polygon points="210,297 210,260 140,297" fill={colorLight} />
             </svg>
           </>
         );
@@ -103,7 +110,7 @@ export const CatalogBackCoverPreview = ({
           <>
             <div className="absolute inset-0 bg-white" />
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 210 297" preserveAspectRatio="none">
-              <polygon points="0,200 210,170 210,297 0,297" fill={NEUTRAL.dark} />
+              <polygon points="0,200 210,170 210,297 0,297" fill={color} />
             </svg>
           </>
         );
