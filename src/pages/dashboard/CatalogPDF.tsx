@@ -1359,6 +1359,14 @@ const CatalogPDF = () => {
                   Copiar Link
                 </Button>
                 <Button 
+                  onClick={handleShareWhatsApp}
+                  disabled={!catalogUrl}
+                  className="gap-2 bg-green-600 text-white hover:bg-green-700"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Enviar pelo WhatsApp
+                </Button>
+                <Button 
                   variant="outline" 
                   onClick={handleNewCatalog}
                   className="gap-2"
@@ -1368,6 +1376,34 @@ const CatalogPDF = () => {
                   Gerar Novo Catálogo
                 </Button>
               </div>
+
+              {/* Campaign message card */}
+              {campaignMessage && (
+                <div className="mt-8 max-w-xl mx-auto">
+                  <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyCampaignMessage}
+                        className="gap-1.5"
+                        style={{ borderColor: primaryColor, color: primaryColor }}
+                      >
+                        {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={campaignMessage}
+                      onChange={(e) => setCampaignMessage(e.target.value)}
+                      rows={10}
+                      className="text-sm bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground">Edite a mensagem acima antes de compartilhar, se desejar.</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
