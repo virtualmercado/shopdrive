@@ -3149,6 +3149,7 @@ export type Database = {
           name: string
           price: number
           promotional_price: number | null
+          shipping_weight: number | null
           stock: number
           updated_at: string
           user_id: string
@@ -3173,6 +3174,7 @@ export type Database = {
           name: string
           price: number
           promotional_price?: number | null
+          shipping_weight?: number | null
           stock?: number
           updated_at?: string
           user_id: string
@@ -3197,6 +3199,7 @@ export type Database = {
           name?: string
           price?: number
           promotional_price?: number | null
+          shipping_weight?: number | null
           stock?: number
           updated_at?: string
           user_id?: string
