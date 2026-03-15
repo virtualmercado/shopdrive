@@ -573,12 +573,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     });
   };
 
-  const handleSimulateShipping = () => {
-    toast({
-      title: "Em breve",
-      description: "O cálculo de frete será implementado em breve",
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
