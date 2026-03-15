@@ -594,7 +594,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       // Validate input data
       const parsedPrice = parseFloat(price);
       const parsedPromotionalPrice = promotionalPrice ? parseFloat(promotionalPrice) : undefined;
-      const parsedStock = parseInt(stock);
+      const parsedStock = stock === "" ? 0 : Math.round(Number(stock));
 
       try {
         productSchema.parse({
@@ -1269,8 +1269,16 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 id="stock"
                 type="number"
                 min="0"
+                step="1"
                 value={stock}
-                onChange={(e) => setStock(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") { setStock(""); return; }
+                  // Strip any non-numeric chars except digits
+                  const num = Math.round(Number(raw));
+                  if (!Number.isFinite(num) || num < 0) return;
+                  setStock(String(num));
+                }}
                 placeholder="0"
                 required
               />
