@@ -11,6 +11,14 @@ interface CatalogBackCoverPreviewProps {
   fullAddress?: string;
 }
 
+// Neutral grays for preview
+const NEUTRAL = {
+  dark: '#9E9E9E',
+  medium: '#BDBDBD',
+  light: '#E0E0E0',
+  lightest: '#F5F5F5',
+};
+
 const formatWhatsApp = (number: string) => {
   const raw = number.replace(/\D/g, '');
   let display = raw;
@@ -22,19 +30,16 @@ const formatWhatsApp = (number: string) => {
 
 export const CatalogBackCoverPreview = ({
   layoutType,
-  primaryColor,
   logoUrl,
   storeSlug,
   whatsappNumber,
   fullAddress,
 }: CatalogBackCoverPreviewProps) => {
-  const lighter = primaryColor + '99';
-  const lightest = primaryColor + '33';
 
   const ContactInfo = () => (
     <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
       {storeSlug && (
-        <p className="font-semibold cursor-pointer hover:underline" style={{ color: primaryColor }}>
+        <p className="font-semibold cursor-pointer hover:underline" style={{ color: NEUTRAL.dark }}>
           {window.location.origin}/loja/{storeSlug}
         </p>
       )}
@@ -63,13 +68,12 @@ export const CatalogBackCoverPreview = ({
     </div>
   );
 
-  // Background decorations per layout
   const renderBackground = () => {
     switch (layoutType) {
       case 'layout_01':
         return (
           <>
-            <div className="absolute top-0 left-0 right-0 h-1/2" style={{ backgroundColor: primaryColor }} />
+            <div className="absolute top-0 left-0 right-0 h-1/2" style={{ backgroundColor: NEUTRAL.dark }} />
             <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-white" />
           </>
         );
@@ -77,10 +81,10 @@ export const CatalogBackCoverPreview = ({
         return (
           <>
             <div className="absolute inset-0 bg-white" />
-            <div className="absolute left-0 top-0 bottom-0" style={{ width: '6%', backgroundColor: primaryColor }} />
-            <div className="absolute top-0 bottom-0" style={{ left: '8%', width: '3%', backgroundColor: lighter }} />
-            <div className="absolute top-0 bottom-0 right-0" style={{ width: '6%', backgroundColor: primaryColor }} />
-            <div className="absolute top-0 bottom-0" style={{ right: '8%', width: '3%', backgroundColor: lighter }} />
+            <div className="absolute left-0 top-0 bottom-0" style={{ width: '6%', backgroundColor: NEUTRAL.dark }} />
+            <div className="absolute top-0 bottom-0" style={{ left: '8%', width: '3%', backgroundColor: NEUTRAL.medium }} />
+            <div className="absolute top-0 bottom-0 right-0" style={{ width: '6%', backgroundColor: NEUTRAL.dark }} />
+            <div className="absolute top-0 bottom-0" style={{ right: '8%', width: '3%', backgroundColor: NEUTRAL.medium }} />
           </>
         );
       case 'layout_03':
@@ -88,9 +92,9 @@ export const CatalogBackCoverPreview = ({
           <>
             <div className="absolute inset-0 bg-white" />
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 210 297" preserveAspectRatio="none">
-              <polygon points="0,0 210,0 210,90" fill={lightest} />
-              <polygon points="0,297 0,250 80,297" fill={primaryColor} />
-              <polygon points="210,297 210,260 140,297" fill={lighter} />
+              <polygon points="0,0 210,0 210,90" fill={NEUTRAL.lightest} />
+              <polygon points="0,297 0,250 80,297" fill={NEUTRAL.dark} />
+              <polygon points="210,297 210,260 140,297" fill={NEUTRAL.medium} />
             </svg>
           </>
         );
@@ -99,7 +103,7 @@ export const CatalogBackCoverPreview = ({
           <>
             <div className="absolute inset-0 bg-white" />
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 210 297" preserveAspectRatio="none">
-              <polygon points="0,200 210,170 210,297 0,297" fill={primaryColor} />
+              <polygon points="0,200 210,170 210,297 0,297" fill={NEUTRAL.dark} />
             </svg>
           </>
         );
