@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +73,8 @@ const CatalogPDF = () => {
   const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
+  const [showPrices, setShowPrices] = useState(true);
+  const [coverMessage, setCoverMessage] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -287,7 +290,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 20;
+    currentY += 10;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 10;
+    }
+    currentY += 10;
 
     const currentYear = new Date().getFullYear();
     pdf.setFontSize(20);
@@ -348,7 +360,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 16;
+    currentY += 8;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 8;
+    }
+    currentY += 8;
 
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "normal");
@@ -412,7 +433,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 16;
+    currentY += 8;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 8;
+    }
+    currentY += 8;
 
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "normal");
@@ -467,7 +497,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 16;
+    currentY += 8;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 8;
+    }
+    currentY += 8;
 
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "normal");
@@ -736,11 +775,13 @@ const CatalogPDF = () => {
     currentY += 5;
 
     // Price
-    const price = product.promotional_price || product.price;
-    pdf.setFontSize(18);
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
-    currentY += 12;
+    if (showPrices) {
+      const price = product.promotional_price || product.price;
+      pdf.setFontSize(18);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(formatPrice(price), contentCenterX, currentY, { align: "center" });
+      currentY += 12;
+    }
 
     // "Ver produto" button
     const btnWidth = 50;
@@ -890,13 +931,15 @@ const CatalogPDF = () => {
         });
 
         // Price
-        const price = product.promotional_price || product.price;
-        const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9));
-        pdf.setFontSize(priceSize);
-        pdf.setTextColor(20, 20, 20);
-        const priceY = y + cardHeight - 20;
-        pdf.text(formatPrice(price), x + 4, priceY);
-        pdf.setFont("helvetica", "normal");
+        if (showPrices) {
+          const price = product.promotional_price || product.price;
+          const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9));
+          pdf.setFontSize(priceSize);
+          pdf.setTextColor(20, 20, 20);
+          const priceY = y + cardHeight - 20;
+          pdf.text(formatPrice(price), x + 4, priceY);
+          pdf.setFont("helvetica", "normal");
+        }
 
         // "Ver produto" button
         const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7));
@@ -1026,10 +1069,12 @@ const CatalogPDF = () => {
         pdf.text(displayName, contentStartX + 28, currentY);
 
         // Price
-        const price = product.promotional_price || product.price;
-        pdf.setFont("helvetica", "bold");
-        pdf.text(formatPrice(price), contentStartX + contentWidth - 5, currentY, { align: "right" });
-        pdf.setFont("helvetica", "normal");
+        if (showPrices) {
+          const price = product.promotional_price || product.price;
+          pdf.setFont("helvetica", "bold");
+          pdf.text(formatPrice(price), contentStartX + contentWidth - 5, currentY, { align: "right" });
+          pdf.setFont("helvetica", "normal");
+        }
 
         // Make row clickable
         if (storeProfile?.store_slug) {
@@ -1163,6 +1208,8 @@ const CatalogPDF = () => {
     setFilteredProducts([]);
     setProductsPerPage(9);
     setCatalogLayout('layout_01');
+    setShowPrices(true);
+    setCoverMessage('');
   };
 
   const canGenerate = filterType === "all" || 
@@ -1369,7 +1416,19 @@ const CatalogPDF = () => {
                   primaryColor={buttonBgColor}
                 />
 
-                {/* Products per page selector */}
+                {/* Cover message field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Mensagem na capa (opcional)</Label>
+                  <Input
+                    value={coverMessage}
+                    onChange={(e) => setCoverMessage(e.target.value.slice(0, 60))}
+                    placeholder="Ex: Catálogo 2026, Promoções do mês..."
+                    maxLength={60}
+                    merchantStyled
+                  />
+                  <p className="text-xs text-muted-foreground">{coverMessage.length}/60 caracteres</p>
+                </div>
+
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Produtos por página</Label>
@@ -1422,6 +1481,31 @@ const CatalogPDF = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Price toggle */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Incluir preços no catálogo</Label>
+                  <RadioGroup value={showPrices ? 'show' : 'hide'} onValueChange={(v) => setShowPrices(v === 'show')}>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem 
+                        value="show" 
+                        id="price-show"
+                        className="catalog-merchant-radio border-2"
+                        style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
+                      />
+                      <Label htmlFor="price-show" className="cursor-pointer">Mostrar preços</Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem 
+                        value="hide" 
+                        id="price-hide"
+                        className="catalog-merchant-radio border-2"
+                        style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
+                      />
+                      <Label htmlFor="price-hide" className="cursor-pointer">Ocultar preços</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
                 {/* Category Selector */}
                 {filterType === "category" && (
@@ -1525,6 +1609,20 @@ const CatalogPDF = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Structure bar */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs text-muted-foreground">
+                      {pageLabels.map((label, idx) => (
+                        <span key={idx} className="flex items-center gap-1 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded ${idx === currentPreviewPage ? 'bg-muted font-semibold text-foreground' : ''}`}
+                          >
+                            {label}
+                          </span>
+                          {idx < pageLabels.length - 1 && <span className="text-muted-foreground/50">|</span>}
+                        </span>
+                      ))}
+                    </div>
+
                     {/* Page indicator */}
                     <div className="flex items-center justify-between">
                       <button
@@ -1552,6 +1650,7 @@ const CatalogPDF = () => {
                         layoutType={catalogLayout}
                         primaryColor={storeProfile?.primary_color || primaryColor}
                         logoUrl={storeProfile?.store_logo_url}
+                        coverMessage={coverMessage}
                       />
                     )}
 
@@ -1585,7 +1684,7 @@ const CatalogPDF = () => {
                                 )}
                               </div>
                               <h3 className="text-xs font-bold text-foreground px-2">{filteredProducts[0].name}</h3>
-                              <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>
+                              {showPrices && <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>}
                               <div className="text-[8px] text-white rounded py-1 px-4" style={{ backgroundColor: previewColor }}>Ver produto</div>
                             </div>
                           </div>
@@ -1605,7 +1704,7 @@ const CatalogPDF = () => {
                               <div className="rounded p-1 mb-1 flex items-center text-white text-[8px]" style={{ backgroundColor: previewColor }}>
                                 <span className="font-semibold w-6 text-center">Item</span>
                                 <span className="font-semibold flex-1 pl-2">Produto</span>
-                                <span className="font-semibold pr-1">Valor</span>
+                                {showPrices && <span className="font-semibold pr-1">Valor</span>}
                               </div>
                               {pageItems.slice(0, 8).map((product, index) => (
                                 <div key={product.id} className="flex items-center py-1 px-1 text-[7px]" style={{ backgroundColor: index % 2 === 0 ? 'rgb(245, 245, 245)' : 'rgb(255, 255, 255)' }}>
@@ -1618,7 +1717,7 @@ const CatalogPDF = () => {
                                     )}
                                   </div>
                                   <span className="flex-1 truncate pl-1">{product.name}</span>
-                                  <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
+                                  {showPrices && <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>}
                                 </div>
                               ))}
                               {pageItems.length > 8 && (
@@ -1650,7 +1749,7 @@ const CatalogPDF = () => {
                                     )}
                                   </div>
                                   <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium truncate`}>{product.name}</p>
-                                  <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>
+                                  {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
                                   <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-white rounded py-0.5 mt-0.5`} style={{ backgroundColor: previewColor }}>Ver produto</div>
                                 </div>
                               ))}

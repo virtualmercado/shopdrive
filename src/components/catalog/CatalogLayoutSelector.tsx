@@ -13,19 +13,24 @@ const layouts: { id: CatalogLayoutType; label: string; description: string }[] =
   { id: 'layout_04', label: 'Layout 04', description: 'Diagonal premium' },
 ];
 
-// Mini preview thumbnails for each layout
-const LayoutThumb = ({ id, color }: { id: CatalogLayoutType; color: string }) => {
-  const lighter = color + '99';
-  const lightest = color + '44';
+// Neutral gray palette for layout thumbnails
+const NEUTRAL = {
+  dark: '#9E9E9E',
+  medium: '#BDBDBD',
+  light: '#E0E0E0',
+  lightest: '#F5F5F5',
+};
 
+// Mini preview thumbnails for each layout using neutral grays
+const LayoutThumb = ({ id }: { id: CatalogLayoutType }) => {
   switch (id) {
     case 'layout_01':
       return (
         <svg viewBox="0 0 60 84" className="w-full h-full">
           <rect width="60" height="84" fill="white" />
-          <rect x="0" y="0" width="12" height="84" fill={color} />
-          <rect x="14" y="0" width="6" height="84" fill={color} />
-          <rect x="22" y="0" width="3" height="84" fill={color} />
+          <rect x="0" y="0" width="12" height="84" fill={NEUTRAL.dark} />
+          <rect x="14" y="0" width="6" height="84" fill={NEUTRAL.dark} />
+          <rect x="22" y="0" width="3" height="84" fill={NEUTRAL.dark} />
           <rect x="18" y="22" width="28" height="40" fill="white" stroke="#ddd" strokeWidth="0.5" />
           <text x="32" y="38" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#333">CATÁLOGO</text>
           <text x="32" y="43" textAnchor="middle" fontSize="3" fill="#333">de</text>
@@ -37,10 +42,10 @@ const LayoutThumb = ({ id, color }: { id: CatalogLayoutType; color: string }) =>
       return (
         <svg viewBox="0 0 60 84" className="w-full h-full">
           <rect width="60" height="84" fill="white" />
-          <rect x="0" y="0" width="4" height="84" fill={color} />
-          <rect x="6" y="0" width="2" height="84" fill={lighter} />
-          <rect x="52" y="0" width="4" height="84" fill={color} />
-          <rect x="57" y="0" width="3" height="84" fill={lighter} />
+          <rect x="0" y="0" width="4" height="84" fill={NEUTRAL.dark} />
+          <rect x="6" y="0" width="2" height="84" fill={NEUTRAL.medium} />
+          <rect x="52" y="0" width="4" height="84" fill={NEUTRAL.dark} />
+          <rect x="57" y="0" width="3" height="84" fill={NEUTRAL.medium} />
           <rect x="15" y="28" width="30" height="30" rx="1" fill="white" stroke="#eee" strokeWidth="0.5" />
           <text x="30" y="40" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#333">CATÁLOGO</text>
           <text x="30" y="45" textAnchor="middle" fontSize="3" fill="#333">de</text>
@@ -51,9 +56,9 @@ const LayoutThumb = ({ id, color }: { id: CatalogLayoutType; color: string }) =>
       return (
         <svg viewBox="0 0 60 84" className="w-full h-full">
           <rect width="60" height="84" fill="white" />
-          <polygon points="0,0 60,0 60,30" fill={lightest} />
-          <polygon points="0,84 0,50 40,84" fill={color} />
-          <polygon points="60,84 60,60 30,84" fill={lighter} />
+          <polygon points="0,0 60,0 60,30" fill={NEUTRAL.lightest} />
+          <polygon points="0,84 0,50 40,84" fill={NEUTRAL.dark} />
+          <polygon points="60,84 60,60 30,84" fill={NEUTRAL.medium} />
           <rect x="15" y="27" width="30" height="30" rx="1" fill="white" stroke="#eee" strokeWidth="0.5" />
           <text x="30" y="39" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#333">CATÁLOGO</text>
           <text x="30" y="44" textAnchor="middle" fontSize="3" fill="#333">de</text>
@@ -64,7 +69,7 @@ const LayoutThumb = ({ id, color }: { id: CatalogLayoutType; color: string }) =>
       return (
         <svg viewBox="0 0 60 84" className="w-full h-full">
           <rect width="60" height="84" fill="white" />
-          <polygon points="0,42 60,30 60,84 0,84" fill={color} />
+          <polygon points="0,42 60,30 60,84 0,84" fill={NEUTRAL.dark} />
           <rect x="15" y="27" width="30" height="30" rx="1" fill="white" stroke="#eee" strokeWidth="0.5" />
           <text x="30" y="39" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#333">CATÁLOGO</text>
           <text x="30" y="44" textAnchor="middle" fontSize="3" fill="#333">de</text>
@@ -74,7 +79,9 @@ const LayoutThumb = ({ id, color }: { id: CatalogLayoutType; color: string }) =>
   }
 };
 
-export const CatalogLayoutSelector = ({ selected, onChange, primaryColor }: CatalogLayoutSelectorProps) => {
+const SELECTION_COLOR = '#6A1B9A';
+
+export const CatalogLayoutSelector = ({ selected, onChange }: CatalogLayoutSelectorProps) => {
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium">Escolher Layout do Catálogo</label>
@@ -88,17 +95,17 @@ export const CatalogLayoutSelector = ({ selected, onChange, primaryColor }: Cata
               onClick={() => onChange(layout.id)}
               className="flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all duration-200"
               style={{
-                borderColor: isSelected ? primaryColor : '#e5e7eb',
-                backgroundColor: isSelected ? primaryColor + '08' : 'white',
-                boxShadow: isSelected ? `0 0 0 1px ${primaryColor}` : 'none',
+                borderColor: isSelected ? SELECTION_COLOR : '#e5e7eb',
+                backgroundColor: isSelected ? SELECTION_COLOR + '08' : 'white',
+                boxShadow: isSelected ? `0 0 0 1px ${SELECTION_COLOR}` : 'none',
               }}
             >
               <div className="w-full aspect-[210/297] rounded overflow-hidden border border-gray-100">
-                <LayoutThumb id={layout.id} color={primaryColor} />
+                <LayoutThumb id={layout.id} />
               </div>
               <span
                 className="text-xs font-medium"
-                style={{ color: isSelected ? primaryColor : '#666' }}
+                style={{ color: isSelected ? SELECTION_COLOR : '#666' }}
               >
                 {layout.label}
               </span>
