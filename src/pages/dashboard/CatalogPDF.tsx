@@ -50,7 +50,7 @@ interface StoreProfile {
   primary_color: string | null;
 }
 
-type ProductsPerPage = 12 | 9 | 4 | 2;
+type ProductsPerPage = 12 | 9 | 4;
 
 const DEFAULT_PRIMARY_COLOR = "#6a1b9a";
 
