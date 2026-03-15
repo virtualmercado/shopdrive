@@ -1416,7 +1416,19 @@ const CatalogPDF = () => {
                   primaryColor={buttonBgColor}
                 />
 
-                {/* Products per page selector */}
+                {/* Cover message field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Mensagem na capa (opcional)</Label>
+                  <Input
+                    value={coverMessage}
+                    onChange={(e) => setCoverMessage(e.target.value.slice(0, 60))}
+                    placeholder="Ex: Catálogo 2026, Promoções do mês..."
+                    maxLength={60}
+                    merchantStyled
+                  />
+                  <p className="text-xs text-muted-foreground">{coverMessage.length}/60 caracteres</p>
+                </div>
+
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Produtos por página</Label>
