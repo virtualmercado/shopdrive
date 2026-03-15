@@ -1316,6 +1316,117 @@ const CatalogPDF = () => {
     return labels;
   }, [totalPreviewPages, productPageCount]);
 
+  const TWO_PRODUCTS_PREVIEW = {
+    topAreaPx: 16,
+    footerAreaPx: 26,
+    gridGapPx: 12,
+    contentPaddingPx: 12,
+    cardPaddingPx: 10,
+  };
+
+  const renderTwoProductsPreviewPage = (pageProducts: Product[], pageIndex: number, previewColor: string) => {
+    const slots: (Product | null)[] = [pageProducts[0] ?? null, pageProducts[1] ?? null];
+    const cardHeight = `calc((100% - ${TWO_PRODUCTS_PREVIEW.gridGapPx}px) / 2)`;
+
+    return (
+      <div className="relative rounded-lg bg-white border overflow-hidden box-border" style={{ aspectRatio: '210 / 297' }}>
+        <div className="absolute inset-y-0 left-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
+          <span className="text-[6px] text-primary-foreground font-bold leading-tight text-center">PG<br />{String(pageIndex + 1).padStart(2, '0')}</span>
+        </div>
+
+        <div
+          className="absolute inset-y-0 right-0 box-border"
+          style={{
+            left: '1rem',
+            padding: `${TWO_PRODUCTS_PREVIEW.contentPaddingPx}px`,
+          }}
+        >
+          <div
+            className="h-full min-h-0 grid"
+            style={{
+              gridTemplateRows: `${TWO_PRODUCTS_PREVIEW.topAreaPx}px minmax(0, 1fr) ${TWO_PRODUCTS_PREVIEW.footerAreaPx}px`,
+            }}
+          >
+            <div aria-hidden="true" />
+
+            <div
+              className="min-h-0 grid"
+              style={{
+                gridTemplateRows: `${cardHeight} ${cardHeight}`,
+                rowGap: `${TWO_PRODUCTS_PREVIEW.gridGapPx}px`,
+              }}
+            >
+              {slots.map((product, idx) => (
+                <div
+                  key={product?.id || `two-preview-empty-${idx}`}
+                  className="border border-border rounded-md bg-card overflow-hidden box-border"
+                  style={{ height: cardHeight }}
+                >
+                  {product ? (
+                    <div
+                      className="h-full w-full grid box-border"
+                      style={{
+                        padding: `${TWO_PRODUCTS_PREVIEW.cardPaddingPx}px`,
+                        gridTemplateRows: showPrices
+                          ? 'minmax(0, 1fr) 2.4rem 1.4rem 1.9rem'
+                          : 'minmax(0, 1fr) 2.6rem 1.9rem',
+                        rowGap: '6px',
+                      }}
+                    >
+                      <div className="min-h-0 rounded bg-muted/30 flex items-center justify-center overflow-hidden">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                            Sem imagem
+                          </div>
+                        )}
+                      </div>
+
+                      <p
+                        className="text-sm font-semibold text-foreground text-center leading-tight overflow-hidden"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {product.name}
+                      </p>
+
+                      {showPrices && (
+                        <p className="text-base font-bold text-foreground text-center leading-none truncate">
+                          {formatPrice(product.promotional_price || product.price)}
+                        </p>
+                      )}
+
+                      <div
+                        className="rounded text-primary-foreground text-xs font-medium w-full flex items-center justify-center"
+                        style={{ backgroundColor: previewColor }}
+                      >
+                        Ver produto
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full w-full" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-end justify-center pb-1">
+              <span className="text-[10px] text-muted-foreground">Página {pageIndex + 1}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -1823,31 +1934,36 @@ const CatalogPDF = () => {
                       const perPage = productsPerPage;
                       const startIdx = pageIndex * perPage;
                       const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
+
+                      if (productsPerPage === 2) {
+                        return renderTwoProductsPreviewPage(pageProducts, pageIndex, previewColor);
+                      }
+
                       const { cols, rows } = getGridDimensions();
                       // Build a fixed grid: rows x cols, fill with products or empty
                       const gridSlots: (typeof pageProducts[0] | null)[] = [];
                       for (let i = 0; i < rows * cols; i++) {
                         gridSlots.push(i < pageProducts.length ? pageProducts[i] : null);
                       }
-                      const is2pp = productsPerPage === 2;
+
                       return (
                         <div className="relative rounded-lg overflow-hidden bg-white border" style={{ aspectRatio: '210 / 297' }}>
                           <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
-                            <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
+                            <span className="text-[6px] text-primary-foreground font-bold leading-tight text-center">PG<br />{String(pageIndex + 1).padStart(2, '0')}</span>
                           </div>
-                          <div className={`ml-5 h-full flex flex-col box-border ${is2pp ? 'p-4' : 'p-2'}`}>
+                          <div className="ml-5 h-full flex flex-col box-border p-2">
                             <div
                               className="flex-1 grid"
                               style={{
                                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
                                 gridTemplateRows: `repeat(${rows}, 1fr)`,
-                                gap: is2pp ? '12px' : '4px',
+                                gap: '4px',
                               }}
                             >
                               {gridSlots.map((product, idx) => (
                                 <div
                                   key={product?.id || `empty-${idx}`}
-                                  className={`bg-white border border-border rounded flex flex-col items-center overflow-hidden box-border ${is2pp ? 'p-3' : 'p-1'}`}
+                                  className="bg-white border border-border rounded flex flex-col items-center overflow-hidden box-border p-1"
                                   style={{ minHeight: 0 }}
                                 >
                                   {product ? (
@@ -1859,9 +1975,9 @@ const CatalogPDF = () => {
                                           <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-muted rounded">Sem imagem</div>
                                         )}
                                       </div>
-                                      <p className={`${productsPerPage === 12 ? 'text-[5px]' : is2pp ? 'text-[9px]' : 'text-[7px]'} font-medium w-full text-center truncate mt-0.5`}>{product.name}</p>
-                                      {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : is2pp ? 'text-[10px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
-                                      <div className={`${productsPerPage === 12 ? 'text-[5px]' : is2pp ? 'text-[8px]' : 'text-[6px]'} text-white rounded py-0.5 px-2 mt-0.5 w-full text-center`} style={{ backgroundColor: previewColor }}>Ver produto</div>
+                                      <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium w-full text-center truncate mt-0.5`}>{product.name}</p>
+                                      {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
+                                      <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-primary-foreground rounded py-0.5 px-2 mt-0.5 w-full text-center`} style={{ backgroundColor: previewColor }}>Ver produto</div>
                                     </>
                                   ) : (
                                     <div className="w-full h-full" />
