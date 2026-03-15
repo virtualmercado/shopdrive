@@ -9,6 +9,7 @@ export interface CartItem {
   quantity: number;
   // Product dimensions for shipping calculations
   weight?: number | null;
+  shipping_weight?: number | null;
   height?: number | null;
   width?: number | null;
   length?: number | null;

@@ -1468,11 +1468,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             </div>
           </div>
 
-          {/* Weight and Dimensions Section */}
+           {/* Weight and Dimensions Section */}
           <div className="space-y-3 border-t pt-4">
             <Label className="text-base font-semibold">Peso e Dimensões do Produto</Label>
             <p className="text-xs text-muted-foreground">
-              Informe o peso e as dimensões para cálculo de frete
+              Esses dados são usados para calcular o frete automaticamente no checkout da loja.
             </p>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1511,6 +1511,46 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 </div>
               </div>
               <div className="space-y-1">
+                <Label htmlFor="shippingWeight" className="text-xs">Peso de envio (opcional)</Label>
+                <div className="flex gap-1">
+                  <Input
+                    id="shippingWeight"
+                    type="number"
+                    step={shippingWeightUnit === "g" ? "1" : "0.01"}
+                    min="0"
+                    value={shippingWeight}
+                    onChange={(e) => setShippingWeight(e.target.value)}
+                    placeholder="Peso total com embalagem"
+                    className="text-sm flex-1"
+                  />
+                  <select
+                    value={shippingWeightUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value as "g" | "kg";
+                      const currentVal = parseFloat(shippingWeight);
+                      if (!isNaN(currentVal) && currentVal > 0) {
+                        if (shippingWeightUnit === "g" && newUnit === "kg") {
+                          setShippingWeight((currentVal / 1000).toString());
+                        } else if (shippingWeightUnit === "kg" && newUnit === "g") {
+                          setShippingWeight((currentVal * 1000).toString());
+                        }
+                      }
+                      setShippingWeightUnit(newUnit);
+                    }}
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm w-16 shrink-0"
+                  >
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Se informado, será usado no cálculo no lugar do peso do produto.</p>
+              </div>
+              <div className="space-y-1 col-span-2 sm:col-span-2">
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
                 <Label htmlFor="length" className="text-xs">Comprimento (cm)</Label>
                 <Input
                   id="length"
@@ -1519,19 +1559,6 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                   min="0"
                   value={length}
                   onChange={(e) => setLength(e.target.value)}
-                  placeholder="0.0"
-                  className="text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="height" className="text-xs">Altura (cm)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
                   placeholder="0.0"
                   className="text-sm"
                 />
@@ -1549,28 +1576,20 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                   className="text-sm"
                 />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="height" className="text-xs">Altura (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm"
+                />
+              </div>
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSimulateShipping}
-              className={`w-full ${buttonRadius} transition-all duration-200`}
-              style={{ 
-                borderColor: buttonBgColor,
-                color: buttonBgColor
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = buttonBgColor;
-                e.currentTarget.style.color = buttonTextColor;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = buttonBgColor;
-              }}
-            >
-              Calcular Frete Simulado
-            </Button>
           </div>
 
 
