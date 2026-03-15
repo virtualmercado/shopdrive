@@ -76,7 +76,8 @@ const CatalogPDF = () => {
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
   const [showPrices, setShowPrices] = useState(true);
   const [coverMessage, setCoverMessage] = useState('');
-
+  const [campaignMessage, setCampaignMessage] = useState('');
+  const [campaignCopied, setCampaignCopied] = useState(false);
   useEffect(() => {
     if (user) {
       fetchData();
