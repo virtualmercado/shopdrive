@@ -882,8 +882,8 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
 
         const encodedMessage = encodeURIComponent(whatsappMessage);
 
-        // Link direto do WhatsApp Web (evita redirecionamento para api.whatsapp.com)
-        const whatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}&type=phone_number&app_absent=0`;
+        // Link universal wa.me — funciona em desktop (abre WhatsApp Web) e mobile (abre app)
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
         console.log("[Checkout] Opening WhatsApp:", whatsappUrl);
 
