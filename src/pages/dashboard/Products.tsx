@@ -368,8 +368,8 @@ const Products = () => {
           <div className="space-y-8">
             <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {visibleProducts.map((product) => (
-              <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col h-full ${!product.is_active ? 'opacity-60' : ''}`}>
-                  <div className="absolute top-2 right-2 z-10">
+              <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col ${!product.is_active ? 'opacity-60' : ''}`}>
+                  <div className="absolute top-2.5 right-2.5 z-10">
                     <Switch
                       checked={product.is_active}
                       onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
@@ -377,30 +377,30 @@ const Products = () => {
                     />
                   </div>
                   {!product.is_active && (
-                    <div className="absolute top-2 left-2 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
+                    <div className="absolute top-2.5 left-2.5 z-10 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded">
                       Inativo
                     </div>
                   )}
-                  <div className="h-[130px] sm:h-[190px] bg-muted flex items-center justify-center">
+                  <div className="w-full h-[160px] sm:h-[220px] flex items-center justify-center overflow-hidden px-2 pt-2">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
                         alt={product.name}
-                        className="max-w-full max-h-full object-contain"
+                        className="w-full h-full object-contain scale-105"
                       />
                     ) : (
-                      <Package className="h-10 w-10 text-muted-foreground" />
+                      <Package className="h-12 w-12 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="p-3 sm:p-4 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-sm mb-1 line-clamp-4 sm:line-clamp-3 leading-snug">{product.name}</h3>
+                  <div className="px-4 pt-3 pb-1 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-sm leading-snug line-clamp-4 mb-1.5">{product.name}</h3>
                     {product.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {product.description}
                       </p>
                     )}
                   </div>
-                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 mt-auto">
+                  <div className="px-4 pb-4 mt-auto">
                     <div className="mb-1.5">
                       {product.promotional_price ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
