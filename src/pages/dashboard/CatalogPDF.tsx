@@ -1207,6 +1207,8 @@ const CatalogPDF = () => {
     setFilteredProducts([]);
     setProductsPerPage(9);
     setCatalogLayout('layout_01');
+    setShowPrices(true);
+    setCoverMessage('');
   };
 
   const canGenerate = filterType === "all" || 
