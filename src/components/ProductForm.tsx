@@ -729,6 +729,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setEditVariationValues("");
     setWeight("");
     setWeightUnit("g");
+    setShippingWeight("");
+    setShippingWeightUnit("g");
     setLength("");
     setHeight("");
     setWidth("");
