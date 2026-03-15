@@ -289,7 +289,16 @@ const CatalogPDF = () => {
     currentY += 12;
     pdf.setFontSize(28);
     pdf.text("PRODUTOS", textCenterX, currentY, { align: "center" });
-    currentY += 20;
+    currentY += 10;
+
+    if (coverMessage.trim()) {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
+      currentY += 10;
+    }
+    currentY += 10;
 
     const currentYear = new Date().getFullYear();
     pdf.setFontSize(20);
