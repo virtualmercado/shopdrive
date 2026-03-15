@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, MapPin, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -50,7 +50,7 @@ interface StoreProfile {
   primary_color: string | null;
 }
 
-type ProductsPerPage = 12 | 9 | 4 | 2;
+type ProductsPerPage = 12 | 9 | 4;
 
 const DEFAULT_PRIMARY_COLOR = "#6a1b9a";
 
@@ -851,10 +851,6 @@ const CatalogPDF = () => {
         cols = 2;
         rows = 2;
         break;
-      case 2:
-        cols = 1;
-        rows = 2;
-        break;
       default: // 9
         cols = 3;
         rows = 3;
@@ -917,13 +913,13 @@ const CatalogPDF = () => {
 
         // Product name
         const nameY = y + imageAreaHeight + 10;
-        const fontSize = productsPerPage === 2 ? 12 : (productsPerPage === 4 ? 10 : (productsPerPage === 12 ? 7 : 8));
+        const fontSize = productsPerPage === 4 ? 10 : (productsPerPage === 12 ? 7 : 8);
         pdf.setFontSize(fontSize);
         pdf.setTextColor(40, 40, 40);
         pdf.setFont("helvetica", "bold");
         const maxNameWidth = cardWidth - 8;
         const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
-        const maxNameLines = productsPerPage === 2 ? 4 : (productsPerPage === 4 ? 3 : 2);
+        const maxNameLines = productsPerPage === 4 ? 3 : 2;
         const displayNameLines = nameLines.slice(0, maxNameLines);
         
         let textY = nameY;
@@ -935,7 +931,7 @@ const CatalogPDF = () => {
         // Price
         if (showPrices) {
           const price = product.promotional_price || product.price;
-          const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9));
+          const priceSize = productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9);
           pdf.setFontSize(priceSize);
           pdf.setTextColor(20, 20, 20);
           const priceY = y + cardHeight - 20;
@@ -944,14 +940,14 @@ const CatalogPDF = () => {
         }
 
         // "Ver produto" button
-        const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7));
+        const btnHeight = productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7);
         const btnY = y + cardHeight - btnHeight - 3;
         const btnWidth = cardWidth - 8;
         
         pdf.setFillColor(r, g, b);
         pdf.roundedRect(x + 4, btnY, btnWidth, btnHeight, 2, 2, "F");
         
-        const btnFontSize = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 6 : 7));
+        const btnFontSize = productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 6 : 7);
         pdf.setFontSize(btnFontSize);
         pdf.setTextColor(255, 255, 255);
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
@@ -1284,7 +1280,6 @@ const CatalogPDF = () => {
     switch (productsPerPage) {
       case 12: return { cols: 4, rows: 3 };
       case 4: return { cols: 2, rows: 2 };
-      case 2: return { cols: 1, rows: 2 };
       default: return { cols: 3, rows: 3 }; // 9
     }
   };
@@ -1316,116 +1311,6 @@ const CatalogPDF = () => {
     return labels;
   }, [totalPreviewPages, productPageCount]);
 
-  const TWO_PRODUCTS_PREVIEW = {
-    topAreaPx: 16,
-    footerAreaPx: 26,
-    gridGapPx: 12,
-    contentPaddingPx: 12,
-    cardPaddingPx: 10,
-  };
-
-  const renderTwoProductsPreviewPage = (pageProducts: Product[], pageIndex: number, previewColor: string) => {
-    const slots: (Product | null)[] = [pageProducts[0] ?? null, pageProducts[1] ?? null];
-    const cardHeight = `calc((100% - ${TWO_PRODUCTS_PREVIEW.gridGapPx}px) / 2)`;
-
-    return (
-      <div className="relative rounded-lg bg-white border overflow-hidden box-border" style={{ aspectRatio: '210 / 297' }}>
-        <div className="absolute inset-y-0 left-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
-          <span className="text-[6px] text-primary-foreground font-bold leading-tight text-center">PG<br />{String(pageIndex + 1).padStart(2, '0')}</span>
-        </div>
-
-        <div
-          className="absolute inset-y-0 right-0 box-border"
-          style={{
-            left: '1rem',
-            padding: `${TWO_PRODUCTS_PREVIEW.contentPaddingPx}px`,
-          }}
-        >
-          <div
-            className="h-full min-h-0 grid"
-            style={{
-              gridTemplateRows: `${TWO_PRODUCTS_PREVIEW.topAreaPx}px minmax(0, 1fr) ${TWO_PRODUCTS_PREVIEW.footerAreaPx}px`,
-            }}
-          >
-            <div aria-hidden="true" />
-
-            <div
-              className="min-h-0 grid"
-              style={{
-                gridTemplateRows: `${cardHeight} ${cardHeight}`,
-                rowGap: `${TWO_PRODUCTS_PREVIEW.gridGapPx}px`,
-              }}
-            >
-              {slots.map((product, idx) => (
-                <div
-                  key={product?.id || `two-preview-empty-${idx}`}
-                  className="border border-border rounded-md bg-card overflow-hidden box-border"
-                  style={{ height: cardHeight }}
-                >
-                  {product ? (
-                    <div
-                      className="h-full w-full grid box-border"
-                      style={{
-                        padding: `${TWO_PRODUCTS_PREVIEW.cardPaddingPx}px`,
-                        gridTemplateRows: showPrices
-                          ? '60% auto 1.4rem 1.9rem'
-                          : '65% auto 1.9rem',
-                        rowGap: '4px',
-                      }}
-                    >
-                      <div className="rounded bg-muted/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 0 }}>
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                            Sem imagem
-                          </div>
-                        )}
-                      </div>
-
-                      <p
-                        className="text-sm font-semibold text-foreground text-center leading-tight overflow-hidden"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        {product.name}
-                      </p>
-
-                      {showPrices && (
-                        <p className="text-base font-bold text-foreground text-center leading-none truncate">
-                          {formatPrice(product.promotional_price || product.price)}
-                        </p>
-                      )}
-
-                      <div
-                        className="rounded text-primary-foreground text-xs font-medium w-full flex items-center justify-center"
-                        style={{ backgroundColor: previewColor }}
-                      >
-                        Ver produto
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-full w-full" />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-end justify-center pb-1">
-              <span className="text-[10px] text-muted-foreground">Página {pageIndex + 1}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <DashboardLayout>
@@ -1667,14 +1552,6 @@ const CatalogPDF = () => {
                       >
                         <Grid2X2 className="h-5 w-5" />
                         <span className="text-xs font-medium">4 produtos</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setProductsPerPage(2)}
-                        className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-lg border-2 products-per-page-btn ${productsPerPage === 2 ? 'selected' : ''}`}
-                      >
-                        <LayoutList className="h-5 w-5" />
-                        <span className="text-xs font-medium">2 produtos</span>
                       </button>
                     </div>
                   </div>
@@ -1935,9 +1812,6 @@ const CatalogPDF = () => {
                       const startIdx = pageIndex * perPage;
                       const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
 
-                      if (productsPerPage === 2) {
-                        return renderTwoProductsPreviewPage(pageProducts, pageIndex, previewColor);
-                      }
 
                       const { cols, rows } = getGridDimensions();
                       // Build a fixed grid: rows x cols, fill with products or empty
