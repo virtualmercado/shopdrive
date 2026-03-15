@@ -931,7 +931,7 @@ const CatalogPDF = () => {
         // Price
         if (showPrices) {
           const price = product.promotional_price || product.price;
-          const priceSize = productsPerPage === 2 ? 14 : (productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9));
+          const priceSize = productsPerPage === 4 ? 11 : (productsPerPage === 12 ? 7 : 9);
           pdf.setFontSize(priceSize);
           pdf.setTextColor(20, 20, 20);
           const priceY = y + cardHeight - 20;
