@@ -94,6 +94,7 @@ const ProductCard = ({
       promotional_price: product.promotional_price,
       image_url: primaryImage,
       weight: product.weight,
+      shipping_weight: (product as any).shipping_weight,
       height: product.height,
       width: product.width,
       length: product.length,
