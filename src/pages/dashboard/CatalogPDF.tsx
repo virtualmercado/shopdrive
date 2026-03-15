@@ -1934,31 +1934,36 @@ const CatalogPDF = () => {
                       const perPage = productsPerPage;
                       const startIdx = pageIndex * perPage;
                       const pageProducts = filteredProducts.slice(startIdx, startIdx + perPage);
+
+                      if (productsPerPage === 2) {
+                        return renderTwoProductsPreviewPage(pageProducts, pageIndex, previewColor);
+                      }
+
                       const { cols, rows } = getGridDimensions();
                       // Build a fixed grid: rows x cols, fill with products or empty
                       const gridSlots: (typeof pageProducts[0] | null)[] = [];
                       for (let i = 0; i < rows * cols; i++) {
                         gridSlots.push(i < pageProducts.length ? pageProducts[i] : null);
                       }
-                      const is2pp = productsPerPage === 2;
+
                       return (
                         <div className="relative rounded-lg overflow-hidden bg-white border" style={{ aspectRatio: '210 / 297' }}>
                           <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
-                            <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
+                            <span className="text-[6px] text-primary-foreground font-bold leading-tight text-center">PG<br />{String(pageIndex + 1).padStart(2, '0')}</span>
                           </div>
-                          <div className={`ml-5 h-full flex flex-col box-border ${is2pp ? 'p-4' : 'p-2'}`}>
+                          <div className="ml-5 h-full flex flex-col box-border p-2">
                             <div
                               className="flex-1 grid"
                               style={{
                                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
                                 gridTemplateRows: `repeat(${rows}, 1fr)`,
-                                gap: is2pp ? '12px' : '4px',
+                                gap: '4px',
                               }}
                             >
                               {gridSlots.map((product, idx) => (
                                 <div
                                   key={product?.id || `empty-${idx}`}
-                                  className={`bg-white border border-border rounded flex flex-col items-center overflow-hidden box-border ${is2pp ? 'p-3' : 'p-1'}`}
+                                  className="bg-white border border-border rounded flex flex-col items-center overflow-hidden box-border p-1"
                                   style={{ minHeight: 0 }}
                                 >
                                   {product ? (
@@ -1970,9 +1975,9 @@ const CatalogPDF = () => {
                                           <div className="w-full h-full flex items-center justify-center text-[6px] text-muted-foreground bg-muted rounded">Sem imagem</div>
                                         )}
                                       </div>
-                                      <p className={`${productsPerPage === 12 ? 'text-[5px]' : is2pp ? 'text-[9px]' : 'text-[7px]'} font-medium w-full text-center truncate mt-0.5`}>{product.name}</p>
-                                      {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : is2pp ? 'text-[10px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
-                                      <div className={`${productsPerPage === 12 ? 'text-[5px]' : is2pp ? 'text-[8px]' : 'text-[6px]'} text-white rounded py-0.5 px-2 mt-0.5 w-full text-center`} style={{ backgroundColor: previewColor }}>Ver produto</div>
+                                      <p className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[7px]'} font-medium w-full text-center truncate mt-0.5`}>{product.name}</p>
+                                      {showPrices && <p className={`${productsPerPage === 12 ? 'text-[6px]' : 'text-[8px]'} font-bold`}>{formatPrice(product.promotional_price || product.price)}</p>}
+                                      <div className={`${productsPerPage === 12 ? 'text-[5px]' : 'text-[6px]'} text-primary-foreground rounded py-0.5 px-2 mt-0.5 w-full text-center`} style={{ backgroundColor: previewColor }}>Ver produto</div>
                                     </>
                                   ) : (
                                     <div className="w-full h-full" />
