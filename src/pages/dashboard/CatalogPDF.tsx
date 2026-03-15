@@ -1650,6 +1650,7 @@ const CatalogPDF = () => {
                         layoutType={catalogLayout}
                         primaryColor={storeProfile?.primary_color || primaryColor}
                         logoUrl={storeProfile?.store_logo_url}
+                        coverMessage={coverMessage}
                       />
                     )}
 
