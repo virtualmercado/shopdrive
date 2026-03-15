@@ -1212,7 +1212,65 @@ const CatalogPDF = () => {
     setCatalogLayout('layout_01');
     setShowPrices(true);
     setCoverMessage('');
+    setCampaignMessage('');
+    setCampaignCopied(false);
   };
+
+  const getStoreUrl = () => {
+    if (!storeProfile?.store_slug) return '';
+    return `${window.location.origin}/loja/${storeProfile.store_slug}`;
+  };
+
+  const getWhatsAppDisplay = () => {
+    if (!storeProfile?.whatsapp_number) return '';
+    const raw = storeProfile.whatsapp_number.replace(/\D/g, '');
+    let d = raw;
+    if (raw.startsWith('55') && raw.length > 11) d = raw.substring(2);
+    if (d.length === 11) return `(${d.substring(0, 2)}) ${d.substring(2, 7)}-${d.substring(7)}`;
+    if (d.length === 10) return `(${d.substring(0, 2)}) ${d.substring(2, 6)}-${d.substring(6)}`;
+    return d;
+  };
+
+  const buildCampaignMessage = (url: string) => {
+    const storeUrl = getStoreUrl();
+    const whatsappDisplay = getWhatsAppDisplay();
+    let msg = `Olá! 😊\n\nPreparamos nosso catálogo atualizado com vários produtos disponíveis.\n\n📄 Veja o catálogo completo:\n${url}`;
+    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
+    if (whatsappDisplay) msg += `\n\n📲 Fale conosco no WhatsApp:\n${whatsappDisplay}`;
+    msg += `\n\nEsperamos seu pedido!`;
+    return msg;
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!catalogUrl) {
+      toast.error("Aguarde a geração do link do catálogo");
+      return;
+    }
+    const storeUrl = getStoreUrl();
+    let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
+    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
+    msg += `\n\nResponderemos com prazer!`;
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyCampaignMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(campaignMessage);
+      setCampaignCopied(true);
+      toast.success("Mensagem copiada!");
+      setTimeout(() => setCampaignCopied(false), 2000);
+    } catch {
+      toast.error("Erro ao copiar mensagem");
+    }
+  };
+
+  // Build campaign message when catalog URL becomes available
+  useEffect(() => {
+    if (catalogUrl && pdfGenerated) {
+      setCampaignMessage(buildCampaignMessage(catalogUrl));
+    }
+  }, [catalogUrl, pdfGenerated]);
 
   const canGenerate = filterType === "all" || 
     filterType === "list" ||
