@@ -182,7 +182,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     imageAdjustmentsRef.current = imageAdjustments;
   }, [imageAdjustments]);
   
-  const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-none';
+  const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-md' : 'rounded-none';
   
   // Generate a slightly darker/lighter color for hover effect
   const getHoverColor = (color: string) => {
