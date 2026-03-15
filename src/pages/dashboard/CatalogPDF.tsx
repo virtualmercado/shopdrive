@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, LayoutList, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
