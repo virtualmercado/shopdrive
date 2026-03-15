@@ -1269,8 +1269,16 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 id="stock"
                 type="number"
                 min="0"
+                step="1"
                 value={stock}
-                onChange={(e) => setStock(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") { setStock(""); return; }
+                  // Strip any non-numeric chars except digits
+                  const num = Math.round(Number(raw));
+                  if (!Number.isFinite(num) || num < 0) return;
+                  setStock(String(num));
+                }}
                 placeholder="0"
                 required
               />
