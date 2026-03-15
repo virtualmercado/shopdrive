@@ -1609,6 +1609,20 @@ const CatalogPDF = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Structure bar */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs text-muted-foreground">
+                      {pageLabels.map((label, idx) => (
+                        <span key={idx} className="flex items-center gap-1 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded ${idx === currentPreviewPage ? 'bg-muted font-semibold text-foreground' : ''}`}
+                          >
+                            {label}
+                          </span>
+                          {idx < pageLabels.length - 1 && <span className="text-muted-foreground/50">|</span>}
+                        </span>
+                      ))}
+                    </div>
+
                     {/* Page indicator */}
                     <div className="flex items-center justify-between">
                       <button
