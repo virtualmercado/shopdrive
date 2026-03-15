@@ -228,6 +228,13 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setLength(product.length?.toString() || "");
       setHeight(product.height?.toString() || "");
       setWidth(product.width?.toString() || "");
+      if ((product as any).shipping_weight != null && (product as any).shipping_weight > 0) {
+        setShippingWeight(((product as any).shipping_weight * 1000).toString());
+        setShippingWeightUnit("g");
+      } else {
+        setShippingWeight("");
+        setShippingWeightUnit("g");
+      }
     } else if (!open) {
       resetForm();
     }
