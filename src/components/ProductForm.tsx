@@ -3,6 +3,7 @@ import { logAuditEvent } from "@/lib/auditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -1124,17 +1125,12 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               <Bot className="h-4 w-4" />
               Criar descrição profissional com IA
             </Button>
-            <Textarea
-              id="description"
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva seu produto..."
-              rows={3}
+              onChange={setDescription}
+              placeholder="Descreva seu produto... Dica: use títulos, listas e imagens para organizar melhor sua descrição."
               maxLength={4000}
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {description.length}/4000 caracteres
-            </p>
           </div>
 
           {/* Price and Promotional Price */}
