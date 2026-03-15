@@ -1482,6 +1482,31 @@ const CatalogPDF = () => {
                   </div>
                 )}
 
+                {/* Price toggle */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Incluir preços no catálogo</Label>
+                  <RadioGroup value={showPrices ? 'show' : 'hide'} onValueChange={(v) => setShowPrices(v === 'show')}>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem 
+                        value="show" 
+                        id="price-show"
+                        className="catalog-merchant-radio border-2"
+                        style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
+                      />
+                      <Label htmlFor="price-show" className="cursor-pointer">Mostrar preços</Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem 
+                        value="hide" 
+                        id="price-hide"
+                        className="catalog-merchant-radio border-2"
+                        style={{ borderColor: buttonBgColor, backgroundColor: '#FFFFFF', color: buttonBgColor }}
+                      />
+                      <Label htmlFor="price-hide" className="cursor-pointer">Ocultar preços</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
                 {/* Category Selector */}
                 {filterType === "category" && (
                   <div className="space-y-2">
