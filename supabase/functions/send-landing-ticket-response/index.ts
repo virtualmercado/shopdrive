@@ -144,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
       <body>
         <div class="header">
           <h1 style="margin: 0; font-size: 24px;">ShopDrive</h1>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;">Suporte ao Cliente</p>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;">Sua loja no digital</p>
         </div>
         <div class="content">
           <p style="color: #666; font-size: 14px;">
@@ -152,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
           <div class="message-body">${message.replace(/\n/g, '<br>')}</div>
           <div class="footer">
-            <p>Este é um e-mail automático enviado pelo sistema ShopDrive.</p>
+            <p>Este é um e-mail automático enviado pela ShopDrive.</p>
             <p>Se você não solicitou este contato, por favor desconsidere esta mensagem.</p>
           </div>
         </div>
