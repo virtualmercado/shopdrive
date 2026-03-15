@@ -168,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ShopDrive <suporte@shopdrive.com.br>",
+        from: "ShopDrive <onboarding@resend.dev>",
         to: [to],
         subject: subject,
         html: htmlContent,
