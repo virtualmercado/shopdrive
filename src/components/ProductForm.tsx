@@ -1545,7 +1545,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="length" className="text-xs">Comprimento (cm)</Label>
+                <Label htmlFor="length" className="text-xs">Profundidade (cm)</Label>
                 <Input
                   id="length"
                   type="number"
