@@ -919,7 +919,7 @@ const CatalogPDF = () => {
         pdf.setFont("helvetica", "bold");
         const maxNameWidth = cardWidth - 8;
         const nameLines = pdf.splitTextToSize(product.name, maxNameWidth);
-        const maxNameLines = productsPerPage === 2 ? 4 : (productsPerPage === 4 ? 3 : 2);
+        const maxNameLines = productsPerPage === 4 ? 3 : 2;
         const displayNameLines = nameLines.slice(0, maxNameLines);
         
         let textY = nameY;
