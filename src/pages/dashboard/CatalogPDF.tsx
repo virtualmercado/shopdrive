@@ -940,7 +940,7 @@ const CatalogPDF = () => {
         }
 
         // "Ver produto" button
-        const btnHeight = productsPerPage === 2 ? 10 : (productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7));
+        const btnHeight = productsPerPage === 4 ? 8 : (productsPerPage === 12 ? 5.5 : 7);
         const btnY = y + cardHeight - btnHeight - 3;
         const btnWidth = cardWidth - 8;
         
