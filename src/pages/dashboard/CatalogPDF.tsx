@@ -913,7 +913,7 @@ const CatalogPDF = () => {
 
         // Product name
         const nameY = y + imageAreaHeight + 10;
-        const fontSize = productsPerPage === 2 ? 12 : (productsPerPage === 4 ? 10 : (productsPerPage === 12 ? 7 : 8));
+        const fontSize = productsPerPage === 4 ? 10 : (productsPerPage === 12 ? 7 : 8);
         pdf.setFontSize(fontSize);
         pdf.setTextColor(40, 40, 40);
         pdf.setFont("helvetica", "bold");
