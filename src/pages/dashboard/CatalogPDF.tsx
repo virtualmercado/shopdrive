@@ -1749,22 +1749,33 @@ const CatalogPDF = () => {
                       const previewColor = storeProfile?.primary_color || primaryColor;
 
                       if (filterType === "single" && filteredProducts.length === 1) {
+                        const singleProduct = filteredProducts[0];
                         return (
                           <div className="relative rounded-lg overflow-hidden bg-white border aspect-[210/297]">
                             <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-end py-2" style={{ backgroundColor: previewColor }}>
                               <span className="text-[6px] text-white font-bold leading-tight text-center">PG<br/>{String(pageIndex + 1).padStart(2, '0')}</span>
                             </div>
-                            <div className="ml-5 p-2 flex flex-col items-center text-center space-y-2 py-4">
-                              <div className="w-20 h-20 flex items-center justify-center">
-                                {filteredProducts[0].image_url ? (
-                                  <img src={filteredProducts[0].image_url} alt={filteredProducts[0].name} className="max-w-full max-h-full object-contain" />
+                            <div className="ml-5 p-2 flex flex-col items-center text-center py-3 h-full overflow-hidden">
+                              {/* Image - dominant area */}
+                              <div className="w-24 h-24 flex items-center justify-center flex-shrink-0">
+                                {singleProduct.image_url ? (
+                                  <img src={singleProduct.image_url} alt={singleProduct.name} className="max-w-full max-h-full object-contain" />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-muted rounded">Sem imagem</div>
                                 )}
                               </div>
-                              <h3 className="text-xs font-bold text-foreground px-2">{filteredProducts[0].name}</h3>
-                              {showPrices && <p className="text-sm font-bold text-foreground">{formatPrice(filteredProducts[0].promotional_price || filteredProducts[0].price)}</p>}
-                              <div className="text-[8px] text-white rounded py-1 px-4" style={{ backgroundColor: previewColor }}>Ver produto</div>
+                              {/* Title */}
+                              <h3 className="text-xs font-bold text-foreground px-2 mt-2 leading-tight">{singleProduct.name}</h3>
+                              {/* Price */}
+                              {showPrices && <p className="text-sm font-bold text-foreground mt-1">{formatPrice(singleProduct.promotional_price || singleProduct.price)}</p>}
+                              {/* Button */}
+                              <div className="text-[8px] text-white rounded py-1 px-4 mt-1 flex-shrink-0" style={{ backgroundColor: previewColor }}>Ver produto</div>
+                              {/* Description */}
+                              {singleProduct.description && (
+                                <div className="w-full mt-2 px-1 text-left overflow-hidden flex-1">
+                                  <p className="text-[6px] leading-[1.4] text-gray-600 whitespace-pre-line">{singleProduct.description}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
