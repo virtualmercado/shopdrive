@@ -1280,7 +1280,6 @@ const CatalogPDF = () => {
     switch (productsPerPage) {
       case 12: return { cols: 4, rows: 3 };
       case 4: return { cols: 2, rows: 2 };
-      case 2: return { cols: 1, rows: 2 };
       default: return { cols: 3, rows: 3 }; // 9
     }
   };
