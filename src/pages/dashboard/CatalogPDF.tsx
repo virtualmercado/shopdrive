@@ -1717,7 +1717,7 @@ const CatalogPDF = () => {
                                     )}
                                   </div>
                                   <span className="flex-1 truncate pl-1">{product.name}</span>
-                                  <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>
+                                  {showPrices && <span className="font-semibold">{formatPrice(product.promotional_price || product.price)}</span>}
                                 </div>
                               ))}
                               {pageItems.length > 8 && (
