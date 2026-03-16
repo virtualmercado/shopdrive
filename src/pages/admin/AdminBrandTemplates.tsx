@@ -261,14 +261,28 @@ const AdminBrandTemplates = () => {
     syncSnapshotMutation.mutate(template.id);
   };
 
-  const handleOpenTemplatePreview = (template: BrandTemplate) => {
+  const handleOpenTemplatePreview = async (template: BrandTemplate) => {
+    // Auto-sync snapshot from source profile before opening preview
+    // This ensures the preview always shows the latest data
+    if (template.id) {
+      try {
+        toast.info('Sincronizando dados do template...');
+        const { error } = await supabase
+          .rpc('sync_template_from_profile', { p_template_id: template.id });
+        if (error) {
+          console.warn('Auto-sync before preview failed (template may not have source profile):', error.message);
+          // Continue opening preview even if sync fails (template may not use source profile)
+        }
+      } catch (e) {
+        console.warn('Auto-sync before preview error:', e);
+      }
+    }
+
     const path = `/gestor/templates-marca/${template.id}/preview`;
     const url = new URL(path, window.location.origin);
 
     // IMPORTANT:
     // In the Lovable preview environment we must preserve the special preview params
-    // (e.g. __lovable_token). But we must NOT copy other params (like mode=template-editor)
-    // because they can trigger session-switching / route guards and redirect the user.
     const current = new URL(window.location.href);
     current.searchParams.forEach((value, key) => {
       if (key.startsWith('__lovable')) {
