@@ -112,14 +112,17 @@ export const useSyncTemplateSnapshot = () => {
 
   return useMutation({
     mutationFn: async (templateId: string) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .rpc('sync_template_from_profile', { p_template_id: templateId });
 
       if (error) throw error;
-      return data;
+      return templateId;
     },
-    onSuccess: () => {
+    onSuccess: (templateId) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template-products', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['template-with-profile', templateId] });
       toast.success('Snapshot do template atualizado!');
     },
     onError: (error: Error) => {

@@ -12,6 +12,9 @@ const AdminBrandTemplatePreview = () => {
   
   const { data: template, isLoading: templateLoading } = useBrandTemplate(templateId || '');
   const { data: products = [], isLoading: productsLoading } = useBrandTemplateProducts(templateId || '');
+  
+  // Note: These queries use React Query defaults. Since the preview opens in a new tab,
+  // the cache is fresh and will fetch the latest data from the database.
 
   const isLoading = templateLoading || productsLoading;
   const activeProducts = products.filter(p => p.is_active);

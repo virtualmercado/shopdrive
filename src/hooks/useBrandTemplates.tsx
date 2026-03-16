@@ -151,8 +151,9 @@ export const useCreateBrandTemplate = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template de marca criado com sucesso!');
     },
@@ -183,8 +184,9 @@ export const useUpdateBrandTemplate = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template atualizado com sucesso!');
     },
@@ -207,8 +209,9 @@ export const useDeleteBrandTemplate = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', variables] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template excluído com sucesso!');
     },
@@ -249,8 +252,9 @@ export const useDuplicateBrandTemplate = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template duplicado com sucesso!');
     },
@@ -280,6 +284,7 @@ export const useToggleBrandTemplateStatus = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       const statusLabel = data.status === 'active' ? 'ativado' : 'desativado';
       toast.success(`Template ${statusLabel} com sucesso!`);
@@ -308,6 +313,7 @@ export const useToggleLinkStatus = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       const statusLabel = data.is_link_active ? 'ativado' : 'desativado';
       toast.success(`Link de ativação ${statusLabel} com sucesso!`);
     },
