@@ -183,8 +183,9 @@ export const useUpdateBrandTemplate = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template atualizado com sucesso!');
     },
