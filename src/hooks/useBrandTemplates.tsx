@@ -209,8 +209,9 @@ export const useDeleteBrandTemplate = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', variables] });
       queryClient.invalidateQueries({ queryKey: ['brand-template-stats'] });
       toast.success('Template excluído com sucesso!');
     },
