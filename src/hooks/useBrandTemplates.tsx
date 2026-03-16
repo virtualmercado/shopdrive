@@ -312,6 +312,7 @@ export const useToggleLinkStatus = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', data.id] });
       const statusLabel = data.is_link_active ? 'ativado' : 'desativado';
       toast.success(`Link de ativação ${statusLabel} com sucesso!`);
     },
