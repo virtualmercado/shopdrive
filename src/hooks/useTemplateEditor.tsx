@@ -116,6 +116,15 @@ export const useSyncTemplateSnapshot = () => {
         .rpc('sync_template_from_profile', { p_template_id: templateId });
 
       if (error) throw error;
+      return { data, templateId };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['brand-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template', result.templateId] });
+      queryClient.invalidateQueries({ queryKey: ['brand-template-products', result.templateId] });
+      queryClient.invalidateQueries({ queryKey: ['template-with-profile', result.templateId] });
+
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
