@@ -255,7 +255,7 @@ const BannerItemCard = ({
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white/30 backdrop-blur-sm rounded-lg px-6 py-4 max-w-[80%] text-center">
+              <div className="bg-white/65 backdrop-blur-[8px] rounded-lg px-6 py-4 max-w-[80%] text-center">
                 {banner.title && (
                   <h3
                     className="text-base sm:text-lg font-semibold leading-tight"
