@@ -110,8 +110,9 @@ const ModuleComponents = {
         productBorderStyle={props.productBorderStyle}
         productTextAlignment={props.productTextAlignment}
         productButtonDisplay={props.productButtonDisplay}
-        priceColor={props.priceColor}
-        selectedCategory={props.selectedCategory}
+      priceColor={props.priceColor}
+      titleColor={props.titleColor}
+      selectedCategory={props.selectedCategory}
       />
     </section>
   ),
