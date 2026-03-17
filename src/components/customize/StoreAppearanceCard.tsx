@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Paintbrush } from "lucide-react";
+import { Paintbrush, Info } from "lucide-react";
 
 interface StoreAppearanceCardProps {
   fontFamily: string;
@@ -17,7 +18,10 @@ interface StoreAppearanceCardProps {
   productTextAlignment: string;
   setProductTextAlignment: (v: string) => void;
   buttonBgColor: string;
+  setButtonBgColor: (v: string) => void;
   buttonTextColor: string;
+  setButtonTextColor: (v: string) => void;
+  aiPaletteActive?: boolean;
 }
 
 const SD_PRIMARY = "#6A1B9A";
