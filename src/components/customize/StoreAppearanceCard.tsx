@@ -214,9 +214,7 @@ const StoreAppearanceCard = ({
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
-            {/* ── LEFT: Controls ── */}
-            <div className="space-y-5">
+          <div className="space-y-5">
               {/* 1. Textos dos Produtos */}
               <div className="space-y-4">
                 <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -382,20 +380,6 @@ const StoreAppearanceCard = ({
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* ── RIGHT: Live Preview ── */}
-            <div className="flex items-start justify-center lg:sticky lg:top-4">
-              <ProductCardStylePreview
-                titleColor={titleColor}
-                priceColor={priceColor}
-                buttonBgColor={buttonBgColor}
-                buttonTextColor={buttonTextColor}
-                buttonBorderStyle={buttonBorderStyle}
-                productButtonDisplay={productButtonDisplay}
-                productTextAlignment={productTextAlignment}
-              />
-            </div>
           </div>
         </div>
       </div>
