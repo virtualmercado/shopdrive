@@ -27,11 +27,11 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
 
   return (
     <section className="w-full px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div
           className="group relative overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1"
           style={{
-            aspectRatio: "16 / 5",
+            aspectRatio: "1360 / 460",
             borderRadius: "12px",
             boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
           }}
