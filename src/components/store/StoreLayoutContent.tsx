@@ -28,6 +28,7 @@ interface StoreLayoutContentProps {
   productBorderStyle: string;
   productTextAlignment: string;
   productButtonDisplay: string;
+  priceColor?: string;
   selectedCategory: string | null;
 }
 
