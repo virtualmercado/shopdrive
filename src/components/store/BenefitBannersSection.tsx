@@ -6,7 +6,7 @@ interface BenefitBannersSectionProps {
   selectedIds: number[];
 }
 
-const AUTOPLAY_INTERVAL = 3000;
+const AUTOPLAY_INTERVAL = 5000;
 const PAUSE_AFTER_INTERACTION = 5000;
 
 const BenefitBannersSection = ({ selectedIds }: BenefitBannersSectionProps) => {
