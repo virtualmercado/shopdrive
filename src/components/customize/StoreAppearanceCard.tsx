@@ -202,8 +202,8 @@ const StoreAppearanceCard = ({
                     className="px-4 py-1.5 text-xs font-medium"
                     style={{
                       borderRadius: opt.radius,
-                      backgroundColor: buttonBgColor,
-                      color: buttonTextColor,
+                      backgroundColor: SD_PRIMARY,
+                      color: "#FFFFFF",
                     }}
                   >
                     Comprar
