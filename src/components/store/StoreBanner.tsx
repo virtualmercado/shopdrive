@@ -68,7 +68,16 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
     <div className="w-full">
       {/* Desktop/Tablet Banner Carousel with Horizontal Slide - Dots navigation only */}
       {desktopBannerUrls.length > 0 && (
-        <div className="hidden md:block relative overflow-hidden">
+        <div
+          className="hidden md:block relative overflow-hidden rounded-none group transition-shadow duration-400 ease-out"
+          style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 30px rgba(0,0,0,0.12)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)";
+          }}
+        >
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
@@ -79,14 +88,14 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
             {desktopBannerUrls.map((url, index) => (
               <div 
                 key={index} 
-                className="flex-shrink-0"
+                className="flex-shrink-0 overflow-hidden"
                 style={{ width: `${100 / desktopBannerUrls.length}%` }}
               >
                 <div className="w-full" style={{ aspectRatio: '1920 / 680' }}>
                   <img
                     src={url}
                     alt={`Banner ${index + 1}`}
-                    className="w-full h-full object-cover object-center"
+                    className="w-full h-full object-cover object-center transition-transform duration-[400ms] ease-out will-change-transform group-hover:scale-[1.03]"
                     loading={index === 0 ? "eager" : "lazy"}
                   />
                 </div>
