@@ -262,35 +262,89 @@ const AdminBrandTemplates = () => {
   };
 
   const handleOpenTemplatePreview = async (template: BrandTemplate) => {
-    // Auto-sync snapshot from source profile before opening preview
-    // This ensures the preview always shows the latest data
-    if (template.id) {
-      try {
-        toast.info('Sincronizando dados do template...');
-        const { error } = await supabase
-          .rpc('sync_template_from_profile', { p_template_id: template.id });
-        if (error) {
-          console.warn('Auto-sync before preview failed (template may not have source profile):', error.message);
-          // Continue opening preview even if sync fails (template may not use source profile)
+    if (!template.id) return;
+
+    try {
+      toast.info('Preparando preview atualizado...');
+
+      // 1) Ler metadados frescos do template (fonte do modal)
+      const { data: templateMeta, error: templateMetaError } = await supabase
+        .from('brand_templates')
+        .select('id, source_profile_id, updated_at')
+        .eq('id', template.id)
+        .single();
+
+      if (templateMetaError || !templateMeta) {
+        throw new Error(templateMetaError?.message || 'Template não encontrado para preview');
+      }
+
+      // 2) Sincronizar snapshot persistido e garantir término antes de abrir
+      const { error: syncError } = await supabase
+        .rpc('sync_template_from_profile', { p_template_id: template.id });
+
+      if (syncError) {
+        throw new Error(syncError.message);
+      }
+
+      // 3) Revalidar metadados pós-sync e resolver a fonte real do preview
+      const [{ data: syncedTemplate, error: syncedTemplateError }, { data: sourceProfile, error: sourceProfileError }] = await Promise.all([
+        supabase
+          .from('brand_templates')
+          .select('updated_at, source_profile_id')
+          .eq('id', template.id)
+          .single(),
+        templateMeta.source_profile_id
+          ? supabase
+              .from('profiles')
+              .select('store_slug, updated_at')
+              .eq('id', templateMeta.source_profile_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (syncedTemplateError) {
+        throw new Error(syncedTemplateError.message);
+      }
+
+      if (sourceProfileError) {
+        throw new Error(sourceProfileError.message);
+      }
+
+      if (import.meta.env.DEV) {
+        console.info('[TemplatePreviewTrace] open_preview', {
+          templateId: template.id,
+          sourceProfileId: templateMeta.source_profile_id,
+          templateUpdatedAtBeforeSync: templateMeta.updated_at,
+          templateUpdatedAtAfterSync: syncedTemplate?.updated_at,
+          sourceProfileUpdatedAt: sourceProfile?.updated_at ?? null,
+          source: sourceProfile?.store_slug ? 'profiles(store_slug)' : 'brand_templates(snapshot-fallback)',
+          openedAt: new Date().toISOString(),
+        });
+      }
+
+      // Fonte principal do preview: loja pública do perfil-fonte (sempre estado mais recente)
+      const path = sourceProfile?.store_slug
+        ? `/loja/${sourceProfile.store_slug}`
+        : `/gestor/templates-marca/${template.id}/preview`;
+
+      const url = new URL(path, window.location.origin);
+
+      // Evita leitura stale em caches intermediários
+      url.searchParams.set('v', String(Date.now()));
+
+      // Preserva params especiais do ambiente de preview
+      const current = new URL(window.location.href);
+      current.searchParams.forEach((value, key) => {
+        if (key.startsWith('__lovable')) {
+          url.searchParams.set(key, value);
         }
-      } catch (e) {
-        console.warn('Auto-sync before preview error:', e);
-      }
+      });
+
+      window.open(url.toString(), '_blank');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao preparar preview atualizado';
+      toast.error(`Erro ao abrir preview: ${message}`);
     }
-
-    const path = `/gestor/templates-marca/${template.id}/preview`;
-    const url = new URL(path, window.location.origin);
-
-    // IMPORTANT:
-    // In the Lovable preview environment we must preserve the special preview params
-    const current = new URL(window.location.href);
-    current.searchParams.forEach((value, key) => {
-      if (key.startsWith('__lovable')) {
-        url.searchParams.set(key, value);
-      }
-    });
-
-    window.open(url.toString(), '_blank');
   };
 
   const handleDeleteTemplate = async () => {
