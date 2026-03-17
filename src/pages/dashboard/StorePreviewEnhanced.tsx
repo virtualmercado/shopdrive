@@ -191,6 +191,7 @@ const StorePreviewEnhanced = () => {
         if (data.button_bg_color) setLocalButtonBgColor(data.button_bg_color);
         if (data.button_text_color) setLocalButtonTextColor(data.button_text_color);
         if ((data as any).price_color) setLocalPriceColor((data as any).price_color);
+        if ((data as any).title_color) setLocalTitleColor((data as any).title_color);
       }
     } catch (error) {
       console.error("Error:", error);
