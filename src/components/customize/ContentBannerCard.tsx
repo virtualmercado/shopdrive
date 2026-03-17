@@ -247,7 +247,7 @@ const BannerItemCard = ({
           <Label className="text-sm font-medium">Pré-visualização</Label>
           <div
             className="relative w-full overflow-hidden rounded-xl"
-            style={{ aspectRatio: "16 / 5" }}
+            style={{ aspectRatio: "1360 / 460" }}
           >
             <img
               src={banner.image_url}
