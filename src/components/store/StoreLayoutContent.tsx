@@ -51,6 +51,7 @@ const ModuleComponents = {
       productTextAlignment={props.productTextAlignment}
       productButtonDisplay={props.productButtonDisplay}
       priceColor={props.priceColor}
+      titleColor={props.titleColor}
       selectedCategory={props.selectedCategory}
     />
   ),
