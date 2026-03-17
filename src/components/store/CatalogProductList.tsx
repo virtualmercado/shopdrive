@@ -14,6 +14,7 @@ interface CatalogProductListProps {
   productBorderStyle: string;
   productTextAlignment: string;
   productButtonDisplay: string;
+  priceColor?: string;
   selectedCategory: string | null;
   searchTerm?: string;
   primaryColor?: string;
