@@ -1038,7 +1038,7 @@ const StorePreviewEnhanced = () => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 800x700px • Até 3 imagens • Carrossel automático com navegação por bolinhas
+                Tamanho recomendado: 800x1000px (proporção vertical recomendada para melhor visualização em dispositivos móveis) • Até 3 imagens • Carrossel automático com navegação por bolinhas
               </p>
               
               {/* 3 Fixed slots for mobile banners */}

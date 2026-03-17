@@ -131,12 +131,12 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                 className="flex-shrink-0"
                 style={{ width: `${100 / mobileBannerUrls.length}%` }}
               >
-                {/* Mobile banner container with 8:7 aspect ratio (800x700px) */}
-                <div className="w-full" style={{ aspectRatio: '800 / 700', minHeight: 0 }}>
+                {/* Mobile banner - image displayed fully without cropping */}
+                <div className="w-full">
                   <img
                     src={url}
                     alt={`Banner ${index + 1}`}
-                    className="w-full h-full object-cover object-center"
+                    className="w-full h-auto object-contain object-center"
                     loading={index === 0 ? "eager" : "lazy"}
                   />
                 </div>
@@ -180,12 +180,12 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                   className="flex-shrink-0"
                   style={{ width: `${100 / desktopBannerUrls.length}%` }}
                 >
-                  {/* Mobile fallback banner with 8:7 aspect ratio (800x700px) */}
-                  <div className="w-full" style={{ aspectRatio: '800 / 700', minHeight: 0 }}>
+                  {/* Mobile fallback banner - image displayed fully without cropping */}
+                  <div className="w-full">
                     <img
                       src={url}
                       alt={`Banner ${index + 1}`}
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-auto object-contain object-center"
                       loading={index === 0 ? "eager" : "lazy"}
                     />
                   </div>
