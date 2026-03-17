@@ -240,6 +240,12 @@ const StoreAppearanceCard = ({
                           className="flex-1"
                         />
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pré-visualização:{" "}
+                        <span className="text-sm font-semibold" style={{ color: titleColor }}>
+                          Produto Exemplo
+                        </span>
+                      </p>
                     </div>
                     {/* Price Color */}
                     <div className="space-y-1.5">
@@ -258,6 +264,12 @@ const StoreAppearanceCard = ({
                           className="flex-1"
                         />
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pré-visualização:{" "}
+                        <span className="text-sm font-bold" style={{ color: priceColor }}>
+                          R$ 99,90
+                        </span>
+                      </p>
                     </div>
                   </div>
                 ) : null}
