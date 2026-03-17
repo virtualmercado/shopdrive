@@ -932,7 +932,7 @@ const StorePreviewEnhanced = () => {
                 <Badge variant="outline" className="text-xs">{storeData.banner_desktop_urls.length}/{MAX_TOTAL_BANNERS}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Tamanho recomendado: 1920x512px • Máximo: {MAX_TOTAL_BANNERS} banners • Carrossel automático com navegação por bolinhas
+                Tamanho recomendado: 1920x680px • Máximo: {MAX_TOTAL_BANNERS} banners • Carrossel automático com navegação por bolinhas
               </p>
               
               {/* 4 Fixed slots for desktop banners */}

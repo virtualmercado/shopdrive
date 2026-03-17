@@ -82,7 +82,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                 className="flex-shrink-0"
                 style={{ width: `${100 / desktopBannerUrls.length}%` }}
               >
-                <div className="w-full" style={{ aspectRatio: '1920 / 512' }}>
+                <div className="w-full" style={{ aspectRatio: '1920 / 680' }}>
                   <img
                     src={url}
                     alt={`Banner ${index + 1}`}

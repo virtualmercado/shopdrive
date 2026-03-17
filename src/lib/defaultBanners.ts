@@ -9,7 +9,7 @@ import bannerBenefits3 from "@/assets/banner-benefits-3.png";
 import bannerBenefits4 from "@/assets/banner-benefits-4.png";
 import bannerBenefits5 from "@/assets/banner-benefits-5.png";
 
-// VM Benefits Desktop Banners (1920x512) - 5 pre-inserted banners for merchant convenience
+// VM Benefits Desktop Banners (1920x680) - 5 pre-inserted banners for merchant convenience
 export const FIXED_VM_DESKTOP_BANNERS = [
   bannerBenefits1,
   bannerBenefits2,
