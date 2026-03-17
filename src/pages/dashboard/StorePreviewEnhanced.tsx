@@ -41,6 +41,8 @@ const StorePreviewEnhanced = () => {
   const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
   const [productButtonDisplay, setProductButtonDisplay] = useState("below");
   const [productTextAlignment, setProductTextAlignment] = useState("left");
+  const [localButtonBgColor, setLocalButtonBgColor] = useState(buttonBgColor || "#6a1b9a");
+  const [localButtonTextColor, setLocalButtonTextColor] = useState(buttonTextColor || "#FFFFFF");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
