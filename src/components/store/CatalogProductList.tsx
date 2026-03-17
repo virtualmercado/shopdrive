@@ -48,6 +48,7 @@ export const CatalogProductList = ({
   productTextAlignment,
   productButtonDisplay,
   priceColor,
+  titleColor,
   selectedCategory,
   searchTerm,
   primaryColor,
