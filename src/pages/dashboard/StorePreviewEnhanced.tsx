@@ -41,6 +41,8 @@ const StorePreviewEnhanced = () => {
   const [buttonBorderStyle, setButtonBorderStyle] = useState("rounded");
   const [productButtonDisplay, setProductButtonDisplay] = useState("below");
   const [productTextAlignment, setProductTextAlignment] = useState("left");
+  const [localButtonBgColor, setLocalButtonBgColor] = useState(buttonBgColor || "#6a1b9a");
+  const [localButtonTextColor, setLocalButtonTextColor] = useState(buttonTextColor || "#FFFFFF");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
@@ -184,6 +186,8 @@ const StorePreviewEnhanced = () => {
         if (data.button_border_style) setButtonBorderStyle(data.button_border_style);
         if (data.product_button_display) setProductButtonDisplay(data.product_button_display);
         if (data.product_text_alignment) setProductTextAlignment(data.product_text_alignment);
+        if (data.button_bg_color) setLocalButtonBgColor(data.button_bg_color);
+        if (data.button_text_color) setLocalButtonTextColor(data.button_text_color);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -636,6 +640,8 @@ const StorePreviewEnhanced = () => {
           button_border_style: buttonBorderStyle,
           product_button_display: productButtonDisplay,
           product_text_alignment: productTextAlignment,
+          button_bg_color: localButtonBgColor,
+          button_text_color: localButtonTextColor,
         })
         .eq("id", user.id);
 
@@ -888,8 +894,10 @@ const StorePreviewEnhanced = () => {
           setProductButtonDisplay={setProductButtonDisplay}
           productTextAlignment={productTextAlignment}
           setProductTextAlignment={setProductTextAlignment}
-          buttonBgColor={buttonBgColor}
-          buttonTextColor={buttonTextColor}
+          buttonBgColor={localButtonBgColor}
+          setButtonBgColor={setLocalButtonBgColor}
+          buttonTextColor={localButtonTextColor}
+          setButtonTextColor={setLocalButtonTextColor}
         />
 
         {/* Banners */}
