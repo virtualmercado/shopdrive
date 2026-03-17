@@ -175,7 +175,7 @@ const BannerItemCard = ({
       <div className="space-y-2">
         <Label>Imagem do banner</Label>
         <p className="text-xs text-muted-foreground">
-          Tamanho recomendado: 1200 × 375 px (proporção 16:5). Formatos: JPG, PNG ou WEBP.
+          Tamanho recomendado: 1360 × 460 px (proporção 3:1). Formatos: JPG, PNG ou WEBP.
         </p>
         <div className="relative group">
           {banner.image_url ? (
@@ -247,7 +247,7 @@ const BannerItemCard = ({
           <Label className="text-sm font-medium">Pré-visualização</Label>
           <div
             className="relative w-full overflow-hidden rounded-xl"
-            style={{ aspectRatio: "16 / 5" }}
+            style={{ aspectRatio: "1360 / 460" }}
           >
             <img
               src={banner.image_url}
