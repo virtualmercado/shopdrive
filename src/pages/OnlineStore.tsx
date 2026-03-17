@@ -287,6 +287,7 @@ const OnlineStoreContent = () => {
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
             priceColor={priceColor}
+            titleColor={titleColor}
             selectedCategory={selectedCategory}
           />
         ) : (
