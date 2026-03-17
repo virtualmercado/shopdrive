@@ -3320,6 +3320,7 @@ export type Database = {
           store_model: string
           store_name: string | null
           store_slug: string | null
+          title_color: string | null
           topbar_bg_color: string | null
           topbar_enabled: boolean | null
           topbar_link_target: string | null
@@ -3427,6 +3428,7 @@ export type Database = {
           store_model?: string
           store_name?: string | null
           store_slug?: string | null
+          title_color?: string | null
           topbar_bg_color?: string | null
           topbar_enabled?: boolean | null
           topbar_link_target?: string | null
@@ -3534,6 +3536,7 @@ export type Database = {
           store_model?: string
           store_name?: string | null
           store_slug?: string | null
+          title_color?: string | null
           topbar_bg_color?: string | null
           topbar_enabled?: boolean | null
           topbar_link_target?: string | null

@@ -23,6 +23,8 @@ interface StoreAppearanceCardProps {
   setButtonTextColor: (v: string) => void;
   priceColor: string;
   setPriceColor: (v: string) => void;
+  titleColor: string;
+  setTitleColor: (v: string) => void;
   aiPaletteActive?: boolean;
 }
 
@@ -97,6 +99,8 @@ const StoreAppearanceCard = ({
   setButtonTextColor,
   priceColor,
   setPriceColor,
+  titleColor,
+  setTitleColor,
   aiPaletteActive = false,
 }: StoreAppearanceCardProps) => {
   return (
@@ -279,11 +283,11 @@ const StoreAppearanceCard = ({
           )}
         </div>
 
-        {/* Price Color */}
+        {/* Price Color + Title Color */}
         <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Cor dos Preços dos Produtos</Label>
+          <Label className="text-base font-medium">Cores dos Preços e Títulos dos Produtos</Label>
           <p className="text-xs text-muted-foreground">
-            Define a cor dos preços exibidos nos cards de produto da vitrine.
+            Define as cores dos preços e títulos exibidos nos cards de produto da vitrine.
           </p>
           {aiPaletteActive ? (
             <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
@@ -291,26 +295,54 @@ const StoreAppearanceCard = ({
               <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex gap-2 max-w-xs">
-                <Input
-                  type="color"
-                  value={priceColor}
-                  onChange={(e) => setPriceColor(e.target.value)}
-                  className="h-10 w-16 p-1 cursor-pointer"
-                />
-                <Input
-                  type="text"
-                  value={priceColor}
-                  onChange={(e) => setPriceColor(e.target.value)}
-                  className="flex-1"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Price Color */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Cor dos Preços</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={priceColor}
+                    onChange={(e) => setPriceColor(e.target.value)}
+                    className="h-10 w-16 p-1 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={priceColor}
+                    onChange={(e) => setPriceColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Pré-visualização:</span>
+                  <span className="text-lg font-bold" style={{ color: priceColor }}>
+                    R$ 99,90
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Pré-visualização:</span>
-                <span className="text-lg font-bold" style={{ color: priceColor }}>
-                  R$ 99,90
-                </span>
+              {/* Title Color */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Cor dos Títulos</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={titleColor}
+                    onChange={(e) => setTitleColor(e.target.value)}
+                    className="h-10 w-16 p-1 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={titleColor}
+                    onChange={(e) => setTitleColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Pré-visualização:</span>
+                  <span className="text-base font-semibold" style={{ color: titleColor }}>
+                    Produto Exemplo
+                  </span>
+                </div>
               </div>
             </div>
           )}

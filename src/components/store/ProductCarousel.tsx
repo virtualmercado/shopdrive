@@ -42,6 +42,7 @@ interface ProductCarouselProps {
   productTextAlignment?: string;
   productButtonDisplay?: string;
   priceColor?: string;
+  titleColor?: string;
   searchTerm?: string;
   selectedCategory?: string | null;
   selectedBrandId?: string | null;
@@ -115,6 +116,7 @@ const ProductCarousel = ({
   productTextAlignment = "left",
   productButtonDisplay = "below",
   priceColor = "#000000",
+  titleColor = "#000000",
   searchTerm = "",
   selectedCategory = null,
   selectedBrandId = null,
@@ -286,6 +288,7 @@ const ProductCarousel = ({
                   productTextAlignment={productTextAlignment}
                   productButtonDisplay={productButtonDisplay}
                   priceColor={priceColor}
+                  titleColor={titleColor}
                 />
               </div>
             </CarouselItem>

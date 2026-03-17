@@ -30,6 +30,7 @@ interface ProductCardProps {
   productTextAlignment?: string;
   productButtonDisplay?: string;
   priceColor?: string;
+  titleColor?: string;
 }
 
 const ProductCard = ({ 
@@ -43,7 +44,8 @@ const ProductCard = ({
   productBorderStyle = "rounded",
   productTextAlignment = "left",
   productButtonDisplay = "below",
-  priceColor = "#000000"
+  priceColor = "#000000",
+  titleColor = "#000000"
 }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
@@ -163,7 +165,7 @@ const ProductCard = ({
       </Link>
       <div className={`p-4 space-y-3 ${textAlign}`}>
         <Link to={productLink}>
-          <h3 className="font-semibold text-foreground line-clamp-2 min-h-[3rem] hover:underline">
+          <h3 className="font-semibold line-clamp-2 min-h-[3rem] hover:underline" style={{ color: titleColor }}>
             {product.name}
           </h3>
         </Link>

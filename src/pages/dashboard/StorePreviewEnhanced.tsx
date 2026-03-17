@@ -44,6 +44,7 @@ const StorePreviewEnhanced = () => {
   const [localButtonBgColor, setLocalButtonBgColor] = useState(buttonBgColor || "#6a1b9a");
   const [localButtonTextColor, setLocalButtonTextColor] = useState(buttonTextColor || "#FFFFFF");
   const [localPriceColor, setLocalPriceColor] = useState("#000000");
+  const [localTitleColor, setLocalTitleColor] = useState("#000000");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
@@ -190,6 +191,7 @@ const StorePreviewEnhanced = () => {
         if (data.button_bg_color) setLocalButtonBgColor(data.button_bg_color);
         if (data.button_text_color) setLocalButtonTextColor(data.button_text_color);
         if ((data as any).price_color) setLocalPriceColor((data as any).price_color);
+        if ((data as any).title_color) setLocalTitleColor((data as any).title_color);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -645,6 +647,7 @@ const StorePreviewEnhanced = () => {
           button_bg_color: localButtonBgColor,
           button_text_color: localButtonTextColor,
           price_color: localPriceColor,
+          title_color: localTitleColor,
         })
         .eq("id", user.id);
 
@@ -903,6 +906,8 @@ const StorePreviewEnhanced = () => {
           setButtonTextColor={setLocalButtonTextColor}
           priceColor={localPriceColor}
           setPriceColor={setLocalPriceColor}
+          titleColor={localTitleColor}
+          setTitleColor={setLocalTitleColor}
         />
 
         {/* Banners */}
