@@ -41,6 +41,7 @@ interface ProductCarouselProps {
   productBorderStyle?: string;
   productTextAlignment?: string;
   productButtonDisplay?: string;
+  priceColor?: string;
   searchTerm?: string;
   selectedCategory?: string | null;
   selectedBrandId?: string | null;
