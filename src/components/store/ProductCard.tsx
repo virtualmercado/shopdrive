@@ -165,7 +165,7 @@ const ProductCard = ({
       </Link>
       <div className={`p-4 space-y-3 ${textAlign}`}>
         <Link to={productLink}>
-          <h3 className="font-semibold text-foreground line-clamp-2 min-h-[3rem] hover:underline">
+          <h3 className="font-semibold line-clamp-2 min-h-[3rem] hover:underline" style={{ color: titleColor }}>
             {product.name}
           </h3>
         </Link>
