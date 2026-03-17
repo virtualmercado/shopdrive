@@ -21,6 +21,8 @@ interface StoreAppearanceCardProps {
   setButtonBgColor: (v: string) => void;
   buttonTextColor: string;
   setButtonTextColor: (v: string) => void;
+  priceColor: string;
+  setPriceColor: (v: string) => void;
   aiPaletteActive?: boolean;
 }
 
