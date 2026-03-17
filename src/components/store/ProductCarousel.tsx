@@ -116,6 +116,7 @@ const ProductCarousel = ({
   productTextAlignment = "left",
   productButtonDisplay = "below",
   priceColor = "#000000",
+  titleColor = "#000000",
   searchTerm = "",
   selectedCategory = null,
   selectedBrandId = null,
