@@ -186,6 +186,8 @@ const StorePreviewEnhanced = () => {
         if (data.button_border_style) setButtonBorderStyle(data.button_border_style);
         if (data.product_button_display) setProductButtonDisplay(data.product_button_display);
         if (data.product_text_alignment) setProductTextAlignment(data.product_text_alignment);
+        if (data.button_bg_color) setLocalButtonBgColor(data.button_bg_color);
+        if (data.button_text_color) setLocalButtonTextColor(data.button_text_color);
       }
     } catch (error) {
       console.error("Error:", error);
