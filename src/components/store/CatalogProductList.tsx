@@ -14,6 +14,7 @@ interface CatalogProductListProps {
   productBorderStyle: string;
   productTextAlignment: string;
   productButtonDisplay: string;
+  priceColor?: string;
   selectedCategory: string | null;
   searchTerm?: string;
   primaryColor?: string;
@@ -45,6 +46,7 @@ export const CatalogProductList = ({
   productBorderStyle,
   productTextAlignment,
   productButtonDisplay,
+  priceColor,
   selectedCategory,
   searchTerm,
   primaryColor,
@@ -173,6 +175,7 @@ export const CatalogProductList = ({
             productBorderStyle={productBorderStyle}
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
+            priceColor={priceColor}
           />
         ))}
       </div>

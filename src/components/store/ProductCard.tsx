@@ -15,7 +15,6 @@ interface ProductCardProps {
     image_url: string | null;
     images: any;
     stock: number;
-    // Product dimensions for shipping
     weight?: number | null;
     height?: number | null;
     width?: number | null;
@@ -30,6 +29,7 @@ interface ProductCardProps {
   productBorderStyle?: string;
   productTextAlignment?: string;
   productButtonDisplay?: string;
+  priceColor?: string;
 }
 
 const ProductCard = ({ 
@@ -42,7 +42,8 @@ const ProductCard = ({
   productImageFormat = "square",
   productBorderStyle = "rounded",
   productTextAlignment = "left",
-  productButtonDisplay = "below"
+  productButtonDisplay = "below",
+  priceColor = "#000000"
 }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
@@ -169,7 +170,7 @@ const ProductCard = ({
         <div className={`flex items-center gap-2 ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
           {product.promotional_price ? (
             <>
-              <span className="text-lg font-bold" style={{ color: '#000000' }}>
+              <span className="text-lg font-bold" style={{ color: priceColor }}>
                 R$ {product.promotional_price.toFixed(2)}
               </span>
               <span className="text-sm text-muted-foreground line-through">
@@ -177,7 +178,7 @@ const ProductCard = ({
               </span>
             </>
           ) : (
-            <span className="text-lg font-bold" style={{ color: '#000000' }}>
+            <span className="text-lg font-bold" style={{ color: priceColor }}>
               R$ {product.price.toFixed(2)}
             </span>
           )}

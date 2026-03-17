@@ -21,6 +21,8 @@ interface StoreAppearanceCardProps {
   setButtonBgColor: (v: string) => void;
   buttonTextColor: string;
   setButtonTextColor: (v: string) => void;
+  priceColor: string;
+  setPriceColor: (v: string) => void;
   aiPaletteActive?: boolean;
 }
 
@@ -93,6 +95,8 @@ const StoreAppearanceCard = ({
   setButtonBgColor,
   buttonTextColor,
   setButtonTextColor,
+  priceColor,
+  setPriceColor,
   aiPaletteActive = false,
 }: StoreAppearanceCardProps) => {
   return (
@@ -270,6 +274,43 @@ const StoreAppearanceCard = ({
                 >
                   Pré-visualização do botão
                 </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Price Color */}
+        <div className="space-y-2 border-t pt-6">
+          <Label className="text-base font-medium">Cor dos Preços dos Produtos</Label>
+          <p className="text-xs text-muted-foreground">
+            Define a cor dos preços exibidos nos cards de produto da vitrine.
+          </p>
+          {aiPaletteActive ? (
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
+              <Info className="h-4 w-4 flex-shrink-0" />
+              <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2 max-w-xs">
+                <Input
+                  type="color"
+                  value={priceColor}
+                  onChange={(e) => setPriceColor(e.target.value)}
+                  className="h-10 w-16 p-1 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={priceColor}
+                  onChange={(e) => setPriceColor(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Pré-visualização:</span>
+                <span className="text-lg font-bold" style={{ color: priceColor }}>
+                  R$ 99,90
+                </span>
               </div>
             </div>
           )}

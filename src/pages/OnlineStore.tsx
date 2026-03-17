@@ -204,6 +204,7 @@ const OnlineStoreContent = () => {
   const productBorderStyle = storeData.product_border_style || "rounded";
   const productTextAlignment = storeData.product_text_alignment || "left";
   const productButtonDisplay = storeData.product_button_display || "below";
+  const priceColor = (storeData as any).price_color || "#000000";
 
   const isCatalogMode = storeData.store_model === "catalogo_digital";
 
@@ -284,6 +285,7 @@ const OnlineStoreContent = () => {
             productBorderStyle={productBorderStyle}
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
+            priceColor={priceColor}
             selectedCategory={selectedCategory}
           />
         ) : (
@@ -298,6 +300,7 @@ const OnlineStoreContent = () => {
             productBorderStyle={productBorderStyle}
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
+            priceColor={priceColor}
             selectedCategory={selectedCategory}
           />
         )}

@@ -28,6 +28,7 @@ interface StoreLayoutContentProps {
   productBorderStyle: string;
   productTextAlignment: string;
   productButtonDisplay: string;
+  priceColor?: string;
   selectedCategory: string | null;
 }
 
@@ -48,6 +49,7 @@ const ModuleComponents = {
       productBorderStyle={props.productBorderStyle}
       productTextAlignment={props.productTextAlignment}
       productButtonDisplay={props.productButtonDisplay}
+      priceColor={props.priceColor}
       selectedCategory={props.selectedCategory}
     />
   ),
@@ -66,6 +68,7 @@ const ModuleComponents = {
       productBorderStyle={props.productBorderStyle}
       productTextAlignment={props.productTextAlignment}
       productButtonDisplay={props.productButtonDisplay}
+      priceColor={props.priceColor}
       selectedCategory={props.selectedCategory}
     />
   ),
@@ -84,6 +87,7 @@ const ModuleComponents = {
       productBorderStyle={props.productBorderStyle}
       productTextAlignment={props.productTextAlignment}
       productButtonDisplay={props.productButtonDisplay}
+      priceColor={props.priceColor}
       selectedCategory={props.selectedCategory}
     />
   ),
@@ -102,6 +106,7 @@ const ModuleComponents = {
         productBorderStyle={props.productBorderStyle}
         productTextAlignment={props.productTextAlignment}
         productButtonDisplay={props.productButtonDisplay}
+        priceColor={props.priceColor}
         selectedCategory={props.selectedCategory}
       />
     </section>
