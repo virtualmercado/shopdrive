@@ -16,11 +16,7 @@ const BenefitBannersSection = ({ selectedIds }: BenefitBannersSectionProps) => {
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPaused, setIsPaused] = useState(false);
 
-  if (!selectedIds || selectedIds.length === 0) return null;
-
-  const allSelected = BENEFIT_BANNERS.filter((b) => selectedIds.includes(b.id));
-
-  if (allSelected.length === 0) return null;
+  const allSelected = BENEFIT_BANNERS.filter((b) => (selectedIds || []).includes(b.id));
 
   const slides: typeof allSelected[] = [];
   for (let i = 0; i < allSelected.length; i += 2) {
@@ -36,7 +32,6 @@ const BenefitBannersSection = ({ selectedIds }: BenefitBannersSectionProps) => {
     }, PAUSE_AFTER_INTERACTION);
   }, []);
 
-  // Autoplay for mobile
   useEffect(() => {
     if (!isMobile || totalSlides <= 1 || isPaused) {
       if (autoplayRef.current) clearInterval(autoplayRef.current);
@@ -49,6 +44,8 @@ const BenefitBannersSection = ({ selectedIds }: BenefitBannersSectionProps) => {
       if (autoplayRef.current) clearInterval(autoplayRef.current);
     };
   }, [isMobile, totalSlides, isPaused]);
+
+  if (!selectedIds || selectedIds.length === 0 || allSelected.length === 0) return null;
 
   // Desktop: grid of all banners
   if (!isMobile) {
