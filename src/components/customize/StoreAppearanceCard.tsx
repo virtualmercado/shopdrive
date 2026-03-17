@@ -215,6 +215,66 @@ const StoreAppearanceCard = ({
           </div>
         </div>
 
+        {/* Button Colors */}
+        <div className="space-y-2 border-t pt-6">
+          <Label className="text-base font-medium">Cores do Botão de Compra</Label>
+          {aiPaletteActive ? (
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
+              <Info className="h-4 w-4 flex-shrink-0" />
+              <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Fundo do botão</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={buttonBgColor}
+                    onChange={(e) => setButtonBgColor(e.target.value)}
+                    className="h-10 w-16 p-1 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={buttonBgColor}
+                    onChange={(e) => setButtonBgColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Texto do botão</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="h-10 w-16 p-1 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              <div className="col-span-2 flex justify-center">
+                <div
+                  className="px-6 py-2 text-sm font-medium"
+                  style={{
+                    borderRadius: buttonBorderStyle === "rounded" ? "9999px" : buttonBorderStyle === "soft" ? "8px" : "0px",
+                    backgroundColor: buttonBgColor,
+                    color: buttonTextColor,
+                  }}
+                >
+                  Pré-visualização do botão
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Product Button Display */}
         <div className="space-y-2 border-t pt-6">
           <Label className="text-base font-medium">Botão de Compra na Vitrine</Label>
