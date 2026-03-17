@@ -889,7 +889,9 @@ const StorePreviewEnhanced = () => {
           productTextAlignment={productTextAlignment}
           setProductTextAlignment={setProductTextAlignment}
           buttonBgColor={buttonBgColor}
+          setButtonBgColor={setButtonBgColor}
           buttonTextColor={buttonTextColor}
+          setButtonTextColor={setButtonTextColor}
         />
 
         {/* Banners */}

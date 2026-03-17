@@ -90,7 +90,10 @@ const StoreAppearanceCard = ({
   productTextAlignment,
   setProductTextAlignment,
   buttonBgColor,
+  setButtonBgColor,
   buttonTextColor,
+  setButtonTextColor,
+  aiPaletteActive = false,
 }: StoreAppearanceCardProps) => {
   return (
     <Card className="p-6">
