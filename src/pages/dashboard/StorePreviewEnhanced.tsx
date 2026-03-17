@@ -189,6 +189,7 @@ const StorePreviewEnhanced = () => {
         if (data.product_text_alignment) setProductTextAlignment(data.product_text_alignment);
         if (data.button_bg_color) setLocalButtonBgColor(data.button_bg_color);
         if (data.button_text_color) setLocalButtonTextColor(data.button_text_color);
+        if ((data as any).price_color) setLocalPriceColor((data as any).price_color);
       }
     } catch (error) {
       console.error("Error:", error);
