@@ -43,6 +43,7 @@ const StorePreviewEnhanced = () => {
   const [productTextAlignment, setProductTextAlignment] = useState("left");
   const [localButtonBgColor, setLocalButtonBgColor] = useState(buttonBgColor || "#6a1b9a");
   const [localButtonTextColor, setLocalButtonTextColor] = useState(buttonTextColor || "#FFFFFF");
+  const [localPriceColor, setLocalPriceColor] = useState("#000000");
   
   const [storeData, setStoreData] = useState({
     store_name: "",
