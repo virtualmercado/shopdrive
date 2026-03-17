@@ -30,6 +30,7 @@ interface ProductCardProps {
   productTextAlignment?: string;
   productButtonDisplay?: string;
   priceColor?: string;
+  titleColor?: string;
 }
 
 const ProductCard = ({ 
