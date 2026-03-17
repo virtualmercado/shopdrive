@@ -906,6 +906,8 @@ const StorePreviewEnhanced = () => {
           setButtonTextColor={setLocalButtonTextColor}
           priceColor={localPriceColor}
           setPriceColor={setLocalPriceColor}
+          titleColor={localTitleColor}
+          setTitleColor={setLocalTitleColor}
         />
 
         {/* Banners */}
