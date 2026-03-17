@@ -178,6 +178,7 @@ export const CatalogProductList = ({
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
             priceColor={priceColor}
+            titleColor={titleColor}
           />
         ))}
       </div>
