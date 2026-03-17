@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Paintbrush, Info, LayoutGrid } from "lucide-react";
-import ProductCardStylePreview from "./ProductCardStylePreview";
 
 interface StoreAppearanceCardProps {
   fontFamily: string;
