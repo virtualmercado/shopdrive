@@ -644,6 +644,7 @@ const StorePreviewEnhanced = () => {
           product_text_alignment: productTextAlignment,
           button_bg_color: localButtonBgColor,
           button_text_color: localButtonTextColor,
+          price_color: localPriceColor,
         })
         .eq("id", user.id);
 
