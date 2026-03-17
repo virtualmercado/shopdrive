@@ -284,6 +284,7 @@ const ProductCarousel = ({
                   productBorderStyle={productBorderStyle}
                   productTextAlignment={productTextAlignment}
                   productButtonDisplay={productButtonDisplay}
+                  priceColor={priceColor}
                 />
               </div>
             </CarouselItem>
