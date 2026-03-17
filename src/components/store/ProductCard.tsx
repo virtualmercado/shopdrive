@@ -170,7 +170,7 @@ const ProductCard = ({
         <div className={`flex items-center gap-2 ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
           {product.promotional_price ? (
             <>
-              <span className="text-lg font-bold" style={{ color: '#000000' }}>
+              <span className="text-lg font-bold" style={{ color: priceColor }}>
                 R$ {product.promotional_price.toFixed(2)}
               </span>
               <span className="text-sm text-muted-foreground line-through">
@@ -178,7 +178,7 @@ const ProductCard = ({
               </span>
             </>
           ) : (
-            <span className="text-lg font-bold" style={{ color: '#000000' }}>
+            <span className="text-lg font-bold" style={{ color: priceColor }}>
               R$ {product.price.toFixed(2)}
             </span>
           )}
