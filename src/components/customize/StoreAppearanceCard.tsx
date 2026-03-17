@@ -95,6 +95,8 @@ const StoreAppearanceCard = ({
   setButtonBgColor,
   buttonTextColor,
   setButtonTextColor,
+  priceColor,
+  setPriceColor,
   aiPaletteActive = false,
 }: StoreAppearanceCardProps) => {
   return (
