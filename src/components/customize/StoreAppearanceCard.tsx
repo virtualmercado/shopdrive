@@ -335,42 +335,62 @@ const StoreAppearanceCard = ({
 
                 {/* Button Colors */}
                 {!aiPaletteActive && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-sm">Fundo do botão</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={buttonBgColor}
-                          onChange={(e) => setButtonBgColor(e.target.value)}
-                          className="h-10 w-16 p-1 cursor-pointer"
-                        />
-                        <Input
-                          type="text"
-                          value={buttonBgColor}
-                          onChange={(e) => setButtonBgColor(e.target.value)}
-                          className="flex-1"
-                        />
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">Fundo do botão</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="color"
+                            value={buttonBgColor}
+                            onChange={(e) => setButtonBgColor(e.target.value)}
+                            className="h-10 w-16 p-1 cursor-pointer"
+                          />
+                          <Input
+                            type="text"
+                            value={buttonBgColor}
+                            onChange={(e) => setButtonBgColor(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">Texto do botão</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="color"
+                            value={buttonTextColor}
+                            onChange={(e) => setButtonTextColor(e.target.value)}
+                            className="h-10 w-16 p-1 cursor-pointer"
+                          />
+                          <Input
+                            type="text"
+                            value={buttonTextColor}
+                            onChange={(e) => setButtonTextColor(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm">Texto do botão</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={buttonTextColor}
-                          onChange={(e) => setButtonTextColor(e.target.value)}
-                          className="h-10 w-16 p-1 cursor-pointer"
-                        />
-                        <Input
-                          type="text"
-                          value={buttonTextColor}
-                          onChange={(e) => setButtonTextColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        className="px-6 py-2 text-sm font-medium transition-all"
+                        style={{
+                          borderRadius:
+                            buttonBorderStyle === "rounded"
+                              ? "9999px"
+                              : buttonBorderStyle === "soft"
+                              ? "8px"
+                              : "0px",
+                          backgroundColor: buttonBgColor,
+                          color: buttonTextColor,
+                        }}
+                      >
+                        Pré-visualização do botão
+                      </button>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Button Display */}
