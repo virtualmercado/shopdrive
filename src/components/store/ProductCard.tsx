@@ -15,7 +15,6 @@ interface ProductCardProps {
     image_url: string | null;
     images: any;
     stock: number;
-    // Product dimensions for shipping
     weight?: number | null;
     height?: number | null;
     width?: number | null;
@@ -30,6 +29,7 @@ interface ProductCardProps {
   productBorderStyle?: string;
   productTextAlignment?: string;
   productButtonDisplay?: string;
+  priceColor?: string;
 }
 
 const ProductCard = ({ 
@@ -42,7 +42,8 @@ const ProductCard = ({
   productImageFormat = "square",
   productBorderStyle = "rounded",
   productTextAlignment = "left",
-  productButtonDisplay = "below"
+  productButtonDisplay = "below",
+  priceColor = "#000000"
 }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
