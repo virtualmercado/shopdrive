@@ -46,6 +46,7 @@ export const CatalogProductList = ({
   productBorderStyle,
   productTextAlignment,
   productButtonDisplay,
+  priceColor,
   selectedCategory,
   searchTerm,
   primaryColor,
