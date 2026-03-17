@@ -58,7 +58,7 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-white/30 backdrop-blur-[6px] rounded-xl px-8 py-5 sm:px-12 sm:py-6 max-w-[80%] text-center">
+                <div className="bg-white/65 backdrop-blur-[8px] rounded-xl px-8 py-5 sm:px-12 sm:py-6 max-w-[80%] text-center">
                   {banner.title && (
                     <h3
                       className="text-lg sm:text-xl md:text-2xl font-semibold leading-tight"
