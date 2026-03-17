@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Paintbrush, Info } from "lucide-react";
+import { Paintbrush, Info, LayoutGrid } from "lucide-react";
+import ProductCardStylePreview from "./ProductCardStylePreview";
 
 interface StoreAppearanceCardProps {
   fontFamily: string;
@@ -105,6 +105,7 @@ const StoreAppearanceCard = ({
 }: StoreAppearanceCardProps) => {
   return (
     <Card className="p-6">
+      {/* ── Card Header ── */}
       <div className="space-y-1 mb-6">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded">
@@ -118,7 +119,7 @@ const StoreAppearanceCard = ({
       </div>
 
       <div className="space-y-6">
-        {/* Font Family */}
+        {/* ── Font Family ── */}
         <div className="space-y-2">
           <Label className="text-base font-medium">Estilo da Fonte</Label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -134,7 +135,7 @@ const StoreAppearanceCard = ({
           </div>
         </div>
 
-        {/* Font Weight */}
+        {/* ── Font Weight ── */}
         <div className="space-y-2 border-t pt-6">
           <Label className="text-base font-medium">Peso da Fonte</Label>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -150,7 +151,7 @@ const StoreAppearanceCard = ({
           </div>
         </div>
 
-        {/* Header Logo Position */}
+        {/* ── Header Logo Position ── */}
         <div className="space-y-2 border-t pt-6">
           <Label className="text-base font-medium">Posição da Logo no Cabeçalho</Label>
           <div className="grid grid-cols-3 gap-2">
@@ -191,205 +192,211 @@ const StoreAppearanceCard = ({
           </div>
         </div>
 
-        {/* Button Border Style */}
-        <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Estilo dos Botões</Label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Arredondado", value: "rounded", radius: "9999px" },
-              { label: "Suave", value: "soft", radius: "8px" },
-              { label: "Reto", value: "square", radius: "0px" },
-            ].map((opt) => (
-              <OptionButton
-                key={opt.value}
-                selected={buttonBorderStyle === opt.value}
-                onClick={() => setButtonBorderStyle(opt.value)}
-              >
-                <div className="flex justify-center mb-2">
-                  <div
-                    className="px-4 py-1.5 text-xs font-medium"
-                    style={{
-                      borderRadius: opt.radius,
-                      backgroundColor: SD_PRIMARY,
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    Comprar
+        {/* ═══════════════════════════════════════════════════════════════
+            UNIFIED BLOCK — Estilo dos Cards de Produto
+        ═══════════════════════════════════════════════════════════════ */}
+        <div className="border-t pt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 bg-gray-100 rounded">
+              <LayoutGrid className="h-4 w-4 text-gray-600" />
+            </div>
+            <div>
+              <Label className="text-base font-medium">Estilo dos Cards de Produto</Label>
+              <p className="text-xs text-muted-foreground">
+                Configure cores, botões e alinhamento dos cards da vitrine. O preview ao lado reflete suas alterações em tempo real.
+              </p>
+            </div>
+          </div>
+
+          {aiPaletteActive && (
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
+              <Info className="h-4 w-4 flex-shrink-0" />
+              <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
+            {/* ── LEFT: Controls ── */}
+            <div className="space-y-5">
+              {/* 1. Textos dos Produtos */}
+              <div className="space-y-4">
+                <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Textos dos Produtos
+                </Label>
+
+                {!aiPaletteActive ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Title Color */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Cor dos Títulos</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={titleColor}
+                          onChange={(e) => setTitleColor(e.target.value)}
+                          className="h-10 w-16 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={titleColor}
+                          onChange={(e) => setTitleColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    {/* Price Color */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Cor dos Preços</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={priceColor}
+                          onChange={(e) => setPriceColor(e.target.value)}
+                          className="h-10 w-16 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={priceColor}
+                          onChange={(e) => setPriceColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Text Alignment */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Posição do Título nos Cards</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "Esquerda", value: "left" },
+                      { label: "Centralizado", value: "center" },
+                      { label: "Direita", value: "right" },
+                    ].map((opt) => (
+                      <OptionButton
+                        key={opt.value}
+                        selected={productTextAlignment === opt.value}
+                        onClick={() => setProductTextAlignment(opt.value)}
+                      >
+                        {opt.label}
+                      </OptionButton>
+                    ))}
                   </div>
                 </div>
-                <span className="text-sm">{opt.label}</span>
-              </OptionButton>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* Button Colors */}
-        <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Cores do Botão de Compra</Label>
-          {aiPaletteActive ? (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
-              <Info className="h-4 w-4 flex-shrink-0" />
-              <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm">Fundo do botão</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={buttonBgColor}
-                    onChange={(e) => setButtonBgColor(e.target.value)}
-                    className="h-10 w-16 p-1 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={buttonBgColor}
-                    onChange={(e) => setButtonBgColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm">Texto do botão</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={buttonTextColor}
-                    onChange={(e) => setButtonTextColor(e.target.value)}
-                    className="h-10 w-16 p-1 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={buttonTextColor}
-                    onChange={(e) => setButtonTextColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-              <div className="col-span-2 flex justify-center">
-                <div
-                  className="px-6 py-2 text-sm font-medium"
-                  style={{
-                    borderRadius: buttonBorderStyle === "rounded" ? "9999px" : buttonBorderStyle === "soft" ? "8px" : "0px",
-                    backgroundColor: buttonBgColor,
-                    color: buttonTextColor,
-                  }}
-                >
-                  Pré-visualização do botão
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+              {/* 2. Botão de Compra */}
+              <div className="space-y-4 border-t pt-5">
+                <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Botão de Compra
+                </Label>
 
-        {/* Price Color + Title Color */}
-        <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Cores dos Preços e Títulos dos Produtos</Label>
-          <p className="text-xs text-muted-foreground">
-            Define as cores dos preços e títulos exibidos nos cards de produto da vitrine.
-          </p>
-          {aiPaletteActive ? (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-input text-sm text-muted-foreground">
-              <Info className="h-4 w-4 flex-shrink-0" />
-              <span>As cores estão sendo controladas pela Paleta de Cor com IA.</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Price Color */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Cor dos Preços</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={priceColor}
-                    onChange={(e) => setPriceColor(e.target.value)}
-                    className="h-10 w-16 p-1 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={priceColor}
-                    onChange={(e) => setPriceColor(e.target.value)}
-                    className="flex-1"
-                  />
+                {/* Button Style */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Estilo do Botão</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "Arredondado", value: "rounded", radius: "9999px" },
+                      { label: "Suave", value: "soft", radius: "8px" },
+                      { label: "Reto", value: "square", radius: "0px" },
+                    ].map((opt) => (
+                      <OptionButton
+                        key={opt.value}
+                        selected={buttonBorderStyle === opt.value}
+                        onClick={() => setButtonBorderStyle(opt.value)}
+                      >
+                        <div className="flex justify-center mb-1">
+                          <div
+                            className="px-3 py-1 text-[10px] font-medium"
+                            style={{
+                              borderRadius: opt.radius,
+                              backgroundColor: SD_PRIMARY,
+                              color: "#FFFFFF",
+                            }}
+                          >
+                            Comprar
+                          </div>
+                        </div>
+                        <span className="text-xs">{opt.label}</span>
+                      </OptionButton>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Pré-visualização:</span>
-                  <span className="text-lg font-bold" style={{ color: priceColor }}>
-                    R$ 99,90
-                  </span>
-                </div>
-              </div>
-              {/* Title Color */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Cor dos Títulos</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    className="h-10 w-16 p-1 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Pré-visualização:</span>
-                  <span className="text-base font-semibold" style={{ color: titleColor }}>
-                    Produto Exemplo
-                  </span>
+
+                {/* Button Colors */}
+                {!aiPaletteActive && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Fundo do botão</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={buttonBgColor}
+                          onChange={(e) => setButtonBgColor(e.target.value)}
+                          className="h-10 w-16 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={buttonBgColor}
+                          onChange={(e) => setButtonBgColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Texto do botão</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={buttonTextColor}
+                          onChange={(e) => setButtonTextColor(e.target.value)}
+                          className="h-10 w-16 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={buttonTextColor}
+                          onChange={(e) => setButtonTextColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Button Display */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Exibição na Vitrine</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <OptionButton
+                      selected={productButtonDisplay === "below"}
+                      onClick={() => setProductButtonDisplay("below")}
+                    >
+                      Exibir botão
+                    </OptionButton>
+                    <OptionButton
+                      selected={productButtonDisplay === "hidden"}
+                      onClick={() => setProductButtonDisplay("hidden")}
+                    >
+                      Ocultar botão
+                    </OptionButton>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Product Button Display */}
-        <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Botão de Compra na Vitrine</Label>
-          <p className="text-xs text-muted-foreground">
-            Escolha se o botão de compra será exibido nos cards de produto da vitrine.
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <OptionButton
-              selected={productButtonDisplay === "below"}
-              onClick={() => setProductButtonDisplay("below")}
-            >
-              Exibir botão
-            </OptionButton>
-            <OptionButton
-              selected={productButtonDisplay === "hidden"}
-              onClick={() => setProductButtonDisplay("hidden")}
-            >
-              Ocultar botão
-            </OptionButton>
-          </div>
-        </div>
-
-        {/* Product Text Alignment */}
-        <div className="space-y-2 border-t pt-6">
-          <Label className="text-base font-medium">Posição do Título nos Cards</Label>
-          <p className="text-xs text-muted-foreground">
-            Define o alinhamento do título e preço nos cards da vitrine.
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Esquerda", value: "left" },
-              { label: "Centralizado", value: "center" },
-              { label: "Direita", value: "right" },
-            ].map((opt) => (
-              <OptionButton
-                key={opt.value}
-                selected={productTextAlignment === opt.value}
-                onClick={() => setProductTextAlignment(opt.value)}
-              >
-                {opt.label}
-              </OptionButton>
-            ))}
+            {/* ── RIGHT: Live Preview ── */}
+            <div className="flex items-start justify-center lg:sticky lg:top-4">
+              <ProductCardStylePreview
+                titleColor={titleColor}
+                priceColor={priceColor}
+                buttonBgColor={buttonBgColor}
+                buttonTextColor={buttonTextColor}
+                buttonBorderStyle={buttonBorderStyle}
+                productButtonDisplay={productButtonDisplay}
+                productTextAlignment={productTextAlignment}
+              />
+            </div>
           </div>
         </div>
       </div>
