@@ -299,6 +299,7 @@ const OnlineStoreContent = () => {
             productBorderStyle={productBorderStyle}
             productTextAlignment={productTextAlignment}
             productButtonDisplay={productButtonDisplay}
+            priceColor={priceColor}
             selectedCategory={selectedCategory}
           />
         )}
