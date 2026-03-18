@@ -35,6 +35,7 @@ import { CustomDomainWizard } from "@/components/domain";
 import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
+import { syncTemplatePreviewState } from "@/lib/templatePreviewSync";
 
 // ShopDrive Official Logo for Dashboard
 import sdLogo from "@/assets/logo-header-menu-sd.png";
