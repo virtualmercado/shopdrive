@@ -21,9 +21,15 @@ import { exportEditedProductImageJpeg } from "@/lib/batchExportProductImage";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { PlanFeatureBlockModal } from "@/components/plan";
 
+/** Strip HTML tags to get visible text length (same logic as RichTextEditor counter) */
+const stripHtmlForCount = (html: string): string => html.replace(/<[^>]*>/g, "");
+
 const productSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
-  description: z.string().max(4000, "Descrição muito longa").optional(),
+  description: z.string().optional().refine(
+    (val) => !val || stripHtmlForCount(val).length <= 4000,
+    { message: "Descrição muito longa (máximo 4000 caracteres de conteúdo)" }
+  ),
   price: z.number({ invalid_type_error: "Preço inválido" })
     .positive("Preço deve ser positivo")
     .max(999999.99, "Preço máximo excedido")
