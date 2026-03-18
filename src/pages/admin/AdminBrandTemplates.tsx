@@ -91,7 +91,7 @@ import {
   getTemplateActivationLink,
   getWhatsAppShareMessage,
 } from '@/hooks/useBrandTemplates';
-import { useCreateTemplateProfile, useSyncTemplateSnapshot, useOpenTemplateEditor } from '@/hooks/useTemplateEditor';
+import { useCreateTemplateProfile, useOpenTemplateEditor } from '@/hooks/useTemplateEditor';
 import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
@@ -100,6 +100,7 @@ import BrandPerformanceChart, { ChartGranularity } from '@/components/admin/Bran
 import BrandDateFilter, { PeriodPreset, DateRange, getDateRangeForPreset, getPeriodLabel } from '@/components/admin/BrandDateFilter';
 import { useBrandClickEvents, aggregateClickData, computePeriodStats } from '@/hooks/useBrandClickEvents';
 import { supabase } from '@/integrations/supabase/client';
+import { syncTemplatePreviewState } from '@/lib/templatePreviewSync';
 import { toast } from 'sonner';
 
 const AdminBrandTemplates = () => {
@@ -134,7 +135,6 @@ const AdminBrandTemplates = () => {
   const { data: stats, isLoading: isLoadingStats } = useBrandTemplateStats();
   const { data: clickEvents } = useBrandClickEvents(dateRange);
   const createTemplateMutation = useCreateTemplateProfile();
-  const syncSnapshotMutation = useSyncTemplateSnapshot();
   const { openEditor, isOpening: isOpeningEditor } = useOpenTemplateEditor();
   const deleteMutation = useDeleteBrandTemplate();
   const duplicateMutation = useDuplicateBrandTemplate();
@@ -259,57 +259,46 @@ const AdminBrandTemplates = () => {
 
   const handleSyncTemplate = async (template: BrandTemplate) => {
     try {
-      toast.info('Sincronizando dados do perfil-fonte...');
-      
-      const { error } = await supabase
-        .rpc('sync_template_from_profile', { p_template_id: template.id });
-      
-      if (error) {
-        toast.error(`Falha na sincronização: ${error.message}`);
-        return;
-      }
-      
-      // Invalidate all related queries
-      syncSnapshotMutation.reset();
-      toast.success('Sincronização concluída! Dados do perfil-fonte copiados para o snapshot.');
-    } catch (err: any) {
-      toast.error(`Erro ao sincronizar: ${err.message}`);
+      toast.info('Forçando sincronização completa da Loja Modelo...');
+
+      const syncResult = await syncTemplatePreviewState(template.id, {
+        context: 'force-sync',
+        enforceCompleteness: true,
+      });
+
+      console.info('[TemplatePreview] force sync concluído', syncResult);
+      toast.success('Sincronização completa concluída! O preview já está alinhado com o template atualizado.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Falha desconhecida ao sincronizar';
+      console.error('[TemplatePreview] force sync falhou', {
+        template_id: template.id,
+        error: message,
+      });
+      toast.error(`Falha na sincronização completa: ${message}`);
     }
   };
 
-  const handleOpenTemplatePreview = async (template: BrandTemplate) => {
+  const handleOpenTemplatePreview = (template: BrandTemplate) => {
     if (!template.id) return;
 
-    try {
-      toast.info('Preparando preview ao vivo...');
+    console.info('[TemplatePreview] abertura solicitada', {
+      template_id: template.id,
+      trigger: 'master-panel',
+      requested_at: new Date().toISOString(),
+    });
 
-      // Sync snapshot first (updates brand_template_products for clone purposes)
-      const { error: syncError } = await supabase
-        .rpc('sync_template_from_profile', { p_template_id: template.id });
+    const url = new URL(`/gestor/templates-marca/${template.id}/preview`, window.location.origin);
+    url.searchParams.set('v', String(Date.now()));
 
-      if (syncError) {
-        // Show error but still open preview — preview reads live data directly
-        console.warn('[TemplatePreview] sync failed, opening preview anyway:', syncError.message);
-        toast.warning(`Sincronização de snapshot falhou: ${syncError.message}. O preview mostrará dados ao vivo.`);
+    // Preserve lovable params
+    const current = new URL(window.location.href);
+    current.searchParams.forEach((value, key) => {
+      if (key.startsWith('__lovable')) {
+        url.searchParams.set(key, value);
       }
+    });
 
-      // Always open the preview page which now reads directly from source profile
-      const url = new URL(`/gestor/templates-marca/${template.id}/preview`, window.location.origin);
-      url.searchParams.set('v', String(Date.now()));
-
-      // Preserve lovable params
-      const current = new URL(window.location.href);
-      current.searchParams.forEach((value, key) => {
-        if (key.startsWith('__lovable')) {
-          url.searchParams.set(key, value);
-        }
-      });
-
-      window.open(url.toString(), '_blank');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Falha ao preparar preview';
-      toast.error(`Erro ao abrir preview: ${message}`);
-    }
+    window.open(url.toString(), '_blank');
   };
 
   const handleDeleteTemplate = async () => {
