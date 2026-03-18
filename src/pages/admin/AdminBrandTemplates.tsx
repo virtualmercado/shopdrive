@@ -281,74 +281,23 @@ const AdminBrandTemplates = () => {
     if (!template.id) return;
 
     try {
-      toast.info('Preparando preview atualizado...');
+      toast.info('Preparando preview ao vivo...');
 
-      // 1) Ler metadados frescos do template (fonte do modal)
-      const { data: templateMeta, error: templateMetaError } = await supabase
-        .from('brand_templates')
-        .select('id, source_profile_id, updated_at')
-        .eq('id', template.id)
-        .single();
-
-      if (templateMetaError || !templateMeta) {
-        throw new Error(templateMetaError?.message || 'Template não encontrado para preview');
-      }
-
-      // 2) Sincronizar snapshot persistido e garantir término antes de abrir
+      // Sync snapshot first (updates brand_template_products for clone purposes)
       const { error: syncError } = await supabase
         .rpc('sync_template_from_profile', { p_template_id: template.id });
 
       if (syncError) {
-        throw new Error(syncError.message);
+        // Show error but still open preview — preview reads live data directly
+        console.warn('[TemplatePreview] sync failed, opening preview anyway:', syncError.message);
+        toast.warning(`Sincronização de snapshot falhou: ${syncError.message}. O preview mostrará dados ao vivo.`);
       }
 
-      // 3) Revalidar metadados pós-sync e resolver a fonte real do preview
-      const [{ data: syncedTemplate, error: syncedTemplateError }, { data: sourceProfile, error: sourceProfileError }] = await Promise.all([
-        supabase
-          .from('brand_templates')
-          .select('updated_at, source_profile_id')
-          .eq('id', template.id)
-          .single(),
-        templateMeta.source_profile_id
-          ? supabase
-              .from('profiles')
-              .select('store_slug, updated_at')
-              .eq('id', templateMeta.source_profile_id)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      if (syncedTemplateError) {
-        throw new Error(syncedTemplateError.message);
-      }
-
-      if (sourceProfileError) {
-        throw new Error(sourceProfileError.message);
-      }
-
-      if (import.meta.env.DEV) {
-        console.info('[TemplatePreviewTrace] open_preview', {
-          templateId: template.id,
-          sourceProfileId: templateMeta.source_profile_id,
-          templateUpdatedAtBeforeSync: templateMeta.updated_at,
-          templateUpdatedAtAfterSync: syncedTemplate?.updated_at,
-          sourceProfileUpdatedAt: sourceProfile?.updated_at ?? null,
-          source: sourceProfile?.store_slug ? 'profiles(store_slug)' : 'brand_templates(snapshot-fallback)',
-          openedAt: new Date().toISOString(),
-        });
-      }
-
-      // Fonte principal do preview: loja pública do perfil-fonte (sempre estado mais recente)
-      const path = sourceProfile?.store_slug
-        ? `/loja/${sourceProfile.store_slug}`
-        : `/gestor/templates-marca/${template.id}/preview`;
-
-      const url = new URL(path, window.location.origin);
-
-      // Evita leitura stale em caches intermediários
+      // Always open the preview page which now reads directly from source profile
+      const url = new URL(`/gestor/templates-marca/${template.id}/preview`, window.location.origin);
       url.searchParams.set('v', String(Date.now()));
 
-      // Preserva params especiais do ambiente de preview
+      // Preserve lovable params
       const current = new URL(window.location.href);
       current.searchParams.forEach((value, key) => {
         if (key.startsWith('__lovable')) {
@@ -358,7 +307,7 @@ const AdminBrandTemplates = () => {
 
       window.open(url.toString(), '_blank');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Falha ao preparar preview atualizado';
+      const message = error instanceof Error ? error.message : 'Falha ao preparar preview';
       toast.error(`Erro ao abrir preview: ${message}`);
     }
   };
