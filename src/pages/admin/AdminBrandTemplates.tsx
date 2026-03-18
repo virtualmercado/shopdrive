@@ -257,8 +257,24 @@ const AdminBrandTemplates = () => {
     fetchAndOpen();
   };
 
-  const handleSyncTemplate = (template: BrandTemplate) => {
-    syncSnapshotMutation.mutate(template.id);
+  const handleSyncTemplate = async (template: BrandTemplate) => {
+    try {
+      toast.info('Sincronizando dados do perfil-fonte...');
+      
+      const { error } = await supabase
+        .rpc('sync_template_from_profile', { p_template_id: template.id });
+      
+      if (error) {
+        toast.error(`Falha na sincronização: ${error.message}`);
+        return;
+      }
+      
+      // Invalidate all related queries
+      syncSnapshotMutation.reset();
+      toast.success('Sincronização concluída! Dados do perfil-fonte copiados para o snapshot.');
+    } catch (err: any) {
+      toast.error(`Erro ao sincronizar: ${err.message}`);
+    }
   };
 
   const handleOpenTemplatePreview = async (template: BrandTemplate) => {
