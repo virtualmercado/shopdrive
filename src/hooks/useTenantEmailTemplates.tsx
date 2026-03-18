@@ -16,16 +16,40 @@ export interface TenantEmailTemplate {
 }
 
 export const TENANT_EMAIL_EVENTS = [
-  { key: "order_confirmation", label: "Confirmação de Pedido" },
-  { key: "order_shipped", label: "Pedido Enviado" },
-  { key: "order_delivered", label: "Pedido Entregue" },
-  { key: "welcome_customer", label: "Boas-vindas ao Cliente" },
-  { key: "password_reset", label: "Recuperação de Senha" },
-  { key: "payment_confirmed", label: "Pagamento Confirmado" },
-  { key: "payment_failed", label: "Falha no Pagamento" },
-  { key: "quote_created", label: "Orçamento Criado" },
-  { key: "abandoned_cart", label: "Carrinho Abandonado" },
+  { key: "user_welcome", label: "Boas-vindas", description: "Enviado ao novo usuário ao se cadastrar" },
+  { key: "account_created", label: "Conta Criada", description: "Confirmação de criação de conta" },
+  { key: "access_invite", label: "Convite de Acesso", description: "Convite para acessar a loja" },
+  { key: "password_recovery", label: "Recuperação de Senha", description: "Link para redefinir a senha" },
+  { key: "password_reset_confirmed", label: "Senha Redefinida", description: "Confirmação de alteração de senha" },
+  { key: "account_activated", label: "Conta Ativada", description: "Conta do usuário foi ativada" },
+  { key: "account_deactivated", label: "Conta Desativada", description: "Conta do usuário foi desativada" },
+  { key: "email_changed", label: "E-mail Alterado", description: "Confirmação de alteração de e-mail" },
+  { key: "security_login", label: "Login de Segurança", description: "Alerta de novo login detectado" },
+  { key: "ticket_created", label: "Ticket Criado", description: "Novo ticket de suporte aberto" },
+  { key: "ticket_resolved", label: "Ticket Resolvido", description: "Ticket de suporte foi resolvido" },
+  { key: "subscription_expiring", label: "Assinatura Expirando", description: "Aviso de expiração da assinatura" },
+  { key: "payment_confirmed", label: "Pagamento Confirmado", description: "Confirmação de pagamento recebido" },
+  { key: "payment_failed", label: "Falha no Pagamento", description: "Notificação de falha no pagamento" },
+  { key: "subscription_expired", label: "Assinatura Expirada", description: "Assinatura expirou" },
 ];
+
+export const TEMPLATE_VARIABLES: Record<string, string[]> = {
+  user_welcome: ["{{user_name}}", "{{store_name}}", "{{login_url}}"],
+  account_created: ["{{user_name}}", "{{email}}", "{{store_name}}"],
+  access_invite: ["{{user_name}}", "{{invite_url}}", "{{store_name}}"],
+  password_recovery: ["{{user_name}}", "{{reset_link}}", "{{expiry_time}}"],
+  password_reset_confirmed: ["{{user_name}}", "{{date}}"],
+  account_activated: ["{{user_name}}", "{{store_name}}"],
+  account_deactivated: ["{{user_name}}", "{{reason}}"],
+  email_changed: ["{{user_name}}", "{{old_email}}", "{{new_email}}"],
+  security_login: ["{{user_name}}", "{{ip_address}}", "{{device}}", "{{date}}"],
+  ticket_created: ["{{user_name}}", "{{ticket_number}}", "{{subject}}"],
+  ticket_resolved: ["{{user_name}}", "{{ticket_number}}", "{{resolution}}"],
+  subscription_expiring: ["{{user_name}}", "{{plan_name}}", "{{expiry_date}}", "{{renew_url}}"],
+  payment_confirmed: ["{{user_name}}", "{{amount}}", "{{payment_method}}", "{{date}}"],
+  payment_failed: ["{{user_name}}", "{{amount}}", "{{reason}}", "{{retry_url}}"],
+  subscription_expired: ["{{user_name}}", "{{plan_name}}", "{{renew_url}}"],
+};
 
 export const useTenantEmailTemplates = () => {
   const { user } = useAuth();
