@@ -334,6 +334,7 @@ const OnlineStoreContent = () => {
           return [];
         })()}
       />
+      </div>
 
       <StoreFooter storeData={storeData} />
 
