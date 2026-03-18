@@ -97,9 +97,9 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
           ))}
         </div>
 
-        {/* Mobile: auto height, no crop, image displayed fully */}
+        {/* Mobile: adaptive vertical space, full image without crop */}
         <div
-          className="md:hidden relative overflow-hidden"
+          className="md:hidden relative"
           style={{ borderRadius: "12px" }}
         >
           {activeBanners.map((banner, i) => (
@@ -108,25 +108,27 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
               href={banner.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full transition-opacity duration-700 ease-in-out cursor-pointer"
+              className="relative block w-full rounded-xl transition-opacity duration-700 ease-in-out cursor-pointer"
               style={{
                 opacity: current === i ? 1 : 0,
                 pointerEvents: current === i ? "auto" : "none",
+                minHeight: "clamp(280px, 82vw, 420px)",
                 position: i === 0 ? "relative" : "absolute",
                 top: i === 0 ? undefined : 0,
                 left: i === 0 ? undefined : 0,
                 right: i === 0 ? undefined : 0,
+                bottom: i === 0 ? undefined : 0,
               }}
               aria-hidden={current !== i}
             >
               <img
                 src={banner.image_url}
                 alt={banner.title || "Banner promocional"}
-                className="w-full h-auto object-contain"
+                className="absolute inset-0 w-full h-full rounded-xl object-contain"
               />
-              <div className="absolute inset-0 z-10 flex items-center justify-center">
+              <div className="absolute inset-0 z-10 flex items-center justify-center px-3 py-4">
                 <div
-                  className="rounded-xl px-5 py-4 max-w-[92%] text-center shadow-lg"
+                  className="w-full max-w-[95%] rounded-xl px-5 py-4 text-center shadow-lg"
                   style={{
                     background: "rgba(255, 255, 255, 0.65)",
                     backdropFilter: "blur(8px)",
