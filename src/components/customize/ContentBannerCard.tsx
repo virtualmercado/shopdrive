@@ -245,8 +245,9 @@ const BannerItemCard = ({
       {banner.image_url && (
         <div className="space-y-2 pt-2 border-t">
           <Label className="text-sm font-medium">Pré-visualização</Label>
+
           <div
-            className="relative w-full overflow-hidden rounded-xl"
+            className="hidden md:block relative w-full overflow-hidden rounded-xl"
             style={{ aspectRatio: "1360 / 460" }}
           >
             <img
@@ -283,6 +284,53 @@ const BannerItemCard = ({
                   <button
                     type="button"
                     className="mt-3 px-5 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: banner.cta_bg_color, color: banner.cta_text_color }}
+                  >
+                    {banner.cta_text}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="md:hidden relative w-full rounded-xl"
+            style={{ minHeight: "clamp(280px, 82vw, 420px)" }}
+          >
+            <img
+              src={banner.image_url}
+              alt="Preview mobile"
+              className="absolute inset-0 w-full h-full rounded-xl object-contain"
+            />
+            <div className="absolute inset-0 z-10 flex items-center justify-center px-3 py-4">
+              <div
+                className="w-full max-w-[95%] rounded-lg px-5 py-4 text-center shadow-lg"
+                style={{
+                  background: "rgba(255, 255, 255, 0.65)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                }}
+              >
+                {banner.title && (
+                  <h3
+                    className="text-base font-semibold leading-tight"
+                    style={{ color: banner.title_color }}
+                  >
+                    {banner.title}
+                  </h3>
+                )}
+                {banner.subtitle && (
+                  <p
+                    className="text-sm mt-1 leading-snug"
+                    style={{ color: banner.subtitle_color }}
+                  >
+                    {banner.subtitle}
+                  </p>
+                )}
+                {banner.cta_text && (
+                  <button
+                    type="button"
+                    className="mt-2.5 px-5 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
                     style={{ backgroundColor: banner.cta_bg_color, color: banner.cta_text_color }}
                   >
                     {banner.cta_text}
