@@ -266,7 +266,7 @@ const OnlineStoreContent = () => {
       })()}
 
       {/* Benefit Banners — below main banner */}
-      {!isCatalogMode && storeData.selected_benefit_banners && storeData.selected_benefit_banners.length > 0 && (
+      {storeData.selected_benefit_banners && storeData.selected_benefit_banners.length > 0 && (
         <div className="container mx-auto px-4 pt-6">
           <BenefitBannersSection selectedIds={storeData.selected_benefit_banners} />
         </div>
