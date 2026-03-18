@@ -229,10 +229,30 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     // Sign out from template profile
     await supabase.auth.signOut();
     
+    // Restore admin session if saved
+    const savedRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+    localStorage.removeItem('adminSessionRefreshToken');
+    
+    if (savedRefreshToken) {
+      try {
+        const { error } = await supabase.auth.refreshSession({ refresh_token: savedRefreshToken });
+        if (!error) {
+          // Session restored — navigate to templates page
+          navigate('/gestor/templates-marca');
+          window.location.reload();
+          return;
+        }
+        console.error('Failed to restore admin session:', error);
+      } catch (err) {
+        console.error('Error restoring admin session:', err);
+      }
+    }
+    
+    // Fallback: if we can't restore, go to login
     if (window.opener) {
       window.close();
     } else {
-      navigate('/gestor/login');
+      navigate('/gestor/templates-marca');
     }
   };
 

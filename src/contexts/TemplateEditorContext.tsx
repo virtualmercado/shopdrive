@@ -81,11 +81,30 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
     }
   };
 
-  const exitTemplateMode = () => {
+  const exitTemplateMode = async () => {
     // Clear localStorage
     localStorage.removeItem('templateEditorContext');
     
-    // Close this tab or redirect
+    // Sign out from template profile
+    await supabase.auth.signOut();
+    
+    // Restore admin session if saved
+    const savedRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+    localStorage.removeItem('adminSessionRefreshToken');
+    
+    if (savedRefreshToken) {
+      try {
+        const { error } = await supabase.auth.refreshSession({ refresh_token: savedRefreshToken });
+        if (!error) {
+          window.location.href = '/gestor/templates-marca';
+          return;
+        }
+      } catch (err) {
+        console.error('Error restoring admin session:', err);
+      }
+    }
+    
+    // Fallback
     if (window.opener) {
       window.close();
     } else {
