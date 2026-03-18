@@ -195,19 +195,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setIsSavingTemplate(true);
     
     try {
-      // Sync profile data → template snapshot
-      const { error } = await supabase
-        .rpc('sync_template_from_profile', { p_template_id: templateId });
+      const syncResult = await syncTemplatePreviewState(templateId, {
+        context: 'template-save',
+        forceSync: true,
+        enforceCompleteness: false,
+      });
 
-      if (error) throw error;
+      console.info('[TemplateSave] sincronização executada', syncResult);
 
-      // Touch updated_at so preview always reads fresh data
-      await supabase
-        .from('brand_templates')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', templateId);
-      
-      toast.success('Template salvo com sucesso! Preview atualizado.');
+      if (syncResult.missingBlocks.length > 0) {
+        toast.warning(`Template salvo com sincronização parcial: ${syncResult.missingBlocks.join(', ')}.`);
+      } else {
+        toast.success('Template salvo com sincronização completa para preview.');
+      }
     } catch (error: any) {
       console.error('Error saving template:', error);
       toast.error(`Erro ao salvar template: ${error.message}`);
