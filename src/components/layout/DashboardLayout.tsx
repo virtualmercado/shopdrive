@@ -105,6 +105,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           setIsLoggingIn(true);
           
           try {
+            // Save admin session before switching so we can restore it on exit
+            const { data: currentSession } = await supabase.auth.getSession();
+            if (currentSession?.session?.refresh_token) {
+              localStorage.setItem('adminSessionRefreshToken', currentSession.session.refresh_token);
+            }
+            
             // Always sign out first to ensure clean session switch
             await supabase.auth.signOut();
             
