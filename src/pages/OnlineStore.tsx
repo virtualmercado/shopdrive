@@ -309,7 +309,8 @@ const OnlineStoreContent = () => {
         )}
       </main>
 
-      {/* Content Banner — above footer */}
+      {/* Content Banner — above footer (hidden on mobile in catalog mode) */}
+      <div className={isCatalogMode ? "hidden md:block" : ""}>
       <ContentBannerSection
         banners={(() => {
           const raw = (storeData as any).content_banners;
