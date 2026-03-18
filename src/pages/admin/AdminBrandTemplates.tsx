@@ -703,7 +703,7 @@ const AdminBrandTemplates = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleSyncTemplate(template)}>
                                   <Package className="h-4 w-4 mr-2" />
-                                  Sincronizar Snapshot
+                                  Forçar Sincronização
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenTemplatePreview(template)}>
                                   <Eye className="h-4 w-4 mr-2" />
