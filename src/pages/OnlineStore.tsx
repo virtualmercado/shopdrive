@@ -241,8 +241,8 @@ const OnlineStoreContent = () => {
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
       
-      {/* Banner - only shown in Loja Virtual mode */}
-      {!isCatalogMode && (() => {
+      {/* Banner principal */}
+      {(() => {
         const customDesktopUrls = storeData.banner_desktop_urls !== undefined
           ? (storeData.banner_desktop_urls ?? [])
           : storeData.banner_desktop_url
@@ -309,7 +309,8 @@ const OnlineStoreContent = () => {
         )}
       </main>
 
-      {/* Content Banner — above footer */}
+      {/* Content Banner — above footer (hidden on mobile in catalog mode) */}
+      <div className={isCatalogMode ? "hidden md:block" : ""}>
       <ContentBannerSection
         banners={(() => {
           const raw = (storeData as any).content_banners;
@@ -333,6 +334,7 @@ const OnlineStoreContent = () => {
           return [];
         })()}
       />
+      </div>
 
       <StoreFooter storeData={storeData} />
 
