@@ -82,28 +82,47 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
   };
 
   const exitTemplateMode = async () => {
-    // Clear localStorage
+    // Clear localStorage context
     localStorage.removeItem('templateEditorContext');
-    
-    // Sign out from template profile
-    await supabase.auth.signOut();
-    
-    // Restore admin session if saved
-    const savedRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+
+    const savedAdminSessionRaw = localStorage.getItem('adminSessionToRestore');
+    const legacyRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+    localStorage.removeItem('adminSessionToRestore');
     localStorage.removeItem('adminSessionRefreshToken');
-    
-    if (savedRefreshToken) {
+
+    if (savedAdminSessionRaw) {
       try {
-        const { error } = await supabase.auth.refreshSession({ refresh_token: savedRefreshToken });
+        const parsed = JSON.parse(savedAdminSessionRaw) as { access_token?: string; refresh_token?: string };
+        if (parsed?.access_token && parsed?.refresh_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+          });
+
+          if (!error) {
+            window.location.href = '/gestor/templates-marca';
+            return;
+          }
+
+          console.error('Failed to restore admin session via setSession:', error);
+        }
+      } catch (err) {
+        console.error('Error parsing saved admin session:', err);
+      }
+    }
+
+    if (legacyRefreshToken) {
+      try {
+        const { error } = await supabase.auth.refreshSession({ refresh_token: legacyRefreshToken });
         if (!error) {
           window.location.href = '/gestor/templates-marca';
           return;
         }
       } catch (err) {
-        console.error('Error restoring admin session:', err);
+        console.error('Error restoring admin session via refreshSession:', err);
       }
     }
-    
+
     // Fallback
     if (window.opener) {
       window.close();

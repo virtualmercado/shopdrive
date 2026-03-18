@@ -105,154 +105,75 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           setIsLoggingIn(true);
           
           try {
-            // Save admin session before switching so we can restore it on exit
+            // Save full admin session before switching so we can restore without triggering SIGNED_OUT redirect
             const { data: currentSession } = await supabase.auth.getSession();
-            if (currentSession?.session?.refresh_token) {
-              localStorage.setItem('adminSessionRefreshToken', currentSession.session.refresh_token);
+            if (currentSession?.session?.access_token && currentSession?.session?.refresh_token) {
+              localStorage.setItem(
+                'adminSessionToRestore',
+                JSON.stringify({
+                  access_token: currentSession.session.access_token,
+                  refresh_token: currentSession.session.refresh_token,
+                })
+              );
             }
+            localStorage.removeItem('adminSessionRefreshToken');
             
             // Always sign out first to ensure clean session switch
             await supabase.auth.signOut();
-            
-            // Login as template profile
-            const { error: loginError } = await supabase.auth.signInWithPassword({
-              email: editorContext.credentials.email,
-              password: editorContext.credentials.password,
-            });
-
-            if (loginError) {
-              console.error('Error logging in as template profile:', loginError);
-              toast.error('Erro ao acessar perfil do template. Verifique as credenciais.');
-              clearTemplateEditorContext();
-              navigate('/gestor/login');
-              return;
-            }
-            
-            // Clear credentials from storage after successful login (security)
-            const updatedContext = { ...editorContext };
-            delete updatedContext.credentials;
-            localStorage.setItem('templateEditorContext', JSON.stringify(updatedContext));
-            
-            toast.success('Conectado ao perfil do template!');
-            
-            // Force page reload to ensure all components fetch fresh data
-            window.location.reload();
-          } catch (error) {
-            console.error('Error during session switch:', error);
-            toast.error('Erro ao trocar sessão');
-            clearTemplateEditorContext();
-            navigate('/gestor/login');
-          } finally {
-            setIsLoggingIn(false);
-          }
-        }
-      } else {
-        setIsTemplateEditorMode(false);
-        setTemplateId(null);
-      }
-    };
-
-    checkTemplateEditorMode();
-  }, [searchParams, navigate, hasAttemptedLogin]);
-
-  useEffect(() => {
-    const fetchStoreUrl = async () => {
-      if (!user || isTemplateEditorMode) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("store_slug")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.store_slug) {
-        const url = `${window.location.origin}/loja/${profile.store_slug}`;
-        setStoreUrl(url);
-      }
-    };
-
-    fetchStoreUrl();
-  }, [user, isTemplateEditorMode]);
-
-  // Fetch template name when in editor mode
-  useEffect(() => {
-    const fetchTemplateName = async () => {
-      if (!templateId) return;
-      
-      const { data } = await supabase
-        .from('brand_templates')
-        .select('name')
-        .eq('id', templateId)
-        .single();
-      
-      if (data) {
-        setTemplateName(data.name);
-      }
-    };
-
-    if (isTemplateEditorMode && templateId) {
-      fetchTemplateName();
-    }
-  }, [templateId, isTemplateEditorMode]);
-
-  const handleSaveTemplate = async () => {
-    if (!templateId) return;
-    
-    setIsSavingTemplate(true);
-    
-    try {
-      const syncResult = await syncTemplatePreviewState(templateId, {
-        context: 'template-save',
-        forceSync: true,
-        enforceCompleteness: false,
-      });
-
-      console.info('[TemplateSave] sincronização executada', syncResult);
-
-      if (syncResult.missingBlocks.length > 0) {
-        toast.warning(`Template salvo com sincronização parcial: ${syncResult.missingBlocks.join(', ')}.`);
-      } else {
-        toast.success('Template salvo com sincronização completa para preview.');
-      }
-    } catch (error: any) {
-      console.error('Error saving template:', error);
-      toast.error(`Erro ao salvar template: ${error.message}`);
-    } finally {
-      setIsSavingTemplate(false);
-    }
-  };
-
+...
   const handleExitTemplateMode = async () => {
-    // Clear the template editor context
+    // Clear template editor context first
     clearTemplateEditorContext();
-    
-    // Sign out from template profile
-    await supabase.auth.signOut();
-    
-    // Restore admin session if saved
-    const savedRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+
+    // Load saved admin session (new + legacy key)
+    const savedAdminSessionRaw = localStorage.getItem('adminSessionToRestore');
+    const legacyRefreshToken = localStorage.getItem('adminSessionRefreshToken');
+    localStorage.removeItem('adminSessionToRestore');
     localStorage.removeItem('adminSessionRefreshToken');
-    
-    if (savedRefreshToken) {
+
+    // 1) Preferred path: restore full admin session directly (no intermediate SIGNED_OUT)
+    if (savedAdminSessionRaw) {
       try {
-        const { error } = await supabase.auth.refreshSession({ refresh_token: savedRefreshToken });
+        const parsed = JSON.parse(savedAdminSessionRaw) as { access_token?: string; refresh_token?: string };
+        if (parsed?.access_token && parsed?.refresh_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+          });
+
+          if (!error) {
+            navigate('/gestor/templates-marca', { replace: true });
+            window.location.reload();
+            return;
+          }
+
+          console.error('Failed to restore admin session via setSession:', error);
+        }
+      } catch (err) {
+        console.error('Error parsing saved admin session:', err);
+      }
+    }
+
+    // 2) Legacy fallback: refresh using stored refresh token
+    if (legacyRefreshToken) {
+      try {
+        const { error } = await supabase.auth.refreshSession({ refresh_token: legacyRefreshToken });
         if (!error) {
-          // Session restored — navigate to templates page
-          navigate('/gestor/templates-marca');
+          navigate('/gestor/templates-marca', { replace: true });
           window.location.reload();
           return;
         }
-        console.error('Failed to restore admin session:', error);
+        console.error('Failed to restore admin session via refreshSession:', error);
       } catch (err) {
-        console.error('Error restoring admin session:', err);
+        console.error('Error restoring admin session via refreshSession:', err);
       }
     }
-    
-    // Fallback: if we can't restore, go to login
+
+    // 3) Final fallback
     if (window.opener) {
       window.close();
     } else {
-      navigate('/gestor/templates-marca');
+      navigate('/gestor/templates-marca', { replace: true });
     }
   };
 
