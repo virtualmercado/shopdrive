@@ -120,7 +120,115 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             
             // Always sign out first to ensure clean session switch
             await supabase.auth.signOut();
-...
+            
+            // Login as template profile
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+              email: editorContext.credentials.email,
+              password: editorContext.credentials.password,
+            });
+
+            if (loginError) {
+              console.error('Error logging in as template profile:', loginError);
+              toast.error('Erro ao acessar perfil do template. Verifique as credenciais.');
+              clearTemplateEditorContext();
+              navigate('/gestor/login');
+              return;
+            }
+            
+            // Clear credentials from storage after successful login (security)
+            const updatedContext = { ...editorContext };
+            delete updatedContext.credentials;
+            localStorage.setItem('templateEditorContext', JSON.stringify(updatedContext));
+            
+            toast.success('Conectado ao perfil do template!');
+            
+            // Force page reload to ensure all components fetch fresh data
+            window.location.reload();
+          } catch (error) {
+            console.error('Error during session switch:', error);
+            toast.error('Erro ao trocar sessão');
+            clearTemplateEditorContext();
+            navigate('/gestor/login');
+          } finally {
+            setIsLoggingIn(false);
+          }
+        }
+      } else {
+        setIsTemplateEditorMode(false);
+        setTemplateId(null);
+      }
+    };
+
+    checkTemplateEditorMode();
+  }, [searchParams, navigate, hasAttemptedLogin]);
+
+  useEffect(() => {
+    const fetchStoreUrl = async () => {
+      if (!user || isTemplateEditorMode) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("store_slug")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.store_slug) {
+        const url = `${window.location.origin}/loja/${profile.store_slug}`;
+        setStoreUrl(url);
+      }
+    };
+
+    fetchStoreUrl();
+  }, [user, isTemplateEditorMode]);
+
+  // Fetch template name when in editor mode
+  useEffect(() => {
+    const fetchTemplateName = async () => {
+      if (!templateId) return;
+      
+      const { data } = await supabase
+        .from('brand_templates')
+        .select('name')
+        .eq('id', templateId)
+        .single();
+      
+      if (data) {
+        setTemplateName(data.name);
+      }
+    };
+
+    if (isTemplateEditorMode && templateId) {
+      fetchTemplateName();
+    }
+  }, [templateId, isTemplateEditorMode]);
+
+  const handleSaveTemplate = async () => {
+    if (!templateId) return;
+    
+    setIsSavingTemplate(true);
+    
+    try {
+      const syncResult = await syncTemplatePreviewState(templateId, {
+        context: 'template-save',
+        forceSync: true,
+        enforceCompleteness: false,
+      });
+
+      console.info('[TemplateSave] sincronização executada', syncResult);
+
+      if (syncResult.missingBlocks.length > 0) {
+        toast.warning(`Template salvo com sincronização parcial: ${syncResult.missingBlocks.join(', ')}.`);
+      } else {
+        toast.success('Template salvo com sincronização completa para preview.');
+      }
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      toast.error(`Erro ao salvar template: ${error.message}`);
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   const handleExitTemplateMode = async () => {
     // Clear template editor context first
     clearTemplateEditorContext();
