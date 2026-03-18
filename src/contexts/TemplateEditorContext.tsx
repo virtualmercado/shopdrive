@@ -65,8 +65,14 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
         .rpc('sync_template_from_profile', { p_template_id: templateId });
 
       if (error) throw error;
+
+      // Force updated_at to propagate so preview reads fresh data
+      await supabase
+        .from('brand_templates')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', templateId);
       
-      toast.success('Template salvo com sucesso!');
+      toast.success('Template salvo com sucesso! Preview atualizado.');
     } catch (error: any) {
       console.error('Error saving template:', error);
       toast.error(`Erro ao salvar template: ${error.message}`);

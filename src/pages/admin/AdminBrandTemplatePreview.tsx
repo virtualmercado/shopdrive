@@ -4,17 +4,47 @@ import { ArrowLeft, Store, ShoppingCart, Eye, Loader2, Package, Image } from 'lu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useBrandTemplate, useBrandTemplateProducts } from '@/hooks/useBrandTemplateProducts';
+import { useQuery } from '@tanstack/react-query';
 
 const AdminBrandTemplatePreview = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const navigate = useNavigate();
   
-  const { data: template, isLoading: templateLoading } = useBrandTemplate(templateId || '');
-  const { data: products = [], isLoading: productsLoading } = useBrandTemplateProducts(templateId || '');
-  
-  // Note: These queries use React Query defaults. Since the preview opens in a new tab,
-  // the cache is fresh and will fetch the latest data from the database.
+  // Force fresh data on every mount — no stale cache
+  const { data: template, isLoading: templateLoading } = useQuery({
+    queryKey: ['brand-template-preview', templateId],
+    queryFn: async () => {
+      if (!templateId) return null;
+      const { data, error } = await (await import('@/integrations/supabase/client')).supabase
+        .from('brand_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!templateId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['brand-template-products-preview', templateId],
+    queryFn: async () => {
+      if (!templateId) return [];
+      const { data, error } = await (await import('@/integrations/supabase/client')).supabase
+        .from('brand_template_products')
+        .select('*')
+        .eq('template_id', templateId)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!templateId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+  });
 
   const isLoading = templateLoading || productsLoading;
   const activeProducts = products.filter(p => p.is_active);
