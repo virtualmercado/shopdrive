@@ -241,8 +241,8 @@ const OnlineStoreContent = () => {
         logoPosition={(storeData.header_logo_position as "left" | "center" | "right") || "left"}
       />
       
-      {/* Banner - only shown in Loja Virtual mode */}
-      {!isCatalogMode && (() => {
+      {/* Banner principal */}
+      {(() => {
         const customDesktopUrls = storeData.banner_desktop_urls !== undefined
           ? (storeData.banner_desktop_urls ?? [])
           : storeData.banner_desktop_url
