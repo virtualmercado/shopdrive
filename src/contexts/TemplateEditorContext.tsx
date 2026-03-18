@@ -9,7 +9,7 @@ interface TemplateEditorContextType {
   templateName: string | null;
   isSaving: boolean;
   saveAndSyncTemplate: () => Promise<void>;
-  exitTemplateMode: () => void;
+  exitTemplateMode: () => Promise<void>;
 }
 
 const TemplateEditorContext = createContext<TemplateEditorContextType | undefined>(undefined);
