@@ -260,7 +260,7 @@ const AdminCommandCenter = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium">E-mail</p>
-                  <p className="text-xs text-green-600">Resend</p>
+                  <p className="text-xs text-green-600">SMTP</p>
                 </div>
               </div>
             </CardContent>
