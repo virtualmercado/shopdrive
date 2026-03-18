@@ -14,6 +14,7 @@ export interface PlatformEmailSettings {
   smtp_password: string | null;
   smtp_security: string | null;
   is_active: boolean;
+  allow_tenant_custom_smtp: boolean;
 }
 
 export const useEmailSettings = () => {

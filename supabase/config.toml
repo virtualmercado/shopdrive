@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.verify-tenant-email-dns]
 verify_jwt = false
+
+[functions.test-tenant-smtp]
+verify_jwt = false

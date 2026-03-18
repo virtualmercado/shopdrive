@@ -37,7 +37,7 @@ const EmailTemplatesTab = () => {
 
   // Local form state for sender config
   const [senderForm, setSenderForm] = useState({
-    provider: "resend",
+    provider: "smtp",
     sender_name: "ShopDrive",
     sender_email: "noreply@shopdrive.com.br",
     reply_to: "suporte@shopdrive.com.br",
@@ -46,6 +46,7 @@ const EmailTemplatesTab = () => {
     smtp_user: "",
     smtp_password: "",
     smtp_security: "tls",
+    allow_tenant_custom_smtp: true,
   });
   const [senderFormLoaded, setSenderFormLoaded] = useState(false);
 
@@ -53,7 +54,7 @@ const EmailTemplatesTab = () => {
   if (emailSettings.settings && !senderFormLoaded) {
     const s = emailSettings.settings;
     setSenderForm({
-      provider: s.provider || "resend",
+      provider: "smtp",
       sender_name: s.sender_name || "ShopDrive",
       sender_email: s.sender_email || "",
       reply_to: s.reply_to || "",
@@ -62,6 +63,7 @@ const EmailTemplatesTab = () => {
       smtp_user: s.smtp_user || "",
       smtp_password: s.smtp_password || "",
       smtp_security: s.smtp_security || "tls",
+      allow_tenant_custom_smtp: s.allow_tenant_custom_smtp !== false,
     });
     setSenderFormLoaded(true);
   }
@@ -219,18 +221,14 @@ const EmailTemplatesTab = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6 max-w-xl">
-              {/* Provider Selection */}
+              {/* Provider — SMTP only */}
               <div className="space-y-2">
                 <Label>Provedor de E-mail</Label>
-                <Select value={senderForm.provider} onValueChange={(v) => setSenderForm((p) => ({ ...p, provider: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="resend">Resend (API)</SelectItem>
-                    <SelectItem value="smtp">SMTP Personalizado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <Server className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">SMTP</span>
+                  <Badge variant="default" className="ml-auto">Ativo</Badge>
+                </div>
               </div>
 
               <Separator />
@@ -249,59 +247,61 @@ const EmailTemplatesTab = () => {
                 <Input value={senderForm.reply_to} onChange={(e) => setSenderForm((p) => ({ ...p, reply_to: e.target.value }))} placeholder="suporte@seudominio.com.br" />
               </div>
 
-              {/* SMTP Fields */}
-              {senderForm.provider === "smtp" && (
-                <>
-                  <Separator />
-                  <div className="flex items-center gap-2 mb-2">
-                    <Server className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-sm font-semibold">Configuração SMTP</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>SMTP Host</Label>
-                      <Input value={senderForm.smtp_host} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_host: e.target.value }))} placeholder="smtp.seuservidor.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>SMTP Porta</Label>
-                      <Input type="number" value={senderForm.smtp_port} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_port: parseInt(e.target.value) || 587 }))} placeholder="587" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>SMTP Usuário</Label>
-                      <Input value={senderForm.smtp_user} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_user: e.target.value }))} placeholder="usuario@seuservidor.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>SMTP Senha</Label>
-                      <Input type="password" value={senderForm.smtp_password} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_password: e.target.value }))} placeholder="••••••••" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Segurança</Label>
-                    <Select value={senderForm.smtp_security} onValueChange={(v) => setSenderForm((p) => ({ ...p, smtp_security: v }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="tls">STARTTLS (porta 587)</SelectItem>
-                        <SelectItem value="ssl">SSL/TLS (porta 465)</SelectItem>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Provedor ativo</p>
-                  <p className="text-sm text-muted-foreground">{senderForm.provider === "smtp" ? "SMTP Personalizado" : "Resend"}</p>
+              {/* SMTP Fields — always shown */}
+              <Separator />
+              <div className="flex items-center gap-2 mb-2">
+                <Server className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-semibold">Configuração SMTP</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>SMTP Host</Label>
+                  <Input value={senderForm.smtp_host} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_host: e.target.value }))} placeholder="smtp.seuservidor.com" />
                 </div>
-                <Badge variant="default">Ativo</Badge>
+                <div className="space-y-2">
+                  <Label>SMTP Porta</Label>
+                  <Input type="number" value={senderForm.smtp_port} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_port: parseInt(e.target.value) || 587 }))} placeholder="587" />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Usuário</Label>
+                  <Input value={senderForm.smtp_user} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_user: e.target.value }))} placeholder="usuario@seuservidor.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Senha</Label>
+                  <Input type="password" value={senderForm.smtp_password} onChange={(e) => setSenderForm((p) => ({ ...p, smtp_password: e.target.value }))} placeholder="••••••••" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Segurança</Label>
+                <Select value={senderForm.smtp_security} onValueChange={(v) => setSenderForm((p) => ({ ...p, smtp_security: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tls">STARTTLS (porta 587)</SelectItem>
+                    <SelectItem value="ssl">SSL/TLS (porta 465)</SelectItem>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Allow tenant custom SMTP */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Permitir SMTP próprio por lojista</p>
+                  <p className="text-xs text-muted-foreground">Lojistas poderão configurar seu próprio servidor SMTP</p>
+                </div>
+                <Switch
+                  checked={senderForm.allow_tenant_custom_smtp}
+                  onCheckedChange={(v) => setSenderForm((p) => ({ ...p, allow_tenant_custom_smtp: v }))}
+                />
               </div>
 
               <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
                 <p className="font-medium mb-1">Multi-tenant</p>
-                <p>As lojas utilizam o mesmo serviço de envio. O header será: <code className="bg-muted px-1 py-0.5 rounded text-xs">From: Loja XYZ via {senderForm.sender_name} &lt;{senderForm.sender_email}&gt;</code></p>
+                <p>As lojas utilizam o SMTP da plataforma por padrão. O header será: <code className="bg-muted px-1 py-0.5 rounded text-xs">From: Loja XYZ via {senderForm.sender_name} &lt;{senderForm.sender_email}&gt;</code></p>
               </div>
 
               <Button

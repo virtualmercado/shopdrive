@@ -11,28 +11,22 @@ const BATCH_SIZE = 50;
 const RATE_LIMIT_DELAY_MS = 200;
 const BCC_EMAIL = "suporte@shopdrive.com.br";
 
-async function sendViaResend(
-  apiKey: string, from: string, replyTo: string,
-  to: string, subject: string, html: string
-): Promise<{ success: boolean; id?: string; error?: string }> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], bcc: [BCC_EMAIL], subject, html, reply_to: replyTo }),
-  });
-  const data = await res.json();
-  if (!res.ok) return { success: false, error: data.message || `Resend error [${res.status}]` };
-  return { success: true, id: data.id };
+interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  security: string;
 }
 
 async function sendViaSMTP(
-  host: string, port: number, user: string, password: string, security: string,
+  config: SmtpConfig,
   from: string, replyTo: string, to: string, subject: string, html: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const conn = security === "ssl"
-      ? await Deno.connectTls({ hostname: host, port })
-      : await Deno.connect({ hostname: host, port });
+    const conn = config.security === "ssl"
+      ? await Deno.connectTls({ hostname: config.host, port: config.port })
+      : await Deno.connect({ hostname: config.host, port: config.port });
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
@@ -50,18 +44,18 @@ async function sendViaSMTP(
     await readResponse();
     let ehloResp = await sendCommand("EHLO shopdrive.com.br");
 
-    if (security === "tls" && ehloResp.includes("STARTTLS")) {
+    if (config.security === "tls" && ehloResp.includes("STARTTLS")) {
       await sendCommand("STARTTLS");
-      const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: host });
+      const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: config.host });
       conn.read = tlsConn.read.bind(tlsConn);
       conn.write = tlsConn.write.bind(tlsConn);
       ehloResp = await sendCommand("EHLO shopdrive.com.br");
     }
 
-    if (user && password) {
+    if (config.user && config.password) {
       await sendCommand("AUTH LOGIN");
-      await sendCommand(btoa(user));
-      const authResp = await sendCommand(btoa(password));
+      await sendCommand(btoa(config.user));
+      const authResp = await sendCommand(btoa(config.password));
       if (!authResp.startsWith("235")) { conn.close(); return { success: false, error: `SMTP auth failed: ${authResp.trim()}` }; }
     }
 
@@ -99,6 +93,60 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function resolveSmtpConfig(
+  supabase: any,
+  platformSettings: any,
+  tenantId: string | null
+): Promise<{ config: SmtpConfig; source: string; fromHeader: string; replyTo: string }> {
+  const platformConfig: SmtpConfig = {
+    host: platformSettings.smtp_host,
+    port: platformSettings.smtp_port,
+    user: platformSettings.smtp_user || "",
+    password: platformSettings.smtp_password || "",
+    security: platformSettings.smtp_security || "tls",
+  };
+  const platformFrom = `${platformSettings.sender_name} <${platformSettings.sender_email}>`;
+  const platformReplyTo = platformSettings.reply_to || platformSettings.sender_email;
+
+  if (!tenantId) {
+    return { config: platformConfig, source: "platform", fromHeader: platformFrom, replyTo: platformReplyTo };
+  }
+
+  // Check if platform allows tenant custom SMTP
+  const allowCustom = platformSettings.allow_tenant_custom_smtp !== false;
+
+  const { data: tenantSettings } = await supabase
+    .from("tenant_email_settings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (tenantSettings && allowCustom && tenantSettings.smtp_mode === "custom" && tenantSettings.is_smtp_validated) {
+    // Use tenant's own SMTP
+    const tenantConfig: SmtpConfig = {
+      host: tenantSettings.smtp_host,
+      port: tenantSettings.smtp_port || 587,
+      user: tenantSettings.smtp_user || "",
+      password: tenantSettings.smtp_password || "",
+      security: tenantSettings.smtp_security || "tls",
+    };
+    const tenantFrom = `${tenantSettings.sender_name || platformSettings.sender_name} <${tenantSettings.sender_email || platformSettings.sender_email}>`;
+    const tenantReplyTo = tenantSettings.reply_to || tenantSettings.sender_email || platformReplyTo;
+    return { config: tenantConfig, source: "tenant_custom", fromHeader: tenantFrom, replyTo: tenantReplyTo };
+  }
+
+  // Use platform SMTP but with tenant identity if domain is verified
+  let fromHeader = platformFrom;
+  let replyTo = platformReplyTo;
+
+  if (tenantSettings?.domain_status === "verified" && tenantSettings.sender_email) {
+    fromHeader = `${tenantSettings.sender_name || platformSettings.sender_name} <${tenantSettings.sender_email}>`;
+    replyTo = tenantSettings.reply_to || tenantSettings.sender_email;
+  }
+
+  return { config: platformConfig, source: "platform", fromHeader, replyTo };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -133,9 +181,6 @@ Deno.serve(async (req) => {
 
     if (!settings) throw new Error("Platform email settings not found");
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const providerName = settings.provider || "resend";
-
     let sent = 0, failed = 0, blocked = 0, retried = 0;
 
     for (const email of emails) {
@@ -164,7 +209,8 @@ Deno.serve(async (req) => {
             erro: "Reputation Shield: tenant blocked",
             subject: email.subject,
             bcc_email: BCC_EMAIL,
-            smtp_provider: providerName,
+            smtp_provider: "smtp",
+            provider_source: "platform",
           });
 
           blocked++;
@@ -172,41 +218,27 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Resolve sender identity
-      let fromHeader = `${settings.sender_name} <${settings.sender_email}>`;
-      let replyTo = settings.reply_to || settings.sender_email;
+      // Resolve SMTP config (tenant custom vs platform)
+      const { config, source, fromHeader, replyTo } = await resolveSmtpConfig(
+        supabase, settings, email.tenant_id
+      );
 
-      if (email.tenant_id) {
+      // Override fromHeader with store name if using platform SMTP
+      let finalFrom = fromHeader;
+      if (source === "platform" && email.store_name && email.tenant_id) {
         const { data: tenantSettings } = await supabase
           .from("tenant_email_settings")
-          .select("*")
+          .select("domain_status, sender_email, sender_name")
           .eq("tenant_id", email.tenant_id)
           .maybeSingle();
-
-        if (tenantSettings?.domain_status === "verified" && tenantSettings.sender_email) {
-          fromHeader = `${tenantSettings.sender_name || email.store_name || settings.sender_name} <${tenantSettings.sender_email}>`;
-          replyTo = tenantSettings.reply_to || tenantSettings.sender_email;
-        } else if (email.store_name) {
-          fromHeader = `${email.store_name} via ${settings.sender_name} <${settings.sender_email}>`;
+        
+        if (!tenantSettings?.sender_email || tenantSettings?.domain_status !== "verified") {
+          finalFrom = `${email.store_name} via ${settings.sender_name} <${settings.sender_email}>`;
         }
       }
 
-      // Send the email
-      let result: { success: boolean; id?: string; error?: string };
-
-      if (settings.provider === "smtp") {
-        result = await sendViaSMTP(
-          settings.smtp_host, settings.smtp_port, settings.smtp_user || "",
-          settings.smtp_password || "", settings.smtp_security || "tls",
-          fromHeader, replyTo, email.to_email, email.subject, email.html || ""
-        );
-      } else {
-        if (!RESEND_API_KEY) {
-          result = { success: false, error: "RESEND_API_KEY not configured" };
-        } else {
-          result = await sendViaResend(RESEND_API_KEY, fromHeader, replyTo, email.to_email, email.subject, email.html || "");
-        }
-      }
+      // Send via SMTP (always — no more Resend)
+      const result = await sendViaSMTP(config, finalFrom, replyTo, email.to_email, email.subject, email.html || "");
 
       const now = new Date().toISOString();
 
@@ -220,11 +252,12 @@ Deno.serve(async (req) => {
           tenant_id: email.tenant_id,
           template: email.template,
           destinatario: email.to_email,
-          email_remetente: fromHeader,
+          email_remetente: finalFrom,
           status: "sent",
           subject: email.subject,
           bcc_email: BCC_EMAIL,
-          smtp_provider: providerName,
+          smtp_provider: "smtp",
+          provider_source: source,
           sent_at: now,
         });
 
@@ -258,12 +291,13 @@ Deno.serve(async (req) => {
           tenant_id: email.tenant_id,
           template: email.template,
           destinatario: email.to_email,
-          email_remetente: fromHeader,
+          email_remetente: finalFrom,
           status: "error",
           erro: result.error,
           subject: email.subject,
           bcc_email: BCC_EMAIL,
-          smtp_provider: providerName,
+          smtp_provider: "smtp",
+          provider_source: source,
         });
       }
 

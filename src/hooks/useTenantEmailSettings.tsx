@@ -19,6 +19,17 @@ export interface TenantEmailSettings {
   dmarc_verified: boolean;
   cloudflare_zone_id: string;
   last_verification_at: string | null;
+  // SMTP custom fields
+  smtp_mode: string;
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_user: string | null;
+  smtp_password: string | null;
+  smtp_security: string | null;
+  is_smtp_validated: boolean;
+  last_tested_at: string | null;
+  last_test_status: string | null;
+  last_test_error: string | null;
 }
 
 export interface TenantDnsRecord {
@@ -39,6 +50,7 @@ export const useTenantEmailSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [testingSmtp, setTestingSmtp] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
@@ -53,7 +65,6 @@ export const useTenantEmailSettings = () => {
       if (error) throw error;
       setSettings(data as any);
 
-      // Fetch DNS records
       const { data: records, error: recErr } = await supabase
         .from("tenant_email_dns_records" as any)
         .select("*")
@@ -76,7 +87,6 @@ export const useTenantEmailSettings = () => {
     if (!user) return false;
     setSaving(true);
     try {
-      // Generate DNS records if domain changed
       const domain = updates.email_domain || settings?.email_domain || "";
       const dnsData = domain
         ? {
@@ -115,6 +125,60 @@ export const useTenantEmailSettings = () => {
     }
   };
 
+  const saveSmtpConfig = async (smtpData: {
+    smtp_mode: string;
+    smtp_host?: string;
+    smtp_port?: number;
+    smtp_user?: string;
+    smtp_password?: string;
+    smtp_security?: string;
+    sender_name?: string;
+    sender_email?: string;
+    reply_to?: string;
+  }) => {
+    // If password is the mask, don't send it
+    const updates: any = { ...smtpData };
+    if (updates.smtp_password === "••••••••") {
+      delete updates.smtp_password;
+    }
+    // If switching to platform mode, reset validation
+    if (updates.smtp_mode === "platform") {
+      updates.is_smtp_validated = false;
+    }
+    return saveSettings(updates);
+  };
+
+  const testSmtp = async (smtpData: {
+    smtp_host: string;
+    smtp_port: number;
+    smtp_user: string;
+    smtp_password: string;
+    smtp_security: string;
+  }) => {
+    setTestingSmtp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-tenant-smtp", {
+        body: smtpData,
+      });
+
+      if (error) throw error;
+
+      await fetchSettings();
+      if (data?.success) {
+        toast.success("Conexão SMTP validada com sucesso!");
+      } else {
+        toast.error(data?.message || "Falha no teste SMTP");
+      }
+      return data?.success || false;
+    } catch (err) {
+      console.error("Error testing SMTP:", err);
+      toast.error("Erro ao testar conexão SMTP");
+      return false;
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
+
   const verifyDomain = async () => {
     if (!settings?.email_domain) {
       toast.error("Configure um domínio primeiro");
@@ -125,9 +189,7 @@ export const useTenantEmailSettings = () => {
       const { data, error } = await supabase.functions.invoke("verify-tenant-email-dns", {
         body: { tenant_id: user?.id, domain: settings.email_domain },
       });
-
       if (error) throw error;
-
       await fetchSettings();
       if (data?.verified) {
         toast.success("Domínio verificado com sucesso!");
@@ -148,17 +210,10 @@ export const useTenantEmailSettings = () => {
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke("verify-tenant-email-dns", {
-        body: {
-          tenant_id: user.id,
-          domain: settings.email_domain,
-          action: "create_cloudflare",
-          cloudflare_zone_id: zoneId,
-        },
+      const { error } = await supabase.functions.invoke("verify-tenant-email-dns", {
+        body: { tenant_id: user.id, domain: settings.email_domain, action: "create_cloudflare", cloudflare_zone_id: zoneId },
       });
-
       if (error) throw error;
-
       await fetchSettings();
       toast.success("Registros DNS criados no Cloudflare!");
     } catch (err) {
@@ -171,15 +226,9 @@ export const useTenantEmailSettings = () => {
     if (!user) return;
     try {
       const { error } = await supabase.functions.invoke("verify-tenant-email-dns", {
-        body: {
-          tenant_id: user.id,
-          domain: settings?.email_domain || "",
-          action: "remove_cloudflare",
-        },
+        body: { tenant_id: user.id, domain: settings?.email_domain || "", action: "remove_cloudflare" },
       });
-
       if (error) throw error;
-
       await fetchSettings();
       toast.success("Registros DNS removidos do Cloudflare!");
     } catch (err) {
@@ -194,7 +243,10 @@ export const useTenantEmailSettings = () => {
     loading,
     saving,
     verifying,
+    testingSmtp,
     saveSettings,
+    saveSmtpConfig,
+    testSmtp,
     verifyDomain,
     createCloudflareRecords,
     removeCloudflareRecords,

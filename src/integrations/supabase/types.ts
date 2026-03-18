@@ -1318,6 +1318,7 @@ export type Database = {
           email_remetente: string | null
           erro: string | null
           id: string
+          provider_source: string | null
           sent_at: string | null
           smtp_provider: string | null
           status: string
@@ -1332,6 +1333,7 @@ export type Database = {
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          provider_source?: string | null
           sent_at?: string | null
           smtp_provider?: string | null
           status?: string
@@ -1346,6 +1348,7 @@ export type Database = {
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          provider_source?: string | null
           sent_at?: string | null
           smtp_provider?: string | null
           status?: string
@@ -2877,6 +2880,7 @@ export type Database = {
       }
       platform_email_settings: {
         Row: {
+          allow_tenant_custom_smtp: boolean
           created_at: string
           id: string
           is_active: boolean | null
@@ -2892,6 +2896,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_tenant_custom_smtp?: boolean
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -2907,6 +2912,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_tenant_custom_smtp?: boolean
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -4329,10 +4335,20 @@ export type Database = {
           domain_status: string
           email_domain: string | null
           id: string
+          is_smtp_validated: boolean
+          last_test_error: string | null
+          last_test_status: string | null
+          last_tested_at: string | null
           last_verification_at: string | null
           reply_to: string | null
           sender_email: string
           sender_name: string
+          smtp_host: string | null
+          smtp_mode: string
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_security: string | null
+          smtp_user: string | null
           spf_record: string | null
           spf_verified: boolean | null
           tenant_id: string
@@ -4348,10 +4364,20 @@ export type Database = {
           domain_status?: string
           email_domain?: string | null
           id?: string
+          is_smtp_validated?: boolean
+          last_test_error?: string | null
+          last_test_status?: string | null
+          last_tested_at?: string | null
           last_verification_at?: string | null
           reply_to?: string | null
           sender_email?: string
           sender_name?: string
+          smtp_host?: string | null
+          smtp_mode?: string
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_security?: string | null
+          smtp_user?: string | null
           spf_record?: string | null
           spf_verified?: boolean | null
           tenant_id: string
@@ -4367,16 +4393,84 @@ export type Database = {
           domain_status?: string
           email_domain?: string | null
           id?: string
+          is_smtp_validated?: boolean
+          last_test_error?: string | null
+          last_test_status?: string | null
+          last_tested_at?: string | null
           last_verification_at?: string | null
           reply_to?: string | null
           sender_email?: string
           sender_name?: string
+          smtp_host?: string | null
+          smtp_mode?: string
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_security?: string | null
+          smtp_user?: string | null
           spf_record?: string | null
           spf_verified?: boolean | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      tenant_email_templates: {
+        Row: {
+          created_at: string
+          event_key: string
+          html_body: string
+          id: string
+          is_enabled: boolean
+          subject: string
+          tenant_id: string
+          text_body: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          html_body?: string
+          id?: string
+          is_enabled?: boolean
+          subject?: string
+          tenant_id: string
+          text_body?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          html_body?: string
+          id?: string
+          is_enabled?: boolean
+          subject?: string
+          tenant_id?: string
+          text_body?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_landing_responses: {
         Row: {
