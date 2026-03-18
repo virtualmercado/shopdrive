@@ -194,12 +194,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setIsSavingTemplate(true);
     
     try {
+      // Sync profile data → template snapshot
       const { error } = await supabase
         .rpc('sync_template_from_profile', { p_template_id: templateId });
 
       if (error) throw error;
+
+      // Touch updated_at so preview always reads fresh data
+      await supabase
+        .from('brand_templates')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', templateId);
       
-      toast.success('Template salvo com sucesso! Snapshot atualizado.');
+      toast.success('Template salvo com sucesso! Preview atualizado.');
     } catch (error: any) {
       console.error('Error saving template:', error);
       toast.error(`Erro ao salvar template: ${error.message}`);

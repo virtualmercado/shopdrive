@@ -4,7 +4,7 @@ import { ArrowLeft, Store, ShoppingCart, Eye, Loader2, Package, Image } from 'lu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useBrandTemplate, useBrandTemplateProducts } from '@/hooks/useBrandTemplateProducts';
+import { useQuery } from '@tanstack/react-query';
 
 const AdminBrandTemplatePreview = () => {
   const { templateId } = useParams<{ templateId: string }>();
