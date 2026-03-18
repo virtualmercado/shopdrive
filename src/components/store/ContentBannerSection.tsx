@@ -28,8 +28,9 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
   return (
     <section className="w-full px-4 py-8">
       <div className="max-w-5xl mx-auto">
+        {/* Desktop: fixed aspect-ratio with absolute positioning */}
         <div
-          className="group relative overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1"
+          className="hidden md:block group relative overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1"
           style={{
             aspectRatio: "1360 / 460",
             borderRadius: "12px",
@@ -68,7 +69,7 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                 >
                   {banner.title && (
                     <h3
-                      className="text-lg sm:text-xl md:text-2xl font-semibold leading-tight"
+                      className="text-xl md:text-2xl font-semibold leading-tight"
                       style={{ color: banner.title_color }}
                     >
                       {banner.title}
@@ -76,7 +77,7 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                   )}
                   {banner.subtitle && (
                     <p
-                      className="text-sm sm:text-base mt-1.5 leading-snug"
+                      className="text-base mt-1.5 leading-snug"
                       style={{ color: banner.subtitle_color }}
                     >
                       {banner.subtitle}
@@ -85,6 +86,72 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                   {banner.cta_text && (
                     <span
                       className="inline-block mt-3 px-6 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out hover:brightness-110 hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ backgroundColor: banner.cta_bg_color, color: banner.cta_text_color }}
+                    >
+                      {banner.cta_text}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* Mobile: auto height, no crop, image displayed fully */}
+        <div
+          className="md:hidden relative overflow-hidden"
+          style={{ borderRadius: "12px" }}
+        >
+          {activeBanners.map((banner, i) => (
+            <a
+              key={i}
+              href={banner.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full transition-opacity duration-700 ease-in-out cursor-pointer"
+              style={{
+                opacity: current === i ? 1 : 0,
+                pointerEvents: current === i ? "auto" : "none",
+                position: i === 0 ? "relative" : "absolute",
+                top: i === 0 ? undefined : 0,
+                left: i === 0 ? undefined : 0,
+                right: i === 0 ? undefined : 0,
+              }}
+              aria-hidden={current !== i}
+            >
+              <img
+                src={banner.image_url}
+                alt={banner.title || "Banner promocional"}
+                className="w-full h-auto object-contain"
+              />
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <div
+                  className="rounded-xl px-5 py-4 max-w-[92%] text-center shadow-lg"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.65)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                  }}
+                >
+                  {banner.title && (
+                    <h3
+                      className="text-base font-semibold leading-tight"
+                      style={{ color: banner.title_color }}
+                    >
+                      {banner.title}
+                    </h3>
+                  )}
+                  {banner.subtitle && (
+                    <p
+                      className="text-sm mt-1 leading-snug"
+                      style={{ color: banner.subtitle_color }}
+                    >
+                      {banner.subtitle}
+                    </p>
+                  )}
+                  {banner.cta_text && (
+                    <span
+                      className="inline-block mt-2.5 px-5 py-1.5 rounded-md text-sm font-medium"
                       style={{ backgroundColor: banner.cta_bg_color, color: banner.cta_text_color }}
                     >
                       {banner.cta_text}
