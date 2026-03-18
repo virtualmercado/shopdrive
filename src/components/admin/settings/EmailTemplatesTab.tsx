@@ -37,7 +37,7 @@ const EmailTemplatesTab = () => {
 
   // Local form state for sender config
   const [senderForm, setSenderForm] = useState({
-    provider: "resend",
+    provider: "smtp",
     sender_name: "ShopDrive",
     sender_email: "noreply@shopdrive.com.br",
     reply_to: "suporte@shopdrive.com.br",
@@ -46,6 +46,7 @@ const EmailTemplatesTab = () => {
     smtp_user: "",
     smtp_password: "",
     smtp_security: "tls",
+    allow_tenant_custom_smtp: true,
   });
   const [senderFormLoaded, setSenderFormLoaded] = useState(false);
 
@@ -53,7 +54,7 @@ const EmailTemplatesTab = () => {
   if (emailSettings.settings && !senderFormLoaded) {
     const s = emailSettings.settings;
     setSenderForm({
-      provider: s.provider || "resend",
+      provider: "smtp",
       sender_name: s.sender_name || "ShopDrive",
       sender_email: s.sender_email || "",
       reply_to: s.reply_to || "",
@@ -62,6 +63,7 @@ const EmailTemplatesTab = () => {
       smtp_user: s.smtp_user || "",
       smtp_password: s.smtp_password || "",
       smtp_security: s.smtp_security || "tls",
+      allow_tenant_custom_smtp: s.allow_tenant_custom_smtp !== false,
     });
     setSenderFormLoaded(true);
   }
