@@ -73,15 +73,55 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
     address_type: 'delivery'
   });
 
+  // Detect template editor mode to avoid leaking admin data
+  const isTemplateMode = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
+      const stored = localStorage.getItem('templateEditorContext');
+      if (stored) {
+        const ctx = JSON.parse(stored);
+        if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
+      }
+    } catch { /* ignore */ }
+    return false;
+  })();
+
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [userId, isTemplateMode]);
 
   const fetchData = async () => {
     if (!userId) return;
 
-    // Get current user session to get email
-    const { data: { user } } = await supabase.auth.getUser();
+    // In template editor mode, use mock data — never fetch real auth/user data
+    if (isTemplateMode) {
+      const mockProfile: CustomerProfile = {
+        id: userId,
+        full_name: '—',
+        email: '—',
+        phone: null,
+        home_phone: null,
+        cpf: null,
+        birth_date: null,
+        gender: null,
+        person_type: 'PF',
+      };
+      setProfile(mockProfile);
+      setFormData({
+        full_name: '—',
+        email: '—',
+        phone: '',
+        home_phone: '',
+        cpf: '',
+        birth_date: '',
+        gender: '',
+        person_type: 'PF'
+      });
+      setAddresses([]);
+      setLoading(false);
+      return;
+    }
 
     const { data: profileData } = await supabase
       .from('customer_profiles')
@@ -101,11 +141,11 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
         gender: (profileData as any).gender || '',
         person_type: (profileData as any).person_type || 'PF'
       });
-    } else if (user) {
-      // Profile doesn't exist yet, initialize form with user data
+    } else {
+      // No profile yet — show empty fields, never fallback to auth user data
       setFormData({
-        full_name: user.user_metadata?.full_name || '',
-        email: user.email || '',
+        full_name: '',
+        email: '',
         phone: '',
         home_phone: '',
         cpf: '',
