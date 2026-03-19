@@ -257,50 +257,43 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     localStorage.removeItem('adminSessionToRestore');
     localStorage.removeItem('adminSessionRefreshToken');
 
-    // 1) Preferred path: restore full admin session directly (no intermediate SIGNED_OUT)
+    // 1) Preferred path: use refreshSession with the saved refresh_token.
+    // We avoid setSession because the access_token may be expired; refreshSession
+    // uses only the refresh_token (which is still valid because we no longer call
+    // signOut when entering template mode).
+    let refreshToken: string | null = null;
+
     if (savedAdminSessionRaw) {
       try {
         const parsed = JSON.parse(savedAdminSessionRaw) as { access_token?: string; refresh_token?: string };
-        if (parsed?.access_token && parsed?.refresh_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token: parsed.access_token,
-            refresh_token: parsed.refresh_token,
-          });
-
-          if (!error) {
-            navigate('/gestor/templates-marca', { replace: true });
-            window.location.reload();
-            return;
-          }
-
-          console.error('Failed to restore admin session via setSession:', error);
-        }
+        refreshToken = parsed?.refresh_token || null;
       } catch (err) {
         console.error('Error parsing saved admin session:', err);
       }
     }
 
-    // 2) Legacy fallback: refresh using stored refresh token
-    if (legacyRefreshToken) {
+    // Use legacy key as fallback
+    if (!refreshToken && legacyRefreshToken) {
+      refreshToken = legacyRefreshToken;
+    }
+
+    if (refreshToken) {
       try {
-        const { error } = await supabase.auth.refreshSession({ refresh_token: legacyRefreshToken });
+        const { error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
         if (!error) {
-          navigate('/gestor/templates-marca', { replace: true });
-          window.location.reload();
+          console.info('[TemplateExit] Admin session restored via refreshSession');
+          window.location.href = '/gestor/templates-marca';
           return;
         }
-        console.error('Failed to restore admin session via refreshSession:', error);
+        console.error('[TemplateExit] Failed to restore admin session:', error);
       } catch (err) {
-        console.error('Error restoring admin session via refreshSession:', err);
+        console.error('[TemplateExit] Error restoring admin session:', err);
       }
     }
 
-    // 3) Final fallback
-    if (window.opener) {
-      window.close();
-    } else {
-      navigate('/gestor/templates-marca', { replace: true });
-    }
+    // 2) Final fallback — redirect to admin login
+    console.warn('[TemplateExit] Could not restore admin session, redirecting to login');
+    window.location.href = '/gestor/login';
   };
 
   const handleCopyLink = async () => {
