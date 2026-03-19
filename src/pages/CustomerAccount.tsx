@@ -10,22 +10,7 @@ import CustomerAccountSection from "@/components/customer/CustomerAccountSection
 import CustomerOrdersSection from "@/components/customer/CustomerOrdersSection";
 import CustomerWishlistSection from "@/components/customer/CustomerWishlistSection";
 import CustomerPasswordSection from "@/components/customer/CustomerPasswordSection";
-
-type TabType = 'account' | 'orders' | 'wishlist' | 'password';
-
-/** Detect if we're inside the template editor sandbox */
-const detectTemplateMode = (): boolean => {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
-    const stored = localStorage.getItem('templateEditorContext');
-    if (stored) {
-      const ctx = JSON.parse(stored);
-      if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
-    }
-  } catch { /* ignore */ }
-  return false;
-};
+import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
 
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
