@@ -12,6 +12,8 @@ import CustomerWishlistSection from "@/components/customer/CustomerWishlistSecti
 import CustomerPasswordSection from "@/components/customer/CustomerPasswordSection";
 import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
 
+type TabType = 'account' | 'orders' | 'wishlist' | 'password';
+
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
