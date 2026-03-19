@@ -3,10 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { MerchantPlan, getPlanFromPlanId, getPlanLimits, PlanLimits, isWithinLimit } from '@/lib/planLimits';
 
-/** All-unlocked limits used when template editor mode is active */
+/** 
+ * Template editor mode: all features unlocked but product/customer limits
+ * match the FREE plan, since activated templates become free accounts.
+ */
 const TEMPLATE_OVERRIDE_LIMITS: PlanLimits = {
-  maxProducts: null,
-  maxCustomers: null,
+  maxProducts: 20,
+  maxCustomers: 40,
   canCustomizeLogo: true,
   canCustomizeColors: true,
   canUseCustomDomain: true,
