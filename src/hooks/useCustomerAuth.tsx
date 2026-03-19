@@ -2,35 +2,46 @@ import { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTemplatePreviewSandbox } from '@/contexts/TemplatePreviewContext';
+
+const PREVIEW_AUTH_ERROR = 'Autenticação desabilitada no preview do template.';
 
 export const useCustomerAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isTemplatePreview } = useTemplatePreviewSandbox();
 
   useEffect(() => {
+    if (isTemplatePreview) {
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, nextSession) => {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isTemplatePreview]);
 
   const signUp = async (
-    email: string, 
-    password: string, 
-    fullName: string, 
+    email: string,
+    password: string,
+    fullName: string,
     storeSlug: string,
     additionalData?: {
       phone?: string;
@@ -38,7 +49,6 @@ export const useCustomerAuth = () => {
       person_type?: string;
       gender?: string;
       cpf?: string;
-      // Address fields
       cep?: string;
       street?: string;
       number?: string;
@@ -49,8 +59,12 @@ export const useCustomerAuth = () => {
     },
     storeOwnerId?: string
   ) => {
+    if (isTemplatePreview) {
+      return { data: null, error: new Error(PREVIEW_AUTH_ERROR) };
+    }
+
     const redirectUrl = `${window.location.origin}/loja/${storeSlug}/conta`;
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -76,7 +90,6 @@ export const useCustomerAuth = () => {
       return { data: null, error };
     }
 
-    // Create customer profile with additional data
     if (data?.user) {
       const profileData = {
         id: data.user.id,
@@ -90,15 +103,14 @@ export const useCustomerAuth = () => {
       };
 
       const { error: profileError } = await supabase.from('customer_profiles').upsert(
-        profileData, 
+        profileData,
         { onConflict: 'id' }
       );
-      
+
       if (profileError) {
         console.error('Error creating customer profile:', profileError);
       }
 
-      // Create address if provided
       if (additionalData?.cep && additionalData?.street && additionalData?.number) {
         const addressData = {
           customer_id: data.user.id,
@@ -115,7 +127,7 @@ export const useCustomerAuth = () => {
         };
 
         const { error: addressError } = await supabase.from('customer_addresses').insert(addressData);
-        
+
         if (addressError) {
           console.error('Error creating customer address:', addressError);
         }
@@ -131,6 +143,10 @@ export const useCustomerAuth = () => {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (isTemplatePreview) {
+      return { error: new Error(PREVIEW_AUTH_ERROR) };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -154,8 +170,12 @@ export const useCustomerAuth = () => {
   };
 
   const signOut = async () => {
+    if (isTemplatePreview) {
+      return { error: new Error(PREVIEW_AUTH_ERROR) };
+    }
+
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       toast({
         title: "Erro ao sair",
@@ -168,9 +188,15 @@ export const useCustomerAuth = () => {
         description: "Até logo!",
       });
     }
+
+    return { error };
   };
 
   const updatePassword = async (newPassword: string) => {
+    if (isTemplatePreview) {
+      return { error: new Error(PREVIEW_AUTH_ERROR) };
+    }
+
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     });
