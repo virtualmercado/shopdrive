@@ -118,8 +118,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             }
             localStorage.removeItem('adminSessionRefreshToken');
             
-            // Always sign out first to ensure clean session switch
-            await supabase.auth.signOut();
+            // Do NOT call signOut() here — it revokes the admin session on the server,
+            // making the saved refresh_token useless when we try to restore later.
+            // signInWithPassword below will replace the local session without revoking the admin's server-side session.
             
             // Login as template profile
             const { error: loginError } = await supabase.auth.signInWithPassword({
