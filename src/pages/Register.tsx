@@ -107,12 +107,6 @@ const Register = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.id]: e.target.value
-    }));
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
@@ -139,63 +133,73 @@ const Register = () => {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome completo</Label>
+            <Label htmlFor="reg_name">Nome completo</Label>
             <Input
-              id="name"
+              id="reg_name"
+              name="reg_name"
               type="text"
               placeholder="João Silva"
               value={formData.name}
-              onChange={handleChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              autoComplete="off"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="storeName">Nome da loja</Label>
+            <Label htmlFor="reg_storeName">Nome da loja</Label>
             <Input
-              id="storeName"
+              id="reg_storeName"
+              name="reg_storeName"
               type="text"
               placeholder="Minha Loja Virtual"
               value={formData.storeName}
-              onChange={handleChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, storeName: e.target.value }))}
+              autoComplete="off"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="reg_email">Email</Label>
             <Input
-              id="email"
+              id="reg_email"
+              name="reg_email"
               type="email"
               placeholder="seu@email.com"
               value={formData.email}
-              onChange={handleChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              autoComplete="new-email"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
+            <Label htmlFor="reg_password">Senha</Label>
             <Input
-              id="password"
+              id="reg_password"
+              name="reg_password"
               type="password"
               placeholder="••••••••"
               value={formData.password}
-              onChange={handleChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              autoComplete="new-password"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmar senha</Label>
+            <Label htmlFor="reg_confirmPassword">Confirmar senha</Label>
             <Input
-              id="confirmPassword"
+              id="reg_confirmPassword"
+              name="reg_confirmPassword"
               type="password"
               placeholder="••••••••"
               value={formData.confirmPassword}
-              onChange={handleChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              autoComplete="new-password"
               required
             />
           </div>
