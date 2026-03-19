@@ -82,7 +82,6 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
   };
 
   const exitTemplateMode = async () => {
-    // Clear localStorage context
     localStorage.removeItem('templateEditorContext');
 
     const savedAdminSessionRaw = localStorage.getItem('adminSessionToRestore');
@@ -90,45 +89,35 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
     localStorage.removeItem('adminSessionToRestore');
     localStorage.removeItem('adminSessionRefreshToken');
 
+    // Extract refresh_token from saved session
+    let refreshToken: string | null = null;
     if (savedAdminSessionRaw) {
       try {
         const parsed = JSON.parse(savedAdminSessionRaw) as { access_token?: string; refresh_token?: string };
-        if (parsed?.access_token && parsed?.refresh_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token: parsed.access_token,
-            refresh_token: parsed.refresh_token,
-          });
-
-          if (!error) {
-            window.location.href = '/gestor/templates-marca';
-            return;
-          }
-
-          console.error('Failed to restore admin session via setSession:', error);
-        }
+        refreshToken = parsed?.refresh_token || null;
       } catch (err) {
         console.error('Error parsing saved admin session:', err);
       }
     }
+    if (!refreshToken && legacyRefreshToken) {
+      refreshToken = legacyRefreshToken;
+    }
 
-    if (legacyRefreshToken) {
+    if (refreshToken) {
       try {
-        const { error } = await supabase.auth.refreshSession({ refresh_token: legacyRefreshToken });
+        const { error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
         if (!error) {
           window.location.href = '/gestor/templates-marca';
           return;
         }
+        console.error('Failed to restore admin session:', error);
       } catch (err) {
-        console.error('Error restoring admin session via refreshSession:', err);
+        console.error('Error restoring admin session:', err);
       }
     }
 
     // Fallback
-    if (window.opener) {
-      window.close();
-    } else {
-      window.location.href = '/gestor/templates-marca';
-    }
+    window.location.href = '/gestor/login';
   };
 
   return (
