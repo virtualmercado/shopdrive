@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Key, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Key, CheckCircle, Lock } from "lucide-react";
 import { z } from "zod";
 
 const passwordSchema = z.object({
@@ -17,9 +17,10 @@ const passwordSchema = z.object({
 
 interface CustomerPasswordSectionProps {
   storeProfile: any;
+  isTemplateMode?: boolean;
 }
 
-const CustomerPasswordSection = ({ storeProfile }: CustomerPasswordSectionProps) => {
+const CustomerPasswordSection = ({ storeProfile, isTemplateMode = false }: CustomerPasswordSectionProps) => {
   const { updatePassword } = useCustomerAuth();
   const { toast } = useToast();
   
@@ -29,6 +30,26 @@ const CustomerPasswordSection = ({ storeProfile }: CustomerPasswordSectionProps)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const buttonBgColor = storeProfile?.button_bg_color || storeProfile?.primary_color || '#6a1b9a';
+  const buttonTextColor = storeProfile?.button_text_color || '#FFFFFF';
+  const buttonBorderStyle = storeProfile?.button_border_style === 'straight' ? '0' : '0.5rem';
+
+  // In template mode, show a neutral placeholder — never allow password changes
+  if (isTemplateMode) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Alterar Senha</h1>
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="text-center py-8 text-muted-foreground">
+            <Lock className="h-16 w-16 mx-auto mb-4 opacity-30" />
+            <h3 className="text-lg font-medium mb-2">Alteração de senha</h3>
+            <p>Funcionalidade disponível para clientes autenticados.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +78,6 @@ const CustomerPasswordSection = ({ storeProfile }: CustomerPasswordSectionProps)
       setLoading(false);
     }
   };
-
-  const buttonBgColor = storeProfile?.button_bg_color || storeProfile?.primary_color || '#6a1b9a';
-  const buttonTextColor = storeProfile?.button_text_color || '#FFFFFF';
-  const buttonBorderStyle = storeProfile?.button_border_style === 'straight' ? '0' : '0.5rem';
 
   return (
     <div className="space-y-6">

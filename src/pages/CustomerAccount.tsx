@@ -13,6 +13,20 @@ import CustomerPasswordSection from "@/components/customer/CustomerPasswordSecti
 
 type TabType = 'account' | 'orders' | 'wishlist' | 'password';
 
+/** Detect if we're inside the template editor sandbox */
+const detectTemplateMode = (): boolean => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
+    const stored = localStorage.getItem('templateEditorContext');
+    if (stored) {
+      const ctx = JSON.parse(stored);
+      if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+};
+
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
@@ -23,11 +37,15 @@ const CustomerAccount = () => {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isTemplateMode = detectTemplateMode();
+
   useEffect(() => {
+    // In template mode, skip auth redirect — page is a neutral preview
+    if (isTemplateMode) return;
     if (!authLoading && !user) {
       navigate(`/loja/${storeSlug}/auth`, { replace: true });
     }
-  }, [user, authLoading, navigate, storeSlug]);
+  }, [user, authLoading, navigate, storeSlug, isTemplateMode]);
 
   useEffect(() => {
     const fetchStoreProfile = async () => {
@@ -47,11 +65,20 @@ const CustomerAccount = () => {
   }, [storeSlug]);
 
   const handleLogout = async () => {
+    if (isTemplateMode) return; // Never sign out in template mode
     await signOut();
     navigate(`/loja/${storeSlug}`);
   };
 
-  if (authLoading || loading) {
+  if (!isTemplateMode && (authLoading || loading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Carregando...</div>
@@ -61,7 +88,6 @@ const CustomerAccount = () => {
 
   const buttonBgColor = storeProfile?.button_bg_color || storeProfile?.primary_color || '#6a1b9a';
   const buttonTextColor = storeProfile?.button_text_color || '#FFFFFF';
-  const buttonBorderStyle = storeProfile?.button_border_style === 'straight' ? '0' : '0.5rem';
 
   const menuItems = [
     { id: 'account' as TabType, label: 'Minha Conta', icon: User },
@@ -74,6 +100,9 @@ const CustomerAccount = () => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
   };
+
+  // In template mode, never pass the real admin userId — use empty string
+  const safeUserId = isTemplateMode ? '' : (user?.id || '');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: storeProfile?.font_family || 'Inter' }}>
@@ -140,13 +169,15 @@ const CustomerAccount = () => {
                 </button>
               );
             })}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="h-5 w-5" />
-              Sair
-            </button>
+            {!isTemplateMode && (
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                Sair
+              </button>
+            )}
           </nav>
         </aside>
 
@@ -174,13 +205,15 @@ const CustomerAccount = () => {
                   </button>
                 );
               })}
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-                Sair
-              </button>
+              {!isTemplateMode && (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="h-5 w-5" />
+                  Sair
+                </button>
+              )}
               <Link 
                 to={`/loja/${storeSlug}`} 
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-muted-foreground hover:bg-gray-100"
@@ -222,25 +255,29 @@ const CustomerAccount = () => {
             {activeTab === 'account' && (
               <CustomerAccountSection 
                 storeProfile={storeProfile}
-                userId={user?.id || ''}
+                userId={safeUserId}
+                isTemplateMode={isTemplateMode}
               />
             )}
             {activeTab === 'orders' && (
               <CustomerOrdersSection 
                 storeProfile={storeProfile}
-                userId={user?.id || ''}
+                userId={safeUserId}
+                isTemplateMode={isTemplateMode}
               />
             )}
             {activeTab === 'wishlist' && (
               <CustomerWishlistSection 
                 storeProfile={storeProfile}
                 storeSlug={storeSlug || ''}
-                userId={user?.id || ''}
+                userId={safeUserId}
+                isTemplateMode={isTemplateMode}
               />
             )}
             {activeTab === 'password' && (
               <CustomerPasswordSection 
                 storeProfile={storeProfile}
+                isTemplateMode={isTemplateMode}
               />
             )}
           </div>
