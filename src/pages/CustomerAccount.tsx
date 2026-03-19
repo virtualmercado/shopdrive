@@ -24,7 +24,7 @@ const CustomerAccount = () => {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isTemplateMode = detectTemplateMode();
+  const { isTemplatePreview: isTemplateMode } = useTemplatePreviewSandbox();
 
   useEffect(() => {
     // In template mode, skip auth redirect — page is a neutral preview
