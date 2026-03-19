@@ -185,14 +185,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     const fetchTemplateName = async () => {
       if (!templateId) return;
-      
-      const { data } = await supabase
+
+      const { data, error } = await supabase
         .from('brand_templates')
         .select('name')
         .eq('id', templateId)
-        .single();
-      
-      if (data) {
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[TemplateEditor] não foi possível carregar nome do template', {
+          template_id: templateId,
+          error: error.message,
+        });
+        return;
+      }
+
+      if (data?.name) {
         setTemplateName(data.name);
       }
     };
