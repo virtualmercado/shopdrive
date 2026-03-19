@@ -10,22 +10,9 @@ import CustomerAccountSection from "@/components/customer/CustomerAccountSection
 import CustomerOrdersSection from "@/components/customer/CustomerOrdersSection";
 import CustomerWishlistSection from "@/components/customer/CustomerWishlistSection";
 import CustomerPasswordSection from "@/components/customer/CustomerPasswordSection";
+import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
 
 type TabType = 'account' | 'orders' | 'wishlist' | 'password';
-
-/** Detect if we're inside the template editor sandbox */
-const detectTemplateMode = (): boolean => {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
-    const stored = localStorage.getItem('templateEditorContext');
-    if (stored) {
-      const ctx = JSON.parse(stored);
-      if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
-    }
-  } catch { /* ignore */ }
-  return false;
-};
 
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
@@ -37,7 +24,7 @@ const CustomerAccount = () => {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isTemplateMode = detectTemplateMode();
+  const { isTemplatePreview: isTemplateMode } = useTemplatePreviewSandbox();
 
   useEffect(() => {
     // In template mode, skip auth redirect — page is a neutral preview
