@@ -111,7 +111,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
   const limits = templateMode ? TEMPLATE_OVERRIDE_LIMITS : getPlanLimits(plan);
 
   return {
-    plan: templateMode ? 'premium' : plan,
+    plan: templateMode ? 'free' : plan,
     limits,
     loading: loading || authLoading,
     productCount,
