@@ -3,7 +3,7 @@ import AdminSubscriptionCheckout from "./pages/admin/AdminSubscriptionCheckout";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -57,6 +57,7 @@ import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
+import { TemplatePreviewProvider } from "./contexts/TemplatePreviewContext";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -80,121 +81,137 @@ import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
 
-import { Navigate } from "react-router-dom";
+const authQueryClient = new QueryClient();
+const publicQueryClient = new QueryClient();
 
-const queryClient = new QueryClient();
+const AuthRuntime = () => (
+  <QueryClientProvider client={authQueryClient}>
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  </QueryClientProvider>
+);
+
+const PublicRuntime = () => (
+  <QueryClientProvider client={publicQueryClient}>
+    <Outlet />
+  </QueryClientProvider>
+);
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-        <AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <TemplatePreviewProvider>
           <CookieConsentBanner />
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/criar-conta" element={<TemplateSignup />} />
-            <Route path="/link-indisponivel" element={<TemplateUnavailable />} />
-            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-            
-            {/* Admin Master Panel Routes */}
-            <Route path="/gestor/login" element={<AdminLogin />} />
-            <Route path="/gestor" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/gestor/comando-ia" element={<AdminRoute><AdminCommandCenter /></AdminRoute>} />
-            <Route path="/gestor/inteligencia-artificial" element={<AdminRoute><AdminAI /></AdminRoute>} />
-            <Route path="/gestor/assinantes" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
-            <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
-            <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
-            <Route path="/gestor/comunicacao" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
-            <Route path="/gestor/templates-marca" element={<AdminRoute><AdminBrandTemplates /></AdminRoute>} />
-            <Route path="/gestor/templates-marca/:templateId/editar" element={<AdminRoute><AdminBrandTemplateEdit /></AdminRoute>} />
-            <Route path="/gestor/templates-marca/:templateId/catalogo" element={<AdminRoute><AdminBrandTemplateCatalog /></AdminRoute>} />
-            <Route
-              path="/gestor/templates-marca/:templateId/preview"
-              element={
-                <AdminRoute>
-                  <AdminBrandTemplatePreview />
-                </AdminRoute>
-              }
-            />
-            <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
-            <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
-            <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />
-            <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
-            <Route path="/gestor/configuracoes" element={<AdminRoute><AdminPlatformSettings /></AdminRoute>} />
-            <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
-            <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
-            <Route path="/gestor/seguranca" element={<Navigate to="/gestor/configuracoes?tab=logs-seguranca" replace />} />
-            <Route path="/gestor/auditoria-imagens" element={<Navigate to="/gestor/configuracoes?tab=auditoria-imagens" replace />} />
-            <Route path="/gestor/usuarios" element={<Navigate to="/gestor/configuracoes?tab=usuarios" replace />} />
-            <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
-            
-            {/* Merchant Routes */}
-            <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
-            <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
-            
-            <Route path="/lojista/orders" element={<MerchantRoute><Orders /></MerchantRoute>} />
-            <Route path="/lojista/customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
-            <Route path="/lojista/customers/:customerId" element={<MerchantRoute><CustomerDetail /></MerchantRoute>} />
-            <Route path="/lojista/shipping" element={<MerchantRoute><Shipping /></MerchantRoute>} />
-            <Route path="/lojista/payment-methods" element={<MerchantRoute><PaymentMethods /></MerchantRoute>} />
-            <Route path="/lojista/catalog-pdf" element={<MerchantRoute><CatalogPDF /></MerchantRoute>} />
-            <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
-            <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />
-            <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
-            <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
-            <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
-            <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
-            <Route path="/lojista/marketing" element={<MerchantRoute><Marketing /></MerchantRoute>} />
-            <Route path="/lojista/reviews" element={<MerchantRoute><Reviews /></MerchantRoute>} />
-            <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
-            
-            {/* Public Store Routes */}
-            <Route path="/buscar" element={<StoreSearchResults />} />
-            <Route path="/loja/:storeSlug" element={<OnlineStore />} />
-            <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
-            <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
-            <Route path="/loja/:storeSlug/promocoes" element={<StorePromotionsPage />} />
-            <Route path="/loja/:storeSlug/marca/:brandId" element={<StoreBrandPage />} />
-            <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
-            <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
-            <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
-            <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
-            <Route path="/loja/:storeSlug/sobre-nos" element={<AboutUsPage />} />
-            
-            {/* Customer Account Routes */}
-            <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
-            <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
-            
-            {/* Landing Page Internal Routes (Coming Soon) */}
-            <Route path="/sobre-nos" element={<LandingAboutUs />} />
-            <Route path="/revenda/:slug" element={<ResaleLanding />} />
-            <Route path="/blog" element={<ComingSoon />} />
-            <Route path="/programa-de-afiliados" element={<ComingSoon />} />
-            <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
-            <Route path="/fale-conosco" element={<ContactPage />} />
-            <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
-            <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
-            <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />
-            
-            {/* Print Routes (no layout) */}
-            <Route path="/print/thermal" element={<PrintThermalOrder />} />
-            
-            {/* Public Quote Route */}
-            <Route path="/public/orcamento/:token" element={<PublicQuote />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route element={<AuthRuntime />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+
+              {/* Admin Master Panel Routes */}
+              <Route path="/gestor/login" element={<AdminLogin />} />
+              <Route path="/gestor" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/gestor/comando-ia" element={<AdminRoute><AdminCommandCenter /></AdminRoute>} />
+              <Route path="/gestor/inteligencia-artificial" element={<AdminRoute><AdminAI /></AdminRoute>} />
+              <Route path="/gestor/assinantes" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
+              <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
+              <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
+              <Route path="/gestor/comunicacao" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
+              <Route path="/gestor/templates-marca" element={<AdminRoute><AdminBrandTemplates /></AdminRoute>} />
+              <Route path="/gestor/templates-marca/:templateId/editar" element={<AdminRoute><AdminBrandTemplateEdit /></AdminRoute>} />
+              <Route path="/gestor/templates-marca/:templateId/catalogo" element={<AdminRoute><AdminBrandTemplateCatalog /></AdminRoute>} />
+              <Route
+                path="/gestor/templates-marca/:templateId/preview"
+                element={
+                  <AdminRoute>
+                    <AdminBrandTemplatePreview />
+                  </AdminRoute>
+                }
+              />
+              <Route path="/gestor/integracoes" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
+              <Route path="/gestor/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
+              <Route path="/gestor/biblioteca-midia" element={<AdminRoute><AdminMediaLibrary /></AdminRoute>} />
+              <Route path="/gestor/relatorios" element={<AdminRoute><AdminReports /></AdminRoute>} />
+              <Route path="/gestor/configuracoes" element={<AdminRoute><AdminPlatformSettings /></AdminRoute>} />
+              <Route path="/gestor/suporte" element={<AdminRoute><AdminSupport /></AdminRoute>} />
+              <Route path="/gestor/suporte-landing" element={<AdminRoute><AdminLandingSupport /></AdminRoute>} />
+              <Route path="/gestor/seguranca" element={<Navigate to="/gestor/configuracoes?tab=logs-seguranca" replace />} />
+              <Route path="/gestor/auditoria-imagens" element={<Navigate to="/gestor/configuracoes?tab=auditoria-imagens" replace />} />
+              <Route path="/gestor/usuarios" element={<Navigate to="/gestor/configuracoes?tab=usuarios" replace />} />
+              <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
+
+              {/* Merchant Routes */}
+              <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
+              <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
+
+              <Route path="/lojista/orders" element={<MerchantRoute><Orders /></MerchantRoute>} />
+              <Route path="/lojista/customers" element={<MerchantRoute><Customers /></MerchantRoute>} />
+              <Route path="/lojista/customers/:customerId" element={<MerchantRoute><CustomerDetail /></MerchantRoute>} />
+              <Route path="/lojista/shipping" element={<MerchantRoute><Shipping /></MerchantRoute>} />
+              <Route path="/lojista/payment-methods" element={<MerchantRoute><PaymentMethods /></MerchantRoute>} />
+              <Route path="/lojista/catalog-pdf" element={<MerchantRoute><CatalogPDF /></MerchantRoute>} />
+              <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
+              <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />
+              <Route path="/lojista/store" element={<MerchantRoute><StorePreviewEnhanced /></MerchantRoute>} />
+              <Route path="/lojista/messages" element={<MerchantRoute><Messages /></MerchantRoute>} />
+              <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
+              <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
+              <Route path="/lojista/marketing" element={<MerchantRoute><Marketing /></MerchantRoute>} />
+              <Route path="/lojista/reviews" element={<MerchantRoute><Reviews /></MerchantRoute>} />
+              <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
+            </Route>
+
+            <Route element={<PublicRuntime />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/criar-conta" element={<TemplateSignup />} />
+              <Route path="/link-indisponivel" element={<TemplateUnavailable />} />
+
+              {/* Public Store Routes */}
+              <Route path="/buscar" element={<StoreSearchResults />} />
+              <Route path="/loja/:storeSlug" element={<OnlineStore />} />
+              <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
+              <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
+              <Route path="/loja/:storeSlug/promocoes" element={<StorePromotionsPage />} />
+              <Route path="/loja/:storeSlug/marca/:brandId" element={<StoreBrandPage />} />
+              <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
+              <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
+              <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
+              <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
+              <Route path="/loja/:storeSlug/sobre-nos" element={<AboutUsPage />} />
+
+              {/* Customer Account Routes */}
+              <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
+              <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
+
+              {/* Landing Page Internal Routes (Coming Soon) */}
+              <Route path="/sobre-nos" element={<LandingAboutUs />} />
+              <Route path="/revenda/:slug" element={<ResaleLanding />} />
+              <Route path="/blog" element={<ComingSoon />} />
+              <Route path="/programa-de-afiliados" element={<ComingSoon />} />
+              <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
+              <Route path="/fale-conosco" element={<ContactPage />} />
+              <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
+              <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
+              <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />
+
+              {/* Print Routes (no layout) */}
+              <Route path="/print/thermal" element={<PrintThermalOrder />} />
+
+              {/* Public Quote Route */}
+              <Route path="/public/orcamento/:token" element={<PublicQuote />} />
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
-        </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+        </TemplatePreviewProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   );
 }
 
