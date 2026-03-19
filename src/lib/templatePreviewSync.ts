@@ -88,6 +88,16 @@ const toBenefitIds = (value: unknown): number[] => {
     .filter((entry) => Number.isFinite(entry));
 };
 
+const getReturnType = (value: unknown): 'null' | 'array' | 'object' | 'string' | 'number' | 'boolean' | 'undefined' => {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value as 'object' | 'string' | 'number' | 'boolean' | 'undefined';
+};
+
+const logStage = (stage: string, payload: Record<string, unknown>) => {
+  console.info(`[TemplateSync][${stage}]`, payload);
+};
+
 const missingBlockLabels: Record<keyof TemplateCompleteness, string> = {
   hasStoreSlug: 'slug da loja modelo',
   hasProducts: 'produtos ativos',
@@ -114,7 +124,7 @@ export const syncTemplatePreviewState = async (
     throw new Error('Template inválido para sincronização de preview.');
   }
 
-  console.info('[TemplateSync] início', {
+  logStage('00_start', {
     context,
     template_id: templateId,
     started_at: new Date().toISOString(),
@@ -124,30 +134,60 @@ export const syncTemplatePreviewState = async (
     .from('brand_templates')
     .select('id, name, source_profile_id')
     .eq('id', templateId)
-    .single();
+    .maybeSingle();
 
-  if (templateBaseError || !templateBase) {
-    throw new Error(templateBaseError?.message || 'Template não encontrado para sincronização.');
+  logStage('01_template_base', {
+    context,
+    template_id: templateId,
+    return_type: getReturnType(templateBase),
+    data: templateBase,
+    error: templateBaseError?.message ?? null,
+  });
+
+  if (templateBaseError) {
+    throw new Error(templateBaseError.message);
   }
 
-  if (!templateBase.source_profile_id) {
+  let sourceProfileId = templateBase?.source_profile_id ?? null;
+  let templateName = templateBase?.name ?? 'Template';
+
+  if (!templateBase && context !== 'template-save') {
+    throw new Error('Template não encontrado para sincronização.');
+  }
+
+  if (!sourceProfileId && context === 'template-save') {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    logStage('02_template_save_fallback_user', {
+      context,
+      template_id: templateId,
+      return_type: getReturnType(authData?.user ?? null),
+      user_id: authData?.user?.id ?? null,
+      error: authError?.message ?? null,
+    });
+
+    if (authError) {
+      throw new Error(authError.message);
+    }
+
+    sourceProfileId = authData.user?.id ?? null;
+  }
+
+  if (!sourceProfileId) {
     throw new Error('Template sem perfil-fonte vinculado.');
   }
 
   if (forceSync) {
-    const { error: syncError } = await supabase
-      .rpc('sync_template_from_profile', { p_template_id: templateId })
-      .then(
-        (res) => {
-          // void-returning RPCs may trigger "Cannot coerce" from PostgREST
-          // but the operation still succeeds — only propagate real DB errors
-          if (res.error && !res.error.message.includes('Cannot coerce')) {
-            return { error: res.error };
-          }
-          return { error: null };
-        },
-        (err) => ({ error: err }),
-      );
+    const { data: syncData, error: syncError } = await supabase
+      .rpc('sync_template_from_profile', { p_template_id: templateId });
+
+    logStage('03_rpc_sync_template_from_profile', {
+      context,
+      template_id: templateId,
+      return_type: getReturnType(syncData),
+      data: syncData ?? null,
+      error: syncError?.message ?? null,
+    });
 
     if (syncError) {
       throw new Error(`Falha no sync backend: ${syncError.message}`);
@@ -158,26 +198,67 @@ export const syncTemplatePreviewState = async (
     .from('brand_templates')
     .select('id, name, updated_at, source_profile_id')
     .eq('id', templateId)
-    .single();
+    .maybeSingle();
 
-  if (templateMetaError || !templateMeta) {
-    throw new Error(templateMetaError?.message || 'Falha ao obter metadados do template após sincronização.');
+  logStage('04_template_meta', {
+    context,
+    template_id: templateId,
+    return_type: getReturnType(templateMeta),
+    data: templateMeta,
+    error: templateMetaError?.message ?? null,
+  });
+
+  if (templateMetaError) {
+    throw new Error(templateMetaError.message);
+  }
+
+  const resolvedTemplateMeta = templateMeta ?? {
+    id: templateId,
+    name: templateName,
+    updated_at: new Date().toISOString(),
+    source_profile_id: sourceProfileId,
+  };
+
+  if (templateMeta) {
+    templateName = templateMeta.name;
+    sourceProfileId = templateMeta.source_profile_id ?? sourceProfileId;
   }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id, store_slug, updated_at, banner_desktop_urls, banner_mobile_urls, banner_desktop_url, banner_mobile_url, banner_rect_1_url, banner_rect_2_url, selected_benefit_banners, content_banners, content_banner_enabled, content_banner_image_url, button_bg_color, button_text_color, primary_color, secondary_color, store_layout, store_model, about_us_text')
-    .eq('id', templateMeta.source_profile_id)
-    .single();
+    .eq('id', sourceProfileId)
+    .maybeSingle();
 
-  if (profileError || !profile) {
-    throw new Error(profileError?.message || 'Perfil-fonte não encontrado para o template.');
+  logStage('05_profile_source', {
+    context,
+    template_id: templateId,
+    source_profile_id: sourceProfileId,
+    return_type: getReturnType(profile),
+    error: profileError?.message ?? null,
+  });
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  if (!profile) {
+    throw new Error('Perfil-fonte não encontrado para o template.');
   }
 
   const { data: products, error: productsError } = await supabase
     .from('products')
     .select('id, is_active')
-    .eq('user_id', templateMeta.source_profile_id);
+    .eq('user_id', sourceProfileId);
+
+  logStage('06_products_source', {
+    context,
+    template_id: templateId,
+    source_profile_id: sourceProfileId,
+    return_type: getReturnType(products),
+    rows: Array.isArray(products) ? products.length : null,
+    error: productsError?.message ?? null,
+  });
 
   if (productsError || !products) {
     throw new Error(productsError?.message || 'Falha ao carregar produtos do perfil-fonte.');
@@ -218,13 +299,13 @@ export const syncTemplatePreviewState = async (
     .map((key) => missingBlockLabels[key]);
 
   const result: TemplatePreviewSyncResult = {
-    templateId: templateMeta.id,
-    brandId: templateMeta.id,
-    templateName: templateMeta.name,
-    sourceProfileId: templateMeta.source_profile_id,
+    templateId: resolvedTemplateMeta.id,
+    brandId: resolvedTemplateMeta.id,
+    templateName,
+    sourceProfileId,
     storeSlug: profile.store_slug || '',
     snapshotSyncedAt: new Date().toISOString(),
-    templateUpdatedAt: templateMeta.updated_at,
+    templateUpdatedAt: resolvedTemplateMeta.updated_at,
     profileUpdatedAt: profile.updated_at,
     productCount: {
       total: products.length,

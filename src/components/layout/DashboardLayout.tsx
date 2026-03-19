@@ -185,14 +185,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     const fetchTemplateName = async () => {
       if (!templateId) return;
-      
-      const { data } = await supabase
+
+      const { data, error } = await supabase
         .from('brand_templates')
         .select('name')
         .eq('id', templateId)
-        .single();
-      
-      if (data) {
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[TemplateEditor] não foi possível carregar nome do template', {
+          template_id: templateId,
+          error: error.message,
+        });
+        return;
+      }
+
+      if (data?.name) {
         setTemplateName(data.name);
       }
     };
@@ -204,10 +212,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleSaveTemplate = async () => {
     if (!templateId) return;
-    
+
     setIsSavingTemplate(true);
-    
+
     try {
+      console.info('[TemplateSave] início', {
+        template_id: templateId,
+        started_at: new Date().toISOString(),
+      });
+
       const syncResult = await syncTemplatePreviewState(templateId, {
         context: 'template-save',
         forceSync: true,
@@ -222,8 +235,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         toast.success('Template salvo com sincronização completa para preview.');
       }
     } catch (error: any) {
-      console.error('Error saving template:', error);
-      toast.error(`Erro ao salvar template: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Falha desconhecida na sincronização';
+      console.error('[TemplateSave] falha na sincronização pós-salvamento', {
+        template_id: templateId,
+        error: message,
+      });
+      toast.error(`Falha na sincronização do preview: ${message}`);
     } finally {
       setIsSavingTemplate(false);
     }
