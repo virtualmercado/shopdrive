@@ -40,9 +40,14 @@ const CustomerAccountDropdown = ({
   const [orders, setOrders] = useState<RecentOrder[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimeout = useRef<number | null>(null);
+  const { isTemplatePreview } = useTemplatePreviewSandbox();
 
-  // Check auth state
+  // Check auth state — skip entirely in template preview
   useEffect(() => {
+    if (isTemplatePreview) {
+      setUserId(null);
+      return;
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUserId(session?.user?.id ?? null);
     });
@@ -51,7 +56,7 @@ const CustomerAccountDropdown = ({
       setLoaded(false); // reset data on auth change
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isTemplatePreview]);
 
   // Load data lazily when dropdown opens
   useEffect(() => {
