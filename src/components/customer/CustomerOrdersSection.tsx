@@ -25,9 +25,10 @@ interface OrderItem {
 interface CustomerOrdersSectionProps {
   storeProfile: any;
   userId: string;
+  isTemplateMode?: boolean;
 }
 
-const CustomerOrdersSection = ({ storeProfile, userId }: CustomerOrdersSectionProps) => {
+const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }: CustomerOrdersSectionProps) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -35,8 +36,13 @@ const CustomerOrdersSection = ({ storeProfile, userId }: CustomerOrdersSectionPr
   const [loadingItems, setLoadingItems] = useState(false);
 
   useEffect(() => {
+    if (isTemplateMode) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     fetchOrders();
-  }, [userId, storeProfile?.id]);
+  }, [userId, storeProfile?.id, isTemplateMode]);
 
   const fetchOrders = async () => {
     if (!userId || !storeProfile?.id) return;
@@ -149,7 +155,6 @@ const CustomerOrdersSection = ({ storeProfile, userId }: CustomerOrdersSectionPr
         </div>
       ) : (
         <>
-          {/* Last Order */}
           {lastOrder && (
             <section className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -184,7 +189,6 @@ const CustomerOrdersSection = ({ storeProfile, userId }: CustomerOrdersSectionPr
             </section>
           )}
 
-          {/* Previous Orders */}
           {previousOrders.length > 0 && (
             <section className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold mb-4">Pedidos Anteriores</h2>

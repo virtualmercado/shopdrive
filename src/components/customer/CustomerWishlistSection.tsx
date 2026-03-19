@@ -22,16 +22,22 @@ interface CustomerWishlistSectionProps {
   storeProfile: any;
   storeSlug: string;
   userId: string;
+  isTemplateMode?: boolean;
 }
 
-const CustomerWishlistSection = ({ storeProfile, storeSlug, userId }: CustomerWishlistSectionProps) => {
+const CustomerWishlistSection = ({ storeProfile, storeSlug, userId, isTemplateMode = false }: CustomerWishlistSectionProps) => {
   const { toast } = useToast();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isTemplateMode) {
+      setWishlist([]);
+      setLoading(false);
+      return;
+    }
     fetchWishlist();
-  }, [userId, storeProfile?.id]);
+  }, [userId, storeProfile?.id, isTemplateMode]);
 
   const fetchWishlist = async () => {
     if (!userId || !storeProfile?.id) return;
@@ -54,7 +60,6 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId }: CustomerWi
       .eq('store_owner_id', storeProfile.id);
 
     if (data) {
-      // Fix the type mapping
       const mappedData = data.map(item => ({
         id: item.id,
         product_id: item.product_id,
@@ -66,6 +71,7 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId }: CustomerWi
   };
 
   const handleRemoveFromWishlist = async (favoriteId: string) => {
+    if (isTemplateMode) return;
     const { error } = await supabase
       .from('customer_favorites')
       .delete()

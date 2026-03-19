@@ -37,9 +37,10 @@ interface CustomerAddress {
 interface CustomerAccountSectionProps {
   storeProfile: any;
   userId: string;
+  isTemplateMode?: boolean;
 }
 
-const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSectionProps) => {
+const CustomerAccountSection = ({ storeProfile, userId, isTemplateMode = false }: CustomerAccountSectionProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
@@ -73,31 +74,15 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
     address_type: 'delivery'
   });
 
-  // Detect template editor mode to avoid leaking admin data
-  const isTemplateMode = (() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('mode') === 'template-editor' && params.get('templateId')) return true;
-      const stored = localStorage.getItem('templateEditorContext');
-      if (stored) {
-        const ctx = JSON.parse(stored);
-        if (ctx?.mode === 'template-editor' && ctx?.templateId) return true;
-      }
-    } catch { /* ignore */ }
-    return false;
-  })();
-
   useEffect(() => {
     fetchData();
   }, [userId, isTemplateMode]);
 
   const fetchData = async () => {
-    if (!userId) return;
-
-    // In template editor mode, use mock data — never fetch real auth/user data
+    // In template mode, always use neutral mock data — never fetch real data
     if (isTemplateMode) {
       const mockProfile: CustomerProfile = {
-        id: userId,
+        id: 'mock',
         full_name: '—',
         email: '—',
         phone: null,
@@ -122,6 +107,8 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
       setLoading(false);
       return;
     }
+
+    if (!userId) return;
 
     const { data: profileData } = await supabase
       .from('customer_profiles')
@@ -199,6 +186,8 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleSaveProfile = async () => {
+    if (isTemplateMode) return; // Block writes in template mode
+
     // Use upsert to create profile if it doesn't exist
     const { error } = await supabase
       .from('customer_profiles')
@@ -267,6 +256,8 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleSaveAddress = async () => {
+    if (isTemplateMode) return; // Block writes in template mode
+
     // First, ensure customer profile exists before saving address
     const { data: existingProfile } = await supabase
       .from('customer_profiles')
@@ -275,7 +266,6 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
       .maybeSingle();
 
     if (!existingProfile) {
-      // Create customer profile first if it doesn't exist
       const { error: profileError } = await supabase
         .from('customer_profiles')
         .insert({
@@ -294,7 +284,6 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
         return;
       }
 
-      // Also create store_customers link when creating profile via address save
       if (storeProfile?.id) {
         await supabase
           .from('store_customers')
@@ -343,7 +332,6 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
       }
     }
 
-    // If setting as default, remove default from others
     if (addressForm.is_default) {
       await supabase
         .from('customer_addresses')
@@ -360,6 +348,7 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleDeleteAddress = async (addressId: string) => {
+    if (isTemplateMode) return;
     const { error } = await supabase
       .from('customer_addresses')
       .delete()
@@ -374,6 +363,7 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
   };
 
   const handleSetDefaultAddress = async (addressId: string) => {
+    if (isTemplateMode) return;
     await supabase
       .from('customer_addresses')
       .update({ is_default: false })
@@ -444,7 +434,7 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
       <section className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Dados Pessoais</h2>
-          {!editing ? (
+          {!isTemplateMode && !editing ? (
             <Button
               variant="outline"
               size="sm"
@@ -454,7 +444,7 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
               <Edit2 className="h-4 w-4" />
               Editar
             </Button>
-          ) : (
+          ) : !isTemplateMode && editing ? (
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -472,31 +462,31 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
                 Salvar
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label className="text-sm text-muted-foreground">Nome completo</Label>
-            {editing ? (
+            {editing && !isTemplateMode ? (
               <Input 
                 value={formData.full_name} 
                 onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 className="mt-1"
               />
             ) : (
-              <p className="font-medium">{profile?.full_name || '-'}</p>
+              <p className="font-medium">{profile?.full_name || '—'}</p>
             )}
           </div>
 
           <div>
             <Label className="text-sm text-muted-foreground">E-mail</Label>
-            <p className="font-medium text-muted-foreground">{profile?.email || '-'}</p>
+            <p className="font-medium text-muted-foreground">{profile?.email || '—'}</p>
           </div>
 
           <div>
             <Label className="text-sm text-muted-foreground">Telefone celular</Label>
-            {editing ? (
+            {editing && !isTemplateMode ? (
               <Input 
                 value={formData.phone} 
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
@@ -504,13 +494,13 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
                 className="mt-1"
               />
             ) : (
-              <p className="font-medium">{formData.phone ? formatPhone(formData.phone) : '-'}</p>
+              <p className="font-medium">{profile?.phone ? formatPhone(profile.phone) : '—'}</p>
             )}
           </div>
 
           <div>
-            <Label className="text-sm text-muted-foreground">Telefone residencial (opcional)</Label>
-            {editing ? (
+            <Label className="text-sm text-muted-foreground">Telefone fixo</Label>
+            {editing && !isTemplateMode ? (
               <Input 
                 value={formData.home_phone} 
                 onChange={(e) => setFormData(prev => ({ ...prev, home_phone: formatPhone(e.target.value) }))}
@@ -518,75 +508,29 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
                 className="mt-1"
               />
             ) : (
-              <p className="font-medium">{formData.home_phone ? formatPhone(formData.home_phone) : '-'}</p>
+              <p className="font-medium">{profile?.home_phone ? formatPhone(profile.home_phone) : '—'}</p>
             )}
           </div>
 
           <div>
-            <Label className="text-sm text-muted-foreground">Data de nascimento</Label>
-            {editing ? (
-              <Input 
-                type="date"
-                value={formData.birth_date} 
-                onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
-                className="mt-1"
-              />
-            ) : (
-              <p className="font-medium">
-                {formData.birth_date ? new Date(formData.birth_date).toLocaleDateString('pt-BR') : '-'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-sm text-muted-foreground">Sexo</Label>
-            {editing ? (
-              <RadioGroup 
-                value={formData.gender} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                className="flex gap-4 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="M" id="gender-m" />
-                  <Label htmlFor="gender-m" className="font-normal cursor-pointer">Masculino</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="F" id="gender-f" />
-                  <Label htmlFor="gender-f" className="font-normal cursor-pointer">Feminino</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="O" id="gender-o" />
-                  <Label htmlFor="gender-o" className="font-normal cursor-pointer">Outro</Label>
-                </div>
-              </RadioGroup>
-            ) : (
-              <p className="font-medium">
-                {formData.gender === 'M' ? 'Masculino' : formData.gender === 'F' ? 'Feminino' : formData.gender === 'O' ? 'Outro' : '-'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-sm text-muted-foreground">Tipo de cadastro</Label>
-            {editing ? (
+            <Label className="text-sm text-muted-foreground">Tipo de pessoa</Label>
+            {editing && !isTemplateMode ? (
               <RadioGroup 
                 value={formData.person_type} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, person_type: value, cpf: '' }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, person_type: value }))}
                 className="flex gap-4 mt-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="PF" id="type-pf" />
-                  <Label htmlFor="type-pf" className="font-normal cursor-pointer">Pessoa Física</Label>
+                  <RadioGroupItem value="PF" id="pf" />
+                  <Label htmlFor="pf">Pessoa Física</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="PJ" id="type-pj" />
-                  <Label htmlFor="type-pj" className="font-normal cursor-pointer">Pessoa Jurídica</Label>
+                  <RadioGroupItem value="PJ" id="pj" />
+                  <Label htmlFor="pj">Pessoa Jurídica</Label>
                 </div>
               </RadioGroup>
             ) : (
-              <p className="font-medium">
-                {formData.person_type === 'PJ' ? 'Pessoa Jurídica' : 'Pessoa Física'}
-              </p>
+              <p className="font-medium">{profile?.person_type === 'PJ' ? 'Pessoa Jurídica' : 'Pessoa Física'}</p>
             )}
           </div>
 
@@ -594,7 +538,7 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
             <Label className="text-sm text-muted-foreground">
               {formData.person_type === 'PJ' ? 'CNPJ' : 'CPF'}
             </Label>
-            {editing ? (
+            {editing && !isTemplateMode ? (
               <Input 
                 value={formData.cpf} 
                 onChange={(e) => setFormData(prev => ({ 
@@ -606,26 +550,109 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
               />
             ) : (
               <p className="font-medium">
-                {formData.cpf ? (formData.person_type === 'PJ' ? formatCnpj(formData.cpf) : formatCpf(formData.cpf)) : '-'}
+                {profile?.cpf 
+                  ? (formData.person_type === 'PJ' ? formatCnpj(profile.cpf) : formatCpf(profile.cpf))
+                  : '—'
+                }
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-sm text-muted-foreground">Data de nascimento</Label>
+            {editing && !isTemplateMode ? (
+              <Input 
+                type="date"
+                value={formData.birth_date} 
+                onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
+                className="mt-1"
+              />
+            ) : (
+              <p className="font-medium">
+                {profile?.birth_date 
+                  ? new Date(profile.birth_date).toLocaleDateString('pt-BR')
+                  : '—'
+                }
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-sm text-muted-foreground">Gênero</Label>
+            {editing && !isTemplateMode ? (
+              <RadioGroup 
+                value={formData.gender} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+                className="flex gap-4 mt-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="M" id="male" />
+                  <Label htmlFor="male">Masculino</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="F" id="female" />
+                  <Label htmlFor="female">Feminino</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="O" id="other" />
+                  <Label htmlFor="other">Outro</Label>
+                </div>
+              </RadioGroup>
+            ) : (
+              <p className="font-medium">
+                {profile?.gender === 'M' ? 'Masculino' : 
+                 profile?.gender === 'F' ? 'Feminino' : 
+                 profile?.gender === 'O' ? 'Outro' : '—'}
               </p>
             )}
           </div>
         </div>
       </section>
 
-      {/* Primary Address Section */}
+      {/* Addresses Section */}
       <section className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Home className="h-5 w-5" />
-            Endereço Principal
+            <MapPin className="h-5 w-5" />
+            Meus Endereços
           </h2>
+          {!isTemplateMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openAddressModal()}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar
+            </Button>
+          )}
         </div>
 
-        {primaryAddress ? (
-          <div className="border rounded-lg p-4">
-            <div className="flex items-start justify-between">
-              <div>
+        {addresses.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Home className="h-12 w-12 mx-auto mb-2 opacity-30" />
+            <p>Nenhum endereço cadastrado</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {primaryAddress && (
+              <div className="border-2 rounded-lg p-4" style={{ borderColor: buttonBgColor }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium px-2 py-1 rounded" style={{ backgroundColor: `${buttonBgColor}15`, color: buttonBgColor }}>
+                    Endereço principal
+                  </span>
+                  {!isTemplateMode && (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => openAddressModal(primaryAddress)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteAddress(primaryAddress.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <p className="font-medium">{primaryAddress.recipient_name}</p>
                 <p className="text-sm text-muted-foreground">
                   {primaryAddress.street}, {primaryAddress.number}
@@ -636,221 +663,176 @@ const CustomerAccountSection = ({ storeProfile, userId }: CustomerAccountSection
                 </p>
                 <p className="text-sm text-muted-foreground">CEP: {formatCep(primaryAddress.cep)}</p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => openAddressModal(primaryAddress)}>
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-red-600 hover:bg-red-50"
-                  onClick={() => handleDeleteAddress(primaryAddress.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <MapPin className="h-12 w-12 mx-auto mb-2 opacity-30" />
-            <p>Nenhum endereço principal definido</p>
-            <Button 
-              className="mt-4"
-              onClick={() => openAddressModal()}
-              style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: buttonBorderStyle }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar endereço
-            </Button>
-          </div>
-        )}
-      </section>
+            )}
 
-      {/* Other Addresses Section */}
-      <section className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Outros Endereços
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openAddressModal()}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Cadastrar novo endereço
-          </Button>
-        </div>
-
-        {otherAddresses.length > 0 ? (
-          <div className="space-y-3">
             {otherAddresses.map((address) => (
               <div key={address.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">{address.recipient_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {address.street}, {address.number}
-                      {address.complement && ` - ${address.complement}`}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {address.neighborhood} - {address.city}/{address.state}
-                    </p>
-                    <p className="text-sm text-muted-foreground">CEP: {formatCep(address.cep)}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleSetDefaultAddress(address.id)}
-                      title="Definir como principal"
-                    >
-                      <Home className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => openAddressModal(address)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-red-600 hover:bg-red-50"
-                      onClick={() => handleDeleteAddress(address.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">
+                    {address.address_type === 'billing' ? 'Cobrança' : 'Entrega'}
+                  </span>
+                  {!isTemplateMode && (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleSetDefaultAddress(address.id)}>
+                        Definir como principal
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openAddressModal(address)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteAddress(address.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
+                <p className="font-medium">{address.recipient_name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {address.street}, {address.number}
+                  {address.complement && ` - ${address.complement}`}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {address.neighborhood} - {address.city}/{address.state}
+                </p>
+                <p className="text-sm text-muted-foreground">CEP: {formatCep(address.cep)}</p>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-center py-4 text-muted-foreground">
-            Nenhum endereço adicional cadastrado
-          </p>
         )}
       </section>
 
       {/* Address Modal */}
-      <Dialog open={showAddressModal} onOpenChange={setShowAddressModal}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAddress ? 'Editar Endereço' : 'Novo Endereço'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label>Nome do destinatário</Label>
-              <Input 
-                value={addressForm.recipient_name}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, recipient_name: e.target.value }))}
-                placeholder="Nome completo"
-              />
-            </div>
+      {!isTemplateMode && (
+        <Dialog open={showAddressModal} onOpenChange={setShowAddressModal}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAddress ? 'Editar Endereço' : 'Novo Endereço'}
+              </DialogTitle>
+            </DialogHeader>
 
-            <div>
-              <Label>CEP</Label>
-              <Input 
-                value={addressForm.cep}
-                onChange={(e) => {
-                  const formatted = formatCep(e.target.value);
-                  setAddressForm(prev => ({ ...prev, cep: formatted }));
-                  if (formatted.replace(/\D/g, '').length === 8) {
-                    handleCepLookup(formatted);
-                  }
-                }}
-                placeholder="00000-000"
-              />
-            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Nome do destinatário</Label>
+                <Input 
+                  value={addressForm.recipient_name}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, recipient_name: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+              <div>
+                <Label>CEP</Label>
+                <Input 
+                  value={addressForm.cep}
+                  onChange={(e) => {
+                    const formatted = formatCep(e.target.value);
+                    setAddressForm(prev => ({ ...prev, cep: formatted }));
+                    if (formatted.replace(/\D/g, '').length === 8) {
+                      handleCepLookup(formatted);
+                    }
+                  }}
+                  placeholder="00000-000"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
                 <Label>Rua</Label>
                 <Input 
                   value={addressForm.street}
                   onChange={(e) => setAddressForm(prev => ({ ...prev, street: e.target.value }))}
+                  className="mt-1"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Número</Label>
+                  <Input 
+                    value={addressForm.number}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, number: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Complemento</Label>
+                  <Input 
+                    value={addressForm.complement}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, complement: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label>Número</Label>
+                <Label>Bairro</Label>
                 <Input 
-                  value={addressForm.number}
-                  onChange={(e) => setAddressForm(prev => ({ ...prev, number: e.target.value }))}
+                  value={addressForm.neighborhood}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, neighborhood: e.target.value }))}
+                  className="mt-1"
                 />
               </div>
-            </div>
 
-            <div>
-              <Label>Complemento (opcional)</Label>
-              <Input 
-                value={addressForm.complement}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, complement: e.target.value }))}
-                placeholder="Apto, Bloco, etc."
-              />
-            </div>
-
-            <div>
-              <Label>Bairro</Label>
-              <Input 
-                value={addressForm.neighborhood}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, neighborhood: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Label>Cidade</Label>
-                <Input 
-                  value={addressForm.city}
-                  onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Cidade</Label>
+                  <Input 
+                    value={addressForm.city}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Input 
+                    value={addressForm.state}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
+                    placeholder="UF"
+                    maxLength={2}
+                    className="mt-1"
+                  />
+                </div>
               </div>
+
               <div>
-                <Label>Estado</Label>
-                <Input 
-                  value={addressForm.state}
-                  onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                  maxLength={2}
-                />
+                <Label>Tipo de endereço</Label>
+                <RadioGroup 
+                  value={addressForm.address_type}
+                  onValueChange={(value) => setAddressForm(prev => ({ ...prev, address_type: value }))}
+                  className="flex gap-4 mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="delivery" id="delivery" />
+                    <Label htmlFor="delivery">Entrega</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="billing" id="billing" />
+                    <Label htmlFor="billing">Cobrança</Label>
+                  </div>
+                </RadioGroup>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2 pt-2">
-              <input
-                type="checkbox"
-                id="is_default"
-                checked={addressForm.is_default}
-                onChange={(e) => setAddressForm(prev => ({ ...prev, is_default: e.target.checked }))}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="is_default" className="font-normal cursor-pointer">
-                Definir como endereço principal
-              </Label>
-            </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox"
+                  checked={addressForm.is_default}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, is_default: e.target.checked }))}
+                  className="rounded"
+                />
+                <Label>Definir como endereço principal</Label>
+              </div>
 
-            <div className="flex gap-3 pt-4">
               <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => { setShowAddressModal(false); resetAddressForm(); }}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                className="flex-1"
-                onClick={handleSaveAddress}
+                onClick={handleSaveAddress} 
+                className="w-full"
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: buttonBorderStyle }}
               >
-                Salvar
+                {editingAddress ? 'Atualizar Endereço' : 'Salvar Endereço'}
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
