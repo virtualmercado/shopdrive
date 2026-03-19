@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { User, Heart, Package, ChevronRight, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
 
 interface CustomerAccountDropdownProps {
   storeSlug: string;
