@@ -135,6 +135,7 @@ const CustomerAccountDropdown = ({
   }, [isOpen]);
 
   const handleSignOut = async () => {
+    if (isTemplatePreview) return;
     await supabase.auth.signOut();
     setIsOpen(false);
   };
