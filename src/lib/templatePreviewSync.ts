@@ -136,7 +136,8 @@ export const syncTemplatePreviewState = async (
 
   if (forceSync) {
     const { error: syncError } = await supabase
-      .rpc('sync_template_from_profile', { p_template_id: templateId });
+      .rpc('sync_template_from_profile', { p_template_id: templateId })
+      .maybeSingle();
 
     if (syncError) {
       throw new Error(`Falha no sync backend: ${syncError.message}`);
