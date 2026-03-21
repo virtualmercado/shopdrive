@@ -328,7 +328,7 @@ const AdminBrandTemplates = () => {
   const handleCopyWhatsAppMessage = async (template: BrandTemplate) => {
     const message = getWhatsAppShareMessage(template.name, template.template_slug);
     const link = getTemplateActivationLink(template.template_slug);
-    const fullMessage = `Crie sua loja grátis já com os produtos da marca ${template.name}: ${link}`;
+    const fullMessage = `Crie sua loja GRÁTIS com 20 produtos cadastrados da marca ${template.name} e comece a vender hoje 👉 ${link}`;
     
     try {
       await navigator.clipboard.writeText(fullMessage);
