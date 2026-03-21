@@ -390,5 +390,5 @@ export const getTemplateActivationLink = (templateSlug: string | null): string =
 // Generate WhatsApp share message
 export const getWhatsAppShareMessage = (brandName: string, templateSlug: string | null): string => {
   const link = getTemplateActivationLink(templateSlug);
-  return encodeURIComponent(`Crie sua loja grátis já com os produtos da marca ${brandName}: ${link}`);
+  return encodeURIComponent(`Crie sua loja GRÁTIS com 20 produtos cadastrados da marca ${brandName} e comece a vender hoje 👉 ${link}`);
 };
