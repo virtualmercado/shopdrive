@@ -96,6 +96,7 @@ import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
 import BrandReportPreviewModal from '@/components/admin/BrandReportPreviewModal';
+import TemplateMaintenanceTab from '@/components/admin/TemplateMaintenanceTab';
 import BrandPerformanceChart, { ChartGranularity } from '@/components/admin/BrandPerformanceChart';
 import BrandDateFilter, { PeriodPreset, DateRange, getDateRangeForPreset, getPeriodLabel } from '@/components/admin/BrandDateFilter';
 import { useBrandClickEvents, aggregateClickData, computePeriodStats } from '@/hooks/useBrandClickEvents';
@@ -520,6 +521,7 @@ const AdminBrandTemplates = () => {
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
             <TabsTrigger value="list">Lista de Templates</TabsTrigger>
+            <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
             <TabsTrigger value="settings" disabled className="opacity-50">
               Configurações (Em breve)
             </TabsTrigger>
@@ -868,6 +870,10 @@ const AdminBrandTemplates = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="maintenance" className="mt-4">
+            <TemplateMaintenanceTab />
           </TabsContent>
         </Tabs>
       </div>

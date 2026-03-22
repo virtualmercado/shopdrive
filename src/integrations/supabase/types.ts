@@ -3326,6 +3326,10 @@ export type Database = {
           store_model: string
           store_name: string | null
           store_slug: string | null
+          template_applied: boolean
+          template_applied_at: string | null
+          template_apply_error: string | null
+          template_apply_status: string | null
           title_color: string | null
           topbar_bg_color: string | null
           topbar_enabled: boolean | null
@@ -3434,6 +3438,10 @@ export type Database = {
           store_model?: string
           store_name?: string | null
           store_slug?: string | null
+          template_applied?: boolean
+          template_applied_at?: string | null
+          template_apply_error?: string | null
+          template_apply_status?: string | null
           title_color?: string | null
           topbar_bg_color?: string | null
           topbar_enabled?: boolean | null
@@ -3542,6 +3550,10 @@ export type Database = {
           store_model?: string
           store_name?: string | null
           store_slug?: string | null
+          template_applied?: boolean
+          template_applied_at?: string | null
+          template_apply_error?: string | null
+          template_apply_status?: string | null
           title_color?: string | null
           topbar_bg_color?: string | null
           topbar_enabled?: boolean | null
@@ -5228,6 +5240,11 @@ export type Database = {
       }
     }
     Functions: {
+      apply_template_to_existing_store: {
+        Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      backfill_partner_templates: { Args: never; Returns: Json }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {

@@ -72,11 +72,11 @@ const Onboarding = () => {
         // Check if the profile already has a store_slug (set by clone_template_to_store)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('store_slug, store_name, source_template_id')
+          .select('store_slug, store_name, source_template_id, template_applied, template_apply_status')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profile?.store_slug && profile?.source_template_id) {
+        if (profile?.template_applied && profile?.template_apply_status === 'applied' && profile?.store_slug) {
           console.info('[Onboarding] Template already cloned, skipping to final step');
           toast.success('Sua loja já está configurada com o template da marca!');
           setStep(4);
