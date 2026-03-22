@@ -871,6 +871,10 @@ const AdminBrandTemplates = () => {
               </Card>
             )}
           </TabsContent>
+
+          <TabsContent value="maintenance" className="mt-4">
+            <TemplateMaintenanceTab />
+          </TabsContent>
         </Tabs>
       </div>
 
