@@ -451,46 +451,76 @@ export type Database = {
       }
       brand_template_products: {
         Row: {
+          brand_name: string | null
           category: string | null
           created_at: string
           description: string | null
           display_order: number | null
+          height: number | null
           id: string
           images: string[] | null
           is_active: boolean | null
+          is_featured: boolean | null
+          is_new: boolean | null
+          length: number | null
           name: string
           price: number
+          promotional_price: number | null
+          shipping_weight: number | null
           sku: string | null
           template_id: string
           updated_at: string
+          variations: Json | null
+          weight: number | null
+          width: number | null
         }
         Insert: {
+          brand_name?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
+          height?: number | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          length?: number | null
           name: string
           price?: number
+          promotional_price?: number | null
+          shipping_weight?: number | null
           sku?: string | null
           template_id: string
           updated_at?: string
+          variations?: Json | null
+          weight?: number | null
+          width?: number | null
         }
         Update: {
+          brand_name?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
+          height?: number | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          length?: number | null
           name?: string
           price?: number
+          promotional_price?: number | null
+          shipping_weight?: number | null
           sku?: string | null
           template_id?: string
           updated_at?: string
+          variations?: Json | null
+          weight?: number | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -504,16 +534,35 @@ export type Database = {
       }
       brand_templates: {
         Row: {
+          about_us_text: string | null
+          about_us_title: string | null
           banner_desktop_urls: Json | null
           banner_mobile_urls: Json | null
+          banner_rect_1_url: string | null
+          banner_rect_2_url: string | null
           button_bg_color: string | null
           button_text_color: string | null
+          content_banner_enabled: boolean | null
+          content_banner_image_url: string | null
+          content_banner_subtitle: string | null
+          content_banner_subtitle_color: string | null
+          content_banner_title: string | null
+          content_banner_title_color: string | null
+          content_banner_url: string | null
+          content_banners: Json | null
           created_at: string
           description: string | null
           facebook_url: string | null
           font_family: string | null
           footer_bg_color: string | null
           footer_text_color: string | null
+          header_logo_position: string | null
+          home_video_description: string | null
+          home_video_enabled: boolean | null
+          home_video_id: string | null
+          home_video_provider: string | null
+          home_video_title: string | null
+          home_video_url_original: string | null
           id: string
           instagram_url: string | null
           is_link_active: boolean
@@ -521,32 +570,68 @@ export type Database = {
           link_created_at: string | null
           logo_url: string | null
           max_products: number
+          minibanner_1_img2_url: string | null
+          minibanner_2_img2_url: string | null
           name: string
           paid_conversions: number
+          price_color: string | null
           primary_color: string | null
           products_count: number
+          return_policy_text: string | null
+          reviews_section_title: string | null
           secondary_color: string | null
+          selected_benefit_banners: Json | null
           show_whatsapp_button: boolean | null
           signups_started: number
           source_profile_id: string | null
           status: Database["public"]["Enums"]["brand_template_status"]
+          store_layout: string | null
+          store_model: string | null
           store_name: string | null
           stores_created: number
           template_slug: string | null
+          title_color: string | null
+          topbar_bg_color: string | null
+          topbar_enabled: boolean | null
+          topbar_link_target: string | null
+          topbar_link_type: string | null
+          topbar_text: string | null
+          topbar_text_color: string | null
           updated_at: string
           whatsapp_number: string | null
+          x_url: string | null
+          youtube_url: string | null
         }
         Insert: {
+          about_us_text?: string | null
+          about_us_title?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           button_bg_color?: string | null
           button_text_color?: string | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
+          content_banners?: Json | null
           created_at?: string
           description?: string | null
           facebook_url?: string | null
           font_family?: string | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_provider?: string | null
+          home_video_title?: string | null
+          home_video_url_original?: string | null
           id?: string
           instagram_url?: string | null
           is_link_active?: boolean
@@ -554,32 +639,68 @@ export type Database = {
           link_created_at?: string | null
           logo_url?: string | null
           max_products?: number
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           name: string
           paid_conversions?: number
+          price_color?: string | null
           primary_color?: string | null
           products_count?: number
+          return_policy_text?: string | null
+          reviews_section_title?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           show_whatsapp_button?: boolean | null
           signups_started?: number
           source_profile_id?: string | null
           status?: Database["public"]["Enums"]["brand_template_status"]
+          store_layout?: string | null
+          store_model?: string | null
           store_name?: string | null
           stores_created?: number
           template_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           updated_at?: string
           whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
+          about_us_text?: string | null
+          about_us_title?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           button_bg_color?: string | null
           button_text_color?: string | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
+          content_banners?: Json | null
           created_at?: string
           description?: string | null
           facebook_url?: string | null
           font_family?: string | null
           footer_bg_color?: string | null
           footer_text_color?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_provider?: string | null
+          home_video_title?: string | null
+          home_video_url_original?: string | null
           id?: string
           instagram_url?: string | null
           is_link_active?: boolean
@@ -587,20 +708,37 @@ export type Database = {
           link_created_at?: string | null
           logo_url?: string | null
           max_products?: number
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           name?: string
           paid_conversions?: number
+          price_color?: string | null
           primary_color?: string | null
           products_count?: number
+          return_policy_text?: string | null
+          reviews_section_title?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           show_whatsapp_button?: boolean | null
           signups_started?: number
           source_profile_id?: string | null
           status?: Database["public"]["Enums"]["brand_template_status"]
+          store_layout?: string | null
+          store_model?: string | null
           store_name?: string | null
           stores_created?: number
           template_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           updated_at?: string
           whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: [
           {
