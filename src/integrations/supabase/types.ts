@@ -5240,6 +5240,11 @@ export type Database = {
       }
     }
     Functions: {
+      apply_template_to_existing_store: {
+        Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      backfill_partner_templates: { Args: never; Returns: Json }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {
