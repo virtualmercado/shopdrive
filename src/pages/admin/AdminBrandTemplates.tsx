@@ -96,6 +96,7 @@ import TemplateDetailsModal from '@/components/admin/TemplateDetailsModal';
 import QRCodeModal from '@/components/admin/QRCodeModal';
 import MediaSelectorModal from '@/components/admin/MediaSelectorModal';
 import BrandReportPreviewModal from '@/components/admin/BrandReportPreviewModal';
+import TemplateMaintenanceTab from '@/components/admin/TemplateMaintenanceTab';
 import BrandPerformanceChart, { ChartGranularity } from '@/components/admin/BrandPerformanceChart';
 import BrandDateFilter, { PeriodPreset, DateRange, getDateRangeForPreset, getPeriodLabel } from '@/components/admin/BrandDateFilter';
 import { useBrandClickEvents, aggregateClickData, computePeriodStats } from '@/hooks/useBrandClickEvents';
