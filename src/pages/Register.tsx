@@ -66,41 +66,73 @@ const Register = () => {
       );
       
       if (!error && data?.user) {
+        const userId = data.user.id;
+
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
-          try {
-            const { error: cloneError } = await supabase
-              .rpc('clone_template_to_store', { 
-                p_template_id: template.id,
-                p_user_id: data.user.id 
-              });
+          // Wait for handle_new_user trigger to create the profile row
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
-            if (cloneError) {
-              console.error('Error cloning template:', cloneError);
-              toast.warning('Loja criada, mas houve um erro ao copiar a configuração do template.');
-            } else {
-              toast.success(`Sua loja foi criada com toda a configuração da marca ${template.name}!`);
+          let cloneSuccess = false;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              const { error: cloneError } = await supabase
+                .rpc('clone_template_to_store', { 
+                  p_template_id: template.id,
+                  p_user_id: userId 
+                });
+
+              if (cloneError) {
+                console.error(`[Register] Clone attempt ${attempt + 1} failed:`, cloneError);
+                if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+              } else {
+                console.info('[Register] Template cloned successfully:', template.id);
+                cloneSuccess = true;
+                break;
+              }
+            } catch (copyError) {
+              console.error(`[Register] Clone attempt ${attempt + 1} exception:`, copyError);
+              if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
             }
-          } catch (copyError) {
-            console.error('Error copying template:', copyError);
-            toast.warning('Loja criada, mas houve um erro ao copiar os produtos do template.');
           }
-        }
 
-        // Register referral if convite parameter is present
-        if (conviteStoreId && data.user.id) {
-          try {
-            await supabase.rpc('create_store_referral', {
-              p_inviter_store_id: conviteStoreId,
-              p_new_store_id: data.user.id,
-              p_template_id: template?.id || null,
-            });
-          } catch (refError) {
-            console.error('Error creating referral:', refError);
+          if (cloneSuccess) {
+            toast.success(`Sua loja foi criada com toda a configuração da marca ${template.name}!`);
+          } else {
+            toast.warning('Loja criada, mas houve um erro ao copiar a configuração do template.');
           }
+
+          // Register referral if convite parameter is present
+          if (conviteStoreId) {
+            try {
+              await supabase.rpc('create_store_referral', {
+                p_inviter_store_id: conviteStoreId,
+                p_new_store_id: userId,
+                p_template_id: template.id,
+              });
+            } catch (refError) {
+              console.error('Error creating referral:', refError);
+            }
+          }
+
+          // Navigate to onboarding with template flag so it skips store creation steps
+          navigate(`/onboarding?template=${templateSlug}&cloned=${cloneSuccess ? '1' : '0'}`, { replace: true });
+        } else {
+          // Non-template flow: register referral if applicable
+          if (conviteStoreId && userId) {
+            try {
+              await supabase.rpc('create_store_referral', {
+                p_inviter_store_id: conviteStoreId,
+                p_new_store_id: userId,
+                p_template_id: null,
+              });
+            } catch (refError) {
+              console.error('Error creating referral:', refError);
+            }
+          }
+
+          navigate("/onboarding", { replace: true });
         }
-        
-        navigate("/lojista");
       }
     } finally {
       setLoading(false);
