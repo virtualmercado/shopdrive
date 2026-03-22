@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Store, Settings, Package, Rocket, ArrowRight, ArrowLeft, SkipForward } from "lucide-react";
+import { Store, Settings, Package, Rocket, ArrowRight, ArrowLeft, SkipForward, Loader2 } from "lucide-react";
 import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
 
 const STEPS = [
@@ -32,8 +32,13 @@ const CATEGORIES = [
 ];
 
 const Onboarding = () => {
+  const [searchParams] = useSearchParams();
+  const templateSlug = searchParams.get('template');
+  const templateCloned = searchParams.get('cloned') === '1';
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [checkingTemplate, setCheckingTemplate] = useState(!!templateSlug);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -56,6 +61,64 @@ const Onboarding = () => {
     description: "",
   });
 
+  // If user came from a template registration, check if cloning was successful
+  // and skip directly to the final step
+  useEffect(() => {
+    if (!templateSlug || !user) return;
+
+    const verifyTemplateClone = async () => {
+      setCheckingTemplate(true);
+      try {
+        // Check if the profile already has a store_slug (set by clone_template_to_store)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('store_slug, store_name, source_template_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.store_slug && profile?.source_template_id) {
+          console.info('[Onboarding] Template already cloned, skipping to final step');
+          toast.success('Sua loja já está configurada com o template da marca!');
+          setStep(4);
+        } else if (templateCloned) {
+          // Clone was reported successful but profile doesn't have slug yet
+          // This means clone_template_to_store ran but handle_new_user set the slug
+          // The clone only updates store_name, colors etc. but relies on the slug from signUp
+          // Just check if there are products
+          const { count } = await supabase
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+          if (count && count > 0) {
+            console.info('[Onboarding] Products found from template, skipping to final step');
+
+            // Make sure the profile has a slug (it should from handle_new_user trigger)
+            if (!profile?.store_slug && profile?.store_name) {
+              const { data: slugData } = await supabase.rpc("generate_store_slug", {
+                p_store_name: profile.store_name,
+              });
+              if (slugData) {
+                await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id);
+              }
+            }
+
+            setStep(4);
+          } else {
+            console.warn('[Onboarding] Template clone reported success but no products found');
+            // Fall through to normal onboarding
+          }
+        }
+      } catch (err) {
+        console.error('[Onboarding] Error verifying template:', err);
+      } finally {
+        setCheckingTemplate(false);
+      }
+    };
+
+    verifyTemplateClone();
+  }, [templateSlug, templateCloned, user]);
+
   const handleCreateStore = async () => {
     if (!storeData.storeName.trim()) {
       toast.error("Informe o nome da loja");
@@ -69,7 +132,6 @@ const Onboarding = () => {
 
     setLoading(true);
     try {
-      // Generate slug
       const { data: slugData } = await supabase.rpc("generate_store_slug", {
         p_store_name: storeData.storeName,
       });
@@ -158,10 +220,39 @@ const Onboarding = () => {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     console.info("[Onboarding] Completed — redirecting to /lojista");
+    // Force profile refresh so MerchantRoute sees the updated store_slug
+    if (user) {
+      // Ensure profile has a slug before navigating
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('store_slug, store_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.store_slug && profile?.store_name) {
+        const { data: slugData } = await supabase.rpc("generate_store_slug", {
+          p_store_name: profile.store_name,
+        });
+        if (slugData) {
+          await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id);
+        }
+      }
+    }
     navigate("/lojista", { replace: true });
   };
+
+  if (checkingTemplate) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Verificando configuração do template...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex flex-col items-center justify-center p-4">
@@ -406,9 +497,13 @@ const Onboarding = () => {
             <div className="space-y-6 text-center">
               <div>
                 <Rocket className="h-14 w-14 text-primary mx-auto mb-4" />
-                <h2 className="text-2xl font-bold">Sua loja está pronta! 🚀</h2>
+                <h2 className="text-2xl font-bold">
+                  {templateSlug ? "Sua loja está pronta! 🎉" : "Sua loja está pronta! 🚀"}
+                </h2>
                 <p className="text-muted-foreground mt-2">
-                  Tudo configurado! Agora você pode acessar o painel e começar a vender.
+                  {templateSlug
+                    ? "Sua loja foi criada com todos os produtos, banners e configurações da marca. Acesse o painel para começar a vender!"
+                    : "Tudo configurado! Agora você pode acessar o painel e começar a vender."}
                 </p>
               </div>
 
