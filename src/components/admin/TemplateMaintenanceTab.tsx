@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Eye } from 'lucide-react';
+import { Loader2, Play, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Eye, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface PendingStore {
@@ -24,7 +24,6 @@ interface PendingStore {
   template_applied_at: string | null;
   created_at: string;
   template_name?: string;
-  // Completeness fields
   banner_desktop_urls: any;
   banner_rect_1_url: string | null;
   banner_rect_2_url: string | null;
@@ -34,48 +33,42 @@ interface PendingStore {
   about_us_text: string | null;
   footer_bg_color: string | null;
   product_count?: number;
+  products_with_brand?: number;
+  products_with_weight?: number;
 }
 
 type CompletenessBlock = { label: string; ok: boolean };
 
 function getCompletenessBlocks(store: PendingStore): CompletenessBlock[] {
   const hasBanners = store.banner_desktop_urls && store.banner_desktop_urls !== '[]' && store.banner_desktop_urls !== 'null';
-  const hasMini1 = !!store.banner_rect_1_url;
-  const hasMini2 = !!store.banner_rect_2_url;
-  const hasBenefits = !!store.selected_benefit_banners;
-  const hasContent = !!store.content_banner_enabled;
-  const hasColors = !!store.primary_color && store.primary_color !== '#000000';
-  const hasFooter = !!store.footer_bg_color;
-  const hasAbout = !!store.about_us_text;
-  const hasProducts = (store.product_count || 0) > 0;
-
   return [
     { label: 'Banners principais', ok: !!hasBanners },
-    { label: 'Mini Banner 1', ok: hasMini1 },
-    { label: 'Mini Banner 2', ok: hasMini2 },
-    { label: 'Banner benefícios', ok: hasBenefits },
-    { label: 'Banner conteúdo', ok: hasContent },
-    { label: 'Cores', ok: hasColors },
-    { label: 'Rodapé', ok: hasFooter },
-    { label: 'Sobre nós', ok: hasAbout },
-    { label: 'Produtos', ok: hasProducts },
+    { label: 'Mini Banner 1', ok: !!store.banner_rect_1_url },
+    { label: 'Mini Banner 2', ok: !!store.banner_rect_2_url },
+    { label: 'Banner benefícios', ok: !!store.selected_benefit_banners },
+    { label: 'Banner conteúdo', ok: !!store.content_banner_enabled },
+    { label: 'Cores', ok: !!store.primary_color && store.primary_color !== '#000000' },
+    { label: 'Rodapé', ok: !!store.footer_bg_color },
+    { label: 'Sobre nós', ok: !!store.about_us_text },
+    { label: 'Produtos', ok: (store.product_count || 0) > 0 },
+    { label: 'Marca nos produtos', ok: (store.products_with_brand || 0) > 0 },
+    { label: 'Peso nos produtos', ok: (store.products_with_weight || 0) > 0 },
   ];
 }
 
 const TemplateMaintenanceTab = () => {
+  const queryClient = useQueryClient();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
   const [isRunningBackfill, setIsRunningBackfill] = useState(false);
   const [backfillResult, setBackfillResult] = useState<any>(null);
   const [applyingStoreId, setApplyingStoreId] = useState<string | null>(null);
+  const [complementingStoreId, setComplementingStoreId] = useState<string | null>(null);
   const [forceMode, setForceMode] = useState(false);
 
   const { data: templates } = useQuery({
     queryKey: ['maintenance-templates'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('brand_templates')
-        .select('id, name')
-        .order('name');
+      const { data } = await supabase.from('brand_templates').select('id, name').order('name');
       return data || [];
     },
   });
@@ -98,49 +91,68 @@ const TemplateMaintenanceTab = () => {
 
       const templateIds = [...new Set((data || []).map(s => s.source_template_id))];
       const { data: templateNames } = await supabase
-        .from('brand_templates')
-        .select('id, name')
-        .in('id', templateIds);
+        .from('brand_templates').select('id, name').in('id', templateIds);
       const nameMap = new Map((templateNames || []).map(t => [t.id, t.name]));
 
-      // Get product counts
-      const storeIds = (data || []).map(s => s.id);
-      const productCounts = new Map<string, number>();
-      if (storeIds.length > 0) {
-        for (const sid of storeIds) {
-          const { count } = await supabase
-            .from('products')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', sid);
-          productCounts.set(sid, count || 0);
-        }
-      }
+      // Get product stats per store
+      const enriched = await Promise.all((data || []).map(async (s) => {
+        const [{ count: productCount }, { count: brandCount }, { count: weightCount }] = await Promise.all([
+          supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', s.id),
+          supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', s.id).not('brand_id', 'is', null),
+          supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', s.id).not('weight', 'is', null),
+        ]);
+        return {
+          ...s,
+          template_name: nameMap.get(s.source_template_id) || 'Desconhecido',
+          product_count: productCount || 0,
+          products_with_brand: brandCount || 0,
+          products_with_weight: weightCount || 0,
+        };
+      }));
 
-      return (data || []).map(s => ({
-        ...s,
-        template_name: nameMap.get(s.source_template_id) || 'Desconhecido',
-        product_count: productCounts.get(s.id) || 0,
-      })) as PendingStore[];
+      return enriched as PendingStore[];
     },
   });
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['pending-template-stores'] });
+    await queryClient.invalidateQueries({ queryKey: ['maintenance-templates'] });
+    await refetch();
+    toast.success('Dados atualizados com sucesso');
+  };
 
   const handleApplyToStore = async (storeId: string, templateId: string) => {
     setApplyingStoreId(storeId);
     try {
       const { data, error } = await supabase.rpc('apply_template_to_existing_store', {
-        p_user_id: storeId,
-        p_template_id: templateId,
-        p_force: forceMode,
+        p_user_id: storeId, p_template_id: templateId, p_force: forceMode,
       });
       if (error) { toast.error(`Erro: ${error.message}`); return; }
       const result = data as any;
       if (result?.success) {
         toast.success(`Template aplicado! ${result.products_cloned} produtos clonados.`);
-        refetch();
+        handleRefresh();
       } else {
         toast.error(`Falha: ${result?.error || 'Erro desconhecido'}`);
       }
     } catch { toast.error('Erro inesperado'); } finally { setApplyingStoreId(null); }
+  };
+
+  const handleComplementStore = async (storeId: string, templateId: string) => {
+    setComplementingStoreId(storeId);
+    try {
+      const { data, error } = await supabase.rpc('complement_template_data', {
+        p_user_id: storeId, p_template_id: templateId,
+      });
+      if (error) { toast.error(`Erro: ${error.message}`); return; }
+      const result = data as any;
+      if (result?.success) {
+        toast.success(`Complemento aplicado! ${result.products_complemented} produtos atualizados, ${result.brands_created} marcas criadas.`);
+        handleRefresh();
+      } else {
+        toast.error(`Falha: ${result?.error || 'Erro desconhecido'}`);
+      }
+    } catch { toast.error('Erro inesperado'); } finally { setComplementingStoreId(null); }
   };
 
   const handleRunBackfill = async () => {
@@ -151,12 +163,12 @@ const TemplateMaintenanceTab = () => {
       if (error) { toast.error(`Erro no backfill: ${error.message}`); return; }
       setBackfillResult(data);
       const result = data as any;
-      toast.success(`Backfill concluído: ${result?.success || 0} sucesso, ${result?.failed || 0} falhas, ${result?.skipped || 0} ignoradas`);
-      refetch();
+      toast.success(`Backfill concluído: ${result?.success || 0} novos, ${result?.complemented || 0} complementados, ${result?.failed || 0} falhas`);
+      handleRefresh();
     } catch { toast.error('Erro inesperado no backfill'); } finally { setIsRunningBackfill(false); }
   };
 
-  const pendingCount = pendingStores?.filter(s => !s.template_applied || s.template_apply_status !== 'applied').length || 0;
+  const pendingCount = pendingStores?.filter(s => !s.template_applied || s.template_apply_status === 'pending' || s.template_apply_status === 'failed').length || 0;
   const appliedCount = pendingStores?.filter(s => s.template_applied && s.template_apply_status === 'applied').length || 0;
   const failedCount = pendingStores?.filter(s => s.template_apply_status === 'failed').length || 0;
   const incompleteCount = pendingStores?.filter(s => {
@@ -170,7 +182,7 @@ const TemplateMaintenanceTab = () => {
       const blocks = getCompletenessBlocks(store);
       const missing = blocks.filter(b => !b.ok);
       if (missing.length > 0) {
-        return <Badge className="bg-yellow-100 text-yellow-800"><AlertTriangle className="h-3 w-3 mr-1" /> Incompleto ({missing.length})</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800"><AlertTriangle className="h-3 w-3 mr-1" /> Incompleto ({missing.length})</Badge>;
       }
       return <Badge className="bg-green-100 text-green-800"><CheckCircle2 className="h-3 w-3 mr-1" /> Completo</Badge>;
     }
@@ -180,46 +192,49 @@ const TemplateMaintenanceTab = () => {
     return <Badge variant="secondary"><AlertTriangle className="h-3 w-3 mr-1" /> Pendente</Badge>;
   };
 
+  const needsAction = pendingCount + incompleteCount;
+
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-yellow-600">{pendingCount}</div><p className="text-sm text-muted-foreground">Pendentes / Falhas</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-green-600">{appliedCount}</div><p className="text-sm text-muted-foreground">Templates aplicados</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-red-600">{failedCount}</div><p className="text-sm text-muted-foreground">Falhas</p></CardContent></Card>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-blue-600">{pendingStores?.length || 0}</div><p className="text-sm text-muted-foreground">Total vinculadas</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-green-600">{appliedCount - incompleteCount}</div><p className="text-sm text-muted-foreground">Completos</p></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-orange-600">{incompleteCount}</div><p className="text-sm text-muted-foreground">Incompletos</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-yellow-600">{pendingCount}</div><p className="text-sm text-muted-foreground">Pendentes</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-red-600">{failedCount}</div><p className="text-sm text-muted-foreground">Falhas</p></CardContent></Card>
       </div>
 
-      {/* Batch Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Correção em Lote</CardTitle>
-          <CardDescription>Aplicar templates retroativamente em contas pendentes (modo seguro — não sobrescreve dados existentes)</CardDescription>
+          <CardDescription>Aplica templates pendentes e complementa dados faltantes em contas já aplicadas (modo seguro)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Button onClick={handleRunBackfill} disabled={isRunningBackfill || pendingCount === 0}>
-              {isRunningBackfill ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</> : <><Play className="h-4 w-4 mr-2" /> Executar Backfill ({pendingCount} pendentes)</>}
+          <div className="flex items-center gap-4 flex-wrap">
+            <Button onClick={handleRunBackfill} disabled={isRunningBackfill || needsAction === 0}>
+              {isRunningBackfill ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</> : <><Play className="h-4 w-4 mr-2" /> Executar Backfill ({needsAction} pendentes/incompletos)</>}
             </Button>
-            <Button variant="outline" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" /> Atualizar</Button>
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+            </Button>
           </div>
           {backfillResult && (
             <Alert><AlertDescription>
               <p><strong>Resultado do backfill:</strong></p>
               <p>Total processado: {backfillResult.total_processed}</p>
-              <p className="text-green-600">Sucesso: {backfillResult.success}</p>
+              <p className="text-green-600">Novos aplicados: {backfillResult.success}</p>
+              <p className="text-blue-600">Complementados: {backfillResult.complemented}</p>
               <p className="text-red-600">Falhas: {backfillResult.failed}</p>
-              <p className="text-yellow-600">Ignoradas: {backfillResult.skipped}</p>
+              <p className="text-yellow-600">Ignorados (completos): {backfillResult.skipped}</p>
             </AlertDescription></Alert>
           )}
         </CardContent>
       </Card>
 
-      {/* Store List */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Lojas com Template Vinculado</CardTitle>
-          <CardDescription>Gerencie a aplicação de templates individualmente</CardDescription>
+          <CardDescription>Gerencie aplicação e complemento de templates individualmente</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -232,14 +247,14 @@ const TemplateMaintenanceTab = () => {
             </Select>
             <div className="flex items-center gap-2">
               <Switch checked={forceMode} onCheckedChange={setForceMode} />
-              <Label className="text-sm">Modo forçado (sobrescreve dados existentes)</Label>
+              <Label className="text-sm">Modo forçado (sobrescreve dados)</Label>
             </div>
           </div>
 
           {forceMode && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>Modo forçado ativado: a reaplicação substituirá produtos e configurações existentes.</AlertDescription>
+              <AlertDescription>Modo forçado: a reaplicação substituirá produtos e configurações existentes.</AlertDescription>
             </Alert>
           )}
 
@@ -255,17 +270,17 @@ const TemplateMaintenanceTab = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Integridade</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Erro</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(!pendingStores || pendingStores.length === 0) ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma loja encontrada</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma loja encontrada</TableCell></TableRow>
                   ) : (
                     pendingStores.map((store) => {
                       const blocks = getCompletenessBlocks(store);
                       const okCount = blocks.filter(b => b.ok).length;
+                      const isIncomplete = store.template_applied && blocks.some(b => !b.ok);
                       return (
                         <TableRow key={store.id}>
                           <TableCell>
@@ -296,14 +311,19 @@ const TemplateMaintenanceTab = () => {
                             </Popover>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{new Date(store.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                          <TableCell className="text-xs text-red-600 max-w-[200px] truncate">{store.template_apply_error || '—'}</TableCell>
-                          <TableCell className="text-right">
-                            {store.template_applied && store.template_apply_status === 'applied' && !forceMode ? (
-                              <Badge variant="outline">Já aplicado</Badge>
-                            ) : (
+                          <TableCell className="text-right space-x-1">
+                            {isIncomplete && (
+                              <Button size="sm" variant="outline" onClick={() => handleComplementStore(store.id, store.source_template_id)} disabled={complementingStoreId === store.id}>
+                                {complementingStoreId === store.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Wrench className="h-3 w-3 mr-1" /> Complementar</>}
+                              </Button>
+                            )}
+                            {(!store.template_applied || store.template_apply_status !== 'applied' || forceMode) && !isIncomplete && (
                               <Button size="sm" variant="outline" onClick={() => handleApplyToStore(store.id, store.source_template_id)} disabled={applyingStoreId === store.id}>
                                 {applyingStoreId === store.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <>{forceMode ? 'Forçar' : 'Aplicar'}</>}
                               </Button>
+                            )}
+                            {store.template_applied && store.template_apply_status === 'applied' && !isIncomplete && !forceMode && (
+                              <Badge variant="outline">Completo</Badge>
                             )}
                           </TableCell>
                         </TableRow>

@@ -5389,6 +5389,10 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: undefined
       }
+      complement_template_data: {
+        Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
       copy_template_products_to_store: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: number
