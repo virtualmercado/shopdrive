@@ -521,6 +521,7 @@ const AdminBrandTemplates = () => {
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
             <TabsTrigger value="list">Lista de Templates</TabsTrigger>
+            <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
             <TabsTrigger value="settings" disabled className="opacity-50">
               Configurações (Em breve)
             </TabsTrigger>
