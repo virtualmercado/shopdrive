@@ -62,7 +62,8 @@ const Register = () => {
         formData.email,
         formData.password,
         formData.name,
-        formData.storeName
+        formData.storeName,
+        template?.id
       );
       
       if (!error && data?.user) {

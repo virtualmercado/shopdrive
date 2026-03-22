@@ -8,18 +8,23 @@ export const useAuth = () => {
   const { user, session, loading } = useAuthContext();
   const { toast } = useToast();
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string, storeName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, storeName: string, templateId?: string) => {
     const redirectUrl = `${window.location.origin}/lojista`;
     
+    const metaData: Record<string, string> = {
+      full_name: fullName,
+      store_name: storeName,
+    };
+    if (templateId) {
+      metaData.template_id = templateId;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-          store_name: storeName,
-        }
+        data: metaData,
       }
     });
 
