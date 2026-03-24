@@ -937,7 +937,10 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
       }));
 
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw new Error("Erro ao adicionar itens ao pedido");
+      if (itemsError) {
+        console.error("[Checkout] order_items insert error:", itemsError);
+        throw new Error("Erro ao adicionar itens ao pedido: " + itemsError.message);
+      }
 
       const isPix = formData.payment_method === "pix";
       const hasPixGateway = pixGateway !== null;
