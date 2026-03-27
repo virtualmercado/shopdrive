@@ -5387,7 +5387,7 @@ export type Database = {
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {
         Args: { p_template_id: string; p_user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       complement_template_data: {
         Args: { p_template_id: string; p_user_id: string }

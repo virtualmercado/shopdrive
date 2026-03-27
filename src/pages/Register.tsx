@@ -71,34 +71,76 @@ const Register = () => {
 
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
-          // Wait for handle_new_user trigger to create the profile row
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Poll for profile existence instead of fixed wait
+          let profileReady = false;
+          for (let poll = 0; poll < 10; poll++) {
+            const { data: profileCheck } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', userId)
+              .maybeSingle();
+            if (profileCheck) {
+              profileReady = true;
+              console.info(`[Register] Profile ready after ${(poll + 1) * 500}ms`);
+              break;
+            }
+            await new Promise(r => setTimeout(r, 500));
+          }
+
+          if (!profileReady) {
+            console.error('[Register] Profile not created after 5s, attempting clone anyway');
+          }
 
           let cloneSuccess = false;
-          for (let attempt = 0; attempt < 3; attempt++) {
+          let productsComplete = false;
+          const MAX_ATTEMPTS = 5;
+          
+          for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             try {
-              const { error: cloneError } = await supabase
+              const { data: cloneResult, error: cloneError } = await supabase
                 .rpc('clone_template_to_store', { 
                   p_template_id: template.id,
                   p_user_id: userId 
                 });
 
               if (cloneError) {
-                console.error(`[Register] Clone attempt ${attempt + 1} failed:`, cloneError);
-                if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-              } else {
-                console.info('[Register] Template cloned successfully:', template.id);
+                console.error(`[Register] Clone attempt ${attempt + 1}/${MAX_ATTEMPTS} failed:`, cloneError);
+                if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+                continue;
+              }
+
+              const result = cloneResult as { success: boolean; copied: number; expected: number; total: number; complete: boolean; error?: string; retry?: boolean } | null;
+              console.info(`[Register] Clone attempt ${attempt + 1} result:`, result);
+
+              if (result && result.success) {
                 cloneSuccess = true;
+                productsComplete = result.complete;
+                
+                if (productsComplete) {
+                  console.info(`[Register] Template fully cloned: ${result.total}/${result.expected} products`);
+                  break;
+                } else {
+                  // Visual applied but products incomplete - retry product copy only
+                  console.warn(`[Register] Products incomplete: ${result.total}/${result.expected}, retrying...`);
+                  if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+                }
+              } else if (result && result.retry) {
+                console.warn(`[Register] Clone needs retry: ${result.error}`);
+                if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+              } else {
+                console.error(`[Register] Clone failed permanently:`, result?.error);
                 break;
               }
             } catch (copyError) {
               console.error(`[Register] Clone attempt ${attempt + 1} exception:`, copyError);
-              if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+              if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
             }
           }
 
-          if (cloneSuccess) {
+          if (cloneSuccess && productsComplete) {
             toast.success(`Sua loja foi criada com toda a configuração da marca ${template.name}!`);
+          } else if (cloneSuccess) {
+            toast.warning('Loja criada com visual da marca, mas alguns produtos podem estar pendentes.');
           } else {
             toast.warning('Loja criada, mas houve um erro ao copiar a configuração do template.');
           }
