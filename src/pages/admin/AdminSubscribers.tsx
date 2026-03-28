@@ -76,6 +76,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { data: allSubscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm],
