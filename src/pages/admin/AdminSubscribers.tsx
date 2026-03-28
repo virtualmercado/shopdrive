@@ -359,7 +359,7 @@ const AdminSubscribers = () => {
                 className="pl-9 w-64"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-52">
                 <SelectValue placeholder="Filtrar status" />
               </SelectTrigger>
