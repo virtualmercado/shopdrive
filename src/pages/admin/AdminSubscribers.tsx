@@ -215,9 +215,13 @@ const AdminSubscribers = () => {
   const totalCount = allSubscribers?.length || 0;
 
   // Apply filter client-side
-  const subscribers = statusFilter === 'all'
-    ? allSubscribers
+  const filteredSubscribers = statusFilter === 'all'
+    ? allSubscribers || []
     : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubscribers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const subscribers = filteredSubscribers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
