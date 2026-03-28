@@ -540,6 +540,57 @@ const AdminSubscribers = () => {
           </CardContent>
         </Card>
 
+        {/* Pagination */}
+        {filteredSubscribers.length > PAGE_SIZE && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {(safePage - 1) * PAGE_SIZE + 1} a{" "}
+              {Math.min(safePage * PAGE_SIZE, filteredSubscribers.length)} de{" "}
+              {filteredSubscribers.length} assinantes
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push(-arr[idx - 1]);
+                  acc.push(p);
+                  return acc;
+                }, [] as number[])
+                .map((p, idx) =>
+                  p < 0 ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={p === safePage ? "default" : "outline"}
+                      size="sm"
+                      className="min-w-[36px]"
+                      onClick={() => setCurrentPage(p)}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+              >
+                Próximo
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Modals */}
         <AccountDeletionModal
           subscriber={selectedSubscriber}
