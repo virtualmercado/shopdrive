@@ -396,7 +396,7 @@ const AdminSubscribers = () => {
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   isActive ? 'ring-2 ring-primary shadow-md' : ''
                 }`}
-                onClick={() => setStatusFilter(key)}
+                onClick={() => handleStatusFilterChange(key)}
               >
                 <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
                   <Icon className={`h-5 w-5 ${color}`} />
