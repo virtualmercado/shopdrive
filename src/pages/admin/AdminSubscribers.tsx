@@ -355,7 +355,7 @@ const AdminSubscribers = () => {
               <Input
                 placeholder="Buscar por nome ou e-mail..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9 w-64"
               />
             </div>
