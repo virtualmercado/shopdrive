@@ -67,6 +67,14 @@ import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
   const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null);
   const [deletionModalOpen, setDeletionModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
