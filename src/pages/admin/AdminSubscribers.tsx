@@ -67,6 +67,14 @@ import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
   const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null);
   const [deletionModalOpen, setDeletionModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -76,6 +84,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { data: allSubscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm],
@@ -213,9 +223,13 @@ const AdminSubscribers = () => {
   const totalCount = allSubscribers?.length || 0;
 
   // Apply filter client-side
-  const subscribers = statusFilter === 'all'
-    ? allSubscribers
+  const filteredSubscribers = statusFilter === 'all'
+    ? allSubscribers || []
     : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubscribers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const subscribers = filteredSubscribers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -341,11 +355,11 @@ const AdminSubscribers = () => {
               <Input
                 placeholder="Buscar por nome ou e-mail..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9 w-64"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-52">
                 <SelectValue placeholder="Filtrar status" />
               </SelectTrigger>
@@ -382,7 +396,7 @@ const AdminSubscribers = () => {
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   isActive ? 'ring-2 ring-primary shadow-md' : ''
                 }`}
-                onClick={() => setStatusFilter(key)}
+                onClick={() => handleStatusFilterChange(key)}
               >
                 <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
                   <Icon className={`h-5 w-5 ${color}`} />
@@ -525,6 +539,57 @@ const AdminSubscribers = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {filteredSubscribers.length > PAGE_SIZE && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {(safePage - 1) * PAGE_SIZE + 1} a{" "}
+              {Math.min(safePage * PAGE_SIZE, filteredSubscribers.length)} de{" "}
+              {filteredSubscribers.length} assinantes
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push(-arr[idx - 1]);
+                  acc.push(p);
+                  return acc;
+                }, [] as number[])
+                .map((p, idx) =>
+                  p < 0 ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={p === safePage ? "default" : "outline"}
+                      size="sm"
+                      className="min-w-[36px]"
+                      onClick={() => setCurrentPage(p)}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+              >
+                Próximo
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Modals */}
         <AccountDeletionModal
