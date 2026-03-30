@@ -201,10 +201,12 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                 <Label htmlFor="contract_password">Senha do Contrato</Label>
                 <Input
                   id="contract_password"
+                  name="correios_contract_pwd"
                   type="password"
+                  autoComplete="new-password"
                   value={contractPassword}
                   onChange={(e) => setContractPassword(e.target.value)}
-                  placeholder="Senha do contrato"
+                  placeholder="••••••••"
                   style={{ borderColor: primaryColor }}
                   className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
