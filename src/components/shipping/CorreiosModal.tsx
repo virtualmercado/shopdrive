@@ -158,7 +158,7 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <form autoComplete="off" onSubmit={(e) => e.preventDefault()} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="origin_zipcode">CEP de Origem *</Label>
             <Input
