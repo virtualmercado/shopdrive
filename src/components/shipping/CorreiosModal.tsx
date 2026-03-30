@@ -163,6 +163,8 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
             <Label htmlFor="origin_zipcode">CEP de Origem *</Label>
             <Input
               id="origin_zipcode"
+              name="correios_origin_zip"
+              autoComplete="off"
               value={originZipcode}
               onChange={(e) => setOriginZipcode(e.target.value)}
               placeholder="00000-000"
