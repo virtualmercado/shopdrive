@@ -187,9 +187,11 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                 <Label htmlFor="contract_code">Código do Contrato</Label>
                 <Input
                   id="contract_code"
+                  name="correios_contract_code"
+                  autoComplete="off"
                   value={contractCode}
                   onChange={(e) => setContractCode(e.target.value)}
-                  placeholder="Código do contrato"
+                  placeholder="Ex.: 1234567890"
                   style={{ borderColor: primaryColor }}
                   className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
