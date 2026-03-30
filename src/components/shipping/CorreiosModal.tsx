@@ -158,11 +158,13 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <form autoComplete="off" onSubmit={(e) => e.preventDefault()} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="origin_zipcode">CEP de Origem *</Label>
             <Input
               id="origin_zipcode"
+              name="correios_origin_zip"
+              autoComplete="off"
               value={originZipcode}
               onChange={(e) => setOriginZipcode(e.target.value)}
               placeholder="00000-000"
@@ -185,9 +187,11 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                 <Label htmlFor="contract_code">Código do Contrato</Label>
                 <Input
                   id="contract_code"
+                  name="correios_contract_code"
+                  autoComplete="off"
                   value={contractCode}
                   onChange={(e) => setContractCode(e.target.value)}
-                  placeholder="Código do contrato"
+                  placeholder="Ex.: 1234567890"
                   style={{ borderColor: primaryColor }}
                   className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
@@ -197,17 +201,19 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                 <Label htmlFor="contract_password">Senha do Contrato</Label>
                 <Input
                   id="contract_password"
+                  name="correios_contract_pwd"
                   type="password"
+                  autoComplete="new-password"
                   value={contractPassword}
                   onChange={(e) => setContractPassword(e.target.value)}
-                  placeholder="Senha do contrato"
+                  placeholder="••••••••"
                   style={{ borderColor: primaryColor }}
                   className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
             </div>
           </div>
-        </div>
+        </form>
 
         <div className="flex gap-3 pt-4 border-t">
           <Button
