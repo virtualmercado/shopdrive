@@ -740,9 +740,16 @@ const ProductDetailContent = () => {
               <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
                 Descrição do Produto
               </h2>
-              <p className="text-foreground/90 leading-7 whitespace-pre-line text-justify">
-                {product.description}
-              </p>
+              <div 
+                className="text-foreground/90 leading-7 prose prose-sm max-w-none
+                  [&_p]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2
+                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+                  [&_li]:mb-2 [&_strong]:font-semibold
+                  [&_a]:text-primary [&_a]:underline
+                  [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
             </div>
           </div>
         )}
