@@ -210,7 +210,7 @@ const CorreiosModal = ({ open, onOpenChange, onSuccess }: CorreiosModalProps) =>
                   style={{ borderColor: primaryColor }}
                   className="merchant-input focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-              </div>
+        </form>
             </div>
           </div>
         </div>
