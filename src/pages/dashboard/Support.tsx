@@ -379,23 +379,108 @@ const Support = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {faqItems.length > 0 ? (
-              <Accordion type="single" collapsible className="w-full">
-                {faqItems.map((faq) => (
-                  <AccordionItem key={faq.id} value={faq.id}>
-                    <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-sm text-muted-foreground">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Nenhuma pergunta frequente cadastrada ainda.</p>
+            <Accordion type="single" collapsible className="w-full">
+              {faqItems.map((faq) => (
+                <AccordionItem key={faq.id} value={faq.id}>
+                  <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+
+              <AccordionItem value="dce-nf">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  Preciso emitir nota fiscal para enviar meus produtos?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>Depende do seu tipo de venda.</p>
+                  <p>Se você vende com frequência ou possui um negócio formalizado, o ideal é emitir Nota Fiscal (NF-e).</p>
+                  <p>Caso você seja pessoa física ou esteja iniciando, poderá utilizar a Declaração de Conteúdo Eletrônica (DC-e), conforme as regras vigentes.</p>
+                  <p>A responsabilidade pela emissão do documento é do remetente (quem está enviando o produto).</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-what">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  O que é a Declaração de Conteúdo Eletrônica (DC-e)?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>A DC-e é um documento digital obrigatório para envio de produtos sem nota fiscal.</p>
+                  <p>Ela substitui a antiga declaração em papel e deve ser emitida antes do envio da mercadoria.</p>
+                  <p>Esse documento contém informações como remetente, destinatário, produtos e valores, garantindo mais segurança no transporte.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-when">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  Quando devo usar a DC-e?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>A DC-e deve ser utilizada quando você for enviar produtos e não possuir nota fiscal.</p>
+                  <p>Isso é comum para:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Pessoas físicas</li>
+                    <li>Vendedores iniciantes</li>
+                    <li>Pequenos revendedores</li>
+                  </ul>
+                  <p>Se você já vende com frequência, o ideal é emitir Nota Fiscal.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-auto">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  A ShopDrive emite DC-e automaticamente?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>No momento, a emissão da DC-e deve ser realizada diretamente pelo lojista.</p>
+                  <p>A ShopDrive está preparada para orientar você sobre as exigências, e novas funcionalidades poderão ser adicionadas futuramente para automatizar esse processo.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-nodoc">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  Posso enviar produtos sem nenhum documento?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>Não.</p>
+                  <p>Todo envio de mercadoria deve estar acompanhado de um documento válido, como:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Nota Fiscal (NF-e), ou</li>
+                    <li>Declaração de Conteúdo Eletrônica (DC-e)</li>
+                  </ul>
+                  <p>Enviar sem documentação pode gerar problemas com transportadoras e retenção da mercadoria.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-cnpj">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  Sou obrigado a ter CNPJ para vender?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>Não.</p>
+                  <p>Você pode começar vendendo com CPF.</p>
+                  <p>Nesse caso, ao enviar produtos, deverá utilizar a DC-e quando não possuir Nota Fiscal.</p>
+                  <p>Se suas vendas crescerem, o ideal é migrar para um CNPJ e emitir Nota Fiscal regularmente.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="dce-responsibility">
+                <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
+                  Quem é responsável pela documentação do envio?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>A responsabilidade pela emissão de documentos fiscais ou de transporte é sempre do remetente da mercadoria.</p>
+                  <p>A ShopDrive atua como uma plataforma de gestão e vendas, auxiliando na organização dos pedidos, mas não substitui as obrigações fiscais do lojista.</p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {faqItems.length === 0 && (
+              <div className="text-center py-4 text-muted-foreground text-xs opacity-50">
+                <p>Mais perguntas frequentes serão adicionadas em breve.</p>
               </div>
             )}
           </CardContent>
