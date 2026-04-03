@@ -63,6 +63,9 @@ const Orders = () => {
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
   const [whatsAppOrder, setWhatsAppOrder] = useState<any>(null);
   const [merchantStoreName, setMerchantStoreName] = useState("");
+  const [dceModalOpen, setDceModalOpen] = useState(false);
+  const [dceConfirmed, setDceConfirmed] = useState(false);
+  const [dcePendingOrder, setDcePendingOrder] = useState<any>(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -204,7 +207,9 @@ const Orders = () => {
     if (newStatus === "print_shipping_label") {
       const order = orders?.find((o) => o.id === orderId);
       if (order) {
-        handlePrintShippingLabel(order);
+        setDcePendingOrder(order);
+        setDceConfirmed(false);
+        setDceModalOpen(true);
       }
       return;
     }
@@ -802,6 +807,68 @@ const Orders = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* DC-e Confirmation Modal */}
+      <AlertDialog open={dceModalOpen} onOpenChange={(open) => {
+        setDceModalOpen(open);
+        if (!open) {
+          setDceConfirmed(false);
+          setDcePendingOrder(null);
+        }
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-lg">
+              📦 Confirmação de envio
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  <span className="font-semibold text-amber-600">⚠️ Atenção:</span> A partir de 2026, todo envio de mercadoria deve estar acompanhado de um documento fiscal válido.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Se você não possui Nota Fiscal, poderá ser necessário emitir a <strong className="text-foreground/90">Declaração de Conteúdo Eletrônica (DC-e)</strong>.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  A responsabilidade pela emissão é do remetente.
+                </p>
+                <div className="flex items-start gap-2 pt-3 pb-1 border-t">
+                  <Checkbox
+                    id="dce-confirm"
+                    checked={dceConfirmed}
+                    onCheckedChange={(checked) => setDceConfirmed(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="dce-confirm" className="text-sm font-medium text-foreground cursor-pointer leading-snug select-none">
+                    Declaro que estou ciente das obrigações fiscais para envio deste pedido
+                  </label>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDceConfirmed(false);
+              setDcePendingOrder(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!dceConfirmed}
+              className="disabled:opacity-50 disabled:pointer-events-none"
+              onClick={() => {
+                if (dcePendingOrder) {
+                  handlePrintShippingLabel(dcePendingOrder);
+                }
+                setDceConfirmed(false);
+                setDcePendingOrder(null);
+              }}
+            >
+              Confirmar e imprimir etiqueta
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
