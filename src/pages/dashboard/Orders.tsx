@@ -207,7 +207,9 @@ const Orders = () => {
     if (newStatus === "print_shipping_label") {
       const order = orders?.find((o) => o.id === orderId);
       if (order) {
-        handlePrintShippingLabel(order);
+        setDcePendingOrder(order);
+        setDceConfirmed(false);
+        setDceModalOpen(true);
       }
       return;
     }
