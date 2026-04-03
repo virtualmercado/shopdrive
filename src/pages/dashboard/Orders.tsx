@@ -63,6 +63,9 @@ const Orders = () => {
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
   const [whatsAppOrder, setWhatsAppOrder] = useState<any>(null);
   const [merchantStoreName, setMerchantStoreName] = useState("");
+  const [dceModalOpen, setDceModalOpen] = useState(false);
+  const [dceConfirmed, setDceConfirmed] = useState(false);
+  const [dcePendingOrder, setDcePendingOrder] = useState<any>(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
