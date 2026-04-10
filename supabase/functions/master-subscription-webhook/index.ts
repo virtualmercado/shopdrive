@@ -372,6 +372,17 @@ serve(async (req) => {
         subscriptionUpdate.next_retry_at = null;
         subscriptionUpdate.requires_card_update = false;
         subscriptionUpdate.retry_count = 0;
+        subscriptionUpdate.grace_period_ends_at = null;
+        subscriptionUpdate.downgrade_reason = null;
+
+        // Restore previous plan if account was downgraded
+        const previousPlan = payment.master_subscriptions?.previous_plan_id;
+        if (previousPlan && payment.master_subscriptions?.plan_id === "gratis") {
+          subscriptionUpdate.plan_id = previousPlan;
+          subscriptionUpdate.previous_plan_id = null;
+          subscriptionUpdate.downgraded_at = null;
+          console.log(`Reactivating plan: gratis -> ${previousPlan}`);
+        }
       }
 
       if (newSubscriptionStatus === "past_due") {
