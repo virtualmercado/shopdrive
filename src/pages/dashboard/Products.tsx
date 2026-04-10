@@ -298,7 +298,10 @@ const Products = () => {
         {/* Plan limit indicator */}
         {limits.maxProducts !== null && (
           <div className="text-sm text-muted-foreground">
-            Produtos: <strong>{productCount}</strong> / {limits.maxProducts}
+            Produtos ativos: <strong>{products.filter(p => p.is_active).length}</strong> / {limits.maxProducts}
+            {products.filter(p => !p.is_active).length > 0 && (
+              <span className="ml-2">({products.filter(p => !p.is_active).length} inativos)</span>
+            )}
           </div>
         )}
 
