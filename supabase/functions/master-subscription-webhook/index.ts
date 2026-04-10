@@ -382,6 +382,15 @@ serve(async (req) => {
           subscriptionUpdate.previous_plan_id = null;
           subscriptionUpdate.downgraded_at = null;
           console.log(`Reactivating plan: gratis -> ${previousPlan}`);
+
+          // Reactivate all products that were deactivated during downgrade
+          const { data: reactivated } = await supabase
+            .from("products")
+            .update({ is_active: true })
+            .eq("user_id", payment.user_id)
+            .eq("is_active", false)
+            .select("id");
+          console.log(`Reactivated ${reactivated?.length || 0} products for user ${payment.user_id}`);
         }
       }
 
