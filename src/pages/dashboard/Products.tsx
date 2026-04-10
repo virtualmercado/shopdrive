@@ -188,6 +188,20 @@ const Products = () => {
 
   const handleToggleActive = async (productId: string, currentActive: boolean) => {
     const newActive = !currentActive;
+
+    // Block activation if plan limit reached
+    if (newActive && limits.maxProducts !== null) {
+      const currentActiveCount = products.filter(p => p.is_active).length;
+      if (currentActiveCount >= limits.maxProducts) {
+        toast({
+          title: "Limite do plano atingido",
+          description: `Seu plano atual permite até ${limits.maxProducts} produtos ativos. Faça upgrade para liberar mais produtos.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, is_active: newActive } : p))
     );
@@ -284,7 +298,10 @@ const Products = () => {
         {/* Plan limit indicator */}
         {limits.maxProducts !== null && (
           <div className="text-sm text-muted-foreground">
-            Produtos: <strong>{productCount}</strong> / {limits.maxProducts}
+            Produtos ativos: <strong>{products.filter(p => p.is_active).length}</strong> / {limits.maxProducts}
+            {products.filter(p => !p.is_active).length > 0 && (
+              <span className="ml-2">({products.filter(p => !p.is_active).length} inativos)</span>
+            )}
           </div>
         )}
 
