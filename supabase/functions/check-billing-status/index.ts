@@ -266,6 +266,35 @@ serve(async (req) => {
       });
     }
 
+    // ─────────────────────────────────────────────────────
+    // PHASE 4: Continuous enforcement — ensure ALL gratis accounts
+    // respect the 20-product limit (catches missed downgrades)
+    // ─────────────────────────────────────────────────────
+    const FREE_PRODUCT_LIMIT = 20;
+
+    const { data: gratisAccounts, error: err4 } = await supabase
+      .from("master_subscriptions")
+      .select("id, user_id")
+      .eq("status", "active")
+      .in("plan_id", ["gratis", "free"]);
+
+    if (err4) {
+      console.error("Error fetching gratis accounts for enforcement:", err4);
+    }
+
+    for (const sub of gratisAccounts || []) {
+      const deactivatedCount = await deactivateExcessProducts(supabase, sub.user_id, FREE_PRODUCT_LIMIT);
+      if (deactivatedCount > 0) {
+        console.log(`Enforcement: deactivated ${deactivatedCount} excess products for gratis user ${sub.user_id}`);
+        results.push({
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          action: "enforce_product_limit",
+          productsDeactivated: deactivatedCount,
+        });
+      }
+    }
+
     console.log("=== check-billing-status completed ===", JSON.stringify(results));
 
     return new Response(
