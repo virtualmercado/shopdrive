@@ -406,6 +406,14 @@ const AdminSubscriptionCheckout = () => {
         return;
       }
 
+      // Refresh session to ensure token is valid before calling edge function
+      const { data: sessionRefresh } = await supabase.auth.refreshSession();
+      if (!sessionRefresh?.session && !isGuest) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setIsProcessing(false);
+        return;
+      }
+
       // Chamar edge function para criar assinatura
       const { data, error } = await supabase.functions.invoke("create-master-subscription", {
         body: {
