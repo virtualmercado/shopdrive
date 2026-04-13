@@ -189,19 +189,29 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingSubscription) {
-      // If existing subscription is just "pending" (incomplete checkout), cancel it and allow retry
-      if (existingSubscription.status === "pending") {
-        console.log("Cancelling stale pending subscription:", existingSubscription.id);
+      const canReplace = 
+        existingSubscription.status === "pending" || 
+        ["gratis", "free"].includes(existingSubscription.plan_id?.toLowerCase());
+
+      if (canReplace) {
+        const reason = existingSubscription.status === "pending"
+          ? "Assinatura pendente cancelada automaticamente para nova tentativa"
+          : `Upgrade de plano ${existingSubscription.plan_id} para ${planId}`;
+
+        console.log("Cancelling replaceable subscription:", existingSubscription.id, reason);
         await supabase
           .from("master_subscriptions")
-          .update({ status: "cancelled" })
+          .update({ 
+            status: "cancelled",
+            previous_plan_id: existingSubscription.plan_id,
+          })
           .eq("id", existingSubscription.id);
 
         await supabase.from("master_subscription_logs").insert({
           subscription_id: existingSubscription.id,
           user_id: userId,
           event_type: "subscription_cancelled",
-          event_description: "Assinatura pendente cancelada automaticamente para nova tentativa",
+          event_description: reason,
         });
       } else {
         return new Response(
