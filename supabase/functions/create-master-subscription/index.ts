@@ -183,7 +183,7 @@ serve(async (req) => {
     // Check for existing active subscription
     const { data: existingSubscription } = await supabase
       .from("master_subscriptions")
-      .select("id, status")
+      .select("id, status, plan_id")
       .eq("user_id", userId)
       .in("status", ["active", "pending", "inadimplent"])
       .maybeSingle();
