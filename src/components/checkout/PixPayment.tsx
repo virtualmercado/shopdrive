@@ -254,6 +254,8 @@ export const PixPayment = ({
     );
   }
 
+  const isDelayed = timeLeft > 0 && timeLeft < (pixData ? (new Date(pixData.expiresAt).getTime() - Date.now()) / 1000 - 300 : Infinity) && timeLeft < 600;
+
   return (
     <div className="flex flex-col items-center space-y-6 py-6">
       {/* Header */}
@@ -265,7 +267,22 @@ export const PixPayment = ({
         <p className="text-sm text-muted-foreground">
           Escaneie o QR Code ou copie o código para pagar
         </p>
+        <p className="text-xs text-muted-foreground">
+          A confirmação ocorre normalmente em poucos segundos.
+        </p>
       </div>
+
+      {/* Delayed payment warning */}
+      {timeLeft > 0 && timeLeft <= 600 && (
+        <div className="w-full max-w-xs bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+          <p className="text-sm text-amber-800 font-medium">
+            Pagamento ainda não identificado.
+          </p>
+          <p className="text-xs text-amber-700 mt-1">
+            Verifique se o PIX foi realizado ou aguarde a confirmação.
+          </p>
+        </div>
+      )}
 
       {/* QR Code */}
       <div 
@@ -305,6 +322,14 @@ export const PixPayment = ({
         </span>
       </div>
 
+      {/* Checking indicator */}
+      {checking && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Verificando pagamento...
+        </div>
+      )}
+
       {/* Copy Button */}
       <Button
         onClick={copyToClipboard}
@@ -329,9 +354,9 @@ export const PixPayment = ({
 
       {/* Info */}
       <div className="text-center text-xs text-muted-foreground max-w-sm">
-        <p>Pagamento via PIX – confirmação automática</p>
+        <p>Pagamento via PIX – confirmação automática em segundos</p>
         <p className="mt-1">
-          Após o pagamento, aguarde alguns segundos para a confirmação.
+          Após o pagamento, a confirmação é quase instantânea.
         </p>
       </div>
     </div>

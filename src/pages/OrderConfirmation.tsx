@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Copy, ExternalLink, FileText } from "lucide-react";
+import { CheckCircle, Copy, ExternalLink, FileText, Clock, CreditCard, QrCode } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -192,14 +192,38 @@ const OrderConfirmation = () => {
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Success Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
+            orderData.payment_method === "cartao_credito" 
+              ? "bg-green-100" 
+              : orderData.payment_method === "pix"
+                ? "bg-green-100"
+                : orderData.payment_method === "boleto"
+                  ? "bg-yellow-100"
+                  : "bg-green-100"
+          }`}>
+            {orderData.payment_method === "boleto" && !orderData.boleto_payment_status ? (
+              <Clock className="w-10 h-10 text-yellow-600" />
+            ) : (
+              <CheckCircle className="w-10 h-10 text-green-600" />
+            )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Pedido Confirmado!
+            {orderData.payment_method === "cartao_credito" 
+              ? "Pagamento Aprovado!"
+              : orderData.payment_method === "pix"
+                ? "Pedido Confirmado!"
+                : orderData.payment_method === "boleto"
+                  ? "Pedido Registrado!"
+                  : "Pedido Confirmado!"}
           </h1>
           <p className="text-lg text-gray-600">
-            Seu pedido foi recebido com sucesso
+            {orderData.payment_method === "cartao_credito"
+              ? "Seu pagamento foi aprovado e o pedido confirmado automaticamente."
+              : orderData.payment_method === "pix"
+                ? "Seu pagamento via PIX foi confirmado com sucesso."
+                : orderData.payment_method === "boleto"
+                  ? "Efetue o pagamento do boleto para confirmar seu pedido."
+                  : "Seu pedido foi recebido com sucesso."}
           </p>
         </div>
 
@@ -372,19 +396,68 @@ const OrderConfirmation = () => {
           )}
         </div>
 
-        {/* Next Steps */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-          <h3 className="font-semibold text-blue-900 mb-2">Próximos Passos</h3>
-          {orderData.payment_method === "boleto" && orderData.boleto_url ? (
+        {/* Next Steps - Differentiated by payment method */}
+        <div className={`rounded-lg p-6 mb-6 border ${
+          orderData.payment_method === "cartao_credito" 
+            ? "bg-green-50 border-green-200"
+            : orderData.payment_method === "pix"
+              ? "bg-green-50 border-green-200"
+              : orderData.payment_method === "boleto"
+                ? "bg-yellow-50 border-yellow-200"
+                : "bg-blue-50 border-blue-200"
+        }`}>
+          <h3 className={`font-semibold mb-2 ${
+            orderData.payment_method === "cartao_credito" || orderData.payment_method === "pix"
+              ? "text-green-900"
+              : orderData.payment_method === "boleto"
+                ? "text-yellow-900"
+                : "text-blue-900"
+          }`}>Próximos Passos</h3>
+
+          {orderData.payment_method === "cartao_credito" && (
+            <div className="flex items-start gap-3">
+              <CreditCard className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-green-800">
+                Seu pagamento com cartão de crédito foi aprovado automaticamente. 
+                A loja já recebeu seu pedido e entrará em contato para informar sobre a entrega.
+              </p>
+            </div>
+          )}
+
+          {orderData.payment_method === "pix" && (
+            <div className="flex items-start gap-3">
+              <QrCode className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-green-800">
+                Seu pagamento via PIX foi confirmado com sucesso. 
+                A loja já recebeu seu pedido e entrará em contato para informar sobre a entrega.
+              </p>
+            </div>
+          )}
+
+          {orderData.payment_method === "boleto" && orderData.boleto_url && (
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-yellow-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-yellow-800">
+                Efetue o pagamento do boleto até a data de vencimento. A confirmação do pagamento 
+                pode levar até 3 dias úteis após o pagamento. Seu pedido será processado e a loja 
+                entrará em contato para informar sobre a entrega.
+              </p>
+            </div>
+          )}
+
+          {orderData.payment_method === "whatsapp" && (
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-blue-800">
+                Em breve, a loja entrará em contato com você para confirmar os detalhes do pedido e 
+                informar sobre o pagamento e entrega. Fique atento ao seu WhatsApp e telefone!
+              </p>
+            </div>
+          )}
+
+          {!["cartao_credito", "pix", "boleto", "whatsapp"].includes(orderData.payment_method) && (
             <p className="text-sm text-blue-800">
-              Efetue o pagamento do boleto até a data de vencimento. Após a confirmação do pagamento 
-              (que pode levar até 3 dias úteis), seu pedido será processado e a loja entrará em contato 
-              para informar sobre a entrega.
-            </p>
-          ) : (
-            <p className="text-sm text-blue-800">
-              Em breve, a loja entrará em contato com você para confirmar os detalhes do pedido e 
-              informar sobre o pagamento e entrega. Fique atento ao seu WhatsApp e telefone!
+              Em breve, a loja entrará em contato com você para confirmar os detalhes do pedido.
             </p>
           )}
         </div>
