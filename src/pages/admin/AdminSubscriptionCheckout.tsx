@@ -789,10 +789,10 @@ const AdminSubscriptionCheckout = () => {
               </Button>
             )}
 
-            {/* Aguardando pagamento */}
+            {/* Aviso de compensação */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Aguardando confirmação do pagamento...</span>
+              <Clock className="h-4 w-4" />
+              <span>A compensação do boleto pode levar até 3 dias úteis.</span>
             </div>
 
             <Button 
