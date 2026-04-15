@@ -193,7 +193,7 @@ export const GlobalBillingAlert = () => {
           />
           <div className="space-y-1">
             <p className={cn("font-semibold text-sm", config.textClass)}>
-              {content.title}
+              {displayTitle}
             </p>
             <p className={cn("text-sm", config.textClass, "opacity-90")}>
               {displayMessage}
