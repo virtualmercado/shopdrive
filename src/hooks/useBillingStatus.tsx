@@ -30,6 +30,7 @@ export interface BillingInfo {
   downgradeReason: string | null;
   requiresCardUpdate: boolean;
   noCharge: boolean;
+  paymentMethod: "credit_card" | "pix" | "boleto" | null;
 }
 
 export interface BillingSettings {

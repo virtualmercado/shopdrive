@@ -285,6 +285,7 @@ serve(async (req) => {
       recurring_consent_ip: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null,
       card_brand: cardBrand || null,
       card_last_four: cardLastFour || null,
+      payment_method: paymentMethod,
     };
 
     const { data: subscription, error: subscriptionError } = await supabase
