@@ -159,12 +159,20 @@ export const GlobalBillingAlert = () => {
     navigate(content.cta_url);
   };
 
-  const displayMessage = replacePlaceholders(content.message, {
+  // Override CMS content for "processing" status with payment-method-specific messages
+  let displayTitle = content.title;
+  let displayMessage = replacePlaceholders(content.message, {
     daysRemaining: billingInfo.daysRemaining,
     planName: billingInfo.planName,
     billingCycle: billingInfo.billingCycle,
     gracePeriodEndsAt: billingInfo.gracePeriodEndsAt,
   });
+
+  if (alertKey === "processing") {
+    const methodMessages = getProcessingMessageByPaymentMethod(billingInfo.paymentMethod);
+    displayTitle = methodMessages.title;
+    displayMessage = methodMessages.message;
+  }
 
   return (
     <div 
