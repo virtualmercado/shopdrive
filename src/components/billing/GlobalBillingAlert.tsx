@@ -72,6 +72,33 @@ const replacePlaceholders = (
   return result;
 };
 
+const getProcessingMessageByPaymentMethod = (
+  paymentMethod: string | null
+): { title: string; message: string } => {
+  switch (paymentMethod) {
+    case "pix":
+      return {
+        title: "⏳ Aguardando pagamento via PIX",
+        message: "A confirmação ocorre normalmente em poucos segundos. Se já realizou o pagamento, aguarde a atualização automática.",
+      };
+    case "boleto":
+      return {
+        title: "⏳ Boleto em compensação",
+        message: "A confirmação do pagamento por boleto pode levar de 1 a 3 dias úteis.",
+      };
+    case "credit_card":
+      return {
+        title: "✅ Processando pagamento",
+        message: "Pagamento por cartão é confirmado automaticamente após aprovação.",
+      };
+    default:
+      return {
+        title: "⏳ Pagamento em processamento",
+        message: "Seu pagamento está sendo processado. Aguarde a confirmação.",
+      };
+  }
+};
+
 export const GlobalBillingAlert = () => {
   const navigate = useNavigate();
   const { data: billingInfo, isLoading: billingLoading } = useBillingStatus();
@@ -132,12 +159,20 @@ export const GlobalBillingAlert = () => {
     navigate(content.cta_url);
   };
 
-  const displayMessage = replacePlaceholders(content.message, {
+  // Override CMS content for "processing" status with payment-method-specific messages
+  let displayTitle = content.title;
+  let displayMessage = replacePlaceholders(content.message, {
     daysRemaining: billingInfo.daysRemaining,
     planName: billingInfo.planName,
     billingCycle: billingInfo.billingCycle,
     gracePeriodEndsAt: billingInfo.gracePeriodEndsAt,
   });
+
+  if (alertKey === "processing") {
+    const methodMessages = getProcessingMessageByPaymentMethod(billingInfo.paymentMethod);
+    displayTitle = methodMessages.title;
+    displayMessage = methodMessages.message;
+  }
 
   return (
     <div 
@@ -158,7 +193,7 @@ export const GlobalBillingAlert = () => {
           />
           <div className="space-y-1">
             <p className={cn("font-semibold text-sm", config.textClass)}>
-              {content.title}
+              {displayTitle}
             </p>
             <p className={cn("text-sm", config.textClass, "opacity-90")}>
               {displayMessage}

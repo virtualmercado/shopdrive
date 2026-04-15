@@ -82,7 +82,7 @@ const Financeiro = () => {
           billingCycle: masterSub.billing_cycle as "monthly" | "annual",
           planId: masterSub.plan_id,
           cardToken: masterSub.card_token || undefined,
-          paymentMethod: masterSub.card_token ? "credit_card" : undefined,
+          paymentMethod: masterSub.payment_method || (masterSub.card_token ? "credit_card" : undefined),
           // New status tracking fields
           declineType: masterSub.decline_type,
           lastDeclineCode: masterSub.last_decline_code,
@@ -188,6 +188,7 @@ const Financeiro = () => {
             requiresCardUpdate={subscription.requiresCardUpdate}
             onUpdateCard={scrollToPaymentSection}
             statusTimestamp={subscription.updatedAt}
+            paymentMethod={subscription.paymentMethod}
           />
         )}
 

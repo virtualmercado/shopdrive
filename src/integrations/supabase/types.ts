@@ -2277,6 +2277,7 @@ export type Database = {
           next_retry_at: string | null
           no_charge: boolean | null
           origin: string | null
+          payment_method: string | null
           plan_id: string
           previous_plan_id: string | null
           recurring_consent_accepted: boolean | null
@@ -2315,6 +2316,7 @@ export type Database = {
           next_retry_at?: string | null
           no_charge?: boolean | null
           origin?: string | null
+          payment_method?: string | null
           plan_id: string
           previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
@@ -2353,6 +2355,7 @@ export type Database = {
           next_retry_at?: string | null
           no_charge?: boolean | null
           origin?: string | null
+          payment_method?: string | null
           plan_id?: string
           previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
