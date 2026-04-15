@@ -72,6 +72,33 @@ const replacePlaceholders = (
   return result;
 };
 
+const getProcessingMessageByPaymentMethod = (
+  paymentMethod: string | null
+): { title: string; message: string } => {
+  switch (paymentMethod) {
+    case "pix":
+      return {
+        title: "⏳ Aguardando pagamento via PIX",
+        message: "A confirmação ocorre normalmente em poucos segundos. Se já realizou o pagamento, aguarde a atualização automática.",
+      };
+    case "boleto":
+      return {
+        title: "⏳ Boleto em compensação",
+        message: "A confirmação do pagamento por boleto pode levar de 1 a 3 dias úteis.",
+      };
+    case "credit_card":
+      return {
+        title: "✅ Processando pagamento",
+        message: "Pagamento por cartão é confirmado automaticamente após aprovação.",
+      };
+    default:
+      return {
+        title: "⏳ Pagamento em processamento",
+        message: "Seu pagamento está sendo processado. Aguarde a confirmação.",
+      };
+  }
+};
+
 export const GlobalBillingAlert = () => {
   const navigate = useNavigate();
   const { data: billingInfo, isLoading: billingLoading } = useBillingStatus();
