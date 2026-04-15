@@ -127,6 +127,32 @@ export const SubscriptionStatusAlert = ({
 
   // Pending/processing status
   if (status === "pending" || status === "processing") {
+    const getProcessingContent = () => {
+      switch (paymentMethod) {
+        case "pix":
+          return {
+            title: "Aguardando pagamento via PIX",
+            description: "A confirmação ocorre normalmente em poucos segundos. Se já realizou o pagamento, aguarde a atualização automática.",
+          };
+        case "boleto":
+          return {
+            title: "Boleto em compensação",
+            description: "A confirmação do pagamento por boleto pode levar de 1 a 3 dias úteis.",
+          };
+        case "credit_card":
+          return {
+            title: "Processando pagamento",
+            description: "Pagamento por cartão é confirmado automaticamente após aprovação.",
+          };
+        default:
+          return {
+            title: "Pagamento em processamento",
+            description: "Seu pagamento está sendo processado. Aguarde a confirmação.",
+          };
+      }
+    };
+    const processingContent = getProcessingContent();
+
     return (
       <Alert className="bg-blue-50 border-2 border-blue-300 text-blue-900 relative transition-all duration-300 animate-in fade-in slide-in-from-top-2">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pr-8">
@@ -134,10 +160,10 @@ export const SubscriptionStatusAlert = ({
             <Clock className="h-5 w-5 text-blue-600 shrink-0 mt-0.5 animate-pulse" />
             <div className="space-y-1">
               <AlertTitle className="font-semibold text-blue-900">
-                Pagamento em processamento
+                {processingContent.title}
               </AlertTitle>
               <AlertDescription className="text-sm text-blue-800">
-                Seu pagamento está sendo processado. Isso pode levar alguns instantes.
+                {processingContent.description}
               </AlertDescription>
             </div>
           </div>
