@@ -14,6 +14,7 @@ interface SubscriptionStatusAlertProps {
   requiresCardUpdate?: boolean;
   onUpdateCard?: () => void;
   statusTimestamp?: string | null;
+  paymentMethod?: string | null;
 }
 
 const formatDate = (dateString: string) => {
@@ -56,6 +57,7 @@ export const SubscriptionStatusAlert = ({
   requiresCardUpdate,
   onUpdateCard,
   statusTimestamp,
+  paymentMethod,
 }: SubscriptionStatusAlertProps) => {
   // Determine dismiss behavior per status
   const getDismissConfig = () => {
