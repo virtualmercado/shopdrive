@@ -132,6 +132,7 @@ export const useBillingStatus = () => {
           downgradeReason: null,
           requiresCardUpdate: false,
           noCharge: true,
+          paymentMethod: subscription.payment_method || null,
         };
       }
 
@@ -154,6 +155,7 @@ export const useBillingStatus = () => {
         downgradeReason: subscription.downgrade_reason || null,
         requiresCardUpdate: subscription.requires_card_update || false,
         noCharge: subscription.no_charge || false,
+        paymentMethod: subscription.payment_method || null,
       };
     },
     enabled: !!user,
