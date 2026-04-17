@@ -193,16 +193,21 @@ export const useOpenTemplateEditor = () => {
         return;
       }
       
-      // Store template context in localStorage
+      // Store template context in localStorage WITHOUT credentials
+      // Credentials live in tab-scoped sessionStorage under a separate key and
+      // are cleared immediately after the post-navigation sign-in completes.
       const editorContext = {
         templateId,
         sourceProfileId,
         mode: 'template-editor',
         timestamp: Date.now(),
-        credentials: loginCredentials,
       };
       
       localStorage.setItem('templateEditorContext', JSON.stringify(editorContext));
+      sessionStorage.setItem(
+        'templateEditorCredentials',
+        JSON.stringify({ templateId, ...loginCredentials })
+      );
       
       // Navigate to the dashboard (same tab) - session switch happens in DashboardLayout
       const editorUrl = `/lojista?templateId=${templateId}&mode=template-editor`;
@@ -229,12 +234,11 @@ export const useTemplateEditorMode = () => {
   const templateIdFromUrl = urlParams.get('templateId');
   const modeFromUrl = urlParams.get('mode');
   
-  // Check localStorage for editor context
+  // Check localStorage for editor context (no credentials stored here)
   let editorContext: {
     templateId: string;
     sourceProfileId: string;
     mode: string;
-    credentials?: { email: string; password: string };
   } | null = null;
   
   try {
@@ -263,4 +267,5 @@ export const useTemplateEditorMode = () => {
  */
 export const clearTemplateEditorContext = () => {
   localStorage.removeItem('templateEditorContext');
+  sessionStorage.removeItem('templateEditorCredentials');
 };

@@ -5061,9 +5061,12 @@ export type Database = {
         Row: {
           boleto_enabled: boolean | null
           boleto_provider: string | null
+          created_at: string | null
           credit_card_enabled: boolean | null
           credit_card_installments_no_interest: number | null
           credit_card_provider: string | null
+          id: string | null
+          infinitepay_enabled: boolean | null
           mercadopago_accepts_credit: boolean | null
           mercadopago_accepts_pix: boolean | null
           mercadopago_enabled: boolean | null
@@ -5075,6 +5078,8 @@ export type Database = {
           pix_discount_percent: number | null
           pix_enabled: boolean | null
           pix_provider: string | null
+          stone_ton_enabled: boolean | null
+          updated_at: string | null
           user_id: string | null
           whatsapp_accepts_cash: boolean | null
           whatsapp_accepts_credit: boolean | null
@@ -5087,9 +5092,12 @@ export type Database = {
         Insert: {
           boleto_enabled?: boolean | null
           boleto_provider?: string | null
+          created_at?: string | null
           credit_card_enabled?: boolean | null
           credit_card_installments_no_interest?: number | null
           credit_card_provider?: string | null
+          id?: string | null
+          infinitepay_enabled?: boolean | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_enabled?: boolean | null
@@ -5101,6 +5109,8 @@ export type Database = {
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
+          stone_ton_enabled?: boolean | null
+          updated_at?: string | null
           user_id?: string | null
           whatsapp_accepts_cash?: boolean | null
           whatsapp_accepts_credit?: boolean | null
@@ -5113,9 +5123,12 @@ export type Database = {
         Update: {
           boleto_enabled?: boolean | null
           boleto_provider?: string | null
+          created_at?: string | null
           credit_card_enabled?: boolean | null
           credit_card_installments_no_interest?: number | null
           credit_card_provider?: string | null
+          id?: string | null
+          infinitepay_enabled?: boolean | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_enabled?: boolean | null
@@ -5127,6 +5140,8 @@ export type Database = {
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
+          stone_ton_enabled?: boolean | null
+          updated_at?: string | null
           user_id?: string | null
           whatsapp_accepts_cash?: boolean | null
           whatsapp_accepts_credit?: boolean | null

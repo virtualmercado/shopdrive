@@ -51,7 +51,12 @@ interface TemplateEditorContext {
   templateId: string;
   sourceProfileId: string;
   mode: string;
-  credentials?: { email: string; password: string };
+}
+
+interface TemplateEditorCredentials {
+  templateId: string;
+  email: string;
+  password: string;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
@@ -98,11 +103,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         setIsTemplateEditorMode(true);
         setTemplateId(tId);
 
-        // If we have credentials in context and haven't attempted login yet
+        // Read ephemeral credentials from sessionStorage (tab-scoped, not persisted)
+        let pendingCredentials: TemplateEditorCredentials | null = null;
+        try {
+          const credRaw = sessionStorage.getItem('templateEditorCredentials');
+          if (credRaw) {
+            pendingCredentials = JSON.parse(credRaw);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+
+        // If we have credentials in sessionStorage and haven't attempted login yet
         // This switches the current session to the template profile
-        if (editorContext?.credentials && !hasAttemptedLogin) {
+        if (pendingCredentials?.email && pendingCredentials?.password && !hasAttemptedLogin) {
           setHasAttemptedLogin(true);
           setIsLoggingIn(true);
+          
+          // Immediately remove credentials from sessionStorage — even if login
+          // fails, we never want plaintext credentials lingering in storage.
+          sessionStorage.removeItem('templateEditorCredentials');
           
           try {
             // Save full admin session before switching so we can restore without triggering SIGNED_OUT redirect
@@ -124,8 +144,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             
             // Login as template profile
             const { error: loginError } = await supabase.auth.signInWithPassword({
-              email: editorContext.credentials.email,
-              password: editorContext.credentials.password,
+              email: pendingCredentials.email,
+              password: pendingCredentials.password,
             });
 
             if (loginError) {
@@ -135,11 +155,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               navigate('/gestor/login');
               return;
             }
-            
-            // Clear credentials from storage after successful login (security)
-            const updatedContext = { ...editorContext };
-            delete updatedContext.credentials;
-            localStorage.setItem('templateEditorContext', JSON.stringify(updatedContext));
             
             toast.success('Conectado ao perfil do template!');
             

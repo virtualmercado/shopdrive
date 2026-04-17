@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -396,7 +397,7 @@ const EmailTemplatesTab = () => {
                 <div className="p-6 bg-white text-foreground">
                   <h2 className="text-xl font-semibold mb-4">{previewTemplate.subject}</h2>
                   {previewTemplate.html_content ? (
-                    <div dangerouslySetInnerHTML={{ __html: previewTemplate.html_content }} />
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewTemplate.html_content) }} />
                   ) : (
                     <p className="text-muted-foreground italic">Nenhum conteúdo HTML definido para este template.</p>
                   )}
