@@ -114,7 +114,7 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId, isTemplateMo
           <p className="text-muted-foreground mb-4">
             Você ainda não adicionou nenhum produto à sua lista de desejos.
           </p>
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             <Button
               style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: buttonBorderStyle }}
             >
@@ -134,7 +134,7 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId, isTemplateMo
             {wishlist.map((item) => (
               <div key={item.id} className="p-4 flex gap-4">
                 <Link 
-                  to={`/loja/${storeSlug}/produto/${item.product_id}`}
+                  to={`/${storeSlug}/produto/${item.product_id}`}
                   className="flex-shrink-0"
                 >
                   {item.product?.image_url ? (
@@ -152,7 +152,7 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId, isTemplateMo
                 
                 <div className="flex-1 min-w-0">
                   <Link 
-                    to={`/loja/${storeSlug}/produto/${item.product_id}`}
+                    to={`/${storeSlug}/produto/${item.product_id}`}
                     className="font-medium hover:underline line-clamp-2"
                   >
                     {item.product?.name || 'Produto não disponível'}
@@ -193,7 +193,7 @@ const CustomerWishlistSection = ({ storeProfile, storeSlug, userId, isTemplateMo
                   </Button>
                   
                   {item.product && item.product.stock > 0 && (
-                    <Link to={`/loja/${storeSlug}/produto/${item.product_id}`}>
+                    <Link to={`/${storeSlug}/produto/${item.product_id}`}>
                       <Button
                         size="sm"
                         style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: buttonBorderStyle }}

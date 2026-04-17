@@ -216,7 +216,7 @@ const StoreSearchResultsContent = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             <Button variant="ghost" className="mb-3 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja

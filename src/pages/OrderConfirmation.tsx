@@ -175,7 +175,7 @@ const OrderConfirmation = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Pedido não encontrado</h1>
-          <Button onClick={() => navigate(`/loja/${storeSlug}`)}>
+          <Button onClick={() => navigate(`/${storeSlug}`)}>
             Voltar para a loja
           </Button>
         </div>
@@ -557,7 +557,7 @@ const OrderConfirmation = () => {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
-            onClick={() => navigate(`/loja/${storeSlug}`)}
+            onClick={() => navigate(`/${storeSlug}`)}
             className="flex-1"
             size="lg"
             style={{ 

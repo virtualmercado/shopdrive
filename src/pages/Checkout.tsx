@@ -829,7 +829,7 @@ const CheckoutContent = () => {
             toast.info(paymentData.message || "Pagamento em processamento. Aguarde a confirmação.");
           }
           
-          navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
+          navigate(`/${storeSlug}/pedido-confirmado/${order.id}`);
           return;
 
         } catch (paymentError: any) {
@@ -994,7 +994,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
             // Track purchase event for conversion funnel
             if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
             // Navigate to confirmation page where boleto details will be shown
-            navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`);
+            navigate(`/${storeSlug}/pedido-confirmado/${order.id}`);
             return;
           } else {
             console.error("Boleto generation failed:", boletoResponse.data);
@@ -1020,7 +1020,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
       // Track purchase event for conversion funnel
       if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
       toast.success("Pedido realizado com sucesso!");
-      setTimeout(() => navigate(`/loja/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
+      setTimeout(() => navigate(`/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast.error(error.message || "Erro ao finalizar pedido");
@@ -1034,7 +1034,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
     // Track purchase event for conversion funnel
     if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
     toast.success("Pagamento confirmado!");
-    navigate(`/loja/${storeSlug}/pedido-confirmado/${createdOrderId}`);
+    navigate(`/${storeSlug}/pedido-confirmado/${createdOrderId}`);
   };
 
   const handlePixExpired = () => {
@@ -1062,7 +1062,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Carrinho vazio</h1>
           <p className="text-muted-foreground">Adicione produtos ao carrinho para continuar</p>
-          <Button onClick={() => navigate(`/loja/${storeSlug}`)}>Voltar para a loja</Button>
+          <Button onClick={() => navigate(`/${storeSlug}`)}>Voltar para a loja</Button>
         </div>
       </div>
     );
@@ -1102,7 +1102,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
                 className="w-full"
                 onClick={() => {
                   setShowPixPayment(false);
-                  navigate(`/loja/${storeSlug}`);
+                  navigate(`/${storeSlug}`);
                 }}
               >
                 Cancelar e voltar para a loja
@@ -1121,7 +1121,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         <div className="mb-4">
           <Button 
             variant="ghost" 
-            onClick={() => navigate(`/loja/${storeSlug}`)}
+            onClick={() => navigate(`/${storeSlug}`)}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

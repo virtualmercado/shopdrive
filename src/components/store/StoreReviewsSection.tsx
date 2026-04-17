@@ -108,7 +108,7 @@ const StoreReviewsSection = ({ storeOwnerId, storeSlug, primaryColor, sectionTit
             {review.product_id && getProductImage(review) && (
               <div
                 className="flex items-center gap-2 p-2 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors"
-                onClick={() => navigate(`/loja/${storeSlug}/produto/${review.product_id}`)}
+                onClick={() => navigate(`/${storeSlug}/produto/${review.product_id}`)}
               >
                 <img
                   src={getProductImage(review)!}

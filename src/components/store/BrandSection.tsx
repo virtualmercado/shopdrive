@@ -74,7 +74,7 @@ export const BrandSection = ({
   };
 
   const handleBrandClick = (brandId: string) => {
-    navigate(`/loja/${storeSlug}/marca/${brandId}`);
+    navigate(`/${storeSlug}/marca/${brandId}`);
   };
 
   if (loading || brands.length === 0) {

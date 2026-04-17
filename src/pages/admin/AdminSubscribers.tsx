@@ -285,7 +285,7 @@ const AdminSubscribers = () => {
 
   // View Store action
   const handleViewStore = (subscriber: any) => {
-    const storeUrl = `/loja/${subscriber.store_slug}`;
+    const storeUrl = `/${subscriber.store_slug}`;
     
     if (subscriber.account_status === 'suspenso' || subscriber.account_status === 'bloqueado') {
       toast.info("Esta loja está atualmente desativada, mas pode ser visualizada", {

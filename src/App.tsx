@@ -56,6 +56,7 @@ import Onboarding from "./pages/Onboarding";
 import { MerchantRoute } from "./components/MerchantRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { StoreSlugGuard, LegacyStoreRedirect } from "./components/StoreSlugGuard";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TemplatePreviewProvider } from "./contexts/TemplatePreviewContext";
 
@@ -173,20 +174,9 @@ function App() {
 
               {/* Public Store Routes */}
               <Route path="/buscar" element={<StoreSearchResults />} />
-              <Route path="/loja/:storeSlug" element={<OnlineStore />} />
-              <Route path="/loja/:storeSlug/produtos" element={<StoreCategoryPage />} />
-              <Route path="/loja/:storeSlug/categoria/:categoryId" element={<StoreCategoryPage />} />
-              <Route path="/loja/:storeSlug/promocoes" element={<StorePromotionsPage />} />
-              <Route path="/loja/:storeSlug/marca/:brandId" element={<StoreBrandPage />} />
-              <Route path="/loja/:storeSlug/produto/:productId" element={<ProductDetail />} />
-              <Route path="/loja/:storeSlug/checkout" element={<Checkout />} />
-              <Route path="/loja/:storeSlug/pedido-confirmado/:orderId" element={<OrderConfirmation />} />
-              <Route path="/loja/:storeSlug/trocas-e-devolucoes" element={<ReturnPolicyPage />} />
-              <Route path="/loja/:storeSlug/sobre-nos" element={<AboutUsPage />} />
 
-              {/* Customer Account Routes */}
-              <Route path="/loja/:storeSlug/auth" element={<CustomerAuth />} />
-              <Route path="/loja/:storeSlug/conta" element={<CustomerAccount />} />
+              {/* Legacy /loja/* URLs — permanent redirect to short URLs (preserves all shared links) */}
+              <Route path="/loja/*" element={<LegacyStoreRedirect />} />
 
               {/* Landing Page Internal Routes (Coming Soon) */}
               <Route path="/sobre-nos" element={<LandingAboutUs />} />
@@ -204,6 +194,20 @@ function App() {
 
               {/* Public Quote Route */}
               <Route path="/public/orcamento/:token" element={<PublicQuote />} />
+
+              {/* Short Store URLs — /:storeSlug/* (guarded against reserved slugs) */}
+              <Route path="/:storeSlug" element={<StoreSlugGuard><OnlineStore /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/produtos" element={<StoreSlugGuard><StoreCategoryPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/categoria/:categoryId" element={<StoreSlugGuard><StoreCategoryPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/promocoes" element={<StoreSlugGuard><StorePromotionsPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/marca/:brandId" element={<StoreSlugGuard><StoreBrandPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/produto/:productId" element={<StoreSlugGuard><ProductDetail /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/checkout" element={<StoreSlugGuard><Checkout /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/pedido-confirmado/:orderId" element={<StoreSlugGuard><OrderConfirmation /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/trocas-e-devolucoes" element={<StoreSlugGuard><ReturnPolicyPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/sobre-nos" element={<StoreSlugGuard><AboutUsPage /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/auth" element={<StoreSlugGuard><CustomerAuth /></StoreSlugGuard>} />
+              <Route path="/:storeSlug/conta" element={<StoreSlugGuard><CustomerAccount /></StoreSlugGuard>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

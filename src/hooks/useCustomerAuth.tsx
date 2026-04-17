@@ -63,7 +63,7 @@ export const useCustomerAuth = () => {
       return { data: null, error: new Error(PREVIEW_AUTH_ERROR) };
     }
 
-    const redirectUrl = `${window.location.origin}/loja/${storeSlug}/conta`;
+    const redirectUrl = `${window.location.origin}/${storeSlug}/conta`;
 
     const { data, error } = await supabase.auth.signUp({
       email,
