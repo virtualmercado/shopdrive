@@ -479,6 +479,18 @@ serve(async (req) => {
           event_description: "Assinatura ativada com sucesso",
           metadata: { paymentId: mpData.id }
         });
+
+        // Reactivate products disabled by plan limit (paid plan only)
+        if (planId && planId !== "gratis" && planId !== "free") {
+          const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+          const max = planId in planLimits ? planLimits[planId] : 20;
+          const { data: rc, error: re } = await supabase.rpc(
+            "reactivate_products_after_upgrade",
+            { p_user_id: userId, p_max_products: max }
+          );
+          if (re) console.error("reactivate rpc error:", re);
+          else console.log(`Reactivated ${rc ?? 0} products on monthly activation`);
+        }
       }
 
       // Update pre-created invoice with payment data
@@ -601,6 +613,18 @@ serve(async (req) => {
           event_description: "Assinatura anual ativada com sucesso",
           metadata: { paymentId: mpData.id }
         });
+
+        // Reactivate products disabled by plan limit (annual paid plan)
+        if (planId && planId !== "gratis" && planId !== "free") {
+          const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+          const max = planId in planLimits ? planLimits[planId] : 20;
+          const { data: rc, error: re } = await supabase.rpc(
+            "reactivate_products_after_upgrade",
+            { p_user_id: userId, p_max_products: max }
+          );
+          if (re) console.error("reactivate rpc error:", re);
+          else console.log(`Reactivated ${rc ?? 0} products on annual activation`);
+        }
       }
 
       // Update pre-created invoice with payment data
