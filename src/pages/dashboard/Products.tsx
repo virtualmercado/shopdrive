@@ -208,7 +208,10 @@ const Products = () => {
     try {
       const { error } = await supabase
         .from('products')
-        .update({ is_active: newActive })
+        .update({
+          is_active: newActive,
+          inactive_reason: newActive ? null : 'manual',
+        })
         .eq('id', productId);
       if (error) throw error;
       toast({
