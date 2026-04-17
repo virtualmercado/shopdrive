@@ -3289,6 +3289,7 @@ export type Database = {
           image_adjustments: Json
           image_url: string | null
           images: Json | null
+          inactive_reason: string | null
           is_active: boolean
           is_featured: boolean | null
           is_new: boolean | null
@@ -3314,6 +3315,7 @@ export type Database = {
           image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
+          inactive_reason?: string | null
           is_active?: boolean
           is_featured?: boolean | null
           is_new?: boolean | null
@@ -3339,6 +3341,7 @@ export type Database = {
           image_adjustments?: Json
           image_url?: string | null
           images?: Json | null
+          inactive_reason?: string | null
           is_active?: boolean
           is_featured?: boolean | null
           is_new?: boolean | null
@@ -5503,6 +5506,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      reactivate_products_after_upgrade: {
+        Args: { p_max_products: number; p_user_id: string }
+        Returns: number
       }
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
