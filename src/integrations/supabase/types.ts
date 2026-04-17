@@ -5408,6 +5408,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      expire_stale_pix_payments: { Args: never; Returns: number }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_quote_number: {
