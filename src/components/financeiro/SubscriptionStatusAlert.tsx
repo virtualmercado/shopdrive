@@ -96,7 +96,7 @@ export const SubscriptionStatusAlert = ({
   }
 
   // Only show alerts for specific statuses
-  if (!["active", "pending", "processing", "past_due", "payment_failed", "suspended", "cancelled"].includes(status)) {
+  if (!["active", "pending", "processing", "past_due", "payment_failed", "suspended", "cancelled", "expired"].includes(status)) {
     return null;
   }
 
@@ -272,6 +272,42 @@ export const SubscriptionStatusAlert = ({
           )}
         </div>
         <CloseButton onClick={dismiss} className="text-red-600 hover:text-red-800" />
+      </Alert>
+    );
+  }
+
+  // Expired status (PIX vencido / pagamento não concluído)
+  if (status === "expired") {
+    const expiredMessage = paymentMethod === "pix"
+      ? "Seu PIX expirou sem confirmação. Gere um novo código para continuar."
+      : paymentMethod === "boleto"
+        ? "Seu boleto expirou. Gere um novo pagamento para continuar."
+        : "Seu pagamento expirou. Inicie uma nova assinatura para continuar.";
+
+    return (
+      <Alert className="bg-orange-50 border-2 border-orange-300 text-orange-900 relative transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pr-8">
+          <div className="flex gap-3">
+            <XCircle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <AlertTitle className="font-semibold text-orange-900">
+                Pagamento expirado
+              </AlertTitle>
+              <AlertDescription className="text-sm text-orange-800">
+                {expiredMessage}
+              </AlertDescription>
+            </div>
+          </div>
+          {onUpdateCard && (
+            <Button
+              onClick={onUpdateCard}
+              className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white gap-2"
+            >
+              Gerar novo pagamento
+            </Button>
+          )}
+        </div>
+        <CloseButton onClick={dismiss} className="text-orange-600 hover:text-orange-800" />
       </Alert>
     );
   }
