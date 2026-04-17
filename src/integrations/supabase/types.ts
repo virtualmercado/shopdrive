@@ -5061,79 +5061,46 @@ export type Database = {
         Row: {
           boleto_enabled: boolean | null
           boleto_provider: string | null
+          created_at: string | null
           credit_card_enabled: boolean | null
           credit_card_installments_no_interest: number | null
           credit_card_provider: string | null
-          mercadopago_accepts_credit: boolean | null
-          mercadopago_accepts_pix: boolean | null
-          mercadopago_enabled: boolean | null
-          mercadopago_installments_free: number | null
-          mercadopago_pix_discount: number | null
-          pagbank_accepts_credit: boolean | null
-          pagbank_accepts_pix: boolean | null
-          pagbank_enabled: boolean | null
+          id: string | null
           pix_discount_percent: number | null
           pix_enabled: boolean | null
           pix_provider: string | null
+          updated_at: string | null
           user_id: string | null
-          whatsapp_accepts_cash: boolean | null
-          whatsapp_accepts_credit: boolean | null
-          whatsapp_accepts_debit: boolean | null
-          whatsapp_accepts_pix: boolean | null
-          whatsapp_accepts_transfer: boolean | null
-          whatsapp_enabled: boolean | null
           whatsapp_number: string | null
         }
         Insert: {
           boleto_enabled?: boolean | null
           boleto_provider?: string | null
+          created_at?: string | null
           credit_card_enabled?: boolean | null
           credit_card_installments_no_interest?: number | null
           credit_card_provider?: string | null
-          mercadopago_accepts_credit?: boolean | null
-          mercadopago_accepts_pix?: boolean | null
-          mercadopago_enabled?: boolean | null
-          mercadopago_installments_free?: number | null
-          mercadopago_pix_discount?: number | null
-          pagbank_accepts_credit?: boolean | null
-          pagbank_accepts_pix?: boolean | null
-          pagbank_enabled?: boolean | null
+          id?: string | null
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
+          updated_at?: string | null
           user_id?: string | null
-          whatsapp_accepts_cash?: boolean | null
-          whatsapp_accepts_credit?: boolean | null
-          whatsapp_accepts_debit?: boolean | null
-          whatsapp_accepts_pix?: boolean | null
-          whatsapp_accepts_transfer?: boolean | null
-          whatsapp_enabled?: boolean | null
           whatsapp_number?: string | null
         }
         Update: {
           boleto_enabled?: boolean | null
           boleto_provider?: string | null
+          created_at?: string | null
           credit_card_enabled?: boolean | null
           credit_card_installments_no_interest?: number | null
           credit_card_provider?: string | null
-          mercadopago_accepts_credit?: boolean | null
-          mercadopago_accepts_pix?: boolean | null
-          mercadopago_enabled?: boolean | null
-          mercadopago_installments_free?: number | null
-          mercadopago_pix_discount?: number | null
-          pagbank_accepts_credit?: boolean | null
-          pagbank_accepts_pix?: boolean | null
-          pagbank_enabled?: boolean | null
+          id?: string | null
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
+          updated_at?: string | null
           user_id?: string | null
-          whatsapp_accepts_cash?: boolean | null
-          whatsapp_accepts_credit?: boolean | null
-          whatsapp_accepts_debit?: boolean | null
-          whatsapp_accepts_pix?: boolean | null
-          whatsapp_accepts_transfer?: boolean | null
-          whatsapp_enabled?: boolean | null
           whatsapp_number?: string | null
         }
         Relationships: []
