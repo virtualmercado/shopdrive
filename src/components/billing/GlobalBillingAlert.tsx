@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Clock, Info, Loader2, CreditCard, X } from "lucide-react";
+import { AlertTriangle, Clock, Info, Loader2, CreditCard, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useBannerDismiss } from "@/hooks/useBannerDismiss";
@@ -46,6 +46,13 @@ const alertConfigs: Record<string, AlertConfig> = {
     textClass: "text-gray-900",
     borderClass: "border-gray-300",
     iconClass: "text-gray-600",
+  },
+  expired: {
+    icon: XCircle,
+    bgClass: "bg-orange-50",
+    textClass: "text-orange-900",
+    borderClass: "border-orange-300",
+    iconClass: "text-orange-600",
   },
 };
 
@@ -141,6 +148,7 @@ export const GlobalBillingAlert = () => {
     if (status === "in_grace_period") return "in_grace_period";
     if (status === "processing") return "processing";
     if (status === "downgraded") return "downgraded";
+    if (status === "expired") return "expired";
     return "past_due";
   };
 
@@ -148,7 +156,9 @@ export const GlobalBillingAlert = () => {
   const content = alertContent?.[alertKey];
   const config = alertConfigs[alertKey] || alertConfigs.past_due;
 
-  if (!content) {
+  // For "expired" we use hardcoded content (not in CMS) — fall through if missing
+  const isExpired = alertKey === "expired";
+  if (!content && !isExpired) {
     return null;
   }
 
@@ -156,22 +166,31 @@ export const GlobalBillingAlert = () => {
   const isSpinning = alertKey === "processing";
 
   const handleCtaClick = () => {
-    navigate(content.cta_url);
+    navigate(content?.cta_url || "/master/financeiro/checkout");
   };
 
   // Override CMS content for "processing" status with payment-method-specific messages
-  let displayTitle = content.title;
-  let displayMessage = replacePlaceholders(content.message, {
-    daysRemaining: billingInfo.daysRemaining,
-    planName: billingInfo.planName,
-    billingCycle: billingInfo.billingCycle,
-    gracePeriodEndsAt: billingInfo.gracePeriodEndsAt,
-  });
+  let displayTitle = content?.title || "";
+  let displayMessage = content
+    ? replacePlaceholders(content.message, {
+        daysRemaining: billingInfo.daysRemaining,
+        planName: billingInfo.planName,
+        billingCycle: billingInfo.billingCycle,
+        gracePeriodEndsAt: billingInfo.gracePeriodEndsAt,
+      })
+    : "";
+  let displayCtaText = content?.cta_text || "";
 
   if (alertKey === "processing") {
     const methodMessages = getProcessingMessageByPaymentMethod(billingInfo.paymentMethod);
     displayTitle = methodMessages.title;
     displayMessage = methodMessages.message;
+  } else if (isExpired) {
+    displayTitle = "❌ Pagamento expirado";
+    displayMessage = billingInfo.paymentMethod === "pix"
+      ? "Seu PIX expirou sem confirmação. Gere um novo código para continuar."
+      : "Seu pagamento expirou. Inicie uma nova assinatura para continuar.";
+    displayCtaText = "Gerar novo pagamento";
   }
 
   return (
@@ -209,13 +228,14 @@ export const GlobalBillingAlert = () => {
             alertKey === "in_grace_period" && "bg-red-600 hover:bg-red-700 text-white",
             alertKey === "past_due" && "bg-amber-600 hover:bg-amber-700 text-white",
             alertKey === "processing" && "bg-blue-600 hover:bg-blue-700 text-white",
-            alertKey === "downgraded" && "bg-gray-700 hover:bg-gray-800 text-white"
+            alertKey === "downgraded" && "bg-gray-700 hover:bg-gray-800 text-white",
+            alertKey === "expired" && "bg-orange-600 hover:bg-orange-700 text-white"
           )}
         >
           {(alertKey === "past_due" || alertKey === "in_grace_period") && (
             <CreditCard className="h-4 w-4" />
           )}
-          {content.cta_text}
+          {displayCtaText}
         </Button>
       </div>
 
