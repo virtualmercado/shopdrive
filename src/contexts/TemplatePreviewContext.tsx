@@ -1,9 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { isReservedSlug } from "@/lib/reservedSlugs";
 
 const TEMPLATE_PREVIEW_STORAGE_KEY = "shopdrive_template_preview_active";
 
-const isStoreRoute = (pathname: string) => pathname.startsWith("/loja/");
+// A store route is either the legacy /loja/* prefix or a short URL /:slug
+// where the first segment is not a reserved platform path.
+const isStoreRoute = (pathname: string) => {
+  if (pathname.startsWith("/loja/")) return true;
+  const firstSegment = pathname.split("/").filter(Boolean)[0];
+  if (!firstSegment) return false;
+  return !isReservedSlug(firstSegment);
+};
 
 const hasTemplateEditorContext = (): boolean => {
   try {

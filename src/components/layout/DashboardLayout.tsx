@@ -591,7 +591,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
               {storeUrl && !isTemplateEditorMode && (
                 <div className="flex items-center gap-4 flex-shrink-0">
-                  <Link to={`/${storeUrl.split('/loja/')[1]}`}>
+                  <Link to={`/${storeUrl.split('/').pop()}`}>
                     <Button 
                       className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
                     >
