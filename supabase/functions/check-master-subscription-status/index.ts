@@ -158,6 +158,21 @@ serve(async (req) => {
                 event_description: "Assinatura ativada via verificação de status",
               });
 
+              // Reactivate products that were disabled by plan limit
+              const planLimitsMap: Record<string, number | null> = {
+                gratis: 20, free: 20, pro: 150, premium: null,
+              };
+              const planId = subscription.plan_id;
+              if (planId && planId !== "gratis" && planId !== "free") {
+                const max = planId in planLimitsMap ? planLimitsMap[planId] : 20;
+                const { data: count, error: rpcErr } = await supabase.rpc(
+                  "reactivate_products_after_upgrade",
+                  { p_user_id: userId, p_max_products: max }
+                );
+                if (rpcErr) console.error("reactivate rpc error:", rpcErr);
+                else console.log(`Reactivated ${count ?? 0} products (plan=${planId})`);
+              }
+
               // Update subscription object for response
               subscription.status = "active";
               pendingPayment.status = "paid";
