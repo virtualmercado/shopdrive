@@ -9,7 +9,8 @@ export type BillingStatus =
   | "processing" 
   | "downgraded" 
   | "suspended"
-  | "cancelled";
+  | "cancelled"
+  | "expired";
 
 export interface BillingAlertContent {
   alert_key: string;
@@ -48,7 +49,21 @@ const calculateDaysRemaining = (gracePeriodEndsAt: string | null): number => {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
-const mapStatusToBillingStatus = (status: string, gracePeriodEndsAt: string | null, previousPlanId: string | null): BillingStatus => {
+const PIX_PENDING_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
+
+const mapStatusToBillingStatus = (
+  status: string,
+  gracePeriodEndsAt: string | null,
+  previousPlanId: string | null,
+  paymentMethod: string | null,
+  createdAt: string | null,
+  updatedAt: string | null,
+): BillingStatus => {
+  // Expired (PIX que venceu)
+  if (status === "expired") {
+    return "expired";
+  }
+
   // Check if downgraded
   if (status === "active" && previousPlanId) {
     return "downgraded";
@@ -64,6 +79,13 @@ const mapStatusToBillingStatus = (status: string, gracePeriodEndsAt: string | nu
   
   // Check if processing (pending payment)
   if (status === "pending" || status === "payment_pending") {
+    // Auto-detectar PIX vencido no frontend (caso o cron ainda não tenha rodado)
+    if (paymentMethod === "pix" && createdAt) {
+      const ageMs = Date.now() - new Date(createdAt).getTime();
+      if (ageMs > PIX_PENDING_TIMEOUT_MS) {
+        return "expired";
+      }
+    }
     return "processing";
   }
   
@@ -136,12 +158,28 @@ export const useBillingStatus = () => {
         };
       }
 
+      // Buscar o método de pagamento real do último pagamento (fonte de verdade)
+      const { data: lastPayment } = await supabase
+        .from("master_subscription_payments")
+        .select("payment_method, created_at, status")
+        .eq("subscription_id", subscription.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const realPaymentMethod = (lastPayment?.payment_method as "credit_card" | "pix" | "boleto" | null) 
+        || (subscription.payment_method as "credit_card" | "pix" | "boleto" | null) 
+        || null;
+
       const gracePeriodEndsAt = subscription.grace_period_ends_at;
       const daysRemaining = calculateDaysRemaining(gracePeriodEndsAt);
       const billingStatus = mapStatusToBillingStatus(
         subscription.status, 
         gracePeriodEndsAt,
-        subscription.previous_plan_id
+        subscription.previous_plan_id,
+        realPaymentMethod,
+        lastPayment?.created_at || subscription.created_at,
+        subscription.updated_at,
       );
 
       return {
@@ -155,7 +193,7 @@ export const useBillingStatus = () => {
         downgradeReason: subscription.downgrade_reason || null,
         requiresCardUpdate: subscription.requires_card_update || false,
         noCharge: subscription.no_charge || false,
-        paymentMethod: (subscription.payment_method as "credit_card" | "pix" | "boleto") || null,
+        paymentMethod: realPaymentMethod,
       };
     },
     enabled: !!user,
