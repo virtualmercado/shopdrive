@@ -40,14 +40,14 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
   
   const getAccountLink = () => {
     if (user) {
-      return `/loja/${storeData.store_slug}/conta`;
+      return `/${storeData.store_slug}/conta`;
     }
-    return `/loja/${storeData.store_slug}/auth`;
+    return `/${storeData.store_slug}/auth`;
   };
 
   const handleHomeClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const storeHomePath = `/loja/${storeData.store_slug}`;
+    const storeHomePath = `/${storeData.store_slug}`;
     
     if (location.pathname === storeHomePath) {
       // Already on home page, just scroll to top
@@ -203,13 +203,13 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 >
                   Home
                 </a>
-                <Link to={`/loja/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={`/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Produtos
                 </Link>
-                <Link to={`/loja/${storeData.store_slug}/sobre-nos`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={`/${storeData.store_slug}/sobre-nos`} className="block text-sm hover:opacity-70 transition-opacity">
                   Sobre Nós
                 </Link>
-                <Link to={`/loja/${storeData.store_slug}/trocas-e-devolucoes`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={`/${storeData.store_slug}/trocas-e-devolucoes`} className="block text-sm hover:opacity-70 transition-opacity">
                   Trocas e Devoluções
                 </Link>
                 <Link to={getAccountLink()} className="block text-sm hover:opacity-70 transition-opacity">

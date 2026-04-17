@@ -669,7 +669,7 @@ const StorePreviewEnhanced = () => {
     }
   };
 
-  const storeUrl = `${window.location.origin}/loja/${storeData.store_slug}`;
+  const storeUrl = `${window.location.origin}/${storeData.store_slug}`;
 
   if (loading) {
     return (

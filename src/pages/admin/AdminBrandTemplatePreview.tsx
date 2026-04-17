@@ -40,7 +40,7 @@ const AdminBrandTemplatePreview = () => {
   const previewUrl = useMemo(() => {
     if (!previewState?.storeSlug) return '';
 
-    const url = new URL(`/loja/${previewState.storeSlug}`, window.location.origin);
+    const url = new URL(`/${previewState.storeSlug}`, window.location.origin);
     url.searchParams.set('templatePreview', '1');
     url.searchParams.set('templateId', previewState.templateId);
     url.searchParams.set('sourceProfileId', previewState.sourceProfileId);

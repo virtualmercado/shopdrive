@@ -276,7 +276,7 @@ export const CustomerColumn = ({
             size="sm"
             className="mt-2 p-0"
             style={{ color: primaryColor }}
-            onClick={() => window.open(`/loja/${storeSlug}/conta`, "_blank")}
+            onClick={() => window.open(`/${storeSlug}/conta`, "_blank")}
           >
             <Edit className="h-3 w-3 mr-1" />
             Editar dados

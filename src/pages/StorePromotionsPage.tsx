@@ -170,7 +170,7 @@ const StorePromotionsContent = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Back button and title */}
         <div className="mb-8">
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja
@@ -205,7 +205,7 @@ const StorePromotionsContent = () => {
             <p className="text-muted-foreground mb-6">
               No momento não há produtos com desconto. Volte em breve!
             </p>
-            <Link to={`/loja/${storeSlug}`}>
+            <Link to={`/${storeSlug}`}>
               <Button
                 style={{
                   backgroundColor: buttonBgColor,

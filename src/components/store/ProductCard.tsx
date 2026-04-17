@@ -126,7 +126,7 @@ const ProductCard = ({
 
   const finalPrice = product.promotional_price || product.price;
 
-  const productLink = storeSlug ? `/loja/${storeSlug}/produto/${product.id}` : '#';
+  const productLink = storeSlug ? `/${storeSlug}/produto/${product.id}` : '#';
 
   return (
     <div 

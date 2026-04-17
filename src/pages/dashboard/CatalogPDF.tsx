@@ -546,7 +546,7 @@ const CatalogPDF = () => {
     pdf.setFont("helvetica", "normal");
 
     if (storeProfile?.store_slug) {
-      const storeUrl = `${window.location.origin}/loja/${storeProfile.store_slug}`;
+      const storeUrl = `${window.location.origin}/${storeProfile.store_slug}`;
       pdf.setTextColor(r, g, b);
       pdf.setFont("helvetica", "bold");
       pdf.text(storeUrl, centerX, infoY, { align: "center" });
@@ -798,7 +798,7 @@ const CatalogPDF = () => {
     pdf.text("Ver produto", contentCenterX, currentY + 6.5, { align: "center" });
 
     if (storeProfile?.store_slug) {
-      const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
+      const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
       pdf.link(btnX, currentY, btnWidth, btnHeight, { url: productUrl });
     }
     currentY += btnHeight + 15;
@@ -953,7 +953,7 @@ const CatalogPDF = () => {
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
 
         if (storeProfile?.store_slug) {
-          const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
+          const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
           pdf.link(x, y, cardWidth, cardHeight, { url: productUrl });
         }
       }
@@ -1076,7 +1076,7 @@ const CatalogPDF = () => {
 
         // Make row clickable
         if (storeProfile?.store_slug) {
-          const productUrl = `${window.location.origin}/loja/${storeProfile.store_slug}/produto/${product.id}`;
+          const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}`;
           pdf.link(contentStartX, currentY - 7, contentWidth, rowHeight, { url: productUrl });
         }
 
@@ -1214,7 +1214,7 @@ const CatalogPDF = () => {
 
   const getStoreUrl = () => {
     if (!storeProfile?.store_slug) return '';
-    return `${window.location.origin}/loja/${storeProfile.store_slug}`;
+    return `${window.location.origin}/${storeProfile.store_slug}`;
   };
 
   const getWhatsAppDisplay = () => {

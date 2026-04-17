@@ -29,22 +29,22 @@ const StoreTopBar = ({
       case "content_page":
         // Navigate to content pages
         const pageRoutes: Record<string, string> = {
-          sobre: `/loja/${storeSlug}/sobre`,
-          trocas: `/loja/${storeSlug}/trocas`,
-          contato: `/loja/${storeSlug}/contato`,
-          termos: `/loja/${storeSlug}/termos`,
-          privacidade: `/loja/${storeSlug}/privacidade`,
+          sobre: `/${storeSlug}/sobre`,
+          trocas: `/${storeSlug}/trocas`,
+          contato: `/${storeSlug}/contato`,
+          termos: `/${storeSlug}/termos`,
+          privacidade: `/${storeSlug}/privacidade`,
         };
-        const pageRoute = pageRoutes[linkTarget] || `/loja/${storeSlug}`;
+        const pageRoute = pageRoutes[linkTarget] || `/${storeSlug}`;
         navigate(pageRoute);
         break;
 
       case "category":
-        navigate(`/loja/${storeSlug}/categoria/${linkTarget}`);
+        navigate(`/${storeSlug}/categoria/${linkTarget}`);
         break;
 
       case "sale":
-        navigate(`/loja/${storeSlug}/promocoes`);
+        navigate(`/${storeSlug}/promocoes`);
         break;
 
       case "section":

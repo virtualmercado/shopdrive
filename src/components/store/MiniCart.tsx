@@ -31,7 +31,7 @@ const MiniCart = ({
 
   const handleCheckout = () => {
     closeMiniCart();
-    navigate(`/loja/${storeSlug}/checkout`);
+    navigate(`/${storeSlug}/checkout`);
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {

@@ -45,7 +45,7 @@ const CustomerAuth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate(`/loja/${storeSlug}/conta`, { replace: true });
+      navigate(`/${storeSlug}/conta`, { replace: true });
     }
   }, [user, navigate, storeSlug]);
 
@@ -85,7 +85,7 @@ const CustomerAuth = () => {
       const validatedData = loginSchema.parse({ email, password });
       const { error } = await signIn(validatedData.email, validatedData.password);
       if (!error) {
-        navigate(`/loja/${storeSlug}/conta`);
+        navigate(`/${storeSlug}/conta`);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -124,7 +124,7 @@ const CustomerAuth = () => {
           receive_promotions: validatedData.receivePromotions
         }).eq('id', data.user.id);
         
-        navigate(`/loja/${storeSlug}/conta`);
+        navigate(`/${storeSlug}/conta`);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -144,7 +144,7 @@ const CustomerAuth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/loja/${storeSlug}/conta`;
+      const redirectUrl = `${window.location.origin}/${storeSlug}/conta`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
@@ -445,7 +445,7 @@ const CustomerAuth = () => {
         }}
       >
         <div className="container mx-auto flex items-center justify-between">
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 
@@ -457,7 +457,7 @@ const CustomerAuth = () => {
             )}
           </Link>
           <Link 
-            to={`/loja/${storeSlug}`} 
+            to={`/${storeSlug}`} 
             className="text-sm flex items-center gap-1 hover:underline"
             style={{ color: storeProfile?.footer_text_color || '#000000' }}
           >
@@ -470,7 +470,7 @@ const CustomerAuth = () => {
       <main className="flex-1 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md">
           {/* Logo clickable */}
-          <Link to={`/loja/${storeSlug}`} className="block text-center mb-8">
+          <Link to={`/${storeSlug}`} className="block text-center mb-8">
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 

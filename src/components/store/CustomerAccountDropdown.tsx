@@ -159,7 +159,7 @@ const CustomerAccountDropdown = ({
     >
       {/* Trigger */}
       <Link
-        to={`/loja/${storeSlug}/conta`}
+        to={`/${storeSlug}/conta`}
         className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-black/5 transition-colors cursor-pointer"
         onClick={(e) => {
           // On mobile, toggle dropdown instead of navigating
@@ -203,7 +203,7 @@ const CustomerAccountDropdown = ({
                 Faça login para ver seus favoritos e pedidos.
               </p>
               <Link
-                to={`/loja/${storeSlug}/conta`}
+                to={`/${storeSlug}/conta`}
                 className="block w-full text-center text-sm font-semibold py-2 rounded-md text-white transition-colors"
                 style={{ backgroundColor: accentColor }}
                 onClick={() => setIsOpen(false)}
@@ -238,7 +238,7 @@ const CustomerAccountDropdown = ({
                     {favorites.map((fav) => (
                       <Link
                         key={fav.id}
-                        to={`/loja/${storeSlug}/produto/${fav.product_id}`}
+                        to={`/${storeSlug}/produto/${fav.product_id}`}
                         className="flex items-center gap-2 hover:bg-gray-50 rounded p-1 transition-colors"
                         onClick={() => setIsOpen(false)}
                       >
@@ -261,7 +261,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/loja/${storeSlug}/conta`}
+                      to={`/${storeSlug}/conta`}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}
@@ -294,7 +294,7 @@ const CustomerAccountDropdown = ({
                     {orders.map((order) => (
                       <Link
                         key={order.id}
-                        to={`/loja/${storeSlug}/conta`}
+                        to={`/${storeSlug}/conta`}
                         className="block hover:bg-gray-50 rounded p-2 transition-colors"
                         onClick={() => setIsOpen(false)}
                       >
@@ -312,7 +312,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/loja/${storeSlug}/conta`}
+                      to={`/${storeSlug}/conta`}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}

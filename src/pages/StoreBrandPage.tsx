@@ -160,7 +160,7 @@ const StoreBrandContent = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Marca não encontrada</h1>
           <p className="text-muted-foreground">A marca que você procura não existe.</p>
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             <Button className="mt-4">Voltar para a loja</Button>
           </Link>
         </div>
@@ -207,7 +207,7 @@ const StoreBrandContent = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Back button and title */}
         <div className="mb-8">
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja
@@ -250,7 +250,7 @@ const StoreBrandContent = () => {
             <p className="text-muted-foreground mb-6">
               Esta marca não possui produtos disponíveis no momento.
             </p>
-            <Link to={`/loja/${storeSlug}`}>
+            <Link to={`/${storeSlug}`}>
               <Button
                 style={{
                   backgroundColor: buttonBgColor,

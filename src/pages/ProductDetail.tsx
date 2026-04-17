@@ -251,7 +251,7 @@ const ProductDetailContent = () => {
         description: "Você precisa estar logado para salvar favoritos.",
         variant: "destructive",
       });
-      navigate(`/loja/${storeSlug}/conta`);
+      navigate(`/${storeSlug}/conta`);
       return;
     }
 
@@ -464,7 +464,7 @@ const ProductDetailContent = () => {
       <div className="min-h-screen bg-background flex items-center justify-center" style={{ fontFamily, fontWeight }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Produto não encontrado</h1>
-          <Button onClick={() => navigate(`/loja/${storeSlug}`)}>
+          <Button onClick={() => navigate(`/${storeSlug}`)}>
             Voltar para a loja
           </Button>
         </div>
@@ -493,7 +493,7 @@ const ProductDetailContent = () => {
       <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">
         {/* Back Button */}
         <Link 
-          to={`/loja/${storeSlug}`}
+          to={`/${storeSlug}`}
           className="inline-flex items-center gap-2 text-foreground/90 hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

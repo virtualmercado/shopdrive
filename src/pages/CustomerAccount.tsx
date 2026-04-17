@@ -30,7 +30,7 @@ const CustomerAccount = () => {
     // In template mode, skip auth redirect — page is a neutral preview
     if (isTemplateMode) return;
     if (!authLoading && !user) {
-      navigate(`/loja/${storeSlug}/auth`, { replace: true });
+      navigate(`/${storeSlug}/auth`, { replace: true });
     }
   }, [user, authLoading, navigate, storeSlug, isTemplateMode]);
 
@@ -54,7 +54,7 @@ const CustomerAccount = () => {
   const handleLogout = async () => {
     if (isTemplateMode) return; // Never sign out in template mode
     await signOut();
-    navigate(`/loja/${storeSlug}`);
+    navigate(`/${storeSlug}`);
   };
 
   if (!isTemplateMode && (authLoading || loading)) {
@@ -102,7 +102,7 @@ const CustomerAccount = () => {
         }}
       >
         <div className="container mx-auto flex items-center justify-between">
-          <Link to={`/loja/${storeSlug}`}>
+          <Link to={`/${storeSlug}`}>
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 
@@ -115,7 +115,7 @@ const CustomerAccount = () => {
           </Link>
           <div className="flex items-center gap-4">
             <Link 
-              to={`/loja/${storeSlug}`} 
+              to={`/${storeSlug}`} 
               className="text-sm flex items-center gap-1 hover:underline hidden md:flex"
               style={{ color: storeProfile?.footer_text_color || '#000000' }}
             >
@@ -202,7 +202,7 @@ const CustomerAccount = () => {
                 </button>
               )}
               <Link 
-                to={`/loja/${storeSlug}`} 
+                to={`/${storeSlug}`} 
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-muted-foreground hover:bg-gray-100"
               >
                 <ArrowLeft className="h-5 w-5" />
