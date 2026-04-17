@@ -33,7 +33,7 @@ async function deactivateExcessProducts(supabase: any, userId: string, maxActive
 
   const { error: updateError } = await supabase
     .from("products")
-    .update({ is_active: false })
+    .update({ is_active: false, inactive_reason: "plan_limit" })
     .in("id", idsToDeactivate);
 
   if (updateError) {

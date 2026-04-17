@@ -382,15 +382,35 @@ serve(async (req) => {
           subscriptionUpdate.previous_plan_id = null;
           subscriptionUpdate.downgraded_at = null;
           console.log(`Reactivating plan: gratis -> ${previousPlan}`);
+        }
 
-          // Reactivate all products that were deactivated during downgrade
-          const { data: reactivated } = await supabase
-            .from("products")
-            .update({ is_active: true })
-            .eq("user_id", payment.user_id)
-            .eq("is_active", false)
-            .select("id");
-          console.log(`Reactivated ${reactivated?.length || 0} products for user ${payment.user_id}`);
+        // Determine effective new plan and reactivate products that were
+        // disabled by plan limit. Use ONLY the inactive_reason='plan_limit' marker
+        // so manual deactivations stay untouched.
+        const effectivePlanId =
+          subscriptionUpdate.plan_id || payment.master_subscriptions?.plan_id;
+        const planLimitsMap: Record<string, number | null> = {
+          gratis: 20,
+          free: 20,
+          pro: 150,
+          premium: null, // unlimited
+        };
+        const maxProducts =
+          effectivePlanId in planLimitsMap ? planLimitsMap[effectivePlanId] : 20;
+
+        // Only attempt reactivation when upgrading to a paid plan
+        if (effectivePlanId && effectivePlanId !== "gratis" && effectivePlanId !== "free") {
+          const { data: reactivatedCount, error: reactErr } = await supabase.rpc(
+            "reactivate_products_after_upgrade",
+            { p_user_id: payment.user_id, p_max_products: maxProducts }
+          );
+          if (reactErr) {
+            console.error("Error reactivating products after upgrade:", reactErr);
+          } else {
+            console.log(
+              `Reactivated ${reactivatedCount ?? 0} plan-limited products for user ${payment.user_id} (plan=${effectivePlanId}, max=${maxProducts ?? "∞"})`
+            );
+          }
         }
       }
 
