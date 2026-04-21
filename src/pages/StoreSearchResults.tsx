@@ -126,6 +126,7 @@ const StoreSearchResultsContent = () => {
           .select("id,name,price,promotional_price,image_url,images,stock")
           .eq("store_slug", storeSlug as string)
           .ilike("name", like as string)
+          .order("popularity_score", { ascending: false })
           .order("created_at", { ascending: false })
           .limit(60) as any;
 

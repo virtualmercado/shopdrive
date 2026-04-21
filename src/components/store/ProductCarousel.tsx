@@ -143,23 +143,25 @@ const ProductCarousel = ({
         .eq("user_id", storeOwnerId)
         .gt("stock", 0);
 
+      // Smart ordering: most popular (sales+views) first, then most recent
+      const applySmartOrder = (q: any) =>
+        q.order("popularity_score", { ascending: false }).order("created_at", { ascending: false });
+
       // When showAllOnSearch is true, fetch ALL products without filters
       if (showAllOnSearch) {
-        query = query.order("created_at", { ascending: false });
+        query = applySmartOrder(query);
       } else if (selectedBrandId) {
-        // Filter by brand
-        query = query.eq("brand_id", selectedBrandId).order("created_at", { ascending: false });
+        query = applySmartOrder(query.eq("brand_id", selectedBrandId));
       } else if (promotional) {
-        // Filter only products with promotional price
-        query = query.gt("promotional_price", 0).order("created_at", { ascending: false });
+        query = applySmartOrder(query.gt("promotional_price", 0));
       } else {
-        // Apply featured/newest filters
         if (featured) {
-          query = query.eq("is_featured", true);
+          query = applySmartOrder(query.eq("is_featured", true));
         } else if (newest) {
+          // "Novidades" still respects recency primarily
           query = query.eq("is_new", true).order("created_at", { ascending: false });
         } else {
-          query = query.order("created_at", { ascending: false });
+          query = applySmartOrder(query);
         }
       }
 
