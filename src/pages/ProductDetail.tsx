@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useEmblaCarousel from "embla-carousel-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
+import BuyTogetherSection from "@/components/store/BuyTogetherSection";
 
 interface Product {
   id: string;
@@ -753,6 +754,20 @@ const ProductDetailContent = () => {
             </div>
           </div>
         )}
+
+
+        {/* Buy Together Section */}
+        <BuyTogetherSection
+          storeOwnerId={storeData.id}
+          storeSlug={storeSlug || ""}
+          currentProductId={product.id}
+          categoryId={product.category_id}
+          primaryColor={primaryColor}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productBorderStyle={productBorderStyle}
+        />
       </main>
 
       <StoreFooter storeData={storeData} />
