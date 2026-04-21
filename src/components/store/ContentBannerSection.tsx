@@ -6,8 +6,10 @@ interface ContentBannerSectionProps {
 }
 
 const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
+  // Display requires only enabled + image. URL (click destination) is optional —
+  // template-inherited banners may be purely informational.
   const activeBanners = banners.filter(
-    (b) => b.enabled && b.image_url && b.url
+    (b) => b.enabled && b.image_url
   );
 
   const [current, setCurrent] = useState(0);
