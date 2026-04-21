@@ -6,8 +6,10 @@ interface ContentBannerSectionProps {
 }
 
 const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
+  // Display requires only enabled + image. URL (click destination) is optional —
+  // template-inherited banners may be purely informational.
   const activeBanners = banners.filter(
-    (b) => b.enabled && b.image_url && b.url
+    (b) => b.enabled && b.image_url
   );
 
   const [current, setCurrent] = useState(0);
@@ -43,13 +45,17 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
             (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 18px rgba(0,0,0,0.08)";
           }}
         >
-          {activeBanners.map((banner, i) => (
-            <a
+          {activeBanners.map((banner, i) => {
+            const hasLink = Boolean(banner.url);
+            const Tag: any = hasLink ? "a" : "div";
+            const linkProps = hasLink
+              ? { href: banner.url, target: "_blank", rel: "noopener noreferrer" }
+              : {};
+            return (
+            <Tag
               key={i}
-              href={banner.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out cursor-pointer"
+              {...linkProps}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${hasLink ? "cursor-pointer" : ""}`}
               style={{ opacity: current === i ? 1 : 0, pointerEvents: current === i ? "auto" : "none" }}
               aria-hidden={current !== i}
             >
@@ -93,8 +99,9 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                   )}
                 </div>
               </div>
-            </a>
-          ))}
+            </Tag>
+            );
+          })}
         </div>
 
         {/* Mobile: adaptive vertical space, full image without crop */}
@@ -102,13 +109,17 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
           className="md:hidden relative"
           style={{ borderRadius: "12px" }}
         >
-          {activeBanners.map((banner, i) => (
-            <a
+          {activeBanners.map((banner, i) => {
+            const hasLink = Boolean(banner.url);
+            const Tag: any = hasLink ? "a" : "div";
+            const linkProps = hasLink
+              ? { href: banner.url, target: "_blank", rel: "noopener noreferrer" }
+              : {};
+            return (
+            <Tag
               key={i}
-              href={banner.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative block w-full rounded-xl transition-opacity duration-700 ease-in-out cursor-pointer"
+              {...linkProps}
+              className={`relative block w-full rounded-xl transition-opacity duration-700 ease-in-out ${hasLink ? "cursor-pointer" : ""}`}
               style={{
                 opacity: current === i ? 1 : 0,
                 pointerEvents: current === i ? "auto" : "none",
@@ -161,8 +172,9 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                   )}
                 </div>
               </div>
-            </a>
-          ))}
+            </Tag>
+            );
+          })}
         </div>
 
         {/* Dots navigation */}
