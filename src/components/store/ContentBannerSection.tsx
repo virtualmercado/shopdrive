@@ -109,13 +109,17 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
           className="md:hidden relative"
           style={{ borderRadius: "12px" }}
         >
-          {activeBanners.map((banner, i) => (
-            <a
+          {activeBanners.map((banner, i) => {
+            const hasLink = Boolean(banner.url);
+            const Tag: any = hasLink ? "a" : "div";
+            const linkProps = hasLink
+              ? { href: banner.url, target: "_blank", rel: "noopener noreferrer" }
+              : {};
+            return (
+            <Tag
               key={i}
-              href={banner.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative block w-full rounded-xl transition-opacity duration-700 ease-in-out cursor-pointer"
+              {...linkProps}
+              className={`relative block w-full rounded-xl transition-opacity duration-700 ease-in-out ${hasLink ? "cursor-pointer" : ""}`}
               style={{
                 opacity: current === i ? 1 : 0,
                 pointerEvents: current === i ? "auto" : "none",
@@ -168,8 +172,9 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
                   )}
                 </div>
               </div>
-            </a>
-          ))}
+            </Tag>
+            );
+          })}
         </div>
 
         {/* Dots navigation */}
