@@ -5512,6 +5512,10 @@ export type Database = {
         }
         Returns: string
       }
+      propagate_content_banner_from_template: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       reactivate_products_after_upgrade: {
         Args: { p_max_products: number; p_user_id: string }
         Returns: number
