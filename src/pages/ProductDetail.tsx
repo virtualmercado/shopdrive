@@ -754,6 +754,20 @@ const ProductDetailContent = () => {
             </div>
           </div>
         )}
+
+
+        {/* Buy Together Section */}
+        <BuyTogetherSection
+          storeOwnerId={storeData.id}
+          storeSlug={storeSlug || ""}
+          currentProductId={product.id}
+          categoryId={product.category_id}
+          primaryColor={primaryColor}
+          buttonBgColor={buttonBgColor}
+          buttonTextColor={buttonTextColor}
+          buttonBorderStyle={buttonBorderStyle}
+          productBorderStyle={productBorderStyle}
+        />
       </main>
 
       <StoreFooter storeData={storeData} />
