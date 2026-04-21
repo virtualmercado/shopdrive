@@ -88,6 +88,7 @@ const StorePromotionsContent = () => {
         .gt("stock", 0)
         .not("promotional_price", "is", null)
         .gt("promotional_price", 0)
+        .order("popularity_score", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (productsError) {
