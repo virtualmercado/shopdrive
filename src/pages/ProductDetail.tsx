@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useEmblaCarousel from "embla-carousel-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
+import BuyTogetherSection from "@/components/store/BuyTogetherSection";
 
 interface Product {
   id: string;
