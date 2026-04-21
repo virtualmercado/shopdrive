@@ -1859,13 +1859,6 @@ export type Database = {
             referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
         ]
       }
       landing_response_templates: {
@@ -5530,6 +5523,10 @@ export type Database = {
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
         Returns: undefined
+      }
+      sync_invoice_for_payment: {
+        Args: { p_payment_id: string }
+        Returns: string
       }
       sync_template_from_profile: {
         Args: { p_template_id: string }
