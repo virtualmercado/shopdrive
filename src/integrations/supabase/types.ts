@@ -3295,13 +3295,16 @@ export type Database = {
           is_new: boolean | null
           length: number | null
           name: string
+          popularity_score: number
           price: number
           promotional_price: number | null
+          sales_count: number
           shipping_weight: number | null
           stock: number
           updated_at: string
           user_id: string
           variations: Json | null
+          views_count: number
           weight: number | null
           width: number | null
         }
@@ -3321,13 +3324,16 @@ export type Database = {
           is_new?: boolean | null
           length?: number | null
           name: string
+          popularity_score?: number
           price: number
           promotional_price?: number | null
+          sales_count?: number
           shipping_weight?: number | null
           stock?: number
           updated_at?: string
           user_id: string
           variations?: Json | null
+          views_count?: number
           weight?: number | null
           width?: number | null
         }
@@ -3347,13 +3353,16 @@ export type Database = {
           is_new?: boolean | null
           length?: number | null
           name?: string
+          popularity_score?: number
           price?: number
           promotional_price?: number | null
+          sales_count?: number
           shipping_weight?: number | null
           stock?: number
           updated_at?: string
           user_id?: string
           variations?: Json | null
+          views_count?: number
           weight?: number | null
           width?: number | null
         }
@@ -5206,12 +5215,15 @@ export type Database = {
           is_new: boolean | null
           length: number | null
           name: string | null
+          popularity_score: number | null
           price: number | null
           promotional_price: number | null
+          sales_count: number | null
           stock: number | null
           store_slug: string | null
           user_id: string | null
           variations: Json | null
+          views_count: number | null
           weight: number | null
           width: number | null
         }
@@ -5510,6 +5522,10 @@ export type Database = {
       reactivate_products_after_upgrade: {
         Args: { p_max_products: number; p_user_id: string }
         Returns: number
+      }
+      recompute_product_popularity: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
