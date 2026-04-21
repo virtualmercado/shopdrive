@@ -74,6 +74,7 @@ export const CatalogProductList = ({
         .from("public_store_products")
         .select("*", { count: "exact" })
         .eq("store_slug", storeSlug)
+        .order("popularity_score", { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
 
