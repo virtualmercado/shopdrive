@@ -18,12 +18,11 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
   const offsetRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
-  if (!items || items.length === 0) return null;
-
   // Duplicate items for seamless infinite scroll
-  const loop = [...items, ...items];
+  const loop = items && items.length > 0 ? [...items, ...items] : [];
 
   useEffect(() => {
+    if (!items || items.length === 0) return;
     const track = trackRef.current;
     if (!track) return;
     const speed = 0.5; // px per frame (~30px/s)
