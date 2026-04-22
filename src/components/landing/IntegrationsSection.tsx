@@ -55,8 +55,16 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
       <div className="container mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-4xl font-bold mb-4 text-black">{title}</h2>
-          <p className="text-xl max-w-3xl mx-auto" style={{ color: "#5A5A5A" }}>
-            {subtitle}
+          <p
+            className="text-xl max-w-2xl mx-auto leading-relaxed"
+            style={{ color: "#5A5A5A" }}
+          >
+            <span className="hidden md:inline">
+              Conheça as ferramentas integradas com a ShopDrive que vão te ajudar
+              <br />
+              a organizar, otimizar e a impulsionar suas vendas
+            </span>
+            <span className="md:hidden">{subtitle}</span>
           </p>
         </div>
 
@@ -69,7 +77,7 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
         >
           <div
             ref={trackRef}
-            className="flex gap-6 will-change-transform"
+            className="flex gap-8 md:gap-10 will-change-transform"
             style={{ width: "max-content" }}
           >
             {loop.map((item, i) => {
@@ -78,7 +86,7 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
               return (
                 <div
                   key={i}
-                  className="relative shrink-0 w-[260px] sm:w-[290px] md:w-[310px] lg:w-[320px]"
+                  className="relative shrink-0 w-[210px] sm:w-[230px] md:w-[250px] lg:w-[260px]"
                   onMouseEnter={() => {
                     setPaused(true);
                     setHoveredIdx(i);
