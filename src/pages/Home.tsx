@@ -497,6 +497,18 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Integrations Section */}
+      <IntegrationsSection
+        title={getContent(cmsContent, "integrations", "title", "Integrações inclusas na plataforma")}
+        subtitle={getContent(
+          cmsContent,
+          "integrations",
+          "subtitle",
+          "Conheça as ferramentas integradas com a ShopDrive que vão te ajudar a organizar, otimizar e a impulsionar suas vendas"
+        )}
+        items={getContentArray(cmsContent, "integrations", "items", [])}
+      />
+
       {/* How it Works */}
       <section id="como-funciona" className="py-20 px-4">
         <div className="container mx-auto">
