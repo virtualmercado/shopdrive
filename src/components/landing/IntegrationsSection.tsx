@@ -78,8 +78,7 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
               return (
                 <div
                   key={i}
-                  className="relative shrink-0"
-                  style={{ width: "min(709px, 80vw)" }}
+                  className="relative shrink-0 w-[260px] sm:w-[290px] md:w-[310px] lg:w-[320px]"
                   onMouseEnter={() => {
                     setPaused(true);
                     setHoveredIdx(i);
