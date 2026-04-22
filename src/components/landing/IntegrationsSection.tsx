@@ -46,7 +46,9 @@ const IntegrationsSection = ({ title, subtitle, items }: IntegrationsSectionProp
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [paused, items.length]);
+  }, [paused, items?.length]);
+
+  if (!items || items.length === 0) return null;
 
   return (
     <section className="py-20 px-4 bg-background overflow-hidden">

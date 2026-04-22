@@ -55,6 +55,7 @@ import CMSSalesPaymentsModal from "@/components/admin/cms/CMSSalesPaymentsModal"
 import CMSResourcesModal from "@/components/admin/cms/CMSResourcesModal";
 import CMSResourceCardsModal from "@/components/admin/cms/CMSResourceCardsModal";
 import CMSTestimonialsModal from "@/components/admin/cms/CMSTestimonialsModal";
+import CMSIntegrationsModal from "@/components/admin/cms/CMSIntegrationsModal";
 import CMSHowItWorksModal from "@/components/admin/cms/CMSHowItWorksModal";
 import CMSPlansModal from "@/components/admin/cms/CMSPlansModal";
 import CMSFaqModal from "@/components/admin/cms/CMSFaqModal";
@@ -115,6 +116,7 @@ const contentSections = [
   { key: "resources", name: "Bloco Recursos", icon: Layers, description: "Título e subtítulo da seção" },
   { key: "resource_cards", name: "Cards de Recursos", icon: Grid3X3, description: "8 cards com ícones e textos" },
   { key: "testimonials", name: "Prova Social (Depoimentos)", icon: Users, description: "Depoimentos de clientes" },
+  { key: "integrations", name: "Banners de Integrações da Plataforma", icon: Layers, description: "Banners de integrações exibidos em carrossel infinito" },
   { key: "how_it_works", name: "Como Funciona", icon: ListOrdered, description: "3 passos e CTA final" },
   { key: "plans", name: "Planos da Plataforma", icon: Crown, description: "Textos, preços e recursos dos planos" },
   { key: "faq", name: "Dúvidas Frequentes", icon: MessageSquare, description: "Perguntas e respostas do FAQ" },
@@ -919,6 +921,12 @@ const AdminCMS = () => {
         onClose={() => setActiveModal(null)}
         content={cmsContent["testimonials"]}
         onSave={(content) => handleSaveContent("testimonials", content)}
+      />
+      <CMSIntegrationsModal
+        isOpen={activeModal === "integrations"}
+        onClose={() => setActiveModal(null)}
+        content={cmsContent["integrations"]}
+        onSave={(content) => handleSaveContent("integrations", content)}
       />
       <CMSHowItWorksModal
         isOpen={activeModal === "how_it_works"}

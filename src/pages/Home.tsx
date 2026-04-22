@@ -15,7 +15,7 @@ import testimonialMarcos from "@/assets/testimonial-marcos.jpg";
 import testimonialCarla from "@/assets/testimonial-carla.jpg";
 import { useCMSBanners, getBannerUrl } from "@/hooks/useCMSBanners";
 import { useCMSContent, getContent, getContentArray } from "@/hooks/useCMSContent";
-import { HeroSection } from "@/components/landing";
+import { HeroSection, IntegrationsSection } from "@/components/landing";
 
 // Icon mapping for dynamic icons
 const iconMap: Record<string, any> = {
