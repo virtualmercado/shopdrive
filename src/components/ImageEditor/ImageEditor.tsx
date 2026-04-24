@@ -30,6 +30,35 @@ import {
 import { loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
 /**
+ * Decode an image source through a Blob so the resulting canvas is GUARANTEED untainted.
+ * Used at SAVE time to neutralize any cross-origin contamination that may have happened
+ * during the preview load.
+ */
+const decodeImageAsUntainted = async (src: string): Promise<HTMLImageElement> => {
+  if (src.startsWith("data:") || src.startsWith("blob:")) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Falha ao decodificar imagem local"));
+      img.src = src;
+    });
+  }
+  const res = await fetch(src, { cache: "no-store", mode: "cors" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ao buscar imagem para exportar`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Falha ao decodificar imagem para exportação"));
+    };
+    img.src = objectUrl;
+  });
+};
+
+/**
  * Tonal adjustments stored per image (7 sliders).
  */
 export interface ImageAdjustments {
@@ -1497,12 +1526,27 @@ export const ImageEditor = ({
     setProcessingProgress(50);
 
     try {
+      // CRITICAL: re-decode the original image through a Blob right before exporting.
+      // The preview <img> may have been loaded WITHOUT crossOrigin (CORS-fallback path),
+      // which would taint every canvas it's drawn on and cause a `SecurityError` on
+      // `getImageData()` / `toBlob()` only at save time — exactly the production failure.
+      // By going through `fetch -> Blob -> object URL`, the canvas is guaranteed clean.
+      let exportImage: HTMLImageElement = originalImage;
+      try {
+        if (!imageUrl.startsWith("data:") && !imageUrl.startsWith("blob:")) {
+          exportImage = await decodeImageAsUntainted(imageUrl);
+        }
+      } catch (decodeErr) {
+        // If we can't re-decode, fall back to the in-memory image. If it's tainted the
+        // toBlob below will throw and we'll surface a clear message instead of hanging.
+        console.warn("[VM][ImageEditor] re-decode failed, using in-memory image", decodeErr);
+      }
+
       // Synchronous final render
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Get crop dimensions
-        const crop = getCropDimensions(originalImage.width, originalImage.height, cropPreset);
+        const crop = getCropDimensions(exportImage.width, exportImage.height, cropPreset);
         canvas.width = crop.width;
         canvas.height = crop.height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1511,17 +1555,22 @@ export const ImageEditor = ({
         const offsetPixelsY = (offsetY / 100) * canvas.height;
         const scaleFactor = scale / 100;
 
-        // Get source data
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = originalImage.width;
-        tempCanvas.height = originalImage.height;
+        tempCanvas.width = exportImage.width;
+        tempCanvas.height = exportImage.height;
         const tempCtx = tempCanvas.getContext('2d');
         if (tempCtx) {
-          tempCtx.drawImage(originalImage, 0, 0);
-          const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-          
-          // Apply adjustments
-          const hasAdj = Object.values(adjustments).some(v => v !== 0);
+          tempCtx.drawImage(exportImage, 0, 0);
+          let sourceData: ImageData;
+          try {
+            sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+          } catch (secErr: any) {
+            // SecurityError → tainted canvas. Make the error explicit and actionable.
+            throw new Error(
+              "Não foi possível ler os pixels da imagem (CORS). Recarregue a página e tente novamente."
+            );
+          }
+          const hasAdj = Object.values(adjustments).some((v) => v !== 0);
           const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
 
           const adjustedCanvas = document.createElement('canvas');
@@ -1535,7 +1584,7 @@ export const ImageEditor = ({
             ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
             ctx.rotate((rotation * Math.PI) / 180);
             ctx.scale(scaleFactor, scaleFactor);
-            ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
+            ctx.translate(-exportImage.width / 2, -exportImage.height / 2);
             ctx.drawImage(adjustedCanvas, 0, 0);
             ctx.restore();
           }
@@ -1561,13 +1610,42 @@ export const ImageEditor = ({
       outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
       outCtx.drawImage(baseCanvas, 0, 0, outCanvas.width, outCanvas.height);
 
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        outCanvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar o arquivo da imagem"))),
-          "image/jpeg",
-          JPEG_QUALITY,
-        );
-      });
+      let blob: Blob;
+      try {
+        blob = await new Promise<Blob>((resolve, reject) => {
+          try {
+            outCanvas.toBlob(
+              (b) =>
+                b
+                  ? resolve(b)
+                  : reject(
+                      new Error(
+                        "O navegador não permitiu exportar a imagem (provável CORS). Recarregue a página e tente novamente."
+                      )
+                    ),
+              "image/jpeg",
+              JPEG_QUALITY
+            );
+          } catch (syncErr: any) {
+            // toBlob() can throw SecurityError synchronously on tainted canvases in some browsers.
+            reject(
+              new Error(
+                syncErr?.name === "SecurityError"
+                  ? "Não foi possível exportar a imagem (CORS). Recarregue a página e tente novamente."
+                  : syncErr?.message || "Falha ao gerar o arquivo da imagem"
+              )
+            );
+          }
+        });
+      } catch (blobErr: any) {
+        setIsProcessing(false);
+        toast({
+          title: "Erro ao exportar imagem",
+          description: blobErr?.message || "Tente recarregar a página e abrir o editor novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setProcessingProgress(85);
 

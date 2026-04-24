@@ -66,16 +66,33 @@ export async function persistEditedProductImage({
   blob,
   adjustments,
 }: PersistEditedProductImageParams): Promise<PersistEditedProductImageResult> {
-  const debugEnabled = import.meta.env.DEV;
+  // Always log key milestones so production failures are diagnosable from the user's console.
+  const debugEnabled = true;
   const id = genId();
   const now = Date.now();
 
   // Keep uploads inside merchant folder for storage isolation and cache-busting.
   const filePath = `brands/${userId}/products/${productId}/${imageIndex}-${now}-${id}.jpg`;
 
-  if (debugEnabled) {
-    console.groupCollapsed("[VM][ImageSave] persistEditedProductImage");
-    console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath, adjustments });
+  console.groupCollapsed("[VM][ImageSave] persistEditedProductImage");
+  console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath });
+
+  // CRITICAL: in production the user's auth session may have expired silently while the
+  // editor was open (tokens have a short TTL). The Storage API will then hang waiting for
+  // a 401-retry that never comes through certain proxies. Force a refresh BEFORE upload
+  // so we always have a fresh access_token on the wire.
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      throw new Error("Sessão expirada. Faça login novamente para salvar a imagem.");
+    }
+    // Best-effort refresh; ignore "already fresh" errors.
+    await supabase.auth.refreshSession().catch(() => {});
+    console.log("session refreshed before upload");
+  } catch (sessErr) {
+    console.error("[VM][ImageSave] session refresh failed", sessErr);
+    console.groupEnd();
+    throw sessErr;
   }
 
   const file = new File([blob], `product-${productId}-${imageIndex}.jpg`, { type: "image/jpeg" });
@@ -86,7 +103,7 @@ export async function persistEditedProductImage({
     .from("product-images")
     .upload(filePath, file, { contentType: "image/jpeg", upsert: false });
 
-  const uploadResponse = await Promise.race([
+  const uploadResponse: any = await Promise.race([
     uploadPromise,
     new Promise<never>((_, reject) =>
       setTimeout(
@@ -96,20 +113,17 @@ export async function persistEditedProductImage({
     ),
   ]);
 
-  if (debugEnabled) {
-    console.log("uploadResponse.data", uploadResponse.data);
-    console.log("uploadResponse.error", uploadResponse.error);
-  }
+  console.log("upload result", { data: uploadResponse?.data, error: uploadResponse?.error });
 
-  if (uploadResponse.error) {
-    if (debugEnabled) console.groupEnd();
+  if (uploadResponse?.error) {
+    console.groupEnd();
     const msg = uploadResponse.error.message || "Falha no upload da imagem";
     throw new Error(msg);
   }
 
   const publicUrl = supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
   if (!publicUrl) {
-    if (debugEnabled) console.groupEnd();
+    console.groupEnd();
     throw new Error("Não foi possível obter a URL pública da imagem");
   }
 
