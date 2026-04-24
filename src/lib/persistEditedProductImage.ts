@@ -91,10 +91,17 @@ export async function persistEditedProductImage({
   console.groupCollapsed("[VM][ImageSave] persistEditedProductImage");
   console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath });
 
-  // CRITICAL: in production the user's auth session may have expired silently while the
-  // editor was open (tokens have a short TTL). The Storage API will then hang waiting for
-  // a 401-retry that never comes through certain proxies. Force a refresh BEFORE upload
-  // so we always have a fresh access_token on the wire.
+  // ROOT-CAUSE FIX (production hang):
+  // In production behind the published-domain CDN, `supabase.storage.from(...).upload(...)`
+  // could hang indefinitely (Promise neither resolved nor rejected) when the access_token
+  // expired or rotated mid-flight. The SDK uses an internal XHR with no AbortController,
+  // so the request became orphaned and the editor modal stayed stuck on "Salvando...".
+  //
+  // Replacement: do the upload via plain `fetch` against the Storage REST endpoint with:
+  //   - a fresh access_token (we refresh just before)
+  //   - an explicit `AbortController` so we can ALWAYS resolve/reject the Promise
+  //   - explicit HTTP status handling (no silent 401-retry loop)
+  let accessToken: string;
   try {
     trace("session_get_start");
     const { data: sessionData } = await supabase.auth.getSession();
@@ -102,11 +109,10 @@ export async function persistEditedProductImage({
     if (!sessionData.session) {
       throw new Error("Sessão expirada. Faça login novamente para salvar a imagem.");
     }
-    // Best-effort refresh; ignore "already fresh" errors.
     trace("session_refresh_start");
-    await supabase.auth.refreshSession().catch(() => {});
-    trace("session_refresh_success");
-    console.log("session refreshed before upload");
+    const refreshed = await supabase.auth.refreshSession().catch(() => null);
+    accessToken = refreshed?.data?.session?.access_token ?? sessionData.session.access_token;
+    trace("session_refresh_success", { tokenLen: accessToken?.length ?? 0 });
   } catch (sessErr) {
     traceError("session_refresh_error", sessErr);
     console.error("[VM][ImageSave] session refresh failed", sessErr);
@@ -114,37 +120,56 @@ export async function persistEditedProductImage({
     throw sessErr;
   }
 
-  const file = new File([blob], `product-${productId}-${imageIndex}.jpg`, { type: "image/jpeg" });
+  const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string;
+  const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+  const uploadEndpoint = `${SUPABASE_URL}/storage/v1/object/product-images/${filePath}`;
 
-  // Upload with a hard timeout so production never hangs indefinitely on a stalled request.
   const UPLOAD_TIMEOUT_MS = 45000;
-  const uploadPromise = supabase.storage
-    .from("product-images")
-    .upload(filePath, file, { contentType: "image/jpeg", upsert: false });
-  trace("storage_upload_start", { bucket: "product-images", filePath, timeoutMs: UPLOAD_TIMEOUT_MS });
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
-  const uploadResponse: any = await Promise.race([
-    uploadPromise,
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Timeout ao enviar imagem (45s). Verifique sua conexão e tente novamente.")),
-        UPLOAD_TIMEOUT_MS
-      )
-    ),
-  ]);
-  trace("storage_upload_response", {
-    hasData: !!uploadResponse?.data,
-    errorMessage: uploadResponse?.error?.message,
-    errorStatus: uploadResponse?.error?.statusCode,
-  });
+  trace("storage_upload_start", { bucket: "product-images", filePath, endpoint: uploadEndpoint, timeoutMs: UPLOAD_TIMEOUT_MS });
 
-  console.log("upload result", { data: uploadResponse?.data, error: uploadResponse?.error });
+  let uploadHttpStatus = 0;
+  try {
+    const res = await fetch(uploadEndpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "image/jpeg",
+        "x-upsert": "false",
+        "cache-control": "3600",
+      },
+      body: blob,
+    });
+    uploadHttpStatus = res.status;
 
-  if (uploadResponse?.error) {
-    traceError("storage_upload_error", uploadResponse.error, { httpStatus: uploadResponse.error.statusCode });
+    if (!res.ok) {
+      let errBody: any = null;
+      try { errBody = await res.json(); } catch { /* ignore */ }
+      traceError("storage_upload_http_error", new Error(errBody?.message || `HTTP ${res.status}`), {
+        httpStatus: res.status,
+        body: errBody,
+      });
+      console.groupEnd();
+      throw new Error(errBody?.message || `Falha no upload da imagem (HTTP ${res.status})`);
+    }
+
+    trace("storage_upload_response", { hasData: true, httpStatus: res.status });
+    console.log("upload result", { httpStatus: res.status });
+  } catch (uploadErr: any) {
+    if (uploadErr?.name === "AbortError") {
+      traceError("storage_upload_abort", uploadErr, { timeoutMs: UPLOAD_TIMEOUT_MS, httpStatus: uploadHttpStatus });
+      console.groupEnd();
+      throw new Error("Tempo esgotado ao enviar a imagem. Verifique sua conexão e tente novamente.");
+    }
+    traceError("storage_upload_network_error", uploadErr, { httpStatus: uploadHttpStatus });
     console.groupEnd();
-    const msg = uploadResponse.error.message || "Falha no upload da imagem";
-    throw new Error(msg);
+    throw uploadErr;
+  } finally {
+    clearTimeout(abortTimer);
   }
 
   const publicUrl = supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
@@ -270,7 +295,7 @@ export async function persistEditedProductImage({
     imageAdjustments: finalImageAdj,
     debug: {
       filePath,
-      uploadData: uploadResponse.data,
+      uploadData: { httpStatus: 200 },
       updateData: updateResponse.data,
       refetchData: refetchResponse.data,
     },
