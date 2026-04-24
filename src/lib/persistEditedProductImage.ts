@@ -80,9 +80,21 @@ export async function persistEditedProductImage({
 
   const file = new File([blob], `product-${productId}-${imageIndex}.jpg`, { type: "image/jpeg" });
 
-  const uploadResponse = await supabase.storage
+  // Upload with a hard timeout so production never hangs indefinitely on a stalled request.
+  const UPLOAD_TIMEOUT_MS = 45000;
+  const uploadPromise = supabase.storage
     .from("product-images")
     .upload(filePath, file, { contentType: "image/jpeg", upsert: false });
+
+  const uploadResponse = await Promise.race([
+    uploadPromise,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Timeout ao enviar imagem (45s). Verifique sua conexão e tente novamente.")),
+        UPLOAD_TIMEOUT_MS
+      )
+    ),
+  ]);
 
   if (debugEnabled) {
     console.log("uploadResponse.data", uploadResponse.data);
@@ -91,7 +103,8 @@ export async function persistEditedProductImage({
 
   if (uploadResponse.error) {
     if (debugEnabled) console.groupEnd();
-    throw uploadResponse.error;
+    const msg = uploadResponse.error.message || "Falha no upload da imagem";
+    throw new Error(msg);
   }
 
   const publicUrl = supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;

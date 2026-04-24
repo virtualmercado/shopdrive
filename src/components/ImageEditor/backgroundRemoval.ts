@@ -996,12 +996,33 @@ export const removeBackground = async (
   }
 };
 
-export const loadImageFromUrl = (url: string): Promise<HTMLImageElement> => {
+export const loadImageFromUrl = (url: string, timeoutMs = 30000): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      reject(new Error("Timeout ao carregar imagem (verifique conexão ou CORS)"));
+    }, timeoutMs);
+    img.onload = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      // Retry once without crossOrigin (some CDNs don't send CORS headers)
+      const retry = new Image();
+      const retryTimer = setTimeout(() => reject(new Error("Falha ao carregar imagem")), timeoutMs);
+      retry.onload = () => { clearTimeout(retryTimer); resolve(retry); };
+      retry.onerror = () => { clearTimeout(retryTimer); reject(new Error("Falha ao carregar imagem")); };
+      retry.src = url;
+    };
     img.src = url;
   });
 };
@@ -1010,7 +1031,7 @@ export const loadImageFromDataUrl = (dataUrl: string): Promise<HTMLImageElement>
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error("Falha ao decodificar imagem"));
     img.src = dataUrl;
   });
 };

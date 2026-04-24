@@ -1572,7 +1572,45 @@ export const ImageEditor = ({
       setProcessingProgress(85);
 
       // IMPORTANT: await persistence (storage + DB + re-fetch) before declaring success.
-      await onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height, adjustments });
+      // Hard cap on the persistence step so the UI never gets stuck in "processando" in production.
+      const PERSIST_TIMEOUT_MS = 60000;
+      try {
+        await Promise.race([
+          onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height, adjustments }),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Tempo esgotado ao salvar a imagem. Tente novamente.")),
+              PERSIST_TIMEOUT_MS
+            )
+          ),
+        ]);
+      } catch (persistErr) {
+        // Fallback: offer the edited image as a direct download so the work isn't lost.
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `imagem-editada-${Date.now()}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          toast({
+            title: "Salvamento falhou — download iniciado",
+            description:
+              (persistErr as any)?.message ||
+              "Não foi possível salvar no servidor. A imagem foi baixada para você não perder a edição.",
+            variant: "destructive",
+          });
+        } catch {
+          toast({
+            title: "Erro ao salvar",
+            description: (persistErr as any)?.message || "Tente novamente.",
+            variant: "destructive",
+          });
+        }
+        return; // do not close the editor; user can retry
+      }
 
       setProcessingProgress(100);
       onOpenChange(false);
