@@ -1610,13 +1610,42 @@ export const ImageEditor = ({
       outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
       outCtx.drawImage(baseCanvas, 0, 0, outCanvas.width, outCanvas.height);
 
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        outCanvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar o arquivo da imagem"))),
-          "image/jpeg",
-          JPEG_QUALITY,
-        );
-      });
+      let blob: Blob;
+      try {
+        blob = await new Promise<Blob>((resolve, reject) => {
+          try {
+            outCanvas.toBlob(
+              (b) =>
+                b
+                  ? resolve(b)
+                  : reject(
+                      new Error(
+                        "O navegador não permitiu exportar a imagem (provável CORS). Recarregue a página e tente novamente."
+                      )
+                    ),
+              "image/jpeg",
+              JPEG_QUALITY
+            );
+          } catch (syncErr: any) {
+            // toBlob() can throw SecurityError synchronously on tainted canvases in some browsers.
+            reject(
+              new Error(
+                syncErr?.name === "SecurityError"
+                  ? "Não foi possível exportar a imagem (CORS). Recarregue a página e tente novamente."
+                  : syncErr?.message || "Falha ao gerar o arquivo da imagem"
+              )
+            );
+          }
+        });
+      } catch (blobErr: any) {
+        setIsProcessing(false);
+        toast({
+          title: "Erro ao exportar imagem",
+          description: blobErr?.message || "Tente recarregar a página e abrir o editor novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setProcessingProgress(85);
 
