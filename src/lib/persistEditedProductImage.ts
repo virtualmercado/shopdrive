@@ -66,6 +66,19 @@ export async function persistEditedProductImage({
   blob,
   adjustments,
 }: PersistEditedProductImageParams): Promise<PersistEditedProductImageResult> {
+  const traceStart = performance.now();
+  const trace = (stage: string, detail?: Record<string, unknown>) => {
+    const elapsedMs = Math.round(performance.now() - traceStart);
+    console.log("[VM][ImagePersistTrace]", { stage, elapsedMs, ...(detail ?? {}) });
+  };
+  const traceError = (stage: string, error: unknown, detail?: Record<string, unknown>) => {
+    const elapsedMs = Math.round(performance.now() - traceStart);
+    const err = error instanceof Error
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : { value: error };
+    console.error("[VM][ImagePersistTrace]", { stage, elapsedMs, success: false, error: err, ...(detail ?? {}) });
+  };
+
   // Always log key milestones so production failures are diagnosable from the user's console.
   const debugEnabled = true;
   const id = genId();
@@ -73,6 +86,7 @@ export async function persistEditedProductImage({
 
   // Keep uploads inside merchant folder for storage isolation and cache-busting.
   const filePath = `brands/${userId}/products/${productId}/${imageIndex}-${now}-${id}.jpg`;
+  trace("start", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath });
 
   console.groupCollapsed("[VM][ImageSave] persistEditedProductImage");
   console.log("params", { productId, imageIndex, bytes: blob.size, type: blob.type, filePath });
@@ -82,14 +96,19 @@ export async function persistEditedProductImage({
   // a 401-retry that never comes through certain proxies. Force a refresh BEFORE upload
   // so we always have a fresh access_token on the wire.
   try {
+    trace("session_get_start");
     const { data: sessionData } = await supabase.auth.getSession();
+    trace("session_get_success", { hasSession: !!sessionData.session });
     if (!sessionData.session) {
       throw new Error("Sessão expirada. Faça login novamente para salvar a imagem.");
     }
     // Best-effort refresh; ignore "already fresh" errors.
+    trace("session_refresh_start");
     await supabase.auth.refreshSession().catch(() => {});
+    trace("session_refresh_success");
     console.log("session refreshed before upload");
   } catch (sessErr) {
+    traceError("session_refresh_error", sessErr);
     console.error("[VM][ImageSave] session refresh failed", sessErr);
     console.groupEnd();
     throw sessErr;
@@ -102,6 +121,7 @@ export async function persistEditedProductImage({
   const uploadPromise = supabase.storage
     .from("product-images")
     .upload(filePath, file, { contentType: "image/jpeg", upsert: false });
+  trace("storage_upload_start", { bucket: "product-images", filePath, timeoutMs: UPLOAD_TIMEOUT_MS });
 
   const uploadResponse: any = await Promise.race([
     uploadPromise,
@@ -112,16 +132,23 @@ export async function persistEditedProductImage({
       )
     ),
   ]);
+  trace("storage_upload_response", {
+    hasData: !!uploadResponse?.data,
+    errorMessage: uploadResponse?.error?.message,
+    errorStatus: uploadResponse?.error?.statusCode,
+  });
 
   console.log("upload result", { data: uploadResponse?.data, error: uploadResponse?.error });
 
   if (uploadResponse?.error) {
+    traceError("storage_upload_error", uploadResponse.error, { httpStatus: uploadResponse.error.statusCode });
     console.groupEnd();
     const msg = uploadResponse.error.message || "Falha no upload da imagem";
     throw new Error(msg);
   }
 
   const publicUrl = supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
+  trace("public_url_generated", { publicUrl, filePath });
   if (!publicUrl) {
     console.groupEnd();
     throw new Error("Não foi possível obter a URL pública da imagem");
@@ -133,6 +160,11 @@ export async function persistEditedProductImage({
     .select("images,image_url,image_adjustments")
     .eq("id", productId)
     .maybeSingle();
+  trace("product_prefetch_response", {
+    hasData: !!fetchResponse.data,
+    errorMessage: fetchResponse.error?.message,
+    errorCode: fetchResponse.error?.code,
+  });
 
   if (debugEnabled) {
     console.log("preUpdateFetch.data", fetchResponse.data);
@@ -182,6 +214,11 @@ export async function persistEditedProductImage({
     .eq("id", productId)
     .select("images,image_url,image_adjustments")
     .maybeSingle();
+  trace("product_update_response", {
+    hasData: !!updateResponse.data,
+    errorMessage: updateResponse.error?.message,
+    errorCode: updateResponse.error?.code,
+  });
 
   if (debugEnabled) {
     console.log("updateResponse.data", updateResponse.data);
@@ -199,6 +236,11 @@ export async function persistEditedProductImage({
     .select("images,image_url,image_adjustments")
     .eq("id", productId)
     .maybeSingle();
+  trace("product_refetch_response", {
+    hasData: !!refetchResponse.data,
+    errorMessage: refetchResponse.error?.message,
+    errorCode: refetchResponse.error?.code,
+  });
 
   if (debugEnabled) {
     console.log("refetchResponse.data", refetchResponse.data);
@@ -215,6 +257,11 @@ export async function persistEditedProductImage({
     | null;
   const finalImageAdj: ImageAdjustments[] =
     (refetchResponse.data as any)?.image_adjustments ?? (updateResponse.data as any)?.image_adjustments ?? finalAdj;
+
+  trace("complete", {
+    imagesCount: finalImages.length,
+    hasMainImage: !!finalMain,
+  });
 
   return {
     publicUrl,
