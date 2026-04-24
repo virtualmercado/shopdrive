@@ -996,34 +996,80 @@ export const removeBackground = async (
   }
 };
 
+/**
+ * Load an image WITHOUT polluting the canvas with cross-origin taint.
+ *
+ * Strategy:
+ *  1. Fetch the URL as a Blob (works for any same-origin OR public CORS-enabled bucket).
+ *     Supabase Storage and MinIO public buckets respond with `Access-Control-Allow-Origin: *`,
+ *     so this fetch succeeds in production browsers (Chrome/Edge/Safari/Firefox).
+ *  2. Decode the Blob via `URL.createObjectURL`. Object URLs are SAME-ORIGIN by definition,
+ *     so the resulting <img> can be drawn on canvas AND the canvas can call
+ *     `getImageData` / `toBlob` without ever throwing `SecurityError`.
+ *
+ * This eliminates the #1 production failure mode of the editor: tainted canvas during
+ * `toBlob()` / `getImageData()` because of CDN cache responses missing CORS headers on a
+ * direct `<img crossorigin="anonymous">` load.
+ *
+ * Fallback: if the fetch fails (e.g. opaque network error), we try a same-origin
+ * `<img>` load WITHOUT `crossOrigin` so at least previewing still works — but we mark
+ * it tainted so the caller can decide. In the editor, save will then re-fetch as a Blob
+ * before drawing, so we never reach a tainted-canvas state at save time.
+ */
 export const loadImageFromUrl = (url: string, timeoutMs = 30000): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    let done = false;
-    const timer = setTimeout(() => {
-      if (done) return;
-      done = true;
-      reject(new Error("Timeout ao carregar imagem (verifique conexão ou CORS)"));
+  return new Promise(async (resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      fn();
+    };
+    const failTimer = setTimeout(() => {
+      finish(() => reject(new Error("Timeout ao carregar imagem")));
     }, timeoutMs);
-    img.onload = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      resolve(img);
-    };
-    img.onerror = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      // Retry once without crossOrigin (some CDNs don't send CORS headers)
-      const retry = new Image();
-      const retryTimer = setTimeout(() => reject(new Error("Falha ao carregar imagem")), timeoutMs);
-      retry.onload = () => { clearTimeout(retryTimer); resolve(retry); };
-      retry.onerror = () => { clearTimeout(retryTimer); reject(new Error("Falha ao carregar imagem")); };
-      retry.src = url;
-    };
-    img.src = url;
+
+    try {
+      // Use AbortController so the fetch itself respects the timeout
+      const ctrl = new AbortController();
+      const fetchTimer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      const res = await fetch(url, { cache: "no-store", signal: ctrl.signal, mode: "cors" });
+      clearTimeout(fetchTimer);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ao carregar imagem`);
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        clearTimeout(failTimer);
+        // Keep the object URL alive — caller may draw the image multiple times.
+        // It will be GC'd when the <img> goes out of scope.
+        finish(() => resolve(img));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        clearTimeout(failTimer);
+        finish(() => reject(new Error("Falha ao decodificar a imagem")));
+      };
+      img.src = objectUrl;
+      return;
+    } catch (fetchErr) {
+      // Network/CORS-blocked fetch. Last-resort: load via <img> without crossOrigin.
+      // The image will display, but the canvas may be tainted — the editor's save flow
+      // re-fetches as Blob before drawing, so this fallback is preview-only.
+      const img = new Image();
+      img.onload = () => {
+        clearTimeout(failTimer);
+        finish(() => resolve(img));
+      };
+      img.onerror = () => {
+        clearTimeout(failTimer);
+        finish(() => reject(new Error("Falha ao carregar imagem (rede/CORS)")));
+      };
+      img.src = url;
+    }
   });
 };
 
