@@ -58,6 +58,27 @@ const decodeImageAsUntainted = async (src: string): Promise<HTMLImageElement> =>
   });
 };
 
+const createImageSaveTrace = () => {
+  const startedAt = performance.now();
+  const prefix = "[VM][ImageSaveTrace]";
+
+  const log = (stage: string, detail?: Record<string, unknown>) => {
+    const elapsedMs = Math.round(performance.now() - startedAt);
+    console.log(prefix, { stage, elapsedMs, ...(detail ?? {}) });
+  };
+
+  const fail = (stage: string, error: unknown, detail?: Record<string, unknown>) => {
+    const elapsedMs = Math.round(performance.now() - startedAt);
+    const err = error instanceof Error
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : { value: error };
+
+    console.error(prefix, { stage, elapsedMs, success: false, error: err, ...(detail ?? {}) });
+  };
+
+  return { log, fail };
+};
+
 /**
  * Tonal adjustments stored per image (7 sliders).
  */
@@ -1521,6 +1542,18 @@ export const ImageEditor = ({
   const handleSave = async () => {
     if (!canvasRef.current || !originalImage) return;
 
+    const trace = createImageSaveTrace();
+    trace.log("click_save", {
+      imageUrl,
+      originalWidth: originalImage.width,
+      originalHeight: originalImage.height,
+      cropPreset,
+      rotation,
+      scale,
+      offsetX,
+      offsetY,
+    });
+
     setIsProcessing(true);
     setProcessingStep('Salvando imagem...');
     setProcessingProgress(50);
@@ -1534,15 +1567,19 @@ export const ImageEditor = ({
       let exportImage: HTMLImageElement = originalImage;
       try {
         if (!imageUrl.startsWith("data:") && !imageUrl.startsWith("blob:")) {
+          trace.log("decode_untained_start", { src: imageUrl });
           exportImage = await decodeImageAsUntainted(imageUrl);
+          trace.log("decode_untained_success", { width: exportImage.width, height: exportImage.height });
         }
       } catch (decodeErr) {
+        trace.fail("decode_untained_error", decodeErr, { src: imageUrl });
         // If we can't re-decode, fall back to the in-memory image. If it's tainted the
         // toBlob below will throw and we'll surface a clear message instead of hanging.
         console.warn("[VM][ImageEditor] re-decode failed, using in-memory image", decodeErr);
       }
 
       // Synchronous final render
+      trace.log("canvas_render_start");
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -1563,8 +1600,11 @@ export const ImageEditor = ({
           tempCtx.drawImage(exportImage, 0, 0);
           let sourceData: ImageData;
           try {
+            trace.log("canvas_getImageData_start", { width: tempCanvas.width, height: tempCanvas.height });
             sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            trace.log("canvas_getImageData_success", { width: sourceData.width, height: sourceData.height });
           } catch (secErr: any) {
+            trace.fail("canvas_getImageData_error", secErr);
             // SecurityError → tainted canvas. Make the error explicit and actionable.
             throw new Error(
               "Não foi possível ler os pixels da imagem (CORS). Recarregue a página e tente novamente."
@@ -1590,9 +1630,11 @@ export const ImageEditor = ({
           }
         }
       }
+      trace.log("canvas_render_success", { width: canvas.width, height: canvas.height });
 
       // Export + compress + standardize to JPEG (max width 1800px, quality 0.85)
       setProcessingProgress(70);
+      trace.log("blob_generation_start");
 
       const baseCanvas = canvasRef.current;
       const MAX_WIDTH = 1800;
@@ -1614,6 +1656,7 @@ export const ImageEditor = ({
       try {
         blob = await new Promise<Blob>((resolve, reject) => {
           try {
+            trace.log("toBlob_start", { outWidth: outCanvas.width, outHeight: outCanvas.height, quality: JPEG_QUALITY });
             outCanvas.toBlob(
               (b) =>
                 b
@@ -1627,6 +1670,7 @@ export const ImageEditor = ({
               JPEG_QUALITY
             );
           } catch (syncErr: any) {
+            trace.fail("toBlob_sync_error", syncErr);
             // toBlob() can throw SecurityError synchronously on tainted canvases in some browsers.
             reject(
               new Error(
@@ -1637,7 +1681,9 @@ export const ImageEditor = ({
             );
           }
         });
+        trace.log("blob_generation_success", { bytes: blob.size, type: blob.type });
       } catch (blobErr: any) {
+        trace.fail("blob_generation_error", blobErr);
         setIsProcessing(false);
         toast({
           title: "Erro ao exportar imagem",
@@ -1653,6 +1699,7 @@ export const ImageEditor = ({
       // Hard cap on the persistence step so the UI never gets stuck in "processando" in production.
       const PERSIST_TIMEOUT_MS = 60000;
       try {
+        trace.log("persist_start", { timeoutMs: PERSIST_TIMEOUT_MS });
         await Promise.race([
           onSave({ blob, contentType: "image/jpeg", width: outCanvas.width, height: outCanvas.height, adjustments }),
           new Promise<never>((_, reject) =>
@@ -1662,7 +1709,9 @@ export const ImageEditor = ({
             )
           ),
         ]);
+        trace.log("persist_success");
       } catch (persistErr) {
+        trace.fail("persist_error", persistErr);
         // Fallback: offer the edited image as a direct download so the work isn't lost.
         try {
           const url = URL.createObjectURL(blob);
@@ -1691,13 +1740,16 @@ export const ImageEditor = ({
       }
 
       setProcessingProgress(100);
+      trace.log("finalize_success_before_close");
       onOpenChange(false);
+      trace.log("modal_close_requested");
 
       toast({
         title: "Sucesso",
         description: "Imagem salva com sucesso!",
       });
     } catch (error) {
+      trace.fail("handleSave_unhandled_error", error);
       console.error('Error saving image:', error);
       toast({
         title: "Erro",
@@ -1705,6 +1757,7 @@ export const ImageEditor = ({
         variant: "destructive",
       });
     } finally {
+      trace.log("finally_reset_state");
       setIsProcessing(false);
       setProcessingStep('');
     }
