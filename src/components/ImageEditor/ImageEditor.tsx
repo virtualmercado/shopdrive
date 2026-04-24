@@ -30,6 +30,35 @@ import {
 import { loadImageFromUrl, loadImageFromDataUrl } from "./backgroundRemoval";
 
 /**
+ * Decode an image source through a Blob so the resulting canvas is GUARANTEED untainted.
+ * Used at SAVE time to neutralize any cross-origin contamination that may have happened
+ * during the preview load.
+ */
+const decodeImageAsUntainted = async (src: string): Promise<HTMLImageElement> => {
+  if (src.startsWith("data:") || src.startsWith("blob:")) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Falha ao decodificar imagem local"));
+      img.src = src;
+    });
+  }
+  const res = await fetch(src, { cache: "no-store", mode: "cors" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ao buscar imagem para exportar`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Falha ao decodificar imagem para exportação"));
+    };
+    img.src = objectUrl;
+  });
+};
+
+/**
  * Tonal adjustments stored per image (7 sliders).
  */
 export interface ImageAdjustments {
