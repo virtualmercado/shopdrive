@@ -295,7 +295,7 @@ export async function persistEditedProductImage({
     imageAdjustments: finalImageAdj,
     debug: {
       filePath,
-      uploadData: uploadResponse.data,
+      uploadData: { httpStatus: 200 },
       updateData: updateResponse.data,
       refetchData: refetchResponse.data,
     },
