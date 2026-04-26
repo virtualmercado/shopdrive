@@ -170,6 +170,7 @@ export const CatalogProductList = ({
               length: product.length,
             }}
             storeSlug={storeSlug}
+            storeOwnerId={storeOwnerId}
             primaryColor={primaryColor}
             buttonBgColor={buttonBgColor}
             buttonTextColor={buttonTextColor}
