@@ -91,6 +91,7 @@ const ProductDetailContent = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
 
   // Embla carousel for mobile
