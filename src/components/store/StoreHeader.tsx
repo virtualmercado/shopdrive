@@ -425,12 +425,20 @@ const StoreHeader = ({
             <Link
               key={category.id}
               to={`/${storeSlug}/categoria/${category.id}`}
-              className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
+              className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70 inline-flex items-center gap-2"
               style={{ 
                 color: selectedCategory === category.id ? accentColor : backgroundColor,
                 fontWeight: selectedCategory === category.id ? 600 : 500,
               }}
             >
+              {category.icon_url && (
+                <img
+                  src={category.icon_url}
+                  alt=""
+                  className="h-7 w-7 object-contain shrink-0"
+                  loading="lazy"
+                />
+              )}
               {category.name}
             </Link>
           ))}
