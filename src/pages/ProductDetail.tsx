@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2, ChevronLeft, ChevronRight, Facebook } from "lucide-react";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { useMiniCart, MiniCartProvider } from "@/contexts/MiniCartContext";
 import MiniCart from "@/components/store/MiniCart";
@@ -245,6 +245,61 @@ const ProductDetailContent = () => {
     checkFavorite();
   }, [user, productId]);
 
+  // Inject Open Graph / Twitter Card meta tags dynamically for the current product
+  useEffect(() => {
+    if (!product || !storeData) return;
+
+    const productUrl = window.location.href;
+    const rawImage = (product.images && product.images[0]) || product.image_url || storeData.store_logo_url || '';
+    const imageUrl = rawImage && /^https?:\/\//i.test(rawImage)
+      ? rawImage
+      : (rawImage ? `${window.location.origin}${rawImage.startsWith('/') ? '' : '/'}${rawImage}` : '');
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const description = product.description
+      ? stripHtml(product.description).slice(0, 200)
+      : `${product.name} - ${storeData.store_name}`;
+    const title = `${product.name} | ${storeData.store_name}`;
+
+    const previousTitle = document.title;
+    document.title = title;
+
+    const tags: Array<{ attr: 'property' | 'name'; key: string; content: string }> = [
+      { attr: 'property', key: 'og:title', content: title },
+      { attr: 'property', key: 'og:description', content: description },
+      { attr: 'property', key: 'og:image', content: imageUrl },
+      { attr: 'property', key: 'og:url', content: productUrl },
+      { attr: 'property', key: 'og:type', content: 'product' },
+      { attr: 'name', key: 'twitter:card', content: 'summary_large_image' },
+      { attr: 'name', key: 'twitter:title', content: title },
+      { attr: 'name', key: 'twitter:description', content: description },
+      { attr: 'name', key: 'twitter:image', content: imageUrl },
+    ];
+
+    const created: HTMLMetaElement[] = [];
+    const updated: Array<{ el: HTMLMetaElement; prev: string }> = [];
+
+    tags.forEach(({ attr, key, content }) => {
+      if (!content) return;
+      let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (el) {
+        updated.push({ el, prev: el.getAttribute('content') || '' });
+        el.setAttribute('content', content);
+      } else {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        el.setAttribute('content', content);
+        document.head.appendChild(el);
+        created.push(el);
+      }
+    });
+
+    return () => {
+      document.title = previousTitle;
+      created.forEach((el) => el.parentNode && el.parentNode.removeChild(el));
+      updated.forEach(({ el, prev }) => el.setAttribute('content', prev));
+    };
+  }, [product, storeData]);
+
   const handleToggleFavorite = async () => {
     if (!user) {
       toast({
@@ -424,28 +479,66 @@ const ProductDetailContent = () => {
   };
 
   // Customer Actions Block - reusable
-  const CustomerActionsBlock = () => (
-    <div className="flex items-center gap-4 pt-2">
-      <button
-        onClick={handleToggleFavorite}
-        disabled={favoriteLoading}
-        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-      >
-        <Heart 
-          className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-        />
-        <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
-      </button>
-      
-      <button
-        onClick={handleShareProduct}
-        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-      >
-        <Share2 className="h-5 w-5" />
-        <span>Compartilhar produto</span>
-      </button>
-    </div>
-  );
+  const CustomerActionsBlock = () => {
+    const productUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const encodedUrl = encodeURIComponent(productUrl);
+    const encodedTitle = encodeURIComponent(product?.name || '');
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+    const hasFacebook = !!storeData?.facebook_url?.trim();
+    const hasX = !!storeData?.x_url?.trim();
+
+    return (
+      <div className="flex items-center gap-4 pt-2 flex-wrap">
+        <button
+          onClick={handleToggleFavorite}
+          disabled={favoriteLoading}
+          className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+        >
+          <Heart
+            className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}
+          />
+          <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
+        </button>
+
+        <button
+          onClick={handleShareProduct}
+          className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+        >
+          <Share2 className="h-5 w-5" />
+          <span>Compartilhar produto</span>
+        </button>
+
+        {hasFacebook && (
+          <a
+            href={facebookShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Compartilhar no Facebook"
+            title="Compartilhar no Facebook"
+            className="flex items-center justify-center h-8 w-8 rounded-full text-[#444] hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Facebook className="h-5 w-5" />
+          </a>
+        )}
+
+        {hasX && (
+          <a
+            href={twitterShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Compartilhar no X"
+            title="Compartilhar no X"
+            className="flex items-center justify-center h-8 w-8 rounded-full text-[#444] hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true">
+              <path d="M18.244 2H21.5l-7.51 8.58L22.75 22h-6.93l-5.43-6.49L4.2 22H.94l8.04-9.18L1.5 2h7.1l4.91 5.91L18.244 2zm-1.215 18.2h1.92L7.06 3.7H5.01l12.02 16.5z" />
+            </svg>
+          </a>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
