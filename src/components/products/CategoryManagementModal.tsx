@@ -176,13 +176,24 @@ export const CategoryManagementModal = ({
     }
 
     setSaving(true);
+    let uploadFailed = false;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       let iconUrl: string | null = editing?.icon_url ?? null;
-      if (iconFile) iconUrl = await uploadIcon(user.id, iconFile);
-      else if (editing && iconPreview === null) iconUrl = null; // user removed
+
+      if (iconFile) {
+        try {
+          iconUrl = await uploadIcon(user.id, iconFile);
+        } catch (uploadErr: any) {
+          console.error("[CategoryIcon] upload failed, salvando sem ícone:", uploadErr);
+          uploadFailed = true;
+          iconUrl = editing?.icon_url ?? null;
+        }
+      } else if (editing && iconPreview === null) {
+        iconUrl = null; // user removed
+      }
 
       if (editing) {
         const { error } = await supabase
@@ -194,7 +205,13 @@ export const CategoryManagementModal = ({
           })
           .eq("id", editing.id);
         if (error) throw error;
-        toast({ title: "Sucesso", description: "Categoria atualizada" });
+        toast({
+          title: uploadFailed ? "Atenção" : "Sucesso",
+          description: uploadFailed
+            ? "Imagem não enviada, categoria atualizada sem alterar o ícone"
+            : "Categoria atualizada",
+          variant: uploadFailed ? "destructive" : "default",
+        });
       } else {
         const { error } = await supabase
           .from("product_categories")
@@ -215,17 +232,23 @@ export const CategoryManagementModal = ({
           }
           throw error;
         }
-        toast({ title: "Sucesso", description: "Categoria criada" });
+        toast({
+          title: uploadFailed ? "Atenção" : "Sucesso",
+          description: uploadFailed
+            ? "Imagem não enviada, categoria criada sem ícone"
+            : "Categoria criada",
+          variant: uploadFailed ? "destructive" : "default",
+        });
       }
 
       resetForm();
       fetchCategories();
       onCategoryChange?.();
-    } catch (e) {
-      console.error("Error saving category:", e);
+    } catch (e: any) {
+      console.error("Erro ao salvar categoria:", e);
       toast({
         title: "Erro",
-        description: "Erro ao salvar categoria",
+        description: e?.message || "Erro ao salvar categoria",
         variant: "destructive",
       });
     } finally {
