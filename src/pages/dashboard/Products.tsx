@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
+import { CategoryManagementModal } from "@/components/products/CategoryManagementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImageAdjustments } from "@/components/ImageEditor";
