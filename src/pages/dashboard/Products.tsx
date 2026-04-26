@@ -568,6 +568,12 @@ const Products = () => {
           onOpenChange={setBrandModalOpen}
         />
 
+        <CategoryManagementModal
+          open={categoryModalOpen}
+          onOpenChange={setCategoryModalOpen}
+          onCategoryChange={fetchCategories}
+        />
+
         <PlanLimitReachedModal
           open={limitModalOpen}
           onOpenChange={setLimitModalOpen}
