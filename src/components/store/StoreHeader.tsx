@@ -30,6 +30,7 @@ interface StoreHeaderProps {
 interface Category {
   id: string;
   name: string;
+  icon_url?: string | null;
 }
 
 const StoreHeader = ({ 
