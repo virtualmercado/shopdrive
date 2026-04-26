@@ -337,6 +337,14 @@ const Products = () => {
                   <SelectItem value="price-asc">Menor preço</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setCategoryModalOpen(true)}
+              >
+                <FolderTree className="h-4 w-4" />
+                Gerenciar Categorias
+              </Button>
               <Button 
                 variant="outline"
                 className="gap-2"
