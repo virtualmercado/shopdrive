@@ -424,6 +424,7 @@ const StoreCategoryPageContent = () => {
                     key={product.id}
                     product={product}
                     storeSlug={storeSlug}
+                    storeOwnerId={storeData.id}
                     primaryColor={storeData.primary_color}
                     buttonBgColor={buttonBgColor}
                     buttonTextColor={buttonTextColor}
