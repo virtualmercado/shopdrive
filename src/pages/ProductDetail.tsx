@@ -245,6 +245,61 @@ const ProductDetailContent = () => {
     checkFavorite();
   }, [user, productId]);
 
+  // Inject Open Graph / Twitter Card meta tags dynamically for the current product
+  useEffect(() => {
+    if (!product || !storeData) return;
+
+    const productUrl = window.location.href;
+    const rawImage = (product.images && product.images[0]) || product.image_url || storeData.store_logo_url || '';
+    const imageUrl = rawImage && /^https?:\/\//i.test(rawImage)
+      ? rawImage
+      : (rawImage ? `${window.location.origin}${rawImage.startsWith('/') ? '' : '/'}${rawImage}` : '');
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const description = product.description
+      ? stripHtml(product.description).slice(0, 200)
+      : `${product.name} - ${storeData.store_name}`;
+    const title = `${product.name} | ${storeData.store_name}`;
+
+    const previousTitle = document.title;
+    document.title = title;
+
+    const tags: Array<{ attr: 'property' | 'name'; key: string; content: string }> = [
+      { attr: 'property', key: 'og:title', content: title },
+      { attr: 'property', key: 'og:description', content: description },
+      { attr: 'property', key: 'og:image', content: imageUrl },
+      { attr: 'property', key: 'og:url', content: productUrl },
+      { attr: 'property', key: 'og:type', content: 'product' },
+      { attr: 'name', key: 'twitter:card', content: 'summary_large_image' },
+      { attr: 'name', key: 'twitter:title', content: title },
+      { attr: 'name', key: 'twitter:description', content: description },
+      { attr: 'name', key: 'twitter:image', content: imageUrl },
+    ];
+
+    const created: HTMLMetaElement[] = [];
+    const updated: Array<{ el: HTMLMetaElement; prev: string }> = [];
+
+    tags.forEach(({ attr, key, content }) => {
+      if (!content) return;
+      let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (el) {
+        updated.push({ el, prev: el.getAttribute('content') || '' });
+        el.setAttribute('content', content);
+      } else {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        el.setAttribute('content', content);
+        document.head.appendChild(el);
+        created.push(el);
+      }
+    });
+
+    return () => {
+      document.title = previousTitle;
+      created.forEach((el) => el.parentNode && el.parentNode.removeChild(el));
+      updated.forEach(({ el, prev }) => el.setAttribute('content', prev));
+    };
+  }, [product, storeData]);
+
   const handleToggleFavorite = async () => {
     if (!user) {
       toast({
