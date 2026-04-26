@@ -465,12 +465,20 @@ const StoreHeader = ({
                 key={category.id}
                 to={`/${storeSlug}/categoria/${category.id}`}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
+                className="flex items-center gap-2 text-sm font-medium transition-colors w-full text-left hover:opacity-70"
                 style={{ 
                   color: selectedCategory === category.id ? accentColor : backgroundColor,
                   fontWeight: selectedCategory === category.id ? 600 : 500,
                 }}
               >
+                {category.icon_url && (
+                  <img
+                    src={category.icon_url}
+                    alt=""
+                    className="h-6 w-6 object-contain shrink-0"
+                    loading="lazy"
+                  />
+                )}
                 {category.name}
               </Link>
             ))}
