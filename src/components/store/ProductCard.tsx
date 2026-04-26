@@ -133,7 +133,7 @@ const ProductCard = ({
 
   return (
     <div 
-      className={`bg-card overflow-hidden glass-hover ${borderRadius}`}
+      className={`bg-card overflow-hidden glass-hover ${borderRadius} relative`}
       style={{ 
         boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
         transition: 'transform 0.25s ease, box-shadow 0.25s ease',
@@ -141,6 +141,11 @@ const ProductCard = ({
       onMouseEnter={(e) => { if (window.innerWidth >= 768) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.15)'; }}}
       onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)'; }}
     >
+      <FavoriteButton
+        productId={product.id}
+        storeOwnerId={storeOwnerId}
+        storeSlug={storeSlug}
+      />
       <Link 
         to={productLink} 
         className={`block ${aspectRatio} overflow-hidden bg-muted relative group`}
