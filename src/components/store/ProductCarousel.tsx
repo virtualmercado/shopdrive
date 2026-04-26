@@ -281,6 +281,7 @@ const ProductCarousel = ({
                 <ProductCard 
                   product={product} 
                   storeSlug={storeSlug}
+                  storeOwnerId={storeOwnerId}
                   primaryColor={primaryColor}
                   buttonBgColor={buttonBgColor}
                   buttonTextColor={buttonTextColor}
