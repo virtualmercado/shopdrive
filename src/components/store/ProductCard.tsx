@@ -38,6 +38,7 @@ interface ProductCardProps {
 const ProductCard = ({ 
   product, 
   storeSlug,
+  storeOwnerId,
   primaryColor = "#6a1b9a",
   buttonBgColor = "#6a1b9a",
   buttonTextColor = "#FFFFFF",
