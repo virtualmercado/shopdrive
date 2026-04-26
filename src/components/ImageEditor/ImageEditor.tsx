@@ -1432,7 +1432,7 @@ export const ImageEditor = ({
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }, []);
 
-  // Export local only: no Web Share API, no links, no clipboard, no hidden modal.
+  // Export local only: direct browser download.
   const handleExportImage = useCallback(async () => {
     if (!canvasRef.current || !originalImage) return;
 
