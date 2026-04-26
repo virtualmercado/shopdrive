@@ -22,6 +22,7 @@ interface ProductCardProps {
     length?: number | null;
   };
   storeSlug?: string;
+  storeOwnerId?: string;
   primaryColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
