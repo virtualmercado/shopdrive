@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
 import { Link, useParams } from "react-router-dom";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
+import FavoriteButton from "./FavoriteButton";
 
 interface ProductCardProps {
   product: {
