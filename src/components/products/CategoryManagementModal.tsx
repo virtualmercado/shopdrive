@@ -131,20 +131,27 @@ export const CategoryManagementModal = ({
   };
 
   const uploadIcon = async (userId: string, file: File): Promise<string> => {
-    const ext = file.name.split(".").pop();
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
     const path = `categories/${userId}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("product-images")
-      .upload(path, file, { contentType: file.type });
+      .upload(path, file, { contentType: file.type, upsert: false });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("[CategoryIcon] upload error:", uploadError);
+      throw new Error(uploadError.message || "Falha ao enviar imagem");
+    }
 
     const { data } = supabase.storage
       .from("product-images")
       .getPublicUrl(path);
+
+    if (!data?.publicUrl) {
+      throw new Error("Não foi possível obter a URL pública da imagem");
+    }
 
     return data.publicUrl;
   };
