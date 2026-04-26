@@ -22,7 +22,7 @@ import {
   RefreshCw,
   ZoomIn,
   Wand2,
-  Share2,
+  Download,
   Crop,
   Copy,
   Focus
@@ -1420,124 +1420,119 @@ export const ImageEditor = ({
     }
   }, [adjustments, rotation, offsetX, offsetY, scale, cropPreset, onApplyToOthers, otherProductImages.length, toast]);
 
-  // Share image using native Web Share API
-  const handleShare = useCallback(async () => {
-    if (!canvasRef.current || !originalImage) return;
-    
-    setIsProcessing(true);
-    setProcessingStep('Preparando imagem para compartilhar...');
-    setProcessingProgress(30);
-    
-    try {
-      // Render final image
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
-      
-      // Get crop dimensions
-      const crop = getCropDimensions(originalImage.width, originalImage.height, cropPreset);
-      canvas.width = crop.width;
-      canvas.height = crop.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const offsetPixelsX = (offsetX / 100) * canvas.width;
-      const offsetPixelsY = (offsetY / 100) * canvas.height;
-      const scaleFactor = scale / 100;
-      
-      // Get source data and apply adjustments
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = originalImage.width;
-      tempCanvas.height = originalImage.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (tempCtx) {
-        tempCtx.drawImage(originalImage, 0, 0);
-        const sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        
-        const hasAdj = Object.values(adjustments).some(v => v !== 0);
-        const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
-        
-        const adjustedCanvas = document.createElement('canvas');
-        adjustedCanvas.width = adjustedData.width;
-        adjustedCanvas.height = adjustedData.height;
-        const adjustedCtx = adjustedCanvas.getContext('2d');
-        if (adjustedCtx) {
-          adjustedCtx.putImageData(adjustedData, 0, 0);
-          
-          ctx.save();
-          ctx.translate(canvas.width / 2 + offsetPixelsX, canvas.height / 2 + offsetPixelsY);
-          ctx.rotate((rotation * Math.PI) / 180);
-          ctx.scale(scaleFactor, scaleFactor);
-          ctx.translate(-originalImage.width / 2, -originalImage.height / 2);
-          ctx.drawImage(adjustedCanvas, 0, 0);
-          ctx.restore();
-        }
-      }
-      
-      setProcessingProgress(60);
-      
-      // Convert to blob
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob(resolve, 'image/png', 1.0);
-      });
-      
-      if (!blob) throw new Error('Failed to create image blob');
-      
-      setProcessingProgress(80);
-      
-      // Check if Web Share API is available and supports files
-      if (navigator.share && navigator.canShare) {
-        const file = new File([blob], 'produto-editado.png', { type: 'image/png' });
-        const shareData = {
-          files: [file],
-          title: 'Imagem do Produto',
-        };
-        
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          toast({
-            title: "Compartilhado!",
-            description: "Imagem compartilhada com sucesso",
-          });
-        } else {
-          // Fallback: download
-          downloadImage(blob);
-        }
-      } else {
-        // Fallback: download
-        downloadImage(blob);
-      }
-      
-      setProcessingProgress(100);
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('Error sharing image:', error);
-        toast({
-          title: "Erro ao compartilhar",
-          description: "Use o botão Salvar para baixar a imagem",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsProcessing(false);
-      setProcessingStep('');
-    }
-  }, [canvasRef, originalImage, adjustments, rotation, offsetX, scale, cropPreset, getCropDimensions, toast]);
-  
-  const downloadImage = (blob: Blob) => {
+  const downloadImage = useCallback((blob: Blob, filename = 'produto-editado-shopdrive.png') => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'produto-editado.png';
+    a.download = filename;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Download iniciado",
-      description: "A imagem foi baixada para seu dispositivo",
-    });
-  };
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }, []);
+
+  // Export local only: no Web Share API, no links, no clipboard, no hidden modal.
+  const handleExportImage = useCallback(async () => {
+    if (!canvasRef.current || !originalImage) return;
+
+    setIsProcessing(true);
+    setProcessingStep('Exportando imagem...');
+    setProcessingProgress(20);
+
+    try {
+      let exportImage: HTMLImageElement = originalImage;
+      try {
+        if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
+          exportImage = await decodeImageAsUntainted(imageUrl);
+        }
+      } catch (decodeErr) {
+        console.warn('[VM][ImageEditor] export re-decode failed, using in-memory image', decodeErr);
+      }
+
+      const crop = getCropDimensions(exportImage.width, exportImage.height, cropPreset);
+      const renderCanvas = document.createElement('canvas');
+      renderCanvas.width = Math.max(1, Math.round(crop.width));
+      renderCanvas.height = Math.max(1, Math.round(crop.height));
+      const renderCtx = renderCanvas.getContext('2d');
+      if (!renderCtx) throw new Error('Falha ao preparar a exportação da imagem');
+
+      renderCtx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
+      setProcessingProgress(45);
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = exportImage.width;
+      tempCanvas.height = exportImage.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) throw new Error('Falha ao processar a imagem original');
+
+      tempCtx.drawImage(exportImage, 0, 0);
+      let sourceData: ImageData;
+      try {
+        sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      } catch (error: any) {
+        throw new Error(
+          error?.name === 'SecurityError'
+            ? 'O navegador bloqueou a leitura da imagem. Recarregue a página e tente novamente.'
+            : 'Não foi possível ler a imagem para exportação.'
+        );
+      }
+
+      const hasAdj = Object.values(adjustments).some((v) => v !== 0);
+      const adjustedData = hasAdj ? applyAdjustmentsToImageData(sourceData, adjustments) : sourceData;
+      const adjustedCanvas = document.createElement('canvas');
+      adjustedCanvas.width = adjustedData.width;
+      adjustedCanvas.height = adjustedData.height;
+      const adjustedCtx = adjustedCanvas.getContext('2d');
+      if (!adjustedCtx) throw new Error('Falha ao aplicar os ajustes na imagem');
+      adjustedCtx.putImageData(adjustedData, 0, 0);
+
+      const offsetPixelsX = (offsetX / 100) * renderCanvas.width;
+      const offsetPixelsY = (offsetY / 100) * renderCanvas.height;
+      const scaleFactor = scale / 100;
+
+      renderCtx.save();
+      renderCtx.translate(renderCanvas.width / 2 + offsetPixelsX, renderCanvas.height / 2 + offsetPixelsY);
+      renderCtx.rotate((rotation * Math.PI) / 180);
+      renderCtx.scale(scaleFactor, scaleFactor);
+      renderCtx.translate(-exportImage.width / 2, -exportImage.height / 2);
+      renderCtx.drawImage(adjustedCanvas, 0, 0);
+      renderCtx.restore();
+
+      setProcessingProgress(75);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        try {
+          renderCanvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error('Não foi possível gerar o arquivo da imagem.'))),
+            'image/png',
+            1
+          );
+        } catch (error: any) {
+          reject(new Error(error?.message || 'Falha ao exportar a imagem.'));
+        }
+      });
+
+      downloadImage(blob, 'produto-editado-shopdrive.png');
+      setProcessingProgress(100);
+
+      toast({
+        title: 'Download iniciado',
+        description: 'A imagem editada foi exportada para o seu dispositivo.',
+      });
+    } catch (error: any) {
+      console.error('[VM][ImageEditor] export failed', error);
+      toast({
+        title: 'Erro ao exportar imagem',
+        description: error?.message || 'Não foi possível baixar a imagem editada.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+      setProcessingProgress(0);
+    }
+  }, [adjustments, cropPreset, downloadImage, getCropDimensions, imageUrl, offsetX, offsetY, originalImage, rotation, scale, toast]);
 
   const handleSave = async () => {
     if (!canvasRef.current || !originalImage) return;
@@ -2101,13 +2096,13 @@ export const ImageEditor = ({
                 
                 <div className="flex gap-2">
                   <button
-                    onClick={handleShare}
+                    onClick={handleExportImage}
                     disabled={isProcessing || !originalImage}
                     className="flex-1 h-8 rounded-md text-[11px] font-medium transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 border hover:bg-[#2c2c2c]"
                     style={{ borderColor: ie.btnOutlineBorder, color: ie.text, backgroundColor: 'transparent' }}
                   >
-                    <Share2 className="h-3.5 w-3.5" />
-                    Compartilhar
+                    <Download className="h-3.5 w-3.5" />
+                    Exportar imagem
                   </button>
                   <button
                     onClick={handleUndo}
