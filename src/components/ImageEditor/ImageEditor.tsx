@@ -1470,9 +1470,10 @@ export const ImageEditor = ({
       let sourceData: ImageData;
       try {
         sourceData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      } catch (error: any) {
+      } catch (error) {
+        const errorName = error instanceof Error ? error.name : undefined;
         throw new Error(
-          error?.name === 'SecurityError'
+          errorName === 'SecurityError'
             ? 'O navegador bloqueou a leitura da imagem. Recarregue a página e tente novamente.'
             : 'Não foi possível ler a imagem para exportação.'
         );
@@ -1508,8 +1509,8 @@ export const ImageEditor = ({
             'image/png',
             1
           );
-        } catch (error: any) {
-          reject(new Error(error?.message || 'Falha ao exportar a imagem.'));
+        } catch (error) {
+          reject(new Error(error instanceof Error ? error.message : 'Falha ao exportar a imagem.'));
         }
       });
 
@@ -1520,11 +1521,12 @@ export const ImageEditor = ({
         title: 'Download iniciado',
         description: 'A imagem editada foi exportada para o seu dispositivo.',
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível baixar a imagem editada.';
       console.error('[VM][ImageEditor] export failed', error);
       toast({
         title: 'Erro ao exportar imagem',
-        description: error?.message || 'Não foi possível baixar a imagem editada.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
