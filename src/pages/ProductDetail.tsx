@@ -479,28 +479,66 @@ const ProductDetailContent = () => {
   };
 
   // Customer Actions Block - reusable
-  const CustomerActionsBlock = () => (
-    <div className="flex items-center gap-4 pt-2">
-      <button
-        onClick={handleToggleFavorite}
-        disabled={favoriteLoading}
-        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-      >
-        <Heart 
-          className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-        />
-        <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
-      </button>
-      
-      <button
-        onClick={handleShareProduct}
-        className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
-      >
-        <Share2 className="h-5 w-5" />
-        <span>Compartilhar produto</span>
-      </button>
-    </div>
-  );
+  const CustomerActionsBlock = () => {
+    const productUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const encodedUrl = encodeURIComponent(productUrl);
+    const encodedTitle = encodeURIComponent(product?.name || '');
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+    const hasFacebook = !!storeData?.facebook_url?.trim();
+    const hasX = !!storeData?.x_url?.trim();
+
+    return (
+      <div className="flex items-center gap-4 pt-2 flex-wrap">
+        <button
+          onClick={handleToggleFavorite}
+          disabled={favoriteLoading}
+          className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+        >
+          <Heart
+            className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}
+          />
+          <span>{isFavorite ? 'Salvo como favorito' : 'Salvar como favorito'}</span>
+        </button>
+
+        <button
+          onClick={handleShareProduct}
+          className="flex items-center gap-2 text-sm text-foreground/90 hover:text-foreground transition-colors"
+        >
+          <Share2 className="h-5 w-5" />
+          <span>Compartilhar produto</span>
+        </button>
+
+        {hasFacebook && (
+          <a
+            href={facebookShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Compartilhar no Facebook"
+            title="Compartilhar no Facebook"
+            className="flex items-center justify-center h-8 w-8 rounded-full text-[#444] hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Facebook className="h-5 w-5" />
+          </a>
+        )}
+
+        {hasX && (
+          <a
+            href={twitterShareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Compartilhar no X"
+            title="Compartilhar no X"
+            className="flex items-center justify-center h-8 w-8 rounded-full text-[#444] hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true">
+              <path d="M18.244 2H21.5l-7.51 8.58L22.75 22h-6.93l-5.43-6.49L4.2 22H.94l8.04-9.18L1.5 2h7.1l4.91 5.91L18.244 2zm-1.215 18.2h1.92L7.06 3.7H5.01l12.02 16.5z" />
+            </svg>
+          </a>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
