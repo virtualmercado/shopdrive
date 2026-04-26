@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
+import { CategoryManagementModal } from "@/components/products/CategoryManagementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImageAdjustments } from "@/components/ImageEditor";
@@ -66,6 +67,7 @@ const Products = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -335,6 +337,14 @@ const Products = () => {
                   <SelectItem value="price-asc">Menor preço</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setCategoryModalOpen(true)}
+              >
+                <FolderTree className="h-4 w-4" />
+                Gerenciar Categorias
+              </Button>
               <Button 
                 variant="outline"
                 className="gap-2"
@@ -556,6 +566,12 @@ const Products = () => {
         <BrandManagementModal
           open={brandModalOpen}
           onOpenChange={setBrandModalOpen}
+        />
+
+        <CategoryManagementModal
+          open={categoryModalOpen}
+          onOpenChange={setCategoryModalOpen}
+          onCategoryChange={fetchCategories}
         />
 
         <PlanLimitReachedModal

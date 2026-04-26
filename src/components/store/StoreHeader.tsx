@@ -30,6 +30,7 @@ interface StoreHeaderProps {
 interface Category {
   id: string;
   name: string;
+  icon_url?: string | null;
 }
 
 const StoreHeader = ({ 
@@ -72,7 +73,7 @@ const StoreHeader = ({
     const fetchCategories = async () => {
       const { data } = await supabase
         .from("product_categories")
-        .select("id, name")
+        .select("id, name, icon_url")
         .eq("user_id", storeOwnerId);
 
       if (data) setCategories(data);
@@ -424,12 +425,20 @@ const StoreHeader = ({
             <Link
               key={category.id}
               to={`/${storeSlug}/categoria/${category.id}`}
-              className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
+              className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70 inline-flex items-center gap-2"
               style={{ 
                 color: selectedCategory === category.id ? accentColor : backgroundColor,
                 fontWeight: selectedCategory === category.id ? 600 : 500,
               }}
             >
+              {category.icon_url && (
+                <img
+                  src={category.icon_url}
+                  alt=""
+                  className="h-7 w-7 object-contain shrink-0"
+                  loading="lazy"
+                />
+              )}
               {category.name}
             </Link>
           ))}
@@ -456,12 +465,20 @@ const StoreHeader = ({
                 key={category.id}
                 to={`/${storeSlug}/categoria/${category.id}`}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
+                className="flex items-center gap-2 text-sm font-medium transition-colors w-full text-left hover:opacity-70"
                 style={{ 
                   color: selectedCategory === category.id ? accentColor : backgroundColor,
                   fontWeight: selectedCategory === category.id ? 600 : 500,
                 }}
               >
+                {category.icon_url && (
+                  <img
+                    src={category.icon_url}
+                    alt=""
+                    className="h-6 w-6 object-contain shrink-0"
+                    loading="lazy"
+                  />
+                )}
                 {category.name}
               </Link>
             ))}
