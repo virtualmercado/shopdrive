@@ -73,7 +73,7 @@ const StoreHeader = ({
     const fetchCategories = async () => {
       const { data } = await supabase
         .from("product_categories")
-        .select("id, name")
+        .select("id, name, icon_url")
         .eq("user_id", storeOwnerId);
 
       if (data) setCategories(data);
