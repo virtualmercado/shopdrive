@@ -463,7 +463,21 @@ const StoreCategoryPageContent = () => {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+                <p className="text-muted-foreground">
+                  {selectedPriceRange
+                    ? "Nenhum produto encontrado nessa faixa de preço."
+                    : "Nenhum produto encontrado."}
+                </p>
+                {selectedPriceRange && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => handleSelectPriceRange(null)}
+                  >
+                    Limpar filtro
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
