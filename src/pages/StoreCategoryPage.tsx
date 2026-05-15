@@ -1,5 +1,12 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import PriceRangeFilter from "@/components/store/PriceRangeFilter";
+import {
+  PriceRangeId,
+  isValidPriceRangeId,
+  filterByPriceRange,
+  calculatePriceRangeCounts,
+} from "@/lib/priceRanges";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
