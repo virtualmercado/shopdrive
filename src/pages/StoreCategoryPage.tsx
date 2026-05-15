@@ -377,7 +377,7 @@ const StoreCategoryPageContent = () => {
             onClick={() => setMobileSidebarOpen(true)}
           >
             <Menu className="h-4 w-4 mr-2" />
-            Categorias
+            Filtros
           </Button>
 
           {/* Mobile sidebar overlay */}
