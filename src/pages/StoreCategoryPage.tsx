@@ -438,6 +438,16 @@ const StoreCategoryPageContent = () => {
                     </span>
                   </label>
                 </div>
+
+                {/* Filtro por Preço - Mobile */}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <PriceRangeFilter
+                    counts={priceRangeCounts}
+                    selected={selectedPriceRange}
+                    onSelect={handleSelectPriceRange}
+                    accentColor={accentColor}
+                  />
+                </div>
               </aside>
             </div>
           )}
