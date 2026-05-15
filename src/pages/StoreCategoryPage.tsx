@@ -213,14 +213,15 @@ const StoreCategoryPageContent = () => {
     if (categoryId) setSelectedCategory(categoryId);
   }, [categoryId]);
 
-  const filteredProducts = useMemo(() => {
+  // Produtos no contexto (categoria + busca + promoções) ANTES do filtro de preço.
+  // Usado para calcular os contadores das faixas.
+  const contextualProducts = useMemo(() => {
     let result = [...products];
 
     if (selectedCategory) {
       result = result.filter(p => p.category_id === selectedCategory);
     }
 
-    // Filter by promotional price if enabled
     if (showPromotionsOnly) {
       result = result.filter(p => p.promotional_price != null && p.promotional_price > 0);
     }
@@ -235,6 +236,16 @@ const StoreCategoryPageContent = () => {
 
     return result;
   }, [products, searchTerm, selectedCategory, showPromotionsOnly]);
+
+  const priceRangeCounts = useMemo(
+    () => calculatePriceRangeCounts(contextualProducts),
+    [contextualProducts],
+  );
+
+  const filteredProducts = useMemo(
+    () => filterByPriceRange(contextualProducts, selectedPriceRange),
+    [contextualProducts, selectedPriceRange],
+  );
 
   const handleCategoryClick = (catId: string | null) => {
     setSelectedCategory(catId);
