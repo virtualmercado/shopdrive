@@ -147,6 +147,16 @@ const StoreCategoryPageContent = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId || null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showPromotionsOnly, setShowPromotionsOnly] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const priceRangeParam = searchParams.get("priceRange");
+  const selectedPriceRange: PriceRangeId | null = isValidPriceRangeId(priceRangeParam) ? priceRangeParam : null;
+  const handleSelectPriceRange = (id: PriceRangeId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("priceRange", id);
+    else next.delete("priceRange");
+    setSearchParams(next, { replace: false });
+    setMobileSidebarOpen(false);
+  };
   const { getItemCount } = useCart();
 
   useEffect(() => {
