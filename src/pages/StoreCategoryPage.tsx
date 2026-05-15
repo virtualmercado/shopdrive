@@ -1,5 +1,12 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import PriceRangeFilter from "@/components/store/PriceRangeFilter";
+import {
+  PriceRangeId,
+  isValidPriceRangeId,
+  filterByPriceRange,
+  calculatePriceRangeCounts,
+} from "@/lib/priceRanges";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreFooter from "@/components/store/StoreFooter";
@@ -140,6 +147,16 @@ const StoreCategoryPageContent = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId || null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showPromotionsOnly, setShowPromotionsOnly] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const priceRangeParam = searchParams.get("priceRange");
+  const selectedPriceRange: PriceRangeId | null = isValidPriceRangeId(priceRangeParam) ? priceRangeParam : null;
+  const handleSelectPriceRange = (id: PriceRangeId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("priceRange", id);
+    else next.delete("priceRange");
+    setSearchParams(next, { replace: false });
+    setMobileSidebarOpen(false);
+  };
   const { getItemCount } = useCart();
 
   useEffect(() => {
@@ -196,14 +213,15 @@ const StoreCategoryPageContent = () => {
     if (categoryId) setSelectedCategory(categoryId);
   }, [categoryId]);
 
-  const filteredProducts = useMemo(() => {
+  // Produtos no contexto (categoria + busca + promoções) ANTES do filtro de preço.
+  // Usado para calcular os contadores das faixas.
+  const contextualProducts = useMemo(() => {
     let result = [...products];
 
     if (selectedCategory) {
       result = result.filter(p => p.category_id === selectedCategory);
     }
 
-    // Filter by promotional price if enabled
     if (showPromotionsOnly) {
       result = result.filter(p => p.promotional_price != null && p.promotional_price > 0);
     }
@@ -218,6 +236,16 @@ const StoreCategoryPageContent = () => {
 
     return result;
   }, [products, searchTerm, selectedCategory, showPromotionsOnly]);
+
+  const priceRangeCounts = useMemo(
+    () => calculatePriceRangeCounts(contextualProducts),
+    [contextualProducts],
+  );
+
+  const filteredProducts = useMemo(
+    () => filterByPriceRange(contextualProducts, selectedPriceRange),
+    [contextualProducts, selectedPriceRange],
+  );
 
   const handleCategoryClick = (catId: string | null) => {
     setSelectedCategory(catId);
@@ -328,6 +356,16 @@ const StoreCategoryPageContent = () => {
                   </span>
                 </label>
               </div>
+
+              {/* Filtro por Preço */}
+              <div className="mt-6 pt-4 border-t border-border">
+                <PriceRangeFilter
+                  counts={priceRangeCounts}
+                  selected={selectedPriceRange}
+                  onSelect={handleSelectPriceRange}
+                  accentColor={accentColor}
+                />
+              </div>
             </div>
           </aside>
 
@@ -339,7 +377,7 @@ const StoreCategoryPageContent = () => {
             onClick={() => setMobileSidebarOpen(true)}
           >
             <Menu className="h-4 w-4 mr-2" />
-            Categorias
+            Filtros
           </Button>
 
           {/* Mobile sidebar overlay */}
@@ -400,6 +438,16 @@ const StoreCategoryPageContent = () => {
                     </span>
                   </label>
                 </div>
+
+                {/* Filtro por Preço - Mobile */}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <PriceRangeFilter
+                    counts={priceRangeCounts}
+                    selected={selectedPriceRange}
+                    onSelect={handleSelectPriceRange}
+                    accentColor={accentColor}
+                  />
+                </div>
               </aside>
             </div>
           )}
@@ -415,7 +463,21 @@ const StoreCategoryPageContent = () => {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+                <p className="text-muted-foreground">
+                  {selectedPriceRange
+                    ? "Nenhum produto encontrado nessa faixa de preço."
+                    : "Nenhum produto encontrado."}
+                </p>
+                {selectedPriceRange && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => handleSelectPriceRange(null)}
+                  >
+                    Limpar filtro
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
