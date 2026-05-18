@@ -180,6 +180,12 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
+
+  // Promotion countdown state
+  const [promoCountdownEnabled, setPromoCountdownEnabled] = useState(false);
+  const [promoCountdownText, setPromoCountdownText] = useState("Oferta termina em");
+  const [promoCountdownEndsAt, setPromoCountdownEndsAt] = useState(""); // datetime-local string
+
   
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
