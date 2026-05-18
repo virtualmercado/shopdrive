@@ -185,7 +185,7 @@ const ProductCard = ({
             {product.name}
           </h3>
         </Link>
-        <div className={`flex items-center gap-2 ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
+        <div className={`flex items-center gap-2 flex-wrap ${productTextAlignment === 'center' ? 'justify-center' : ''}`}>
           {product.promotional_price ? (
             <>
               <span className="text-lg font-bold" style={{ color: priceColor }}>
@@ -194,6 +194,17 @@ const ProductCard = ({
               <span className="text-sm text-muted-foreground line-through">
                 R$ {product.price.toFixed(2)}
               </span>
+              {(() => {
+                const pct = getPromotionDiscountPercent(product.price, product.promotional_price);
+                return pct != null ? (
+                  <span
+                    className="text-[0.7rem] font-bold px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: `${primaryColor}1A`, color: primaryColor }}
+                  >
+                    -{pct}%
+                  </span>
+                ) : null;
+              })()}
             </>
           ) : (
             <span className="text-lg font-bold" style={{ color: priceColor }}>
@@ -201,6 +212,18 @@ const ProductCard = ({
             </span>
           )}
         </div>
+        {isPromotionCountdownActive({
+          price: product.price,
+          promotional_price: product.promotional_price,
+          promotion_countdown_enabled: product.promotion_countdown_enabled,
+          promotion_countdown_ends_at: product.promotion_countdown_ends_at,
+        }) && (
+          <ProductCountdownTimer
+            endsAt={product.promotion_countdown_ends_at as string}
+            label={product.promotion_countdown_text}
+            primaryColor={primaryColor}
+          />
+        )}
         {productButtonDisplay === 'below' && (
           <Button
             onClick={handleAddToCart}
