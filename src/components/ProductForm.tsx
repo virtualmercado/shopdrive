@@ -505,6 +505,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     const to = Number(String(over.id).split("::")[0]);
     if (Number.isNaN(from) || Number.isNaN(to)) return;
     reorderImages(from, to);
+  };
 
   const setAsPrimary = (index: number) => {
     if (index === 0 || index >= imagePreviews.length) return;
