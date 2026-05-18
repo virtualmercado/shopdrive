@@ -1320,6 +1320,55 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             </div>
           </div>
 
+          {/* Promotion countdown */}
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label className="text-base">Promoção com contagem regressiva</Label>
+                <p className="text-xs text-muted-foreground">
+                  Crie urgência para produtos com preço promocional por tempo limitado.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 shrink-0 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={promoCountdownEnabled}
+                  onChange={(e) => setPromoCountdownEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-current"
+                  style={{ accentColor: buttonBgColor }}
+                  aria-label="Ativar contagem regressiva neste produto"
+                />
+                <span className="text-sm">Ativar</span>
+              </label>
+            </div>
+            {promoCountdownEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="promo_countdown_text">Texto da oferta</Label>
+                  <Input
+                    id="promo_countdown_text"
+                    type="text"
+                    value={promoCountdownText}
+                    onChange={(e) => setPromoCountdownText(e.target.value)}
+                    placeholder="Ex: Oferta termina em"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="promo_countdown_ends_at">Data e hora de término</Label>
+                  <Input
+                    id="promo_countdown_ends_at"
+                    type="datetime-local"
+                    value={promoCountdownEndsAt}
+                    onChange={(e) => setPromoCountdownEndsAt(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+
+
           {/* Category and Stock */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
