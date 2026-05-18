@@ -25,6 +25,9 @@ interface ProductCardProps {
     height?: number | null;
     width?: number | null;
     length?: number | null;
+    promotion_countdown_enabled?: boolean | null;
+    promotion_countdown_ends_at?: string | null;
+    promotion_countdown_text?: string | null;
   };
   storeSlug?: string;
   storeOwnerId?: string;
