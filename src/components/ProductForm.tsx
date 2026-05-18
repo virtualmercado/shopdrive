@@ -823,6 +823,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setLength("");
     setHeight("");
     setWidth("");
+    setPromoCountdownEnabled(false);
+    setPromoCountdownText("Oferta termina em");
+    setPromoCountdownEndsAt("");
     setImageEditorOpen(false);
     setEditingImageIndex(null);
   };
