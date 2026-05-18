@@ -715,6 +715,36 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         }
       }
 
+      // Promotion countdown validation
+      let promoCountdownIso: string | null = null;
+      if (promoCountdownEnabled) {
+        if (!parsedPromotionalPrice || parsedPromotionalPrice <= 0) {
+          toast({ title: "Promoção inválida", description: "Informe um preço promocional válido para ativar a contagem regressiva.", variant: "destructive" });
+          return;
+        }
+        if (parsedPromotionalPrice >= parsedPrice) {
+          toast({ title: "Promoção inválida", description: "O preço promocional precisa ser menor que o preço original.", variant: "destructive" });
+          return;
+        }
+        if (!promoCountdownEndsAt) {
+          toast({ title: "Data obrigatória", description: "Informe a data e hora de término da promoção.", variant: "destructive" });
+          return;
+        }
+        const endDate = new Date(promoCountdownEndsAt);
+        if (isNaN(endDate.getTime())) {
+          toast({ title: "Data inválida", description: "Informe uma data e hora válidas.", variant: "destructive" });
+          return;
+        }
+        if (endDate.getTime() <= Date.now()) {
+          toast({ title: "Data inválida", description: "A data de término da promoção precisa ser futura.", variant: "destructive" });
+          return;
+        }
+        promoCountdownIso = endDate.toISOString();
+      } else if (promoCountdownEndsAt) {
+        const endDate = new Date(promoCountdownEndsAt);
+        if (!isNaN(endDate.getTime())) promoCountdownIso = endDate.toISOString();
+      }
+
       const productData = {
         name: name.trim(),
         description: description?.trim() || null,
@@ -734,6 +764,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         length: length ? parseFloat(length) : null,
         height: height ? parseFloat(height) : null,
         width: width ? parseFloat(width) : null,
+        promotion_countdown_enabled: promoCountdownEnabled,
+        promotion_countdown_text: (promoCountdownText || "Oferta termina em").trim() || "Oferta termina em",
+        promotion_countdown_ends_at: promoCountdownIso,
       };
 
       if (product) {
