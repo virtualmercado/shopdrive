@@ -123,7 +123,7 @@ const StoreSearchResultsContent = () => {
 
         const { data, error } = await supabase
           .from("public_store_products")
-          .select("id,name,price,promotional_price,image_url,images,stock")
+          .select("id,name,price,promotional_price,image_url,images,stock,promotion_countdown_enabled,promotion_countdown_text,promotion_countdown_ends_at")
           .eq("store_slug", storeSlug as string)
           .ilike("name", like as string)
           .order("popularity_score", { ascending: false })

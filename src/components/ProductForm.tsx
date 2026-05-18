@@ -115,6 +115,9 @@ interface Product {
   width?: number | null;
   /** Tonal adjustments per image (one entry per images slot). */
   image_adjustments?: ImageAdjustments[];
+  promotion_countdown_enabled?: boolean | null;
+  promotion_countdown_text?: string | null;
+  promotion_countdown_ends_at?: string | null;
 }
 
 interface Category {
@@ -177,6 +180,12 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
+
+  // Promotion countdown state
+  const [promoCountdownEnabled, setPromoCountdownEnabled] = useState(false);
+  const [promoCountdownText, setPromoCountdownText] = useState("Oferta termina em");
+  const [promoCountdownEndsAt, setPromoCountdownEndsAt] = useState(""); // datetime-local string
+
   
   // Image editor state
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
@@ -257,6 +266,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       } else {
         setShippingWeight("");
         setShippingWeightUnit("g");
+      }
+      setPromoCountdownEnabled(!!(product as any).promotion_countdown_enabled);
+      setPromoCountdownText((product as any).promotion_countdown_text || "Oferta termina em");
+      const endsAtRaw = (product as any).promotion_countdown_ends_at as string | null | undefined;
+      if (endsAtRaw) {
+        const d = new Date(endsAtRaw);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => String(n).padStart(2, "0");
+          setPromoCountdownEndsAt(
+            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+          );
+        } else {
+          setPromoCountdownEndsAt("");
+        }
+      } else {
+        setPromoCountdownEndsAt("");
       }
     } else if (!open) {
       resetForm();
@@ -690,6 +715,36 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         }
       }
 
+      // Promotion countdown validation
+      let promoCountdownIso: string | null = null;
+      if (promoCountdownEnabled) {
+        if (!parsedPromotionalPrice || parsedPromotionalPrice <= 0) {
+          toast({ title: "Promoção inválida", description: "Informe um preço promocional válido para ativar a contagem regressiva.", variant: "destructive" });
+          return;
+        }
+        if (parsedPromotionalPrice >= parsedPrice) {
+          toast({ title: "Promoção inválida", description: "O preço promocional precisa ser menor que o preço original.", variant: "destructive" });
+          return;
+        }
+        if (!promoCountdownEndsAt) {
+          toast({ title: "Data obrigatória", description: "Informe a data e hora de término da promoção.", variant: "destructive" });
+          return;
+        }
+        const endDate = new Date(promoCountdownEndsAt);
+        if (isNaN(endDate.getTime())) {
+          toast({ title: "Data inválida", description: "Informe uma data e hora válidas.", variant: "destructive" });
+          return;
+        }
+        if (endDate.getTime() <= Date.now()) {
+          toast({ title: "Data inválida", description: "A data de término da promoção precisa ser futura.", variant: "destructive" });
+          return;
+        }
+        promoCountdownIso = endDate.toISOString();
+      } else if (promoCountdownEndsAt) {
+        const endDate = new Date(promoCountdownEndsAt);
+        if (!isNaN(endDate.getTime())) promoCountdownIso = endDate.toISOString();
+      }
+
       const productData = {
         name: name.trim(),
         description: description?.trim() || null,
@@ -709,6 +764,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         length: length ? parseFloat(length) : null,
         height: height ? parseFloat(height) : null,
         width: width ? parseFloat(width) : null,
+        promotion_countdown_enabled: promoCountdownEnabled,
+        promotion_countdown_text: (promoCountdownText || "Oferta termina em").trim() || "Oferta termina em",
+        promotion_countdown_ends_at: promoCountdownIso,
       };
 
       if (product) {
@@ -798,6 +856,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setLength("");
     setHeight("");
     setWidth("");
+    setPromoCountdownEnabled(false);
+    setPromoCountdownText("Oferta termina em");
+    setPromoCountdownEndsAt("");
     setImageEditorOpen(false);
     setEditingImageIndex(null);
   };
@@ -1258,6 +1319,55 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               />
             </div>
           </div>
+
+          {/* Promotion countdown */}
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label className="text-base">Promoção com contagem regressiva</Label>
+                <p className="text-xs text-muted-foreground">
+                  Crie urgência para produtos com preço promocional por tempo limitado.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 shrink-0 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={promoCountdownEnabled}
+                  onChange={(e) => setPromoCountdownEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-current"
+                  style={{ accentColor: buttonBgColor }}
+                  aria-label="Ativar contagem regressiva neste produto"
+                />
+                <span className="text-sm">Ativar</span>
+              </label>
+            </div>
+            {promoCountdownEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="promo_countdown_text">Texto da oferta</Label>
+                  <Input
+                    id="promo_countdown_text"
+                    type="text"
+                    value={promoCountdownText}
+                    onChange={(e) => setPromoCountdownText(e.target.value)}
+                    placeholder="Ex: Oferta termina em"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="promo_countdown_ends_at">Data e hora de término</Label>
+                  <Input
+                    id="promo_countdown_ends_at"
+                    type="datetime-local"
+                    value={promoCountdownEndsAt}
+                    onChange={(e) => setPromoCountdownEndsAt(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+
 
           {/* Category and Stock */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
