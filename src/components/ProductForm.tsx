@@ -460,6 +460,52 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     }
   };
 
+  /**
+   * Reorders images (and their parallel image_adjustments entries) and
+   * persists the new order for existing products. Index 0 stays the
+   * "Principal" image, matching the current rule that the first slot is
+   * the main image.
+   */
+  const reorderImages = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const currentImgs = imagePreviewsRef.current;
+    if (fromIndex < 0 || fromIndex >= currentImgs.length) return;
+    if (toIndex < 0 || toIndex >= currentImgs.length) return;
+
+    const nextImgs = arrayMove(currentImgs, fromIndex, toIndex);
+    setImagePreviews(nextImgs);
+    imagePreviewsRef.current = nextImgs;
+
+    const currentAdj = imageAdjustmentsRef.current;
+    if (currentAdj.length === currentImgs.length) {
+      const nextAdj = arrayMove(currentAdj, fromIndex, toIndex);
+      setImageAdjustments(nextAdj);
+      imageAdjustmentsRef.current = nextAdj;
+    }
+
+    imagesMutationRef.current += 1;
+
+    if (product?.id) {
+      requestPersistImages();
+    }
+  };
+
+  // DnD sensors — small activation distance avoids accidental drags on click,
+  // and a touch delay keeps the modal scroll working on mobile.
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleImagesDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const from = Number(String(active.id).split("::")[0]);
+    const to = Number(String(over.id).split("::")[0]);
+    if (Number.isNaN(from) || Number.isNaN(to)) return;
+    reorderImages(from, to);
+
   const setAsPrimary = (index: number) => {
     if (index === 0 || index >= imagePreviews.length) return;
     const current = [...imagePreviewsRef.current];
