@@ -267,6 +267,22 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         setShippingWeight("");
         setShippingWeightUnit("g");
       }
+      setPromoCountdownEnabled(!!(product as any).promotion_countdown_enabled);
+      setPromoCountdownText((product as any).promotion_countdown_text || "Oferta termina em");
+      const endsAtRaw = (product as any).promotion_countdown_ends_at as string | null | undefined;
+      if (endsAtRaw) {
+        const d = new Date(endsAtRaw);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => String(n).padStart(2, "0");
+          setPromoCountdownEndsAt(
+            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+          );
+        } else {
+          setPromoCountdownEndsAt("");
+        }
+      } else {
+        setPromoCountdownEndsAt("");
+      }
     } else if (!open) {
       resetForm();
     }
