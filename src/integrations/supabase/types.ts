@@ -5225,6 +5225,9 @@ export type Database = {
           name: string | null
           popularity_score: number | null
           price: number | null
+          promotion_countdown_enabled: boolean | null
+          promotion_countdown_ends_at: string | null
+          promotion_countdown_text: string | null
           promotional_price: number | null
           sales_count: number | null
           stock: number | null
