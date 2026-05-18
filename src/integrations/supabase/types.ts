@@ -3296,6 +3296,9 @@ export type Database = {
           name: string
           popularity_score: number
           price: number
+          promotion_countdown_enabled: boolean
+          promotion_countdown_ends_at: string | null
+          promotion_countdown_text: string | null
           promotional_price: number | null
           sales_count: number
           shipping_weight: number | null
@@ -3325,6 +3328,9 @@ export type Database = {
           name: string
           popularity_score?: number
           price: number
+          promotion_countdown_enabled?: boolean
+          promotion_countdown_ends_at?: string | null
+          promotion_countdown_text?: string | null
           promotional_price?: number | null
           sales_count?: number
           shipping_weight?: number | null
@@ -3354,6 +3360,9 @@ export type Database = {
           name?: string
           popularity_score?: number
           price?: number
+          promotion_countdown_enabled?: boolean
+          promotion_countdown_ends_at?: string | null
+          promotion_countdown_text?: string | null
           promotional_price?: number | null
           sales_count?: number
           shipping_weight?: number | null
