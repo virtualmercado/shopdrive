@@ -115,6 +115,9 @@ interface Product {
   width?: number | null;
   /** Tonal adjustments per image (one entry per images slot). */
   image_adjustments?: ImageAdjustments[];
+  promotion_countdown_enabled?: boolean | null;
+  promotion_countdown_text?: string | null;
+  promotion_countdown_ends_at?: string | null;
 }
 
 interface Category {
