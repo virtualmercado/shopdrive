@@ -6,6 +6,11 @@ import { useMiniCart } from "@/contexts/MiniCartContext";
 import { Link, useParams } from "react-router-dom";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import FavoriteButton from "./FavoriteButton";
+import ProductCountdownTimer from "./ProductCountdownTimer";
+import {
+  getPromotionDiscountPercent,
+  isPromotionCountdownActive,
+} from "@/lib/promotionCountdown";
 
 interface ProductCardProps {
   product: {
