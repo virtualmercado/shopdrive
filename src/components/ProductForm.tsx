@@ -20,6 +20,23 @@ import { persistEditedProductImage, ImageAdjustments as PersistAdjustments } fro
 import { exportEditedProductImageJpeg } from "@/lib/batchExportProductImage";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { PlanFeatureBlockModal } from "@/components/plan";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { SortableImageItem } from "@/components/products/SortableImageItem";
 
 /** Strip HTML tags to get visible text length (same logic as RichTextEditor counter) */
 const stripHtmlForCount = (html: string): string => html.replace(/<[^>]*>/g, "");
