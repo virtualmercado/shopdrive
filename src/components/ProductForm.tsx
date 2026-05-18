@@ -1009,86 +1009,102 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
             <Label className="text-sm font-semibold">Imagens do Produto (máx. 7)</Label>
             
             {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {imagePreviews.map((preview, index) => (
-                  <div 
-                    key={index} 
-                    className="relative aspect-square bg-muted rounded-lg overflow-hidden group cursor-pointer"
-                    onDoubleClick={() => {
-                      if (!planLimits.canUseImageEditor) {
-                        setImageEditorBlockOpen(true);
-                        return;
-                      }
-                      setEditingImageIndex(index);
-                      setImageEditorOpen(true);
-                    }}
-                  >
-                    <img
-                      src={preview}
-                      alt={`Imagem ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+              <DndContext
+                sensors={dndSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleImagesDragEnd}
+              >
+                <SortableContext
+                  items={imagePreviews.map((preview, idx) => `${idx}::${preview}`)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {imagePreviews.map((preview, index) => {
+                      const itemId = `${index}::${preview}`;
+                      return (
+                        <SortableImageItem key={itemId} id={itemId}>
+                          <div
+                            className="relative aspect-square bg-muted rounded-lg overflow-hidden group cursor-pointer"
+                            onDoubleClick={() => {
+                              if (!planLimits.canUseImageEditor) {
+                                setImageEditorBlockOpen(true);
+                                return;
+                              }
+                              setEditingImageIndex(index);
+                              setImageEditorOpen(true);
+                            }}
+                          >
+                            <img
+                              src={preview}
+                              alt={`Imagem ${index + 1}`}
+                              className="w-full h-full object-cover pointer-events-none select-none"
+                              draggable={false}
+                            />
 
-                    {/* Principal badge */}
-                    {index === 0 && (
-                      <Badge className="absolute top-1.5 left-1.5 z-10 text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground">
-                        Principal
-                      </Badge>
-                    )}
+                            {/* Principal badge */}
+                            {index === 0 && (
+                              <Badge className="absolute top-1.5 left-1.5 z-10 text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground">
+                                Principal
+                              </Badge>
+                            )}
 
-                    {/* Pencil icon overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="bg-black/30 rounded-full p-3 opacity-50 group-hover:opacity-80 transition-opacity">
-                        <Pencil className="h-6 w-6 text-white" />
-                      </div>
-                    </div>
+                            {/* Pencil icon overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <div className="bg-black/30 rounded-full p-3 opacity-50 group-hover:opacity-80 transition-opacity">
+                                <Pencil className="h-6 w-6 text-white" />
+                              </div>
+                            </div>
 
-                    {/* Set as primary button (non-first images) */}
-                    {index > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1 left-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 bg-black/50 hover:bg-black/70 text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAsPrimary(index);
-                        }}
-                        title="Definir como principal"
-                      >
-                        <Star className="h-3 w-3" />
-                      </Button>
-                    )}
+                            {/* Set as primary button (non-first images) */}
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-1 left-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 bg-black/50 hover:bg-black/70 text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAsPrimary(index);
+                                }}
+                                title="Definir como principal"
+                              >
+                                <Star className="h-3 w-3" />
+                              </Button>
+                            )}
 
-                    {/* Remove button */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImage(index);
-                      }}
-                      style={{
-                        backgroundColor: buttonBgColor,
-                        color: buttonTextColor,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = buttonBgColor;
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                    <p className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/50 px-1 py-0.5 rounded text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      Duplo clique para editar
-                    </p>
+                            {/* Remove button */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImage(index);
+                              }}
+                              style={{
+                                backgroundColor: buttonBgColor,
+                                color: buttonTextColor,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = getHoverColor(buttonBgColor);
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = buttonBgColor;
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            <p className="absolute bottom-1 left-1 right-8 text-[10px] text-white bg-black/50 px-1 py-0.5 rounded text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              Arraste para reordenar • Duplo clique edita
+                            </p>
+                          </div>
+                        </SortableImageItem>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {imagePreviews.length < 7 && (
