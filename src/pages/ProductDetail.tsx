@@ -133,7 +133,7 @@ const ProductDetailContent = () => {
 
       // Fetch store profile
       const { data: profileData } = await supabase
-        .from("profiles")
+        .from("public_store_profiles" as any)
         .select("*")
         .eq("store_slug", storeSlug)
         .maybeSingle();
