@@ -5441,6 +5441,10 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: number
       }
+      coupon_usage_is_valid: {
+        Args: { p_email: string; p_order_id: string }
+        Returns: boolean
+      }
       create_store_referral: {
         Args: {
           p_inviter_store_id: string
@@ -5475,6 +5479,14 @@ export type Database = {
           clicks: number
           ctr: number
           impressions: number
+        }[]
+      }
+      get_melhor_envio_status: {
+        Args: { p_user_id: string }
+        Returns: {
+          environment: string
+          is_active: boolean
+          user_id: string
         }[]
       }
       get_referral_stats: {
