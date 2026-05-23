@@ -52,7 +52,7 @@ const ReturnPolicyPageContent = () => {
       if (!storeSlug) return;
 
       const { data: store } = await supabase
-        .from("profiles")
+        .from("public_store_profiles" as any)
         .select("*")
         .eq("store_slug", storeSlug)
         .single();

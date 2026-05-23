@@ -72,7 +72,7 @@ const StoreBrandContent = () => {
 
       // Fetch store data
       const { data: store, error: storeError } = await supabase
-        .from("profiles")
+        .from("public_store_profiles" as any)
         .select("*")
         .eq("store_slug", storeSlug)
         .single();

@@ -165,7 +165,7 @@ const StoreCategoryPageContent = () => {
 
       // Fetch store data
       const { data: store } = await supabase
-        .from("profiles")
+        .from("public_store_profiles" as any)
         .select("*")
         .eq("store_slug", storeSlug)
         .single();
