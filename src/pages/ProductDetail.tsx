@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2, ChevronLeft, ChevronRight, Facebook, Copy, Check } from "lucide-react";
 import { CartProvider, useCart } from "@/contexts/CartContext";
@@ -132,8 +133,8 @@ const ProductDetailContent = () => {
       if (!storeSlug || !productId) return;
 
       // Fetch store profile
-      const { data: profileData } = await supabase
-        .from("public_store_profiles" as any)
+      const { data: profileData } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .maybeSingle();
@@ -907,7 +908,7 @@ const ProductDetailContent = () => {
                   [&_li]:mb-2 [&_strong]:font-semibold
                   [&_a]:text-primary [&_a]:underline
                   [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description, { FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'], ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|ftp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i }) }}
               />
             </div>
           </div>

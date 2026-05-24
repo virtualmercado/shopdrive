@@ -71,8 +71,8 @@ const StoreBrandContent = () => {
       if (!storeSlug || !brandId) return;
 
       // Fetch store data
-      const { data: store, error: storeError } = await supabase
-        .from("public_store_profiles" as any)
+      const { data: store, error: storeError } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .single();

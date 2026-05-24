@@ -14,6 +14,7 @@ import { FileText, Pencil, Eye, RotateCcw, Loader2, Send } from "lucide-react";
 import { TENANT_EMAIL_EVENTS, TEMPLATE_VARIABLES, type TenantEmailTemplate } from "@/hooks/useTenantEmailTemplates";
 import { formatDate } from "./emailHelpers";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 interface Props {
   templates: TenantEmailTemplate[];
@@ -178,7 +179,7 @@ export const EmailTemplatesTab = ({ templates, loading, saving, upsertTemplate, 
               </div>
               {showPreview ? (
                 <div className="border rounded-lg p-4 min-h-[200px] bg-white dark:bg-gray-900">
-                  <div dangerouslySetInnerHTML={{ __html: templateForm.html_body || '<p style="color:#999">Nenhum conteúdo HTML definido</p>' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(templateForm.html_body || '<p style="color:#999">Nenhum conteúdo HTML definido</p>') }} />
                 </div>
               ) : (
                 <Textarea className="min-h-[200px] font-mono text-xs" value={templateForm.html_body} onChange={(e) => setTemplateForm((p) => ({ ...p, html_body: e.target.value }))} placeholder="<html>...</html>" />

@@ -139,8 +139,8 @@ const CheckoutContent = () => {
     const fetchStoreData = async () => {
       if (!storeSlug) return;
 
-      const { data } = await supabase
-        .from("public_store_profiles" as any)
+      const { data } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .single();

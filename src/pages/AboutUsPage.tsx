@@ -52,8 +52,8 @@ const AboutUsPageContent = () => {
     const fetchData = async () => {
       if (!storeSlug) return;
 
-      const { data: store } = await supabase
-        .from("public_store_profiles" as any)
+      const { data: store } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .single();

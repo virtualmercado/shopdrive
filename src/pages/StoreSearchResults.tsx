@@ -75,8 +75,8 @@ const StoreSearchResultsContent = () => {
       setLoadingStore(true);
       console.log("[StoreSearchResults] Fetching store for slug:", storeSlug);
 
-      const { data, error } = await supabase
-        .from("public_store_profiles" as any)
+      const { data, error } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .maybeSingle();

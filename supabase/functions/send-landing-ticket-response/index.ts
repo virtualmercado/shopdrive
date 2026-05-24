@@ -46,7 +46,22 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Admin role check - only admins may send platform ticket responses
+    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { ticketId, to, subject, message, ticketProtocolo }: SendEmailRequest = await req.json();
+
+
+
 
     if (!ticketId || !to || !subject || !message) {
       return new Response(

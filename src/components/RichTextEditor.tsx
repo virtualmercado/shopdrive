@@ -10,10 +10,20 @@ const ALLOWED_TAGS = [
   "ul", "ol", "li", "h2", "h3", "a", "img", "div", "span",
 ];
 
+function isSafeUrl(url: string | null): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  // Block javascript:, data:, vbscript: and similar
+  if (/^(javascript|data|vbscript|file):/i.test(trimmed)) return false;
+  return true;
+}
+
 function sanitizeHTML(html: string): string {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const clean = (node: Node): string => {
-    if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.textContent || "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" } as Record<string, string>)[c]);
+    }
     if (node.nodeType !== Node.ELEMENT_NODE) return "";
     const el = node as Element;
     const tag = el.tagName.toLowerCase();
@@ -23,12 +33,12 @@ function sanitizeHTML(html: string): string {
     let attrs = "";
     if (tag === "a") {
       const href = el.getAttribute("href");
-      if (href) attrs = ` href="${href}" target="_blank" rel="noopener noreferrer"`;
+      if (href && isSafeUrl(href)) attrs = ` href="${href.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer"`;
     }
     if (tag === "img") {
       const src = el.getAttribute("src");
-      const alt = el.getAttribute("alt") || "";
-      if (src) return `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;" />`;
+      const alt = (el.getAttribute("alt") || "").replace(/"/g, "&quot;");
+      if (src && isSafeUrl(src)) return `<img src="${src.replace(/"/g, "&quot;")}" alt="${alt}" style="max-width:100%;height:auto;" />`;
       return "";
     }
     const children = Array.from(el.childNodes).map(clean).join("");
