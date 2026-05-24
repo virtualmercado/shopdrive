@@ -91,6 +91,22 @@ serve(async (req) => {
       installments,
       description,
     } = requestData;
+    const orderId = requestData.orderId;
+
+    // IDOR protection: when an orderId is provided, ensure it belongs to the claimed store owner
+    if (orderId) {
+      const { data: orderRow, error: orderErr } = await supabase
+        .from("orders")
+        .select("store_owner_id")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
+        return new Response(
+          JSON.stringify({ error: "Pedido não pertence à loja informada" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // Validate required fields
     if (!amount || !storeOwnerId || !customerName || !customerEmail || !cardToken) {
