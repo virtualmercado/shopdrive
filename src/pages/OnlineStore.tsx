@@ -88,8 +88,8 @@ const OnlineStoreContent = () => {
     const fetchStoreData = async () => {
       if (!storeSlug) return;
 
-      const { data, error } = await supabase
-        .from("public_store_profiles" as any)
+      const { data, error } = await (supabase as any)
+        .from("public_store_profiles")
         .select("*")
         .eq("store_slug", storeSlug)
         .single();
