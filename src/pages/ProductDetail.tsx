@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Ruler, Heart, Share2, ChevronLeft, ChevronRight, Facebook, Copy, Check } from "lucide-react";
 import { CartProvider, useCart } from "@/contexts/CartContext";
