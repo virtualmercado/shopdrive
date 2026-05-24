@@ -70,10 +70,10 @@ serve(async (req) => {
     {
       const { data: orderRow, error: orderErr } = await supabase
         .from("orders")
-        .select("user_id")
+        .select("store_owner_id")
         .eq("id", orderId)
         .maybeSingle();
-      if (orderErr || !orderRow || orderRow.user_id !== storeOwnerId) {
+      if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
         return new Response(
           JSON.stringify({ error: "Pedido não pertence à loja informada" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
