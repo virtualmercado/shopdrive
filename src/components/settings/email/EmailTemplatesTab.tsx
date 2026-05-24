@@ -14,6 +14,7 @@ import { FileText, Pencil, Eye, RotateCcw, Loader2, Send } from "lucide-react";
 import { TENANT_EMAIL_EVENTS, TEMPLATE_VARIABLES, type TenantEmailTemplate } from "@/hooks/useTenantEmailTemplates";
 import { formatDate } from "./emailHelpers";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 interface Props {
   templates: TenantEmailTemplate[];
