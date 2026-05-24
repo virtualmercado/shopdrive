@@ -56,8 +56,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
     const { ticketId, to, subject, message, ticketProtocolo }: SendEmailRequest = await req.json();
+
+
 
 
     if (!ticketId || !to || !subject || !message) {
