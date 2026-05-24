@@ -66,6 +66,21 @@ serve(async (req) => {
       );
     }
 
+    // IDOR protection: ensure the order belongs to the claimed store owner
+    {
+      const { data: orderRow, error: orderErr } = await supabase
+        .from("orders")
+        .select("user_id")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (orderErr || !orderRow || orderRow.user_id !== storeOwnerId) {
+        return new Response(
+          JSON.stringify({ error: "Pedido não pertence à loja informada" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Validate and format the amount - Mercado Pago requires positive number with max 2 decimal places
     const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     const validAmount = Math.round((parsedAmount || 0) * 100) / 100; // Round to 2 decimal places
