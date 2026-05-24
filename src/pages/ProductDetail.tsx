@@ -908,7 +908,7 @@ const ProductDetailContent = () => {
                   [&_li]:mb-2 [&_strong]:font-semibold
                   [&_a]:text-primary [&_a]:underline
                   [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description, { FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'], ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|ftp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i }) }}
               />
             </div>
           </div>
