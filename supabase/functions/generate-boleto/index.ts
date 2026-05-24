@@ -105,6 +105,21 @@ serve(async (req) => {
       );
     }
 
+    // IDOR protection: ensure the order belongs to the claimed store owner
+    {
+      const { data: orderRow, error: orderErr } = await supabase
+        .from("orders")
+        .select("store_owner_id")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
+        return new Response(
+          JSON.stringify({ error: "Pedido não pertence à loja informada" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     if (!customerName || !customerEmail) {
       return new Response(
         JSON.stringify({ error: "Nome e e-mail do cliente são obrigatórios para gerar boleto" }),
