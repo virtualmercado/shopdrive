@@ -171,6 +171,20 @@ const TemplateMaintenanceTab = () => {
     } catch { toast.error('Erro inesperado no backfill'); } finally { setIsRunningBackfill(false); }
   };
 
+  const handleRunRepair = async () => {
+    setIsRepairing(true);
+    setRepairResult(null);
+    try {
+      const { data, error } = await (supabase as any).rpc('repair_incomplete_template_stores');
+      if (error) { toast.error(`Erro no reparo: ${error.message}`); return; }
+      setRepairResult(data);
+      const result = data as any;
+      toast.success(`Reparo concluído: ${result?.repaired || 0} reparadas, ${result?.still_incomplete || 0} ainda incompletas, ${result?.failed || 0} falhas`);
+      handleRefresh();
+    } catch (e: any) { toast.error(`Erro inesperado no reparo: ${e?.message || ''}`); } finally { setIsRepairing(false); }
+  };
+
+
   const pendingCount = pendingStores?.filter(s => !s.template_applied || s.template_apply_status === 'pending' || s.template_apply_status === 'failed').length || 0;
   const appliedCount = pendingStores?.filter(s => s.template_applied && s.template_apply_status === 'applied').length || 0;
   const failedCount = pendingStores?.filter(s => s.template_apply_status === 'failed').length || 0;
