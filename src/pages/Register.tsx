@@ -65,9 +65,35 @@ const Register = () => {
         formData.storeName,
         template?.id
       );
-      
-      if (!error && data?.user) {
+
+      // Recovery path: user previously created but template clone failed
+      const isAlreadyRegistered =
+        !!error && (
+          /already registered|user already|already exists/i.test(error.message || '') ||
+          (error as any)?.code === 'user_already_exists'
+        );
+
+      if (isAlreadyRegistered && template?.id) {
+        console.info('[Register][recovery] user already exists, attempting recovery sign-in');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (signInError || !signInData?.user) {
+          toast.error('Este e-mail já está cadastrado. Faça login ou recupere sua senha.');
+          navigate(`/login${templateSlug ? `?template=${templateSlug}` : ''}`, { replace: true });
+          return;
+        }
+        // Re-run the post-signup flow using the recovered session
+        (data as any) = signInData;
+      } else if (error) {
+        toast.error(error.message || 'Erro ao criar conta');
+        return;
+      }
+
+      if (data?.user) {
         const userId = data.user.id;
+
 
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
