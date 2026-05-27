@@ -5422,6 +5422,14 @@ export type Database = {
       }
     }
     Functions: {
+      activate_template_for_current_user: {
+        Args: {
+          p_full_name?: string
+          p_store_name?: string
+          p_template_slug: string
+        }
+        Returns: Json
+      }
       apply_template_to_existing_store: {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
         Returns: Json
@@ -5468,6 +5476,10 @@ export type Database = {
         Returns: boolean
       }
       expire_stale_pix_payments: { Args: never; Returns: number }
+      force_sync_brand_template: {
+        Args: { p_template_id: string }
+        Returns: Json
+      }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_quote_number: {

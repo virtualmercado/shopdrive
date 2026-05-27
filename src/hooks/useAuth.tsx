@@ -29,6 +29,14 @@ export const useAuth = () => {
     });
 
     if (error) {
+      const isAlreadyRegistered =
+        /already registered|user already|already exists/i.test(error.message || '') ||
+        (error as any)?.code === 'user_already_exists';
+
+      if (isAlreadyRegistered && templateId) {
+        return { error };
+      }
+
       toast({
         title: "Erro ao criar conta",
         description: error.message,
