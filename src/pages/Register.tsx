@@ -58,16 +58,45 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await signUp(
+      const signUpResult = await signUp(
         formData.email,
         formData.password,
         formData.name,
         formData.storeName,
         template?.id
       );
-      
-      if (!error && data?.user) {
+      let data = signUpResult.data;
+      const error = signUpResult.error;
+
+      // Recovery path: user previously created but template clone failed
+      const isAlreadyRegistered =
+        !!error && (
+          /already registered|user already|already exists/i.test(error.message || '') ||
+          (error as any)?.code === 'user_already_exists'
+        );
+
+      if (isAlreadyRegistered && template?.id) {
+        console.info('[Register][recovery] user already exists, attempting recovery sign-in');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (signInError || !signInData?.user) {
+          toast.error('Este e-mail já está cadastrado. Faça login ou recupere sua senha.');
+          navigate(`/login${templateSlug ? `?template=${templateSlug}` : ''}`, { replace: true });
+          return;
+        }
+        // Re-run the post-signup flow using the recovered session
+        data = signInData as typeof data;
+      } else if (error) {
+        toast.error(error.message || 'Erro ao criar conta');
+        return;
+      }
+
+      if (data?.user) {
         const userId = data.user.id;
+
+
 
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
@@ -98,7 +127,7 @@ const Register = () => {
           for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             try {
               const { data: cloneResult, error: cloneError } = await supabase
-                .rpc('clone_template_to_store', { 
+                .rpc('clone_template_to_store_guarded' as any, { 
                   p_template_id: template.id,
                   p_user_id: userId 
                 });

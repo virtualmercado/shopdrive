@@ -61,9 +61,12 @@ const TemplateMaintenanceTab = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
   const [isRunningBackfill, setIsRunningBackfill] = useState(false);
   const [backfillResult, setBackfillResult] = useState<any>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairResult, setRepairResult] = useState<any>(null);
   const [applyingStoreId, setApplyingStoreId] = useState<string | null>(null);
   const [complementingStoreId, setComplementingStoreId] = useState<string | null>(null);
   const [forceMode, setForceMode] = useState(false);
+
 
   const { data: templates } = useQuery({
     queryKey: ['maintenance-templates'],
@@ -168,6 +171,20 @@ const TemplateMaintenanceTab = () => {
     } catch { toast.error('Erro inesperado no backfill'); } finally { setIsRunningBackfill(false); }
   };
 
+  const handleRunRepair = async () => {
+    setIsRepairing(true);
+    setRepairResult(null);
+    try {
+      const { data, error } = await (supabase as any).rpc('repair_incomplete_template_stores');
+      if (error) { toast.error(`Erro no reparo: ${error.message}`); return; }
+      setRepairResult(data);
+      const result = data as any;
+      toast.success(`Reparo concluído: ${result?.repaired || 0} reparadas, ${result?.still_incomplete || 0} ainda incompletas, ${result?.failed || 0} falhas`);
+      handleRefresh();
+    } catch (e: any) { toast.error(`Erro inesperado no reparo: ${e?.message || ''}`); } finally { setIsRepairing(false); }
+  };
+
+
   const pendingCount = pendingStores?.filter(s => !s.template_applied || s.template_apply_status === 'pending' || s.template_apply_status === 'failed').length || 0;
   const appliedCount = pendingStores?.filter(s => s.template_applied && s.template_apply_status === 'applied').length || 0;
   const failedCount = pendingStores?.filter(s => s.template_apply_status === 'failed').length || 0;
@@ -214,6 +231,9 @@ const TemplateMaintenanceTab = () => {
             <Button onClick={handleRunBackfill} disabled={isRunningBackfill || needsAction === 0}>
               {isRunningBackfill ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</> : <><Play className="h-4 w-4 mr-2" /> Executar Backfill ({needsAction} pendentes/incompletos)</>}
             </Button>
+            <Button variant="secondary" onClick={handleRunRepair} disabled={isRepairing}>
+              {isRepairing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Reparando...</> : <><Wrench className="h-4 w-4 mr-2" /> Reparar lojas incompletas</>}
+            </Button>
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
             </Button>
@@ -228,6 +248,16 @@ const TemplateMaintenanceTab = () => {
               <p className="text-yellow-600">Ignorados (completos): {backfillResult.skipped}</p>
             </AlertDescription></Alert>
           )}
+          {repairResult && (
+            <Alert><AlertDescription>
+              <p><strong>Resultado do reparo:</strong></p>
+              <p>Processadas: {repairResult.processed}</p>
+              <p className="text-green-600">Reparadas: {repairResult.repaired}</p>
+              <p className="text-orange-600">Ainda incompletas: {repairResult.still_incomplete}</p>
+              <p className="text-red-600">Falhas: {repairResult.failed}</p>
+            </AlertDescription></Alert>
+          )}
+
         </CardContent>
       </Card>
 
