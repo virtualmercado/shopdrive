@@ -58,13 +58,15 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await signUp(
+      const signUpResult = await signUp(
         formData.email,
         formData.password,
         formData.name,
         formData.storeName,
         template?.id
       );
+      let data = signUpResult.data;
+      const error = signUpResult.error;
 
       // Recovery path: user previously created but template clone failed
       const isAlreadyRegistered =
@@ -85,7 +87,7 @@ const Register = () => {
           return;
         }
         // Re-run the post-signup flow using the recovered session
-        (data as any) = signInData;
+        data = signInData as typeof data;
       } else if (error) {
         toast.error(error.message || 'Erro ao criar conta');
         return;
@@ -93,6 +95,7 @@ const Register = () => {
 
       if (data?.user) {
         const userId = data.user.id;
+
 
 
         // If registering via template, clone the complete template to the new store
