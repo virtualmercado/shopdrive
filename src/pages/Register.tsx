@@ -76,13 +76,24 @@ const Register = () => {
         );
 
       if (isAlreadyRegistered && template?.id) {
-        console.info('[Register][recovery] user already exists, attempting recovery sign-in');
+        console.info('[Register][recovery] user already exists, attempting recovery sign-in', {
+          template_id: template.id,
+          template_slug: templateSlug,
+          stage: 'auth_user_exists',
+        });
+        toast.info('Encontramos uma conta com este e-mail. Vamos continuar a configuração da sua loja.');
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
         if (signInError || !signInData?.user) {
-          toast.error('Este e-mail já está cadastrado. Faça login ou recupere sua senha.');
+          console.warn('[Register][recovery] sign-in failed for existing user', {
+            template_id: template.id,
+            template_slug: templateSlug,
+            error: signInError?.message,
+            stage: 'existing_user_login_required',
+          });
+          toast.info('Encontramos uma conta com este e-mail. Faça login para continuar a ativação da sua loja.');
           navigate(`/login${templateSlug ? `?template=${templateSlug}` : ''}`, { replace: true });
           return;
         }
@@ -100,78 +111,82 @@ const Register = () => {
 
         // If registering via template, clone the complete template to the new store
         if (template && template.id) {
-          // Poll for profile existence instead of fixed wait
-          let profileReady = false;
-          for (let poll = 0; poll < 10; poll++) {
-            const { data: profileCheck } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', userId)
-              .maybeSingle();
-            if (profileCheck) {
-              profileReady = true;
-              console.info(`[Register] Profile ready after ${(poll + 1) * 500}ms`);
-              break;
-            }
-            await new Promise(r => setTimeout(r, 500));
-          }
-
-          if (!profileReady) {
-            console.error('[Register] Profile not created after 5s, attempting clone anyway');
-          }
-
-          let cloneSuccess = false;
-          let productsComplete = false;
+          let activationSuccess = false;
+          let activationComplete = false;
           const MAX_ATTEMPTS = 5;
           
           for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             try {
-              const { data: cloneResult, error: cloneError } = await supabase
-                .rpc('clone_template_to_store_guarded' as any, { 
-                  p_template_id: template.id,
-                  p_user_id: userId 
+              const { data: activationResult, error: activationError } = await supabase
+                .rpc('activate_template_for_current_user' as any, {
+                  p_template_slug: templateSlug,
+                  p_store_name: formData.storeName,
+                  p_full_name: formData.name,
                 });
 
-              if (cloneError) {
-                console.error(`[Register] Clone attempt ${attempt + 1}/${MAX_ATTEMPTS} failed:`, cloneError);
+              if (activationError) {
+                console.error(`[Register] Activation attempt ${attempt + 1}/${MAX_ATTEMPTS} failed`, {
+                  rpc: 'activate_template_for_current_user',
+                  template_id: template.id,
+                  template_slug: templateSlug,
+                  user_id: userId,
+                  stage: 'rpc_error',
+                  error: activationError.message,
+                });
                 if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
                 continue;
               }
 
-              const result = cloneResult as { success: boolean; copied: number; expected: number; total: number; complete: boolean; error?: string; retry?: boolean } | null;
-              console.info(`[Register] Clone attempt ${attempt + 1} result:`, result);
+              const result = activationResult as { success: boolean; stage?: string; error?: string; retry?: boolean; integrity?: { complete?: boolean; missing?: string[] } } | null;
+              console.info(`[Register] Activation attempt ${attempt + 1} result`, {
+                rpc: 'activate_template_for_current_user',
+                template_id: template.id,
+                template_slug: templateSlug,
+                user_id: userId,
+                result,
+              });
 
               if (result && result.success) {
-                cloneSuccess = true;
-                productsComplete = result.complete;
-                
-                if (productsComplete) {
-                  console.info(`[Register] Template fully cloned: ${result.total}/${result.expected} products`);
-                  break;
-                } else {
-                  // Visual applied but products incomplete - retry product copy only
-                  console.warn(`[Register] Products incomplete: ${result.total}/${result.expected}, retrying...`);
-                  if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-                }
+                activationSuccess = true;
+                activationComplete = result.stage === 'complete' || result.integrity?.complete === true;
+                break;
               } else if (result && result.retry) {
-                console.warn(`[Register] Clone needs retry: ${result.error}`);
+                console.warn('[Register] Activation needs retry', {
+                  template_id: template.id,
+                  template_slug: templateSlug,
+                  user_id: userId,
+                  stage: result.stage,
+                  error: result.error,
+                  missing: result.integrity?.missing,
+                });
                 if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
               } else {
-                console.error(`[Register] Clone failed permanently:`, result?.error);
+                console.error('[Register] Activation failed permanently', {
+                  template_id: template.id,
+                  template_slug: templateSlug,
+                  user_id: userId,
+                  stage: result?.stage,
+                  error: result?.error,
+                });
                 break;
               }
-            } catch (copyError) {
-              console.error(`[Register] Clone attempt ${attempt + 1} exception:`, copyError);
+            } catch (activationException) {
+              console.error(`[Register] Activation attempt ${attempt + 1} exception`, {
+                template_id: template.id,
+                template_slug: templateSlug,
+                user_id: userId,
+                error: activationException,
+              });
               if (attempt < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
             }
           }
 
-          if (cloneSuccess && productsComplete) {
+          if (activationSuccess && activationComplete) {
             toast.success(`Sua loja foi criada com toda a configuração da marca ${template.name}!`);
-          } else if (cloneSuccess) {
+          } else if (activationSuccess) {
             toast.warning('Loja criada com visual da marca, mas alguns produtos podem estar pendentes.');
           } else {
-            toast.warning('Loja criada, mas houve um erro ao copiar a configuração do template.');
+            toast.warning('Loja criada, mas a aplicação do template ficou pendente e poderá ser retomada.');
           }
 
           // Register referral if convite parameter is present
@@ -188,7 +203,7 @@ const Register = () => {
           }
 
           // Navigate to onboarding with template flag so it skips store creation steps
-          navigate(`/onboarding?template=${templateSlug}&cloned=${cloneSuccess ? '1' : '0'}`, { replace: true });
+          navigate(`/onboarding?template=${templateSlug}&cloned=${activationSuccess ? '1' : '0'}`, { replace: true });
         } else {
           // Non-template flow: register referral if applicable
           if (conviteStoreId && userId) {
