@@ -178,11 +178,15 @@ export const syncTemplatePreviewState = async (
   }
 
   if (forceSync) {
+    const rpcName = context === 'force-sync'
+      ? 'force_sync_brand_template'
+      : 'sync_template_from_profile_guarded';
     const { data: syncData, error: syncError } = await supabase
-      .rpc('sync_template_from_profile_guarded' as any, { p_template_id: templateId });
+      .rpc(rpcName as any, { p_template_id: templateId });
 
-    logStage('03_rpc_sync_template_from_profile', {
+    logStage('03_rpc_template_sync', {
       context,
+      rpc: rpcName,
       template_id: templateId,
       return_type: getReturnType(syncData),
       data: syncData ?? null,
