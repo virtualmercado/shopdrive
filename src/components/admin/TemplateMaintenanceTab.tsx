@@ -231,6 +231,9 @@ const TemplateMaintenanceTab = () => {
             <Button onClick={handleRunBackfill} disabled={isRunningBackfill || needsAction === 0}>
               {isRunningBackfill ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</> : <><Play className="h-4 w-4 mr-2" /> Executar Backfill ({needsAction} pendentes/incompletos)</>}
             </Button>
+            <Button variant="secondary" onClick={handleRunRepair} disabled={isRepairing}>
+              {isRepairing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Reparando...</> : <><Wrench className="h-4 w-4 mr-2" /> Reparar lojas incompletas</>}
+            </Button>
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
             </Button>
@@ -245,6 +248,16 @@ const TemplateMaintenanceTab = () => {
               <p className="text-yellow-600">Ignorados (completos): {backfillResult.skipped}</p>
             </AlertDescription></Alert>
           )}
+          {repairResult && (
+            <Alert><AlertDescription>
+              <p><strong>Resultado do reparo:</strong></p>
+              <p>Processadas: {repairResult.processed}</p>
+              <p className="text-green-600">Reparadas: {repairResult.repaired}</p>
+              <p className="text-orange-600">Ainda incompletas: {repairResult.still_incomplete}</p>
+              <p className="text-red-600">Falhas: {repairResult.failed}</p>
+            </AlertDescription></Alert>
+          )}
+
         </CardContent>
       </Card>
 
