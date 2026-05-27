@@ -61,9 +61,12 @@ const TemplateMaintenanceTab = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
   const [isRunningBackfill, setIsRunningBackfill] = useState(false);
   const [backfillResult, setBackfillResult] = useState<any>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairResult, setRepairResult] = useState<any>(null);
   const [applyingStoreId, setApplyingStoreId] = useState<string | null>(null);
   const [complementingStoreId, setComplementingStoreId] = useState<string | null>(null);
   const [forceMode, setForceMode] = useState(false);
+
 
   const { data: templates } = useQuery({
     queryKey: ['maintenance-templates'],
