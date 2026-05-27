@@ -5426,14 +5426,28 @@ export type Database = {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
         Returns: Json
       }
+      apply_template_to_existing_store_impl: {
+        Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      assert_caller_is_admin: { Args: never; Returns: undefined }
       backfill_partner_templates: { Args: never; Returns: Json }
+      backfill_partner_templates_impl: { Args: never; Returns: Json }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
       }
+      clone_template_to_store_guarded: {
+        Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
       complement_template_data: {
+        Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      complement_template_data_impl: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
       }
@@ -5532,6 +5546,10 @@ export type Database = {
         Args: { p_profile_id: string; p_template_id: string }
         Returns: boolean
       }
+      link_template_to_profile_impl: {
+        Args: { p_profile_id: string; p_template_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_action: string
@@ -5558,6 +5576,7 @@ export type Database = {
         Args: { p_ids: string[]; p_product_id: string }
         Returns: undefined
       }
+      repair_incomplete_template_stores: { Args: never; Returns: Json }
       sync_invoice_for_payment: {
         Args: { p_payment_id: string }
         Returns: string
@@ -5566,6 +5585,11 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: undefined
       }
+      sync_template_from_profile_guarded: {
+        Args: { p_template_id: string }
+        Returns: undefined
+      }
+      template_integrity_check: { Args: { p_user_id: string }; Returns: Json }
       track_template_click: {
         Args: {
           p_ip_address?: string
