@@ -62,7 +62,7 @@ export const TemplateEditorProvider = ({ children }: TemplateEditorProviderProps
     try {
       // Call RPC to sync the profile data to the template snapshot
       const { error } = await supabase
-        .rpc('sync_template_from_profile', { p_template_id: templateId });
+        .rpc('sync_template_from_profile_guarded' as any, { p_template_id: templateId });
 
       if (error) throw error;
 

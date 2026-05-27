@@ -98,7 +98,7 @@ const Register = () => {
           for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             try {
               const { data: cloneResult, error: cloneError } = await supabase
-                .rpc('clone_template_to_store', { 
+                .rpc('clone_template_to_store_guarded' as any, { 
                   p_template_id: template.id,
                   p_user_id: userId 
                 });

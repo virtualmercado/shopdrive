@@ -179,7 +179,7 @@ export const syncTemplatePreviewState = async (
 
   if (forceSync) {
     const { data: syncData, error: syncError } = await supabase
-      .rpc('sync_template_from_profile', { p_template_id: templateId });
+      .rpc('sync_template_from_profile_guarded' as any, { p_template_id: templateId });
 
     logStage('03_rpc_sync_template_from_profile', {
       context,
