@@ -27,19 +27,18 @@ export const useCoupon = (storeOwnerId: string | null) => {
     setLoading(true);
 
     try {
-      // Find the coupon
-      const { data: coupon, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .eq("user_id", storeOwnerId)
-        .ilike("code", code.trim())
-        .eq("is_active", true)
-        .maybeSingle();
+      // Validate the coupon via a scoped RPC (avoids exposing all coupons publicly)
+      const { data: coupons, error } = await supabase.rpc("validate_store_coupon", {
+        p_store_user_id: storeOwnerId,
+        p_code: code.trim(),
+      });
 
       if (error) {
         console.error("Error fetching coupon:", error);
         return { isValid: false, discount: 0, discountType: "fixed", errorMessage: "Erro ao validar cupom" };
       }
+
+      const coupon = Array.isArray(coupons) ? coupons[0] : coupons;
 
       if (!coupon) {
         return { isValid: false, discount: 0, discountType: "fixed", errorMessage: "Cupom inválido ou expirado" };

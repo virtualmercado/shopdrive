@@ -5611,6 +5611,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_store_coupon: {
+        Args: { p_code: string; p_store_user_id: string }
+        Returns: {
+          code: string
+          discount_type: string
+          discount_value: number
+          id: string
+          min_order_value: number
+          single_use: boolean
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "financeiro" | "suporte" | "tecnico"
