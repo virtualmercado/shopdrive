@@ -705,7 +705,10 @@ All colors MUST be HSL.
   }
   100% {
     transform: translate(-1%, -1%) scale(1);
+  }
 }
+
+
 
 /* Catalog Digital — compact mobile card tweaks (mobile only) */
 @media (max-width: 639px) {
