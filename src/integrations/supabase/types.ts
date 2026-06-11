@@ -5258,6 +5258,12 @@ export type Database = {
       public_store_profiles: {
         Row: {
           about_us_text: string | null
+          address: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
           banner_desktop_url: string | null
           banner_desktop_urls: Json | null
           banner_mobile_url: string | null
@@ -5272,6 +5278,7 @@ export type Database = {
           checkout_require_email: boolean | null
           checkout_require_payment_method: boolean | null
           checkout_require_personal_info: boolean | null
+          content_banners: Json | null
           delivery_option: string | null
           display_name: string | null
           facebook_url: string | null
@@ -5281,18 +5288,26 @@ export type Database = {
           footer_text_color: string | null
           free_shipping_minimum: number | null
           free_shipping_scope: string | null
+          header_logo_position: string | null
+          home_video_description: string | null
+          home_video_enabled: boolean | null
+          home_video_id: string | null
+          home_video_title: string | null
           id: string | null
           instagram_url: string | null
           is_maintenance_mode: boolean | null
           merchant_city: string | null
           merchant_reference_cep: string | null
           merchant_state: string | null
+          minibanner_1_img2_url: string | null
+          minibanner_2_img2_url: string | null
           minimum_order_value: number | null
           pickup_address: string | null
           pickup_hours_saturday_end: string | null
           pickup_hours_saturday_start: string | null
           pickup_hours_weekday_end: string | null
           pickup_hours_weekday_start: string | null
+          price_color: string | null
           primary_color: string | null
           product_border_style: string | null
           product_button_display: string | null
@@ -5300,11 +5315,21 @@ export type Database = {
           product_text_alignment: string | null
           return_policy_text: string | null
           secondary_color: string | null
+          selected_benefit_banners: Json | null
           shipping_fixed_fee: number | null
           store_description: string | null
+          store_layout: string | null
           store_logo_url: string | null
+          store_model: string | null
           store_name: string | null
           store_slug: string | null
+          title_color: string | null
+          topbar_bg_color: string | null
+          topbar_enabled: boolean | null
+          topbar_link_target: string | null
+          topbar_link_type: string | null
+          topbar_text: string | null
+          topbar_text_color: string | null
           use_account_address_for_pickup: boolean | null
           whatsapp_number: string | null
           x_url: string | null
@@ -5312,6 +5337,12 @@ export type Database = {
         }
         Insert: {
           about_us_text?: string | null
+          address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
           banner_desktop_url?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
@@ -5326,6 +5357,7 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          content_banners?: Json | null
           delivery_option?: string | null
           display_name?: string | null
           facebook_url?: string | null
@@ -5335,18 +5367,26 @@ export type Database = {
           footer_text_color?: string | null
           free_shipping_minimum?: number | null
           free_shipping_scope?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_title?: string | null
           id?: string | null
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
           pickup_address?: never
           pickup_hours_saturday_end?: never
           pickup_hours_saturday_start?: never
           pickup_hours_weekday_end?: never
           pickup_hours_weekday_start?: never
+          price_color?: string | null
           primary_color?: string | null
           product_border_style?: string | null
           product_button_display?: string | null
@@ -5354,11 +5394,21 @@ export type Database = {
           product_text_alignment?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           shipping_fixed_fee?: number | null
           store_description?: string | null
+          store_layout?: string | null
           store_logo_url?: string | null
+          store_model?: string | null
           store_name?: string | null
           store_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           use_account_address_for_pickup?: never
           whatsapp_number?: string | null
           x_url?: string | null
@@ -5366,6 +5416,12 @@ export type Database = {
         }
         Update: {
           about_us_text?: string | null
+          address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
           banner_desktop_url?: string | null
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
@@ -5380,6 +5436,7 @@ export type Database = {
           checkout_require_email?: boolean | null
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
+          content_banners?: Json | null
           delivery_option?: string | null
           display_name?: string | null
           facebook_url?: string | null
@@ -5389,18 +5446,26 @@ export type Database = {
           footer_text_color?: string | null
           free_shipping_minimum?: number | null
           free_shipping_scope?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_title?: string | null
           id?: string | null
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
           pickup_address?: never
           pickup_hours_saturday_end?: never
           pickup_hours_saturday_start?: never
           pickup_hours_weekday_end?: never
           pickup_hours_weekday_start?: never
+          price_color?: string | null
           primary_color?: string | null
           product_border_style?: string | null
           product_button_display?: string | null
@@ -5408,11 +5473,21 @@ export type Database = {
           product_text_alignment?: string | null
           return_policy_text?: string | null
           secondary_color?: string | null
+          selected_benefit_banners?: Json | null
           shipping_fixed_fee?: number | null
           store_description?: string | null
+          store_layout?: string | null
           store_logo_url?: string | null
+          store_model?: string | null
           store_name?: string | null
           store_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
           use_account_address_for_pickup?: never
           whatsapp_number?: string | null
           x_url?: string | null
