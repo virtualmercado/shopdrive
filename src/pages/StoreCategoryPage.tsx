@@ -37,6 +37,7 @@ interface StoreData {
   product_text_alignment?: string;
   product_button_display?: string;
   header_logo_position?: string;
+  store_model?: string;
 }
 
 interface Category {
