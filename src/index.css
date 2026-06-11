@@ -708,3 +708,24 @@ All colors MUST be HSL.
   }
 }
 
+
+
+/* Catalog Digital — compact mobile card tweaks (mobile only) */
+@media (max-width: 639px) {
+  .catalog-compact-mobile h3 {
+    font-size: 0.8125rem;
+    line-height: 1.1rem;
+    min-height: 2.2rem !important;
+  }
+  .catalog-compact-mobile [class*="p-4"] {
+    padding: 0.625rem !important;
+  }
+  .catalog-compact-mobile .text-lg {
+    font-size: 0.95rem;
+  }
+  .catalog-compact-mobile .text-sm {
+    font-size: 0.7rem;
+  }
+}
+
+
