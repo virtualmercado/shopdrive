@@ -122,7 +122,7 @@ export const CatalogProductList = ({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="bg-gray-200 aspect-square rounded-lg mb-2" />
@@ -150,9 +150,9 @@ export const CatalogProductList = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Product Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div className="space-y-6 catalog-compact-mobile">
+      {/* Product Grid — 2 cols on mobile (catalog mode), denser spacing */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         {products.map((product) => (
           <ProductCard
             key={product.id}
