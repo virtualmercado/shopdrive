@@ -40,9 +40,7 @@ interface PaymentSettings {
   stone_ton_secret_key?: string | null;
   stone_ton_merchant_id?: string | null;
   infinitepay_enabled?: boolean;
-  infinitepay_client_id?: string | null;
-  infinitepay_client_secret?: string | null;
-  infinitepay_webhook_secret?: string | null;
+  infinitepay_handle?: string | null;
   // Payment method fields
   pix_enabled: boolean;
   pix_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
@@ -66,9 +64,7 @@ const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   stone_ton_secret_key: null,
   stone_ton_merchant_id: null,
   infinitepay_enabled: false,
-  infinitepay_client_id: null,
-  infinitepay_client_secret: null,
-  infinitepay_webhook_secret: null,
+  infinitepay_handle: null,
   pix_enabled: false,
   pix_provider: null,
   pix_discount_percent: 0,
@@ -110,9 +106,7 @@ const PaymentMethodsContent = () => {
   });
 
   const [tempInfinitePay, setTempInfinitePay] = useState({
-    clientId: "",
-    clientSecret: "",
-    webhookSecret: "",
+    handle: "",
   });
 
   // Local state for payment methods configuration
@@ -130,7 +124,7 @@ const PaymentMethodsContent = () => {
   const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token && settings?.mercadopago_public_key);
   const hasPagbankCredentials = !!(settings?.pagbank_token && settings?.pagbank_email);
   const hasStoneTonCredentials = !!(settings?.stone_ton_public_key && settings?.stone_ton_secret_key);
-  const hasInfinitePayCredentials = !!(settings?.infinitepay_client_id && settings?.infinitepay_client_secret);
+  const hasInfinitePayCredentials = !!(settings?.infinitepay_handle && settings.infinitepay_handle.trim());
   const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials || hasStoneTonCredentials || hasInfinitePayCredentials;
 
   useEffect(() => {
@@ -354,16 +348,20 @@ const PaymentMethodsContent = () => {
   };
 
   const saveInfinitePayCredentials = async () => {
-    if (!tempInfinitePay.clientId.trim() || !tempInfinitePay.clientSecret.trim()) {
-      toast.error("Preencha pelo menos Client ID e Client Secret do InfinitePay");
+    const rawHandle = tempInfinitePay.handle.trim();
+    if (!rawHandle) {
+      toast.error("Informe sua InfiniteTag da InfinitePay sem o símbolo $.");
       return;
     }
-    
+    if (/\s/.test(rawHandle) || rawHandle.includes("$")) {
+      toast.error("InfiniteTag inválida. Não use espaços nem o símbolo $.");
+      return;
+    }
+    const normalizedHandle = rawHandle.replace(/^@/, "").toLowerCase();
+
     await saveSettings({
       infinitepay_enabled: true,
-      infinitepay_client_id: tempInfinitePay.clientId,
-      infinitepay_client_secret: tempInfinitePay.clientSecret,
-      infinitepay_webhook_secret: tempInfinitePay.webhookSecret || null,
+      infinitepay_handle: normalizedHandle,
     });
     setInfinitePayDialogOpen(false);
   };
@@ -395,9 +393,7 @@ const PaymentMethodsContent = () => {
 
   const openInfinitePayConfig = () => {
     setTempInfinitePay({
-      clientId: settings?.infinitepay_client_id || "",
-      clientSecret: settings?.infinitepay_client_secret || "",
-      webhookSecret: settings?.infinitepay_webhook_secret || "",
+      handle: settings?.infinitepay_handle || "",
     });
     setInfinitePayDialogOpen(true);
   };
@@ -767,9 +763,7 @@ const PaymentMethodsContent = () => {
                         {hasStoneTonCredentials && (
                           <SelectItem value="stone_ton">Stone / Ton</SelectItem>
                         )}
-                        {hasInfinitePayCredentials && (
-                          <SelectItem value="infinitepay">InfinitePay</SelectItem>
-                        )}
+                        {/* InfinitePay não suporta boleto via Checkout público */}
                       </SelectContent>
                     </Select>
                   </div>
@@ -829,7 +823,7 @@ const PaymentMethodsContent = () => {
                 variant="outline"
                 size="sm"
                 className="gap-2"
-                onClick={() => window.open('https://developers.infinitepay.io/', '_blank')}
+                onClick={() => window.open('https://www.infinitepay.io/checkout-documentacao', '_blank')}
               >
                 <ExternalLink className="h-4 w-4" />
                 Documentação InfinitePay
@@ -1111,18 +1105,18 @@ const PaymentMethodsContent = () => {
                 Configurar InfinitePay
               </DialogTitle>
               <DialogDescription>
-                Insira suas credenciais do InfinitePay para habilitar pagamentos.
+                Conecte sua loja InfinitePay informando sua InfiniteTag (handle público).
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ip-client-id">Client ID *</Label>
+                <Label htmlFor="ip-handle">InfiniteTag / Handle InfinitePay *</Label>
                 <Input
-                  id="ip-client-id"
-                  placeholder="Seu Client ID do InfinitePay"
-                  value={tempInfinitePay.clientId}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientId: e.target.value }))}
+                  id="ip-handle"
+                  placeholder="sua_infinitetag"
+                  value={tempInfinitePay.handle}
+                  onChange={(e) => setTempInfinitePay({ handle: e.target.value })}
                   style={{ borderColor: primaryColor }}
                   onFocus={(e) => {
                     e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
@@ -1131,57 +1125,38 @@ const PaymentMethodsContent = () => {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ip-client-secret">Client Secret *</Label>
-                <Input
-                  id="ip-client-secret"
-                  type="password"
-                  placeholder="Seu Client Secret do InfinitePay"
-                  value={tempInfinitePay.clientSecret}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientSecret: e.target.value }))}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="ip-webhook-secret">Webhook Secret (opcional)</Label>
-                <Input
-                  id="ip-webhook-secret"
-                  type="password"
-                  placeholder="Secret para validação de webhooks"
-                  value={tempInfinitePay.webhookSecret}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
+                <p className="text-xs text-muted-foreground">
+                  Informe sua InfiniteTag da InfinitePay, sem o símbolo $.
+                </p>
               </div>
 
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex gap-2">
                   <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p>Obtenha suas credenciais em:</p>
-                    <a 
-                      href="https://developers.infinitepay.io/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="underline font-medium"
-                    >
-                      developers.infinitepay.io
-                    </a>
+                  <div className="text-sm text-blue-800 space-y-2">
+                    <p>
+                      Para usar a InfinitePay, crie sua conta no app InfinitePay,
+                      acesse a área de Checkout/Loja e copie sua InfiniteTag.
+                      Depois cadastre esse identificador aqui na ShopDrive.
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <a
+                        href="https://www.infinitepay.io/checkout-documentacao"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-medium"
+                      >
+                        Ver documentação oficial da InfinitePay (Checkout)
+                      </a>
+                      <a
+                        href="https://www.infinitepay.io/desenvolvedores"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-medium"
+                      >
+                        Área de desenvolvedores da InfinitePay
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1196,7 +1171,7 @@ const PaymentMethodsContent = () => {
                 disabled={saving}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
-                {saving ? "Salvando..." : "Salvar Credenciais"}
+                {saving ? "Salvando..." : "Salvar InfiniteTag"}
               </Button>
             </DialogFooter>
           </DialogContent>
