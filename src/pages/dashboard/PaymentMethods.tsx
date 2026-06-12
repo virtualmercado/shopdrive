@@ -348,16 +348,20 @@ const PaymentMethodsContent = () => {
   };
 
   const saveInfinitePayCredentials = async () => {
-    if (!tempInfinitePay.clientId.trim() || !tempInfinitePay.clientSecret.trim()) {
-      toast.error("Preencha pelo menos Client ID e Client Secret do InfinitePay");
+    const rawHandle = tempInfinitePay.handle.trim();
+    if (!rawHandle) {
+      toast.error("Informe sua InfiniteTag da InfinitePay sem o símbolo $.");
       return;
     }
-    
+    if (/\s/.test(rawHandle) || rawHandle.includes("$")) {
+      toast.error("InfiniteTag inválida. Não use espaços nem o símbolo $.");
+      return;
+    }
+    const normalizedHandle = rawHandle.replace(/^@/, "").toLowerCase();
+
     await saveSettings({
       infinitepay_enabled: true,
-      infinitepay_client_id: tempInfinitePay.clientId,
-      infinitepay_client_secret: tempInfinitePay.clientSecret,
-      infinitepay_webhook_secret: tempInfinitePay.webhookSecret || null,
+      infinitepay_handle: normalizedHandle,
     });
     setInfinitePayDialogOpen(false);
   };
