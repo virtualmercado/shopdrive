@@ -393,9 +393,7 @@ const PaymentMethodsContent = () => {
 
   const openInfinitePayConfig = () => {
     setTempInfinitePay({
-      clientId: settings?.infinitepay_client_id || "",
-      clientSecret: settings?.infinitepay_client_secret || "",
-      webhookSecret: settings?.infinitepay_webhook_secret || "",
+      handle: settings?.infinitepay_handle || "",
     });
     setInfinitePayDialogOpen(true);
   };
