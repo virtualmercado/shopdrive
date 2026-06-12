@@ -345,7 +345,24 @@ export const PaymentColumn = ({
         )}
 
         {/* Credit Card Form */}
-        {paymentMethod === "cartao_credito" && (
+        {paymentMethod === "cartao_credito" && isInfinitepayCard && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <CreditCard className="h-5 w-5 text-blue-700" />
+              <div>
+                <p className="font-medium text-blue-800">Cartão via InfinitePay</p>
+                <p className="text-sm text-blue-600">Checkout seguro hospedado pela InfinitePay</p>
+              </div>
+            </div>
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {paymentMethod === "cartao_credito" && !isInfinitepayCard && (
           <div className="space-y-4">
             {/* Credit Card Illustration */}
             <div className="flex justify-center mb-4 -mx-8">
