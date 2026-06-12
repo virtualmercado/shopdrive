@@ -1098,7 +1098,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
      (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state)));
 
   // PIX Payment Modal
-  if (showPixPayment && createdOrderId && pixGateway && storeData) {
+  if (showPixPayment && createdOrderId && pixGateway && pixGateway !== "infinitepay" && storeData) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8 max-w-lg">
@@ -1108,7 +1108,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
                 orderId={createdOrderId}
                 amount={total}
                 storeOwnerId={storeData.id}
-                gateway={pixGateway}
+                gateway={pixGateway as "mercadopago" | "pagbank"}
                 primaryColor={primaryColor}
                 onPaymentConfirmed={handlePixPaymentConfirmed}
                 onExpired={handlePixExpired}
