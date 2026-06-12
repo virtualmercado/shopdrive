@@ -825,7 +825,7 @@ const PaymentMethodsContent = () => {
                 variant="outline"
                 size="sm"
                 className="gap-2"
-                onClick={() => window.open('https://developers.infinitepay.io/', '_blank')}
+                onClick={() => window.open('https://www.infinitepay.io/checkout-documentacao', '_blank')}
               >
                 <ExternalLink className="h-4 w-4" />
                 Documentação InfinitePay
