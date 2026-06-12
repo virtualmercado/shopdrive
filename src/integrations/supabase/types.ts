@@ -5090,6 +5090,7 @@ export type Database = {
           credit_card_provider: string | null
           id: string | null
           infinitepay_enabled: boolean | null
+          infinitepay_handle: string | null
           mercadopago_accepts_credit: boolean | null
           mercadopago_accepts_pix: boolean | null
           mercadopago_enabled: boolean | null
@@ -5121,6 +5122,7 @@ export type Database = {
           credit_card_provider?: string | null
           id?: string | null
           infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_enabled?: boolean | null
@@ -5152,6 +5154,7 @@ export type Database = {
           credit_card_provider?: string | null
           id?: string | null
           infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_enabled?: boolean | null
