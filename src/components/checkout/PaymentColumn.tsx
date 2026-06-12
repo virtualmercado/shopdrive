@@ -336,7 +336,9 @@ export const PaymentColumn = ({
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Após finalizar, você receberá o QR Code para pagamento
+                {isInfinitepayPix
+                  ? "Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento."
+                  : "Após finalizar, você receberá o QR Code para pagamento"}
               </p>
             </div>
           </div>
