@@ -1107,18 +1107,18 @@ const PaymentMethodsContent = () => {
                 Configurar InfinitePay
               </DialogTitle>
               <DialogDescription>
-                Insira suas credenciais do InfinitePay para habilitar pagamentos.
+                Conecte sua loja InfinitePay informando sua InfiniteTag (handle público).
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ip-client-id">Client ID *</Label>
+                <Label htmlFor="ip-handle">InfiniteTag / Handle InfinitePay *</Label>
                 <Input
-                  id="ip-client-id"
-                  placeholder="Seu Client ID do InfinitePay"
-                  value={tempInfinitePay.clientId}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientId: e.target.value }))}
+                  id="ip-handle"
+                  placeholder="sua_infinitetag"
+                  value={tempInfinitePay.handle}
+                  onChange={(e) => setTempInfinitePay({ handle: e.target.value })}
                   style={{ borderColor: primaryColor }}
                   onFocus={(e) => {
                     e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
@@ -1127,57 +1127,38 @@ const PaymentMethodsContent = () => {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ip-client-secret">Client Secret *</Label>
-                <Input
-                  id="ip-client-secret"
-                  type="password"
-                  placeholder="Seu Client Secret do InfinitePay"
-                  value={tempInfinitePay.clientSecret}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, clientSecret: e.target.value }))}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="ip-webhook-secret">Webhook Secret (opcional)</Label>
-                <Input
-                  id="ip-webhook-secret"
-                  type="password"
-                  placeholder="Secret para validação de webhooks"
-                  value={tempInfinitePay.webhookSecret}
-                  onChange={(e) => setTempInfinitePay(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                  style={{ borderColor: primaryColor }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow = `0 0 0 1px ${primaryColor}`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
+                <p className="text-xs text-muted-foreground">
+                  Informe sua InfiniteTag da InfinitePay, sem o símbolo $.
+                </p>
               </div>
 
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex gap-2">
                   <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p>Obtenha suas credenciais em:</p>
-                    <a 
-                      href="https://developers.infinitepay.io/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="underline font-medium"
-                    >
-                      developers.infinitepay.io
-                    </a>
+                  <div className="text-sm text-blue-800 space-y-2">
+                    <p>
+                      Para usar a InfinitePay, crie sua conta no app InfinitePay,
+                      acesse a área de Checkout/Loja e copie sua InfiniteTag.
+                      Depois cadastre esse identificador aqui na ShopDrive.
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <a
+                        href="https://www.infinitepay.io/checkout-documentacao"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-medium"
+                      >
+                        Ver documentação oficial da InfinitePay (Checkout)
+                      </a>
+                      <a
+                        href="https://www.infinitepay.io/desenvolvedores"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-medium"
+                      >
+                        Área de desenvolvedores da InfinitePay
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
