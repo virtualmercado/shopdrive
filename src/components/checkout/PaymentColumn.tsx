@@ -94,17 +94,24 @@ export const PaymentColumn = ({
   const [cardFormError, setCardFormError] = useState<string | null>(null);
   const [isTokenizing, setIsTokenizing] = useState(false);
 
+  // InfinitePay availability per method
+  const hasInfinitepayHandle = !!(paymentSettings?.infinitepay_handle && paymentSettings.infinitepay_handle.trim());
+  const isInfinitepayPix = !!(paymentSettings?.pix_enabled && paymentSettings?.pix_provider === "infinitepay" && hasInfinitepayHandle);
+  const isInfinitepayCard = !!(paymentSettings?.credit_card_enabled && paymentSettings?.credit_card_provider === "infinitepay" && hasInfinitepayHandle);
+
   // Check if payment methods are enabled
-  const isPixEnabled = paymentSettings?.pix_enabled || 
+  const isPixEnabled = isInfinitepayPix ||
+    (paymentSettings?.pix_enabled && paymentSettings?.pix_provider && paymentSettings.pix_provider !== "infinitepay") ||
     (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_pix) ||
     (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_pix);
-  
-  const isCreditCardEnabled = paymentSettings?.credit_card_enabled ||
+
+  const isCreditCardEnabled = isInfinitepayCard ||
+    (paymentSettings?.credit_card_enabled && paymentSettings?.credit_card_provider && paymentSettings.credit_card_provider !== "infinitepay") ||
     (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_credit) ||
     (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_credit);
-  
+
   const isBoletoEnabled = paymentSettings?.boleto_enabled;
-  
+
   const pixDiscount = paymentSettings?.pix_discount_percent || 0;
   const maxInstallments = paymentSettings?.credit_card_installments_no_interest || 1;
 
