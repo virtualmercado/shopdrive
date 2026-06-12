@@ -763,9 +763,7 @@ const PaymentMethodsContent = () => {
                         {hasStoneTonCredentials && (
                           <SelectItem value="stone_ton">Stone / Ton</SelectItem>
                         )}
-                        {hasInfinitePayCredentials && (
-                          <SelectItem value="infinitepay">InfinitePay</SelectItem>
-                        )}
+                        {/* InfinitePay não suporta boleto via Checkout público */}
                       </SelectContent>
                     </Select>
                   </div>
