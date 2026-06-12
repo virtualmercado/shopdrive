@@ -2783,6 +2783,7 @@ export type Database = {
           infinitepay_client_id: string | null
           infinitepay_client_secret: string | null
           infinitepay_enabled: boolean | null
+          infinitepay_handle: string | null
           infinitepay_webhook_secret: string | null
           mercadopago_accepts_credit: boolean | null
           mercadopago_accepts_pix: boolean | null
@@ -2826,6 +2827,7 @@ export type Database = {
           infinitepay_client_id?: string | null
           infinitepay_client_secret?: string | null
           infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
           infinitepay_webhook_secret?: string | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
@@ -2869,6 +2871,7 @@ export type Database = {
           infinitepay_client_id?: string | null
           infinitepay_client_secret?: string | null
           infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
           infinitepay_webhook_secret?: string | null
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
