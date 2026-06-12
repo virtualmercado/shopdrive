@@ -173,12 +173,29 @@ const CheckoutContent = () => {
 
         if (paySettings) {
           setPaymentSettings(paySettings);
-          if (paySettings.pix_enabled && paySettings.pix_provider) {
-            setPixGateway(paySettings.pix_provider === "mercado_pago" ? "mercadopago" : "pagbank");
+          // PIX gateway resolution
+          if (paySettings.pix_enabled && paySettings.pix_provider === "infinitepay" && paySettings.infinitepay_handle) {
+            setPixGateway("infinitepay");
+          } else if (paySettings.pix_enabled && paySettings.pix_provider === "mercado_pago") {
+            setPixGateway("mercadopago");
+          } else if (paySettings.pix_enabled && paySettings.pix_provider === "pagbank") {
+            setPixGateway("pagbank");
           } else if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_pix) {
             setPixGateway("mercadopago");
           } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_pix) {
             setPixGateway("pagbank");
+          }
+          // Credit card gateway resolution
+          if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "infinitepay" && paySettings.infinitepay_handle) {
+            setCreditCardGateway("infinitepay");
+          } else if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "mercado_pago") {
+            setCreditCardGateway("mercadopago");
+          } else if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "pagbank") {
+            setCreditCardGateway("pagbank");
+          } else if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_credit) {
+            setCreditCardGateway("mercadopago");
+          } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_credit) {
+            setCreditCardGateway("pagbank");
           }
         }
 
