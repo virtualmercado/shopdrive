@@ -960,8 +960,62 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         throw new Error("Erro ao adicionar itens ao pedido: " + itemsError.message);
       }
 
+      // InfinitePay flow (PIX or Cartão) — redirect to InfinitePay-hosted checkout
+      const isInfinitepayFlow =
+        (formData.payment_method === "pix" && pixGateway === "infinitepay") ||
+        (formData.payment_method === "cartao_credito" && creditCardGateway === "infinitepay" && !cardTokenData);
+
+      if (isInfinitepayFlow) {
+        try {
+          toast.info("Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento.");
+
+          const redirectUrl = `${window.location.origin}/${storeSlug}/pedido-confirmado/${order.id}`;
+
+          const ipResp = await supabase.functions.invoke("create-infinitepay-checkout", {
+            body: {
+              store_owner_id: storeData.id,
+              order_id: order.id,
+              order_number: (order as any).order_number ?? null,
+              items: cart.map((it) => ({
+                name: it.name,
+                quantity: it.quantity,
+                price: it.promotional_price || it.price,
+              })),
+              customer: {
+                name: formData.customer_name,
+                email: customerEmail || undefined,
+                phone_number: formData.customer_phone,
+              },
+              redirect_url: redirectUrl,
+            },
+          });
+
+          if (ipResp.error || !ipResp.data?.checkout_url) {
+            console.error("InfinitePay error:", ipResp.error, ipResp.data);
+            toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
+            setLoading(false);
+            return;
+          }
+
+          if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+            await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
+          }
+          clearCart();
+          sessionStorage.removeItem("order_origin_catalog");
+          if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
+
+          window.location.href = ipResp.data.checkout_url;
+          return;
+        } catch (ipErr: any) {
+          console.error("InfinitePay exception:", ipErr);
+          toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const isPix = formData.payment_method === "pix";
-      const hasPixGateway = pixGateway !== null;
+      const hasPixGateway = pixGateway !== null && pixGateway !== "infinitepay";
 
       if (isPix && hasPixGateway) {
         setCreatedOrderId(order.id);
