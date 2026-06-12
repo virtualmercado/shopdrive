@@ -40,9 +40,7 @@ interface PaymentSettings {
   stone_ton_secret_key?: string | null;
   stone_ton_merchant_id?: string | null;
   infinitepay_enabled?: boolean;
-  infinitepay_client_id?: string | null;
-  infinitepay_client_secret?: string | null;
-  infinitepay_webhook_secret?: string | null;
+  infinitepay_handle?: string | null;
   // Payment method fields
   pix_enabled: boolean;
   pix_provider: 'mercado_pago' | 'pagbank' | 'stone_ton' | 'infinitepay' | null;
