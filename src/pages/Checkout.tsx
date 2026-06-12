@@ -84,7 +84,8 @@ const CheckoutContent = () => {
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
   const [showPixPayment, setShowPixPayment] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | null>(null);
+  const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
+  const [creditCardGateway, setCreditCardGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
   const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
   
   // Customer data
@@ -172,12 +173,29 @@ const CheckoutContent = () => {
 
         if (paySettings) {
           setPaymentSettings(paySettings);
-          if (paySettings.pix_enabled && paySettings.pix_provider) {
-            setPixGateway(paySettings.pix_provider === "mercado_pago" ? "mercadopago" : "pagbank");
+          // PIX gateway resolution
+          if (paySettings.pix_enabled && paySettings.pix_provider === "infinitepay" && paySettings.infinitepay_handle) {
+            setPixGateway("infinitepay");
+          } else if (paySettings.pix_enabled && paySettings.pix_provider === "mercado_pago") {
+            setPixGateway("mercadopago");
+          } else if (paySettings.pix_enabled && paySettings.pix_provider === "pagbank") {
+            setPixGateway("pagbank");
           } else if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_pix) {
             setPixGateway("mercadopago");
           } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_pix) {
             setPixGateway("pagbank");
+          }
+          // Credit card gateway resolution
+          if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "infinitepay" && paySettings.infinitepay_handle) {
+            setCreditCardGateway("infinitepay");
+          } else if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "mercado_pago") {
+            setCreditCardGateway("mercadopago");
+          } else if (paySettings.credit_card_enabled && paySettings.credit_card_provider === "pagbank") {
+            setCreditCardGateway("pagbank");
+          } else if (paySettings.mercadopago_enabled && paySettings.mercadopago_accepts_credit) {
+            setCreditCardGateway("mercadopago");
+          } else if (paySettings.pagbank_enabled && paySettings.pagbank_accepts_credit) {
+            setCreditCardGateway("pagbank");
           }
         }
 
@@ -942,8 +960,62 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         throw new Error("Erro ao adicionar itens ao pedido: " + itemsError.message);
       }
 
+      // InfinitePay flow (PIX or Cartão) — redirect to InfinitePay-hosted checkout
+      const isInfinitepayFlow =
+        (formData.payment_method === "pix" && pixGateway === "infinitepay") ||
+        (formData.payment_method === "cartao_credito" && creditCardGateway === "infinitepay" && !cardTokenData);
+
+      if (isInfinitepayFlow) {
+        try {
+          toast.info("Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento.");
+
+          const redirectUrl = `${window.location.origin}/${storeSlug}/pedido-confirmado/${order.id}`;
+
+          const ipResp = await supabase.functions.invoke("create-infinitepay-checkout", {
+            body: {
+              store_owner_id: storeData.id,
+              order_id: order.id,
+              order_number: (order as any).order_number ?? null,
+              items: cart.map((it) => ({
+                name: it.name,
+                quantity: it.quantity,
+                price: it.promotional_price || it.price,
+              })),
+              customer: {
+                name: formData.customer_name,
+                email: customerEmail || undefined,
+                phone_number: formData.customer_phone,
+              },
+              redirect_url: redirectUrl,
+            },
+          });
+
+          if (ipResp.error || !ipResp.data?.checkout_url) {
+            console.error("InfinitePay error:", ipResp.error, ipResp.data);
+            toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
+            setLoading(false);
+            return;
+          }
+
+          if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
+            await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
+          }
+          clearCart();
+          sessionStorage.removeItem("order_origin_catalog");
+          if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
+
+          window.location.href = ipResp.data.checkout_url;
+          return;
+        } catch (ipErr: any) {
+          console.error("InfinitePay exception:", ipErr);
+          toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const isPix = formData.payment_method === "pix";
-      const hasPixGateway = pixGateway !== null;
+      const hasPixGateway = pixGateway !== null && pixGateway !== "infinitepay";
 
       if (isPix && hasPixGateway) {
         setCreatedOrderId(order.id);
@@ -1080,7 +1152,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
      (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state)));
 
   // PIX Payment Modal
-  if (showPixPayment && createdOrderId && pixGateway && storeData) {
+  if (showPixPayment && createdOrderId && pixGateway && pixGateway !== "infinitepay" && storeData) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8 max-w-lg">
@@ -1090,7 +1162,7 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
                 orderId={createdOrderId}
                 amount={total}
                 storeOwnerId={storeData.id}
-                gateway={pixGateway}
+                gateway={pixGateway as "mercadopago" | "pagbank"}
                 primaryColor={primaryColor}
                 onPaymentConfirmed={handlePixPaymentConfirmed}
                 onExpired={handlePixExpired}

@@ -32,13 +32,13 @@ interface PaymentColumnProps {
   onPaymentMethodChange: (method: PaymentMethod) => void;
   paymentSettings: {
     pix_enabled?: boolean;
-    pix_provider?: string;
+    pix_provider?: string | null;
     pix_discount_percent?: number;
     credit_card_enabled?: boolean;
-    credit_card_provider?: string;
+    credit_card_provider?: string | null;
     credit_card_installments_no_interest?: number;
     boleto_enabled?: boolean;
-    boleto_provider?: string;
+    boleto_provider?: string | null;
     whatsapp_enabled?: boolean;
     whatsapp_number?: string;
     mercadopago_enabled?: boolean;
@@ -48,6 +48,8 @@ interface PaymentColumnProps {
     pagbank_enabled?: boolean;
     pagbank_accepts_pix?: boolean;
     pagbank_accepts_credit?: boolean;
+    infinitepay_enabled?: boolean;
+    infinitepay_handle?: string | null;
   } | null;
   total: number;
   subtotal: number;
@@ -92,17 +94,24 @@ export const PaymentColumn = ({
   const [cardFormError, setCardFormError] = useState<string | null>(null);
   const [isTokenizing, setIsTokenizing] = useState(false);
 
+  // InfinitePay availability per method
+  const hasInfinitepayHandle = !!(paymentSettings?.infinitepay_handle && paymentSettings.infinitepay_handle.trim());
+  const isInfinitepayPix = !!(paymentSettings?.pix_enabled && paymentSettings?.pix_provider === "infinitepay" && hasInfinitepayHandle);
+  const isInfinitepayCard = !!(paymentSettings?.credit_card_enabled && paymentSettings?.credit_card_provider === "infinitepay" && hasInfinitepayHandle);
+
   // Check if payment methods are enabled
-  const isPixEnabled = paymentSettings?.pix_enabled || 
+  const isPixEnabled = isInfinitepayPix ||
+    (paymentSettings?.pix_enabled && paymentSettings?.pix_provider && paymentSettings.pix_provider !== "infinitepay") ||
     (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_pix) ||
     (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_pix);
-  
-  const isCreditCardEnabled = paymentSettings?.credit_card_enabled ||
+
+  const isCreditCardEnabled = isInfinitepayCard ||
+    (paymentSettings?.credit_card_enabled && paymentSettings?.credit_card_provider && paymentSettings.credit_card_provider !== "infinitepay") ||
     (paymentSettings?.mercadopago_enabled && paymentSettings?.mercadopago_accepts_credit) ||
     (paymentSettings?.pagbank_enabled && paymentSettings?.pagbank_accepts_credit);
-  
+
   const isBoletoEnabled = paymentSettings?.boleto_enabled;
-  
+
   const pixDiscount = paymentSettings?.pix_discount_percent || 0;
   const maxInstallments = paymentSettings?.credit_card_installments_no_interest || 1;
 
@@ -197,10 +206,20 @@ export const PaymentColumn = ({
   };
 
   const handleFinalize = async () => {
+    // InfinitePay (PIX or Cartão): skip local tokenization — checkout is hosted by InfinitePay
+    if (
+      (paymentMethod === "pix" && isInfinitepayPix) ||
+      (paymentMethod === "cartao_credito" && isInfinitepayCard)
+    ) {
+      onFinalize();
+      return;
+    }
+
     if (paymentMethod === "cartao_credito") {
       if (!validateCardForm()) {
         return;
       }
+      
       
       // Check if MercadoPago SDK is available and public key is configured
       const publicKey = paymentSettings?.mercadopago_public_key;
@@ -317,14 +336,33 @@ export const PaymentColumn = ({
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Após finalizar, você receberá o QR Code para pagamento
+                {isInfinitepayPix
+                  ? "Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento."
+                  : "Após finalizar, você receberá o QR Code para pagamento"}
               </p>
             </div>
           </div>
         )}
 
         {/* Credit Card Form */}
-        {paymentMethod === "cartao_credito" && (
+        {paymentMethod === "cartao_credito" && isInfinitepayCard && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <CreditCard className="h-5 w-5 text-blue-700" />
+              <div>
+                <p className="font-medium text-blue-800">Cartão via InfinitePay</p>
+                <p className="text-sm text-blue-600">Checkout seguro hospedado pela InfinitePay</p>
+              </div>
+            </div>
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {paymentMethod === "cartao_credito" && !isInfinitepayCard && (
           <div className="space-y-4">
             {/* Credit Card Illustration */}
             <div className="flex justify-center mb-4 -mx-8">
