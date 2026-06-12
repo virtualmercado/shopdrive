@@ -1173,7 +1173,7 @@ const PaymentMethodsContent = () => {
                 disabled={saving}
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
               >
-                {saving ? "Salvando..." : "Salvar Credenciais"}
+                {saving ? "Salvando..." : "Salvar InfiniteTag"}
               </Button>
             </DialogFooter>
           </DialogContent>
