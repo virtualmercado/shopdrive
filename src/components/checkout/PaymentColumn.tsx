@@ -206,10 +206,20 @@ export const PaymentColumn = ({
   };
 
   const handleFinalize = async () => {
+    // InfinitePay (PIX or Cartão): skip local tokenization — checkout is hosted by InfinitePay
+    if (
+      (paymentMethod === "pix" && isInfinitepayPix) ||
+      (paymentMethod === "cartao_credito" && isInfinitepayCard)
+    ) {
+      onFinalize();
+      return;
+    }
+
     if (paymentMethod === "cartao_credito") {
       if (!validateCardForm()) {
         return;
       }
+      
       
       // Check if MercadoPago SDK is available and public key is configured
       const publicKey = paymentSettings?.mercadopago_public_key;
