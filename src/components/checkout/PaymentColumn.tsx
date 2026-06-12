@@ -32,13 +32,13 @@ interface PaymentColumnProps {
   onPaymentMethodChange: (method: PaymentMethod) => void;
   paymentSettings: {
     pix_enabled?: boolean;
-    pix_provider?: string;
+    pix_provider?: string | null;
     pix_discount_percent?: number;
     credit_card_enabled?: boolean;
-    credit_card_provider?: string;
+    credit_card_provider?: string | null;
     credit_card_installments_no_interest?: number;
     boleto_enabled?: boolean;
-    boleto_provider?: string;
+    boleto_provider?: string | null;
     whatsapp_enabled?: boolean;
     whatsapp_number?: string;
     mercadopago_enabled?: boolean;
@@ -48,6 +48,8 @@ interface PaymentColumnProps {
     pagbank_enabled?: boolean;
     pagbank_accepts_pix?: boolean;
     pagbank_accepts_credit?: boolean;
+    infinitepay_enabled?: boolean;
+    infinitepay_handle?: string | null;
   } | null;
   total: number;
   subtotal: number;
