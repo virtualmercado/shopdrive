@@ -84,7 +84,8 @@ const CheckoutContent = () => {
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
   const [showPixPayment, setShowPixPayment] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | null>(null);
+  const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
+  const [creditCardGateway, setCreditCardGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
   const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
   
   // Customer data
