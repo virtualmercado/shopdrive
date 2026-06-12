@@ -106,9 +106,7 @@ const PaymentMethodsContent = () => {
   });
 
   const [tempInfinitePay, setTempInfinitePay] = useState({
-    clientId: "",
-    clientSecret: "",
-    webhookSecret: "",
+    handle: "",
   });
 
   // Local state for payment methods configuration
