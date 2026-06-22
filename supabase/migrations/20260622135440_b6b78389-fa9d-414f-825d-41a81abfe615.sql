@@ -1,0 +1,1 @@
+ALTER VIEW public.public_store_products SET (security_invoker = off);
