@@ -77,7 +77,7 @@ export const BulkPriceAdjustModal = ({
   const validPct = !Number.isNaN(pct) && pct > 0;
   const factor = op === "increase" ? 1 + pct / 100 : 1 - pct / 100;
 
-  const previews = targets.slice(0, 5).map((p) => ({
+  const previews = targets.map((p) => ({
     name: p.name,
     current: Number(p.price || 0),
     next: round2(Number(p.price || 0) * factor),
@@ -100,7 +100,6 @@ export const BulkPriceAdjustModal = ({
         newPrice: round2(Number(p.price || 0) * factor),
       }));
 
-      // Batch update in chunks to avoid huge requests
       const chunkSize = 50;
       for (let i = 0; i < updates.length; i += chunkSize) {
         const chunk = updates.slice(i, i + chunkSize);
@@ -132,95 +131,133 @@ export const BulkPriceAdjustModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent
+        className="p-0 gap-0 sm:max-w-none w-[95vw] md:w-[90vw] lg:w-[min(1100px,95vw)] lg:min-w-[900px] max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle>Reajustar preços</DialogTitle>
           <DialogDescription>
             Aplique acréscimo ou desconto em massa. A alteração será refletida na loja pública.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Escopo</Label>
-            <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="grid grid-cols-2 gap-2">
-              <label className="flex items-center gap-2 border rounded p-2 cursor-pointer">
-                <RadioGroupItem value="all" /> Todos ({allProducts.length})
-              </label>
-              <label className="flex items-center gap-2 border rounded p-2 cursor-pointer">
-                <RadioGroupItem value="filtered" /> Filtrados ({filteredProducts.length})
-              </label>
-              <label className="flex items-center gap-2 border rounded p-2 cursor-pointer">
-                <RadioGroupItem value="category" /> Categoria
-              </label>
-              <label className="flex items-center gap-2 border rounded p-2 cursor-pointer">
-                <RadioGroupItem value="selected" /> Selecionados ({selectedIds.length})
-              </label>
-            </RadioGroup>
-            {scope === "category" && (
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Escolha uma categoria" /></SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-[35%_65%]">
+            {/* Configurações */}
+            <div className="p-6 space-y-5 md:border-r border-b md:border-b-0">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Escopo</Label>
+                <RadioGroup
+                  value={scope}
+                  onValueChange={(v) => setScope(v as Scope)}
+                  className="flex flex-col gap-2"
+                >
+                  <label className="flex items-center gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-accent/40 text-sm">
+                    <RadioGroupItem value="all" /> Todos ({allProducts.length})
+                  </label>
+                  <label className="flex items-center gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-accent/40 text-sm">
+                    <RadioGroupItem value="category" /> Categoria
+                  </label>
+                  <label className="flex items-center gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-accent/40 text-sm">
+                    <RadioGroupItem value="filtered" /> Filtrados ({filteredProducts.length})
+                  </label>
+                  <label className="flex items-center gap-2 border rounded-md p-2.5 cursor-pointer hover:bg-accent/40 text-sm">
+                    <RadioGroupItem value="selected" /> Selecionados ({selectedIds.length})
+                  </label>
+                </RadioGroup>
+                {scope === "category" && (
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="mt-2"><SelectValue placeholder="Escolha uma categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={op} onValueChange={(v) => setOp(v as Op)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="increase">Acréscimo (+)</SelectItem>
-                  <SelectItem value="decrease">Desconto (−)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Percentual (%)</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={percent}
-                onChange={(e) => setPercent(e.target.value)}
-                placeholder="Ex.: 10"
-              />
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Tipo de reajuste</Label>
+                <Select value={op} onValueChange={(v) => setOp(v as Op)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="increase">Acréscimo (+)</SelectItem>
+                    <SelectItem value="decrease">Desconto (−)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="rounded border p-3 bg-muted/30 text-sm">
-            <div className="font-medium mb-1">
-              Prévia — {targets.length} produto(s) afetados
-              {validPct && ` · ${op === "increase" ? "+" : "−"}${pct}%`}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Percentual (%)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={percent}
+                  onChange={(e) => setPercent(e.target.value)}
+                  placeholder="Ex.: 10"
+                />
+                <p className="text-xs text-muted-foreground">Exemplos: 5, 10, 15</p>
+              </div>
             </div>
-            {previews.length === 0 ? (
-              <p className="text-muted-foreground">Nenhum produto no escopo selecionado.</p>
-            ) : (
-              <ul className="space-y-1">
-                {previews.map((p, i) => (
-                  <li key={i} className="flex justify-between gap-2">
-                    <span className="truncate">{p.name}</span>
-                    <span className="whitespace-nowrap text-muted-foreground">
-                      {formatBRL(p.current)} → <strong className="text-foreground">{formatBRL(p.next)}</strong>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {wouldProduceInvalid && (
-              <p className="text-destructive mt-2">
-                Operação bloqueada: pelo menos um produto ficaria com preço ≤ 0.
-              </p>
-            )}
+
+            {/* Prévia */}
+            <div className="p-6 space-y-3 min-w-0">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span><strong>{targets.length}</strong> produto(s) afetados</span>
+                  <span>
+                    Operação:{" "}
+                    <strong>{op === "increase" ? "Acréscimo (+)" : "Desconto (−)"}</strong>
+                  </span>
+                  <span>
+                    Percentual: <strong>{validPct ? `${pct}%` : "—"}</strong>
+                  </span>
+                </div>
+                {wouldProduceInvalid && (
+                  <p className="text-destructive mt-2 text-xs">
+                    Operação bloqueada: pelo menos um produto ficaria com preço ≤ 0.
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-md border">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+                  <span>Produto</span>
+                  <span className="text-right w-24">Preço atual</span>
+                  <span className="text-right w-24">Novo preço</span>
+                </div>
+                <div className="max-h-[350px] overflow-y-auto">
+                  {previews.length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground text-center">
+                      Nenhum produto no escopo selecionado.
+                    </p>
+                  ) : (
+                    <ul className="divide-y">
+                      {previews.map((p, i) => (
+                        <li
+                          key={i}
+                          className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 text-sm items-center"
+                        >
+                          <span className="truncate" title={p.name}>{p.name}</span>
+                          <span className="text-right w-24 text-muted-foreground whitespace-nowrap">
+                            {formatBRL(p.current)}
+                          </span>
+                          <span className="text-right w-24 font-medium whitespace-nowrap">
+                            {formatBRL(p.next)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
           <Button onClick={handleApply} disabled={!canApply}>
             {submitting ? "Aplicando..." : "Confirmar reajuste"}
