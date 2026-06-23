@@ -75,6 +75,10 @@ const Products = () => {
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [storeName, setStoreName] = useState<string>("Loja");
   const gridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -83,7 +87,19 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchStoreName();
   }, []);
+
+  const fetchStoreName = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("store_name, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data) setStoreName((data as any).store_name || (data as any).full_name || "Loja");
+  };
 
   const fetchProducts = async () => {
     try {
