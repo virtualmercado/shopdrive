@@ -15,10 +15,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight, LayoutGrid, List, Printer, FileDown, Percent } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { CategoryManagementModal } from "@/components/products/CategoryManagementModal";
+import { BulkPriceAdjustModal } from "@/components/products/BulkPriceAdjustModal";
+import { exportPriceListPDF, printPriceList } from "@/lib/productsExport";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImageAdjustments } from "@/components/ImageEditor";
