@@ -15,10 +15,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
-import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, Tag, FolderTree, ArrowDownAZ, ChevronLeft, ChevronRight, LayoutGrid, List, Printer, FileDown, Percent } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BrandManagementModal } from "@/components/products/BrandManagementModal";
 import { CategoryManagementModal } from "@/components/products/CategoryManagementModal";
+import { BulkPriceAdjustModal } from "@/components/products/BulkPriceAdjustModal";
+import { exportPriceListPDF, printPriceList } from "@/lib/productsExport";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImageAdjustments } from "@/components/ImageEditor";
@@ -71,6 +75,10 @@ const Products = () => {
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name-asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [storeName, setStoreName] = useState<string>("Loja");
   const gridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -79,7 +87,19 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchStoreName();
   }, []);
+
+  const fetchStoreName = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("store_name, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data) setStoreName((data as any).store_name || (data as any).full_name || "Loja");
+  };
 
   const fetchProducts = async () => {
     try {
@@ -389,13 +409,82 @@ const Products = () => {
           )}
         </div>
 
+        {/* View toggle + bulk actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg border bg-background p-0.5">
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" /> Cards
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" /> Lista
+              </Button>
+            </div>
+            {selectedIds.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const list = (selectedIds.length > 0
+                  ? filteredProducts.filter((p) => selectedIds.includes(p.id))
+                  : filteredProducts
+                ).map((p) => ({ name: p.name, price: p.price, promotional_price: p.promotional_price }));
+                printPriceList({ storeName, products: list });
+              }}
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const list = (selectedIds.length > 0
+                  ? filteredProducts.filter((p) => selectedIds.includes(p.id))
+                  : filteredProducts
+                ).map((p) => ({ name: p.name, price: p.price, promotional_price: p.promotional_price }));
+                exportPriceListPDF({ storeName, products: list });
+              }}
+            >
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setBulkModalOpen(true)}
+            >
+              <Percent className="h-4 w-4" /> Reajustar preços
+            </Button>
+          </div>
+        </div>
+
         {/* Products Grid */}
+
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Carregando produtos...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="space-y-8">
+            {viewMode === "cards" ? (
             <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {visibleProducts.map((product) => (
               <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col ${!product.is_active ? 'opacity-60' : ''}`}>
@@ -473,6 +562,94 @@ const Products = () => {
                 </Card>
               ))}
             </div>
+            ) : (
+            <div ref={gridRef} className="rounded-lg border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={visibleProducts.length > 0 && visibleProducts.every(p => selectedIds.includes(p.id))}
+                        onCheckedChange={(v) => {
+                          const ids = visibleProducts.map(p => p.id);
+                          setSelectedIds(prev => v ? Array.from(new Set([...prev, ...ids])) : prev.filter(id => !ids.includes(id)));
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="w-14">Imagem</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="hidden md:table-cell">SKU</TableHead>
+                    <TableHead className="hidden lg:table-cell">Categoria</TableHead>
+                    <TableHead className="hidden lg:table-cell">Unid.</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Estoque</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleProducts.map((product) => {
+                    const cat = categories.find(c => c.id === product.category_id);
+                    const checked = selectedIds.includes(product.id);
+                    return (
+                      <TableRow key={product.id} className={!product.is_active ? "opacity-60" : ""}>
+                        <TableCell>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => setSelectedIds(prev => v ? [...prev, product.id] : prev.filter(id => id !== product.id))}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
+                            {product.image_url ? (
+                              <img src={product.image_url} alt={product.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[280px]">
+                          <div className="truncate">{product.name}</div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">—</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">{cat?.name || "—"}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">—</TableCell>
+                        <TableCell className="hidden md:table-cell text-right">{product.stock}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {product.promotional_price ? (
+                            <div className="flex flex-col items-end leading-tight">
+                              <span className="text-xs line-through text-muted-foreground">R$ {product.price.toFixed(2)}</span>
+                              <span className="font-semibold">R$ {product.promotional_price.toFixed(2)}</span>
+                            </div>
+                          ) : (
+                            <span className="font-semibold">R$ {product.price.toFixed(2)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Switch
+                            checked={product.is_active}
+                            onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
+                            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(product)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => openDeleteDialog(product.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            )}
+
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -581,6 +758,19 @@ const Products = () => {
           currentCount={productCount}
           maxAllowed={limits.maxProducts ?? 0}
           planName={PLAN_DISPLAY_NAMES[plan]}
+        />
+
+        <BulkPriceAdjustModal
+          open={bulkModalOpen}
+          onOpenChange={setBulkModalOpen}
+          allProducts={products}
+          filteredProducts={filteredProducts}
+          selectedIds={selectedIds}
+          categories={categories}
+          onApplied={() => {
+            fetchProducts();
+            setSelectedIds([]);
+          }}
         />
       </div>
     </DashboardLayout>
