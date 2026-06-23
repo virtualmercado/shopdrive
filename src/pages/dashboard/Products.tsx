@@ -759,6 +759,19 @@ const Products = () => {
           maxAllowed={limits.maxProducts ?? 0}
           planName={PLAN_DISPLAY_NAMES[plan]}
         />
+
+        <BulkPriceAdjustModal
+          open={bulkModalOpen}
+          onOpenChange={setBulkModalOpen}
+          allProducts={products}
+          filteredProducts={filteredProducts}
+          selectedIds={selectedIds}
+          categories={categories}
+          onApplied={() => {
+            fetchProducts();
+            setSelectedIds([]);
+          }}
+        />
       </div>
     </DashboardLayout>
   );
