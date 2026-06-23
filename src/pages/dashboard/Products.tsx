@@ -484,6 +484,7 @@ const Products = () => {
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="space-y-8">
+            {viewMode === "cards" ? (
             <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {visibleProducts.map((product) => (
               <Card key={product.id} className={`overflow-hidden relative transition-opacity flex flex-col ${!product.is_active ? 'opacity-60' : ''}`}>
@@ -561,6 +562,94 @@ const Products = () => {
                 </Card>
               ))}
             </div>
+            ) : (
+            <div ref={gridRef} className="rounded-lg border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={visibleProducts.length > 0 && visibleProducts.every(p => selectedIds.includes(p.id))}
+                        onCheckedChange={(v) => {
+                          const ids = visibleProducts.map(p => p.id);
+                          setSelectedIds(prev => v ? Array.from(new Set([...prev, ...ids])) : prev.filter(id => !ids.includes(id)));
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="w-14">Imagem</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="hidden md:table-cell">SKU</TableHead>
+                    <TableHead className="hidden lg:table-cell">Categoria</TableHead>
+                    <TableHead className="hidden lg:table-cell">Unid.</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Estoque</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleProducts.map((product) => {
+                    const cat = categories.find(c => c.id === product.category_id);
+                    const checked = selectedIds.includes(product.id);
+                    return (
+                      <TableRow key={product.id} className={!product.is_active ? "opacity-60" : ""}>
+                        <TableCell>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => setSelectedIds(prev => v ? [...prev, product.id] : prev.filter(id => id !== product.id))}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
+                            {product.image_url ? (
+                              <img src={product.image_url} alt={product.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[280px]">
+                          <div className="truncate">{product.name}</div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">—</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">{cat?.name || "—"}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">—</TableCell>
+                        <TableCell className="hidden md:table-cell text-right">{product.stock}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {product.promotional_price ? (
+                            <div className="flex flex-col items-end leading-tight">
+                              <span className="text-xs line-through text-muted-foreground">R$ {product.price.toFixed(2)}</span>
+                              <span className="font-semibold">R$ {product.promotional_price.toFixed(2)}</span>
+                            </div>
+                          ) : (
+                            <span className="font-semibold">R$ {product.price.toFixed(2)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Switch
+                            checked={product.is_active}
+                            onCheckedChange={() => handleToggleActive(product.id, product.is_active)}
+                            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-300"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(product)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => openDeleteDialog(product.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            )}
+
 
             {/* Pagination */}
             {totalPages > 1 && (
