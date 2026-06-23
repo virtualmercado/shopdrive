@@ -409,7 +409,75 @@ const Products = () => {
           )}
         </div>
 
+        {/* View toggle + bulk actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-lg border bg-background p-0.5">
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" /> Cards
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" /> Lista
+              </Button>
+            </div>
+            {selectedIds.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const list = (selectedIds.length > 0
+                  ? filteredProducts.filter((p) => selectedIds.includes(p.id))
+                  : filteredProducts
+                ).map((p) => ({ name: p.name, price: p.price, promotional_price: p.promotional_price }));
+                printPriceList({ storeName, products: list });
+              }}
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const list = (selectedIds.length > 0
+                  ? filteredProducts.filter((p) => selectedIds.includes(p.id))
+                  : filteredProducts
+                ).map((p) => ({ name: p.name, price: p.price, promotional_price: p.promotional_price }));
+                exportPriceListPDF({ storeName, products: list });
+              }}
+            >
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setBulkModalOpen(true)}
+            >
+              <Percent className="h-4 w-4" /> Reajustar preços
+            </Button>
+          </div>
+        </div>
+
         {/* Products Grid */}
+
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Carregando produtos...</p>
