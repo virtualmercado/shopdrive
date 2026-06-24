@@ -117,8 +117,8 @@ Deno.serve(async (req) => {
     }
 
     // Update tenant_email_settings with test results
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date().toISOString();
+
 
     await supabase
       .from("tenant_email_settings")
