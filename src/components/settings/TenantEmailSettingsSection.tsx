@@ -45,9 +45,10 @@ export const TenantEmailSettingsSection = () => {
       smtp_host: settings.smtp_host || "",
       smtp_port: settings.smtp_port || 587,
       smtp_user: settings.smtp_user || "",
-      smtp_password: settings.smtp_password ? PASSWORD_MASK : "",
+      smtp_password: settings.smtp_password_set ? PASSWORD_MASK : "",
       smtp_security: settings.smtp_security || "tls",
     });
+
     setInitialized(true);
   }
 
