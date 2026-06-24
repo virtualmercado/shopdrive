@@ -8,7 +8,7 @@ export interface OrderItem {
   product_price: number;
   quantity: number;
   subtotal: number;
-  variations?: Record<string, string> | null;
+  variations?: any;
 }
 
 export interface Order {
