@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, Eraser } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { buildItemizedWhatsAppMessage } from "@/lib/whatsappOrderMessage";
 
 interface WhatsAppOrderModalProps {
   open: boolean;
@@ -24,22 +26,17 @@ interface WhatsAppOrderModalProps {
     customer_name: string;
     customer_phone: string | null;
     total_amount: number;
+    subtotal?: number | null;
+    delivery_fee?: number | null;
+    delivery_method?: string | null;
+    payment_method?: string | null;
+    notes?: string | null;
+    created_at?: string | null;
   } | null;
   storeName?: string;
 }
 
-const formatCurrency = (value: number) =>
-  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const normalizePhone = (raw: string): string =>
-  raw.replace(/[^0-9+]/g, "");
-
-const buildDefaultMessage = (
-  orderNumber: string,
-  total: number,
-  storeName: string
-) =>
-  `Olá! Segue o resumo do seu pedido ${orderNumber} no valor de ${formatCurrency(total)}.\n\nObrigado pela compra! — ${storeName}`;
+const normalizePhone = (raw: string): string => raw.replace(/[^0-9+]/g, "");
 
 export function WhatsAppOrderModal({
   open,
@@ -50,18 +47,47 @@ export function WhatsAppOrderModal({
   const isMobile = useIsMobile();
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
+  const [loadingItems, setLoadingItems] = useState(false);
 
   useEffect(() => {
-    if (open && order) {
+    const load = async () => {
+      if (!open || !order) return;
       setPhone(order.customer_phone ?? "");
-      setMessage(
-        buildDefaultMessage(
-          order.order_number ?? `#${order.id.slice(0, 8)}`,
-          order.total_amount,
+      setLoadingItems(true);
+      try {
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("product_name, quantity, product_price, subtotal, variations")
+          .eq("order_id", order.id);
+        const itemsForWa = (items || []).map((i: any) => ({
+          product_name: i.product_name,
+          quantity: i.quantity,
+          product_price: Number(i.product_price),
+          subtotal: Number(i.subtotal),
+          variations: i.variations && typeof i.variations === "object" ? i.variations : null,
+        }));
+        const msg = buildItemizedWhatsAppMessage(
+          {
+            order_number: order.order_number,
+            customer_name: order.customer_name,
+            customer_phone: order.customer_phone,
+            created_at: order.created_at || new Date(),
+            subtotal: order.subtotal ?? null,
+            delivery_fee: order.delivery_fee ?? null,
+            total_amount: order.total_amount,
+            delivery_method: order.delivery_method ?? null,
+            payment_method: order.payment_method ?? null,
+            notes: order.notes ?? null,
+          },
+          itemsForWa,
           storeName
-        )
-      );
-    }
+        );
+        setMessage(msg);
+      } finally {
+        setLoadingItems(false);
+      }
+    };
+    load();
   }, [open, order, storeName]);
 
   const handleOpen = () => {
@@ -74,15 +100,11 @@ export function WhatsAppOrderModal({
       });
       return;
     }
-
     const encoded = encodeURIComponent(message);
-    // Remove leading + for wa.me
     const phoneSanitized = normalized.replace(/^\+/, "");
-
     const url = isMobile
       ? `https://wa.me/${phoneSanitized}?text=${encoded}`
       : `https://web.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
-
     window.open(url, "_blank", "noopener,noreferrer");
     onOpenChange(false);
   };
@@ -109,7 +131,6 @@ export function WhatsAppOrderModal({
         </DialogHeader>
 
         <div className="space-y-4 mb-6">
-          {/* Phone */}
           <div className="space-y-2">
             <Label htmlFor="wa-phone">WhatsApp</Label>
             <Input
@@ -121,20 +142,20 @@ export function WhatsAppOrderModal({
             />
           </div>
 
-          {/* Message */}
           <div className="space-y-2">
             <Label htmlFor="wa-message">Mensagem</Label>
             <Textarea
               id="wa-message"
-              rows={5}
-              value={message}
+              rows={10}
+              value={loadingItems ? "Carregando itens do pedido..." : message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full box-border"
+              className="w-full box-border font-mono text-xs"
+              disabled={loadingItems}
             />
           </div>
 
           <p className="text-xs text-muted-foreground mt-4">
-            Dica: no WhatsApp, você pode apagar a mensagem manualmente após enviar, se desejar.
+            Dica: no WhatsApp, você pode editar a mensagem antes de enviar.
           </p>
         </div>
 
@@ -148,6 +169,7 @@ export function WhatsAppOrderModal({
           </Button>
           <Button
             onClick={handleOpen}
+            disabled={loadingItems}
             className="gap-2 bg-green-600 text-white hover:bg-green-700"
           >
             <Send className="h-4 w-4" />
