@@ -24,13 +24,15 @@ export interface TenantEmailSettings {
   smtp_host: string | null;
   smtp_port: number | null;
   smtp_user: string | null;
-  smtp_password: string | null;
+  smtp_password?: string | null; // never read from API; only present when user is typing a new value
+  smtp_password_set: boolean;
   smtp_security: string | null;
   is_smtp_validated: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_error: string | null;
 }
+
 
 export interface TenantDnsRecord {
   id: string;
