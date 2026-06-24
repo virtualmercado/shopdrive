@@ -6,6 +6,7 @@ interface OrderItem {
   quantity: number;
   product_price: number;
   subtotal: number;
+  variations?: Record<string, string> | null;
 }
 
 interface ThermalReceipt80mmProps {
@@ -275,6 +276,13 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
             <div className="item-name">
               {String(index + 1).padStart(2, "0")} {item.product_name}
             </div>
+            {item.variations && typeof item.variations === "object" && Object.keys(item.variations).length > 0 && (
+              <div style={{ fontSize: 10, paddingLeft: 6 }}>
+                {Object.entries(item.variations).map(([k, v]) => (
+                  <div key={k}>{k}: {String(v)}</div>
+                ))}
+              </div>
+            )}
             <div className="item-values">
               <span>{item.quantity} x {formatCurrency(item.product_price)}</span>
               <span>{formatCurrency(item.subtotal)}</span>

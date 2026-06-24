@@ -7,6 +7,7 @@ interface OrderItem {
   quantity: number;
   product_price: number;
   subtotal: number;
+  variations?: Record<string, string> | null;
 }
 
 interface CustomerData {
@@ -248,34 +249,51 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   let productsTotal = 0;
 
   (order.order_items || []).forEach((item, index) => {
+    const variations =
+      item.variations && typeof item.variations === "object"
+        ? Object.entries(item.variations as Record<string, string>)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" • ")
+        : "";
+    const descBase = item.product_name.length > 40
+      ? item.product_name.substring(0, 40) + "..."
+      : item.product_name;
+    const descLines: string[] = [descBase];
+    if (variations) descLines.push(variations);
+    const rowHeight = descLines.length > 1 ? 11 : 7;
+
     const rowY = yPos;
-    
-    // Alternate row background
+
     if (index % 2 === 0) {
       pdf.setFillColor(248, 248, 248);
-      pdf.rect(margin, rowY - 4, contentWidth, 7, "F");
+      pdf.rect(margin, rowY - 4, contentWidth, rowHeight, "F");
     }
 
     colX = margin + 2;
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFont("helvetica", "normal");
     pdf.text(String(index + 1).padStart(2, "0"), colX, rowY);
     colX += colWidths.item;
-    
-    // Truncate description if too long
-    const descText = item.product_name.length > 40 
-      ? item.product_name.substring(0, 40) + "..." 
-      : item.product_name;
-    pdf.text(descText, colX, rowY);
+
+    pdf.text(descBase, colX, rowY);
+    if (variations) {
+      pdf.setFontSize(7);
+      pdf.setTextColor(110, 110, 110);
+      pdf.text(variations, colX, rowY + 4);
+      pdf.setFontSize(8);
+      pdf.setTextColor(40, 40, 40);
+    }
     colX += colWidths.desc;
-    
+
     pdf.text(String(item.quantity), colX + 8, rowY);
     colX += colWidths.qty;
-    
+
     pdf.text(`R$ ${item.product_price.toFixed(2)}`, colX, rowY);
     colX += colWidths.unit;
-    
+
     pdf.text(`R$ ${item.subtotal.toFixed(2)}`, colX, rowY);
 
-    yPos += 7;
+    yPos += rowHeight;
     totalItems++;
     totalUnits += item.quantity;
     productsTotal += item.subtotal;
