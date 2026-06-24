@@ -7,7 +7,7 @@ interface OrderItem {
   quantity: number;
   product_price: number;
   subtotal: number;
-  variations?: Record<string, string> | null;
+  variations?: any;
 }
 
 interface CustomerData {
