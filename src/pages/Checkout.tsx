@@ -813,19 +813,26 @@ const CheckoutContent = () => {
             description: "Novo pedido registrado na loja",
           });
 
-          // Insert order items
-          const orderItems = cart.map((item) => ({
-            order_id: order.id,
+          // Insert order items via secure RPC (avoids RLS window + propagates variations)
+          const ccOrderItemsPayload = cart.map((item) => ({
             product_id: item.id,
             product_name: item.name,
             product_price: item.promotional_price || item.price,
             quantity: item.quantity,
             subtotal: (item.promotional_price || item.price) * item.quantity,
+            variations: item.variations || null,
           }));
-
-          const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+          const { error: itemsError } = await supabase.rpc("insert_order_items_secure" as any, {
+            p_order_id: order.id,
+            p_items: ccOrderItemsPayload as any,
+          });
           if (itemsError) {
-            console.error("Order items error:", itemsError);
+            console.error("[Checkout-CC] order_items insert error:", itemsError);
+            // Revert orphan order
+            await supabase.from("orders").delete().eq("id", order.id);
+            throw new Error(
+              "Pagamento aprovado, mas não foi possível registrar os itens do pedido. Entre em contato com a loja."
+            );
           }
 
           // Record coupon usage
@@ -862,48 +869,35 @@ const CheckoutContent = () => {
 
       // WhatsApp: abrir o WhatsApp Web imediatamente (sem api.whatsapp.com) enquanto ainda existe gesto do usuário
       if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString("pt-BR");
-        const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const { buildItemizedWhatsAppMessage } = await import("@/lib/whatsappOrderMessage");
+        const itemsForWa = cart.map((item) => ({
+          product_name: item.name,
+          quantity: item.quantity,
+          product_price: item.promotional_price || item.price,
+          subtotal: (item.promotional_price || item.price) * item.quantity,
+          variations: item.variations || null,
+        }));
+        const whatsappMessage = buildItemizedWhatsAppMessage(
+          {
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone,
+            created_at: new Date(),
+            subtotal,
+            delivery_fee: deliveryFee,
+            total_amount: total,
+            delivery_method: formData.delivery_method,
+            payment_method: "whatsapp",
+            notes: formData.notes || null,
+          },
+          itemsForWa,
+          storeData.store_name || "Loja"
+        );
 
-        const itemsList = cart
-          .map(
-            (item) =>
-              `• ${item.name} (x${item.quantity}) - R$ ${(
-                (item.promotional_price || item.price) * item.quantity
-              ).toFixed(2)}`
-          )
-          .join("\n");
-
-        const deliveryText = formData.delivery_method === "retirada" ? "Retirada" : "Entrega";
-
-        const whatsappMessage = `*Novo Pedido - ${storeData.store_name || "Loja"}*
-
-Cliente: ${formData.customer_name}
-Contato: ${formData.customer_phone}
-Data: ${dateStr} ${timeStr}
-
-Itens:
-${itemsList}
-
-Subtotal: R$ ${subtotal.toFixed(2)}
-Frete: R$ ${deliveryFee.toFixed(2)}
-Total: R$ ${total.toFixed(2)}
-
-Entrega: ${deliveryText}
-
-Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
-
-        // Normalize phone to E.164 format (55DDDNUMERO)
+        // Normalize phone to E.164 (55DDDNUMERO)
         let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
         if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
-
         const encodedMessage = encodeURIComponent(whatsappMessage);
-
-        // Link universal wa.me — funciona em desktop (abre WhatsApp Web) e mobile (abre app)
         const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-
-        console.log("[Checkout] Opening WhatsApp:", whatsappUrl);
 
         const link = document.createElement("a");
         link.href = whatsappUrl;
@@ -945,19 +939,27 @@ Olá! Gostaria de confirmar este pedido e combinar o pagamento.`;
         description: "Novo pedido registrado na loja",
       });
 
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
+      // Insert order items via secure RPC (avoids 60s RLS window and propagates variations)
+      const orderItemsPayload = cart.map((item) => ({
         product_id: item.id,
         product_name: item.name,
         product_price: item.promotional_price || item.price,
         quantity: item.quantity,
         subtotal: (item.promotional_price || item.price) * item.quantity,
+        variations: item.variations || null,
       }));
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+      const { error: itemsError } = await supabase.rpc("insert_order_items_secure" as any, {
+        p_order_id: order.id,
+        p_items: orderItemsPayload as any,
+      });
       if (itemsError) {
         console.error("[Checkout] order_items insert error:", itemsError);
-        throw new Error("Erro ao adicionar itens ao pedido: " + itemsError.message);
+        // Revert orphan order to avoid orders without items
+        await supabase.from("orders").delete().eq("id", order.id);
+        throw new Error(
+          "Não foi possível registrar os itens do pedido. Por favor, tente finalizar novamente."
+        );
       }
 
       // InfinitePay flow (PIX or Cartão) — redirect to InfinitePay-hosted checkout
