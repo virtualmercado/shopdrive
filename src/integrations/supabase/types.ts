@@ -2591,6 +2591,7 @@ export type Database = {
           product_price: number
           quantity: number
           subtotal: number
+          variations: Json | null
         }
         Insert: {
           created_at?: string
@@ -2601,6 +2602,7 @@ export type Database = {
           product_price: number
           quantity: number
           subtotal: number
+          variations?: Json | null
         }
         Update: {
           created_at?: string
@@ -2611,6 +2613,7 @@ export type Database = {
           product_price?: number
           quantity?: number
           subtotal?: number
+          variations?: Json | null
         }
         Relationships: [
           {
@@ -5631,6 +5634,10 @@ export type Database = {
       increment_template_link_clicks: {
         Args: { p_template_slug: string }
         Returns: boolean
+      }
+      insert_order_items_secure: {
+        Args: { p_items: Json; p_order_id: string }
+        Returns: undefined
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }

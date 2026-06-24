@@ -5,8 +5,8 @@ import { CartItem } from "@/contexts/CartContext";
 
 interface OrderSummaryHeaderProps {
   cart: CartItem[];
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
+  removeFromCart: (cartKey: string) => void;
   couponCode: string;
   setCouponCode: (code: string) => void;
   appliedCoupon: { isValid: boolean; discount: number } | null;
@@ -49,11 +49,10 @@ export const OrderSummaryHeader = ({
           📦 Resumo do Pedido
         </h2>
 
-        {/* Products List */}
         <div className="space-y-4 mb-6">
           {cart.map((item) => (
             <div
-              key={item.id}
+              key={item.cartKey}
               className="flex items-center gap-4 py-3 border-b border-border last:border-0"
             >
               <img
@@ -63,12 +62,18 @@ export const OrderSummaryHeader = ({
               />
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{item.name}</p>
+                {item.variations && Object.keys(item.variations).length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {Object.entries(item.variations)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(" • ")}
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   R$ {(item.promotional_price || item.price).toFixed(2)} / unidade
                 </p>
               </div>
 
-              {/* Quantity Controls */}
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -76,9 +81,7 @@ export const OrderSummaryHeader = ({
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => {
-                    if (item.quantity > 1) {
-                      updateQuantity(item.id, item.quantity - 1);
-                    }
+                    if (item.quantity > 1) updateQuantity(item.cartKey, item.quantity - 1);
                   }}
                   disabled={item.quantity <= 1}
                   style={{ borderColor: primaryColor }}
@@ -91,27 +94,25 @@ export const OrderSummaryHeader = ({
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
                   style={{ borderColor: primaryColor }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
-              {/* Item Total */}
               <div className="text-right min-w-[80px]">
                 <p className="font-semibold">
                   R$ {((item.promotional_price || item.price) * item.quantity).toFixed(2)}
                 </p>
               </div>
 
-              {/* Remove Button */}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => removeFromCart(item.cartKey)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -119,9 +120,7 @@ export const OrderSummaryHeader = ({
           ))}
         </div>
 
-        {/* Coupon and Totals Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
-          {/* Coupon Section */}
           <div>
             <p className="text-sm font-medium mb-2 flex items-center gap-2">
               <Tag className="h-4 w-4" />
@@ -156,10 +155,7 @@ export const OrderSummaryHeader = ({
                   variant="outline"
                   onClick={onApplyCoupon}
                   disabled={couponLoading || !couponCode.trim()}
-                  style={{ 
-                    borderColor: primaryColor, 
-                    color: primaryColor 
-                  }}
+                  style={{ borderColor: primaryColor, color: primaryColor }}
                 >
                   {couponLoading ? "..." : "Aplicar"}
                 </Button>
@@ -167,7 +163,6 @@ export const OrderSummaryHeader = ({
             )}
           </div>
 
-          {/* Totals Section */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Subtotal</span>
@@ -199,10 +194,7 @@ export const OrderSummaryHeader = ({
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-border">
               <span className="text-lg font-bold">Total</span>
-              <span 
-                className="text-2xl font-bold"
-                style={{ color: primaryColor }}
-              >
+              <span className="text-2xl font-bold" style={{ color: primaryColor }}>
                 R$ {total.toFixed(2)}
               </span>
             </div>

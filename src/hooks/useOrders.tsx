@@ -8,6 +8,7 @@ export interface OrderItem {
   product_price: number;
   quantity: number;
   subtotal: number;
+  variations?: any;
 }
 
 export interface Order {

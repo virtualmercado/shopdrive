@@ -375,9 +375,27 @@ const ProductDetailContent = () => {
   const handleAddToCart = () => {
     if (!product || product.stock <= 0) return;
 
-    const variationsString = Object.entries(selectedVariations)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(", ");
+    // Require selection for each variation group defined on the product
+    const variationGroups = Array.isArray(product.variations) ? product.variations : [];
+    const missing: string[] = [];
+    variationGroups.forEach((g: any) => {
+      const groupName = g?.name;
+      if (groupName && !selectedVariations[groupName]) missing.push(groupName);
+    });
+    if (missing.length > 0) {
+      toast({
+        title: "Selecione as opções",
+        description: `Escolha: ${missing.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const variationsObj =
+      Object.keys(selectedVariations).length > 0 ? { ...selectedVariations } : null;
+    const variationsString = variationsObj
+      ? Object.entries(variationsObj).map(([k, v]) => `${k}: ${v}`).join(", ")
+      : undefined;
 
     const cartItem = {
       id: product.id,
@@ -390,13 +408,13 @@ const ProductDetailContent = () => {
       height: product.height,
       width: product.width,
       length: product.length,
+      variations: variationsObj,
     };
 
     for (let i = 0; i < quantity; i++) {
       addToCart(cartItem);
     }
 
-    // Track add_to_cart event for conversion funnel
     if (storeData) {
       trackStoreEvent(storeData.id, "add_to_cart", product.id);
     }
@@ -404,8 +422,8 @@ const ProductDetailContent = () => {
     setLastAddedItem({
       ...cartItem,
       quantity,
-      variations: variationsString || undefined
-    });
+      variations: variationsString,
+    } as any);
 
     openMiniCart();
   };

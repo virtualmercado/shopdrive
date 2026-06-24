@@ -31,7 +31,6 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
           </div>
         ) : order ? (
           <div className="space-y-6">
-            {/* Customer Info */}
             <div>
               <h3 className="font-semibold mb-3">Informações do Cliente</h3>
               <div className="space-y-2 text-sm">
@@ -48,27 +47,41 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
 
             <Separator />
 
-            {/* Order Items */}
             <div>
               <h3 className="font-semibold mb-3">Itens do Pedido</h3>
               <div className="space-y-3">
-                {order.order_items?.map((item) => (
-                  <div key={item.id} className="flex justify-between items-start p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.product_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Quantidade: {item.quantity} × R$ {item.product_price.toFixed(2)}
-                      </p>
+                {order.order_items?.map((item: any) => {
+                  const variations =
+                    item.variations && typeof item.variations === "object" ? item.variations : null;
+                  return (
+                    <div key={item.id} className="flex justify-between items-start p-3 bg-muted/50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.product_name}</p>
+                        {variations && Object.keys(variations).length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {Object.entries(variations)
+                              .map(([k, v]) => `${k}: ${v}`)
+                              .join(" • ")}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Quantidade: {item.quantity} × R$ {item.product_price.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="font-semibold">R$ {item.subtotal.toFixed(2)}</p>
                     </div>
-                    <p className="font-semibold">R$ {item.subtotal.toFixed(2)}</p>
-                  </div>
-                ))}
+                  );
+                })}
+                {(!order.order_items || order.order_items.length === 0) && (
+                  <p className="text-sm text-muted-foreground italic">
+                    Este pedido não possui itens registrados.
+                  </p>
+                )}
               </div>
             </div>
 
             <Separator />
 
-            {/* Order Summary */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Método de Pagamento:</span>
