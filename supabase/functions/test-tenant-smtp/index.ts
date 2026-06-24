@@ -39,7 +39,9 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { smtp_host, smtp_port, smtp_user, smtp_password, smtp_security } = await req.json();
+    const body = await req.json();
+    const { smtp_host, smtp_port, smtp_user, smtp_security } = body;
+    let smtp_password: string = body.smtp_password ?? "";
 
     if (!smtp_host || !smtp_port) {
       return new Response(JSON.stringify({ error: "Host e porta são obrigatórios" }), {
@@ -47,6 +49,19 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Service-role client (also used to resolve stored password if not provided)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    if (!smtp_password) {
+      const { data: stored } = await supabase
+        .from("tenant_email_settings")
+        .select("smtp_password")
+        .eq("tenant_id", userId)
+        .maybeSingle();
+      smtp_password = (stored as any)?.smtp_password ?? "";
+    }
+
 
     // Attempt SMTP handshake
     let testError: string | null = null;
@@ -102,8 +117,8 @@ Deno.serve(async (req) => {
     }
 
     // Update tenant_email_settings with test results
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date().toISOString();
+
 
     await supabase
       .from("tenant_email_settings")

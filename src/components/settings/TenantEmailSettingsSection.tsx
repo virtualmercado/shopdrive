@@ -45,9 +45,10 @@ export const TenantEmailSettingsSection = () => {
       smtp_host: settings.smtp_host || "",
       smtp_port: settings.smtp_port || 587,
       smtp_user: settings.smtp_user || "",
-      smtp_password: settings.smtp_password ? PASSWORD_MASK : "",
+      smtp_password: settings.smtp_password_set ? PASSWORD_MASK : "",
       smtp_security: settings.smtp_security || "tls",
     });
+
     setInitialized(true);
   }
 
@@ -77,10 +78,12 @@ export const TenantEmailSettingsSection = () => {
       smtp_host: smtpForm.smtp_host,
       smtp_port: smtpForm.smtp_port,
       smtp_user: smtpForm.smtp_user,
-      smtp_password: smtpForm.smtp_password === PASSWORD_MASK ? (settings?.smtp_password || "") : smtpForm.smtp_password,
+      // Empty string signals the edge function to use the stored password
+      smtp_password: smtpForm.smtp_password === PASSWORD_MASK ? "" : smtpForm.smtp_password,
       smtp_security: smtpForm.smtp_security,
     });
   };
+
 
   const recentLogs = logs.slice(0, 100);
   const failedCount = recentLogs.filter(l => l.status === "error" || l.status === "failed" || l.status === "dlq").length;

@@ -24,13 +24,15 @@ export interface TenantEmailSettings {
   smtp_host: string | null;
   smtp_port: number | null;
   smtp_user: string | null;
-  smtp_password: string | null;
+  smtp_password?: string | null; // never read from API; only present when user is typing a new value
+  smtp_password_set: boolean;
   smtp_security: string | null;
   is_smtp_validated: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_error: string | null;
 }
+
 
 export interface TenantDnsRecord {
   id: string;
@@ -58,9 +60,10 @@ export const useTenantEmailSettings = () => {
     try {
       const { data, error } = await supabase
         .from("tenant_email_settings" as any)
-        .select("*")
+        .select("id,tenant_id,sender_name,sender_email,reply_to,email_domain,domain_status,spf_record,dkim_record,dmarc_record,spf_verified,dkim_verified,dmarc_verified,cloudflare_zone_id,last_verification_at,smtp_mode,smtp_host,smtp_port,smtp_user,smtp_security,smtp_password_set,is_smtp_validated,last_tested_at,last_test_status,last_test_error")
         .eq("tenant_id", user.id)
         .maybeSingle();
+
 
       if (error) throw error;
       setSettings(data as any);
