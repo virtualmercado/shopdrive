@@ -4522,6 +4522,7 @@ export type Database = {
           smtp_host: string | null
           smtp_mode: string
           smtp_password: string | null
+          smtp_password_set: boolean
           smtp_port: number | null
           smtp_security: string | null
           smtp_user: string | null
@@ -4551,6 +4552,7 @@ export type Database = {
           smtp_host?: string | null
           smtp_mode?: string
           smtp_password?: string | null
+          smtp_password_set?: boolean
           smtp_port?: number | null
           smtp_security?: string | null
           smtp_user?: string | null
@@ -4580,6 +4582,7 @@ export type Database = {
           smtp_host?: string | null
           smtp_mode?: string
           smtp_password?: string | null
+          smtp_password_set?: boolean
           smtp_port?: number | null
           smtp_security?: string | null
           smtp_user?: string | null
@@ -5596,6 +5599,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
       get_referral_stats: {
         Args: { p_store_id: string }
         Returns: {
