@@ -25,57 +25,36 @@ const PublicQuote = () => {
 
   const loadQuote = async () => {
     try {
-      // Get link
-      const { data: link, error: linkErr } = await supabase
-        .from("quote_public_links")
-        .select("quote_id, is_enabled, expires_at")
-        .eq("public_token", token!)
-        .maybeSingle();
+      const { data, error: rpcErr } = await supabase.rpc(
+        "get_public_quote_by_token" as any,
+        { p_token: token! }
+      );
 
-      if (linkErr || !link) {
+      if (rpcErr || !data) {
         setError("Orçamento indisponível.");
         return;
       }
 
-      if (!link.is_enabled || (link.expires_at && new Date(link.expires_at) < new Date())) {
+      const payload = data as any;
+      if (payload.error === "expired") {
         setError("Este link expirou ou foi desativado.");
         return;
       }
-
-      // Get quote
-      const { data: quoteData, error: quoteErr } = await supabase
-        .from("quotes")
-        .select("*")
-        .eq("id", link.quote_id)
-        .single();
-
-      if (quoteErr || !quoteData) {
+      if (payload.error || !payload.quote) {
         setError("Orçamento não encontrado.");
         return;
       }
 
-      // Get items
-      const { data: itemsData } = await supabase
-        .from("quote_items")
-        .select("*")
-        .eq("quote_id", quoteData.id);
-
-      // Get store profile
-      const { data: storeData } = await supabase
-        .from("profiles")
-        .select("store_name, store_logo_url, email, phone, whatsapp_number, address, address_city, address_state")
-        .eq("id", quoteData.store_owner_id)
-        .single();
-
-      setQuote(quoteData);
-      setItems(itemsData || []);
-      setStore(storeData);
+      setQuote(payload.quote);
+      setItems(payload.items || []);
+      setStore(payload.store || null);
     } catch {
       setError("Erro ao carregar orçamento.");
     } finally {
       setLoading(false);
     }
   };
+
 
   const handlePrint = () => window.print();
 
