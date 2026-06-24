@@ -78,10 +78,12 @@ export const TenantEmailSettingsSection = () => {
       smtp_host: smtpForm.smtp_host,
       smtp_port: smtpForm.smtp_port,
       smtp_user: smtpForm.smtp_user,
-      smtp_password: smtpForm.smtp_password === PASSWORD_MASK ? (settings?.smtp_password || "") : smtpForm.smtp_password,
+      // Empty string signals the edge function to use the stored password
+      smtp_password: smtpForm.smtp_password === PASSWORD_MASK ? "" : smtpForm.smtp_password,
       smtp_security: smtpForm.smtp_security,
     });
   };
+
 
   const recentLogs = logs.slice(0, 100);
   const failedCount = recentLogs.filter(l => l.status === "error" || l.status === "failed" || l.status === "dlq").length;
