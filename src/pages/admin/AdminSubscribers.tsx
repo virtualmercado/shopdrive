@@ -511,6 +511,10 @@ const AdminSubscribers = () => {
                               <Download className="h-4 w-4 mr-2" />
                               Exportar dados
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenClone(subscriber)}>
+                              <CopyIcon className="h-4 w-4 mr-2" />
+                              Duplicar loja
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleSuspend(subscriber)}
                               className="text-amber-600"
