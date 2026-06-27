@@ -3287,6 +3287,7 @@ export type Database = {
         Row: {
           brand_id: string | null
           category_id: string | null
+          cloned_from_product_id: string | null
           created_at: string
           description: string | null
           height: number | null
@@ -3319,6 +3320,7 @@ export type Database = {
         Insert: {
           brand_id?: string | null
           category_id?: string | null
+          cloned_from_product_id?: string | null
           created_at?: string
           description?: string | null
           height?: number | null
@@ -3351,6 +3353,7 @@ export type Database = {
         Update: {
           brand_id?: string | null
           category_id?: string | null
+          cloned_from_product_id?: string | null
           created_at?: string
           description?: string | null
           height?: number | null
@@ -3395,6 +3398,20 @@ export type Database = {
             referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_cloned_from_product_id_fkey"
+            columns: ["cloned_from_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_cloned_from_product_id_fkey"
+            columns: ["cloned_from_product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -3403,6 +3420,7 @@ export type Database = {
           about_us_title: string | null
           account_status: string
           account_status_updated_at: string | null
+          addon_status: string | null
           address: string | null
           address_city: string | null
           address_complement: string | null
@@ -3425,6 +3443,9 @@ export type Database = {
           checkout_require_payment_method: boolean | null
           checkout_require_personal_info: boolean | null
           city: string | null
+          clone_type: string | null
+          cloned_at: string | null
+          cloned_from_profile_id: string | null
           content_banner_enabled: boolean | null
           content_banner_image_url: string | null
           content_banner_subtitle: string | null
@@ -3457,6 +3478,8 @@ export type Database = {
           home_video_url_original: string | null
           id: string
           instagram_url: string | null
+          is_addon_store: boolean
+          is_cloned_store: boolean
           is_maintenance_mode: boolean | null
           is_template_profile: boolean | null
           last_activity: string | null
@@ -3466,6 +3489,7 @@ export type Database = {
           minibanner_1_img2_url: string | null
           minibanner_2_img2_url: string | null
           minimum_order_value: number | null
+          parent_account_id: string | null
           phone: string | null
           pickup_address: string | null
           pickup_hours_saturday_end: string | null
@@ -3515,6 +3539,7 @@ export type Database = {
           about_us_title?: string | null
           account_status?: string
           account_status_updated_at?: string | null
+          addon_status?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -3537,6 +3562,9 @@ export type Database = {
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
           city?: string | null
+          clone_type?: string | null
+          cloned_at?: string | null
+          cloned_from_profile_id?: string | null
           content_banner_enabled?: boolean | null
           content_banner_image_url?: string | null
           content_banner_subtitle?: string | null
@@ -3569,6 +3597,8 @@ export type Database = {
           home_video_url_original?: string | null
           id: string
           instagram_url?: string | null
+          is_addon_store?: boolean
+          is_cloned_store?: boolean
           is_maintenance_mode?: boolean | null
           is_template_profile?: boolean | null
           last_activity?: string | null
@@ -3578,6 +3608,7 @@ export type Database = {
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
+          parent_account_id?: string | null
           phone?: string | null
           pickup_address?: string | null
           pickup_hours_saturday_end?: string | null
@@ -3627,6 +3658,7 @@ export type Database = {
           about_us_title?: string | null
           account_status?: string
           account_status_updated_at?: string | null
+          addon_status?: string | null
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -3649,6 +3681,9 @@ export type Database = {
           checkout_require_payment_method?: boolean | null
           checkout_require_personal_info?: boolean | null
           city?: string | null
+          clone_type?: string | null
+          cloned_at?: string | null
+          cloned_from_profile_id?: string | null
           content_banner_enabled?: boolean | null
           content_banner_image_url?: string | null
           content_banner_subtitle?: string | null
@@ -3681,6 +3716,8 @@ export type Database = {
           home_video_url_original?: string | null
           id?: string
           instagram_url?: string | null
+          is_addon_store?: boolean
+          is_cloned_store?: boolean
           is_maintenance_mode?: boolean | null
           is_template_profile?: boolean | null
           last_activity?: string | null
@@ -3690,6 +3727,7 @@ export type Database = {
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
           minimum_order_value?: number | null
+          parent_account_id?: string | null
           phone?: string | null
           pickup_address?: string | null
           pickup_hours_saturday_end?: string | null
@@ -3735,6 +3773,48 @@ export type Database = {
           youtube_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_cloned_from_profile_id_fkey"
+            columns: ["cloned_from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_cloned_from_profile_id_fkey"
+            columns: ["cloned_from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_cloned_from_profile_id_fkey"
+            columns: ["cloned_from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_source_template_id_fkey"
             columns: ["source_template_id"]
@@ -3959,6 +4039,112 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      store_clone_logs: {
+        Row: {
+          admin_user_id: string | null
+          brands_copied: number
+          categories_copied: number
+          clone_type: string | null
+          cloned_email: string | null
+          cloned_profile_id: string | null
+          cloned_store_name: string | null
+          cloned_store_slug: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          images_copied: number
+          options: Json
+          products_copied: number
+          source_profile_id: string | null
+          source_store_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id?: string | null
+          brands_copied?: number
+          categories_copied?: number
+          clone_type?: string | null
+          cloned_email?: string | null
+          cloned_profile_id?: string | null
+          cloned_store_name?: string | null
+          cloned_store_slug?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          images_copied?: number
+          options?: Json
+          products_copied?: number
+          source_profile_id?: string | null
+          source_store_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string | null
+          brands_copied?: number
+          categories_copied?: number
+          clone_type?: string | null
+          cloned_email?: string | null
+          cloned_profile_id?: string | null
+          cloned_store_name?: string | null
+          cloned_store_slug?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          images_copied?: number
+          options?: Json
+          products_copied?: number
+          source_profile_id?: string | null
+          source_store_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_clone_logs_cloned_profile_id_fkey"
+            columns: ["cloned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_cloned_profile_id_fkey"
+            columns: ["cloned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_cloned_profile_id_fkey"
+            columns: ["cloned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_customers: {
         Row: {
