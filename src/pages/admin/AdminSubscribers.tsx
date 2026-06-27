@@ -47,7 +47,8 @@ import {
   Lock,
   FileWarning,
   UserX,
-  Loader2
+  Loader2,
+  Copy as CopyIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +64,7 @@ import { FinancialHistoryModal } from "@/components/admin/FinancialHistoryModal"
 import { SuspendAccountModal } from "@/components/admin/SuspendAccountModal";
 import { BlockAccountModal } from "@/components/admin/BlockAccountModal";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
+import { CloneStoreModal } from "@/components/admin/CloneStoreModal";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +85,7 @@ const AdminSubscribers = () => {
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -338,6 +341,11 @@ const AdminSubscribers = () => {
     setDetailsDialogOpen(true);
   };
 
+  const handleOpenClone = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setCloneModalOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -503,6 +511,10 @@ const AdminSubscribers = () => {
                               <Download className="h-4 w-4 mr-2" />
                               Exportar dados
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenClone(subscriber)}>
+                              <CopyIcon className="h-4 w-4 mr-2" />
+                              Duplicar loja
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleSuspend(subscriber)}
                               className="text-amber-600"
@@ -632,6 +644,12 @@ const AdminSubscribers = () => {
           store={selectedSubscriber}
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
+        />
+
+        <CloneStoreModal
+          subscriber={selectedSubscriber}
+          open={cloneModalOpen}
+          onOpenChange={setCloneModalOpen}
         />
       </div>
     </AdminLayout>
