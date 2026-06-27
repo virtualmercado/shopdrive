@@ -341,6 +341,11 @@ const AdminSubscribers = () => {
     setDetailsDialogOpen(true);
   };
 
+  const handleOpenClone = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setCloneModalOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
