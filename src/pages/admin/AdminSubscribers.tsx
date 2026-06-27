@@ -645,6 +645,12 @@ const AdminSubscribers = () => {
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
         />
+
+        <CloneStoreModal
+          subscriber={selectedSubscriber}
+          open={cloneModalOpen}
+          onOpenChange={setCloneModalOpen}
+        />
       </div>
     </AdminLayout>
   );
