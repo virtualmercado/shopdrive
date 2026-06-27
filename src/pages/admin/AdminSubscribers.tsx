@@ -64,6 +64,7 @@ import { FinancialHistoryModal } from "@/components/admin/FinancialHistoryModal"
 import { SuspendAccountModal } from "@/components/admin/SuspendAccountModal";
 import { BlockAccountModal } from "@/components/admin/BlockAccountModal";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
+import { CloneStoreModal } from "@/components/admin/CloneStoreModal";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
