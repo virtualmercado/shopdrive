@@ -125,19 +125,34 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLoginError(null);
 
     try {
       const validatedData = loginSchema.parse({ email, password });
-      await signIn(validatedData.email, validatedData.password);
-      // Redirect handled by useEffect above after AuthProvider resolves profile
+      const result = await signIn(validatedData.email, validatedData.password);
+
+      if (result?.error) {
+        // Falha de autenticação: NÃO navegar para nenhuma outra página.
+        // Mantém o e-mail, limpa apenas a senha e exibe erro inline.
+        const friendly =
+          (result.error as { friendlyMessage?: string })?.friendlyMessage ||
+          'E-mail ou senha incorretos.';
+        setLoginError(friendly);
+        setPassword("");
+        return;
+      }
+      // Sucesso: redirecionamento tratado pelo useEffect acima quando o perfil resolve.
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0];
+        setLoginError(firstError.message);
         toast({
           title: "Dados inválidos",
           description: firstError.message,
           variant: "destructive",
         });
+      } else {
+        setLoginError('Não foi possível realizar o login. Tente novamente.');
       }
     } finally {
       setLoading(false);
