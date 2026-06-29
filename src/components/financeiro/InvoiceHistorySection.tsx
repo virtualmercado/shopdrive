@@ -49,24 +49,62 @@ type Row = (Invoice & { isVirtual?: false }) | UpcomingInvoice;
 
 const ITEMS_PER_PAGE = 12;
 
-const PAYABLE_STATUSES = new Set(["pending", "overdue", "failed", "expired", "rejected", "upcoming"]);
+const GRACE_DAYS = 37;
+
+// Statuses considered "open/aguardando pagamento" before expiry
+const OPEN_STATUSES = new Set(["pending", "overdue", "failed", "rejected"]);
+// Statuses that are terminal / not payable regardless of date
+const TERMINAL_STATUSES = new Set(["paid", "cancelled", "refunded", "exempt", "expired"]);
+
+const daysSince = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+};
+
+/** Effective status applied on the client for display/eligibility only. */
+const getEffectiveStatus = (status: string, dueDate: string): string => {
+  if (status === "upcoming") return "upcoming";
+  if (TERMINAL_STATUSES.has(status)) return status;
+  if (OPEN_STATUSES.has(status) && daysSince(dueDate) > GRACE_DAYS) {
+    return "expired";
+  }
+  return status;
+};
+
+const isPayable = (effectiveStatus: string, subscriptionStatus?: string) => {
+  // Subscription already downgraded / ended → never payable
+  if (subscriptionStatus && ["cancelled", "canceled", "ended"].includes(subscriptionStatus)) {
+    return false;
+  }
+  if (effectiveStatus === "upcoming") return true;
+  if (OPEN_STATUSES.has(effectiveStatus)) return true;
+  return false;
+};
+
+// Sort priority: upcoming → open (asc by due) → paid (desc) → expired (desc)
+const sortPriority = (effectiveStatus: string): number => {
+  if (effectiveStatus === "upcoming") return 0;
+  if (OPEN_STATUSES.has(effectiveStatus)) return 1;
+  if (effectiveStatus === "paid") return 2;
+  if (effectiveStatus === "expired") return 3;
+  return 4;
+};
 
 const getStatusBadge = (status: string) => {
-  const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[140px] inline-block";
+  const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[160px] inline-block";
 
   switch (status) {
     case "pending":
+    case "overdue":
+    case "failed":
+    case "rejected":
       return <Badge className={`bg-orange-400 hover:bg-orange-400 ${baseClasses}`}>Aguardando pagamento</Badge>;
     case "paid":
       return <Badge className={`bg-green-500 hover:bg-green-500 ${baseClasses}`}>Paga</Badge>;
-    case "rejected":
-    case "failed":
-      return <Badge className={`bg-red-500 hover:bg-red-500 ${baseClasses}`}>Recusado</Badge>;
     case "expired":
+      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Expirada</Badge>;
     case "cancelled":
-      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Expirado</Badge>;
-    case "overdue":
-      return <Badge className={`bg-red-500 hover:bg-red-500 ${baseClasses}`}>Vencida</Badge>;
+      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Cancelada</Badge>;
     case "refunded":
       return <Badge className={`bg-blue-500 hover:bg-blue-500 ${baseClasses}`}>Reembolsado</Badge>;
     case "exempt":
@@ -77,6 +115,7 @@ const getStatusBadge = (status: string) => {
       return <Badge className={`bg-gray-400 hover:bg-gray-400 ${baseClasses}`}>{status}</Badge>;
   }
 };
+
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
