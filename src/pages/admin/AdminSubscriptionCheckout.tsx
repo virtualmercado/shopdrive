@@ -104,6 +104,10 @@ const AdminSubscriptionCheckout = () => {
   const rawCycle = searchParams.get("ciclo") || "monthly";
   const cycleParam: BillingCycle = rawCycle === "mensal" ? "monthly" : rawCycle === "anual" ? "annual" : (rawCycle as BillingCycle);
   const originParam = searchParams.get("origem") || "checkout";
+  const flowParam = searchParams.get("flow") || "";
+  const invoiceParam = searchParams.get("fatura") || "";
+  // Fluxo "Pagar fatura" — não permite trocar plano/ciclo
+  const isInvoicePayment = flowParam === "pay_invoice" || originParam === "regularizar" || !!invoiceParam;
 
   // Estados
   const [plan, setPlan] = useState<PlanId>(planParam);
