@@ -223,6 +223,17 @@ export const InvoiceHistorySection = () => {
   };
 
   const handlePayInvoice = (row: Row) => {
+    // Defensive guard: never open checkout for expired/terminal invoices
+    const effective = getEffectiveStatus(row.status, row.due_date);
+    if (!isPayable(effective, subscription?.status)) {
+      toast({
+        title: "Fatura indisponível para pagamento",
+        description:
+          "Esta cobrança expirou ou foi encerrada. Contrate novamente o plano para regularizar.",
+        variant: "destructive",
+      });
+      return;
+    }
     const planId =
       (row.plan || subscription?.plan_id || "pro").toLowerCase();
     const cycle =
@@ -232,6 +243,7 @@ export const InvoiceHistorySection = () => {
       `/gestor/checkout-assinatura?plano=${planId}&ciclo=${cycle}&origem=regularizar&flow=pay_invoice${invoiceParam}`
     );
   };
+
 
   // Compose rows: upcoming on top + invoices, with effective status computed for sorting/eligibility
   const composedRows: Array<Row & { _effectiveStatus: string }> = (upcoming
