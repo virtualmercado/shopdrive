@@ -308,7 +308,7 @@ const Login = () => {
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (loginError) setLoginError(null); }}
                   required
                 />
               </div>
@@ -321,7 +321,7 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); if (loginError) setLoginError(null); }}
                     required
                     className="pr-10"
                   />
