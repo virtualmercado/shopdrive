@@ -104,6 +104,10 @@ const AdminSubscriptionCheckout = () => {
   const rawCycle = searchParams.get("ciclo") || "monthly";
   const cycleParam: BillingCycle = rawCycle === "mensal" ? "monthly" : rawCycle === "anual" ? "annual" : (rawCycle as BillingCycle);
   const originParam = searchParams.get("origem") || "checkout";
+  const flowParam = searchParams.get("flow") || "";
+  const invoiceParam = searchParams.get("fatura") || "";
+  // Fluxo "Pagar fatura" — não permite trocar plano/ciclo
+  const isInvoicePayment = flowParam === "pay_invoice" || originParam === "regularizar" || !!invoiceParam;
 
   // Estados
   const [plan, setPlan] = useState<PlanId>(planParam);
@@ -995,6 +999,11 @@ const AdminSubscriptionCheckout = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {isInvoicePayment && (
+                <div className="rounded-md border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+                  Você está pagando a fatura do seu plano atual. A escolha de plano e ciclo está bloqueada — para trocar de plano, volte à página Financeiro.
+                </div>
+              )}
               {/* Seletor de Plano */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Escolha o plano</Label>
@@ -1002,12 +1011,14 @@ const AdminSubscriptionCheckout = () => {
                   {(["pro", "premium"] as PlanId[]).map((p) => (
                     <button
                       key={p}
-                      onClick={() => setPlan(p)}
+                      onClick={() => { if (!isInvoicePayment) setPlan(p); }}
+                      disabled={isInvoicePayment && plan !== p}
                       className={cn(
                         "p-4 rounded-lg border-2 text-left transition-all",
                         plan === p 
                           ? "border-[#6a1b9a] bg-purple-50" 
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-gray-200 hover:border-gray-300",
+                        isInvoicePayment && plan !== p && "opacity-40 cursor-not-allowed"
                       )}
                     >
                       <div className="font-bold uppercase" style={{ color: plan === p ? VM_PRIMARY : undefined }}>
@@ -1027,12 +1038,14 @@ const AdminSubscriptionCheckout = () => {
                 <Label className="text-sm font-medium">Ciclo de cobrança</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => setBillingCycle("monthly")}
+                    onClick={() => { if (!isInvoicePayment) setBillingCycle("monthly"); }}
+                    disabled={isInvoicePayment && billingCycle !== "monthly"}
                     className={cn(
                       "p-4 rounded-lg border-2 text-left transition-all relative",
                       billingCycle === "monthly" 
                         ? "border-[#6a1b9a] bg-purple-50" 
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-gray-200 hover:border-gray-300",
+                      isInvoicePayment && billingCycle !== "monthly" && "opacity-40 cursor-not-allowed"
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -1044,12 +1057,14 @@ const AdminSubscriptionCheckout = () => {
                     </div>
                   </button>
                   <button
-                    onClick={() => setBillingCycle("annual")}
+                    onClick={() => { if (!isInvoicePayment) setBillingCycle("annual"); }}
+                    disabled={isInvoicePayment && billingCycle !== "annual"}
                     className={cn(
                       "p-4 rounded-lg border-2 text-left transition-all relative",
                       billingCycle === "annual" 
                         ? "border-[#6a1b9a] bg-purple-50" 
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-gray-200 hover:border-gray-300",
+                      isInvoicePayment && billingCycle !== "annual" && "opacity-40 cursor-not-allowed"
                     )}
                   >
                     <Badge 

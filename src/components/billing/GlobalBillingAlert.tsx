@@ -166,7 +166,13 @@ export const GlobalBillingAlert = () => {
   const isSpinning = alertKey === "processing";
 
   const handleCtaClick = () => {
-    navigate(content?.cta_url || "/master/financeiro/checkout");
+    // Fluxo A — Regularizar fatura: mantém o plano atual e abre o checkout
+    // da assinatura vigente, sem permitir troca de plano.
+    const planId = billingInfo?.planId || "pro";
+    const cycleParam = billingInfo?.billingCycle === "annual" ? "anual" : "mensal";
+    navigate(
+      `/gestor/checkout-assinatura?plano=${planId}&ciclo=${cycleParam}&origem=regularizar&flow=pay_invoice`
+    );
   };
 
   // Override CMS content for "processing" status with payment-method-specific messages
