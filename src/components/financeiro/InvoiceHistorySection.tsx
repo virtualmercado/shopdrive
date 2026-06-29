@@ -233,13 +233,32 @@ export const InvoiceHistorySection = () => {
     );
   };
 
-  // Compose rows: upcoming on top + invoices
-  const allRows: Row[] = upcoming ? [upcoming, ...invoices] : invoices;
+  // Compose rows: upcoming on top + invoices, with effective status computed for sorting/eligibility
+  const composedRows: Array<Row & { _effectiveStatus: string }> = (upcoming
+    ? [upcoming as Row, ...invoices]
+    : (invoices as Row[])
+  ).map((row) => ({
+    ...row,
+    _effectiveStatus: getEffectiveStatus(row.status, row.due_date),
+  }));
 
-  const totalPages = Math.ceil(allRows.length / ITEMS_PER_PAGE);
+  // Sort: upcoming → aguardando pagamento (asc by due) → paga (desc by due) → expirada (desc by due)
+  composedRows.sort((a, b) => {
+    const pa = sortPriority(a._effectiveStatus);
+    const pb = sortPriority(b._effectiveStatus);
+    if (pa !== pb) return pa - pb;
+    const da = new Date(a.due_date).getTime();
+    const db = new Date(b.due_date).getTime();
+    // Open invoices: oldest first (most urgent). Others: newest first.
+    if (pa === 1) return da - db;
+    return db - da;
+  });
+
+  const totalPages = Math.ceil(composedRows.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentInvoices = allRows.slice(startIndex, endIndex);
+  const currentInvoices = composedRows.slice(startIndex, endIndex);
+
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
