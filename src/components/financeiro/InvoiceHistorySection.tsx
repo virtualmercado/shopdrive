@@ -332,7 +332,8 @@ export const InvoiceHistorySection = () => {
             ) : (
               currentInvoices.map((invoice, index) => {
                 const isVirtual = (invoice as UpcomingInvoice).isVirtual === true;
-                const canPay = PAYABLE_STATUSES.has(invoice.status);
+                const effective = invoice._effectiveStatus;
+                const canPay = isPayable(effective, subscription?.status);
                 return (
                   <TableRow
                     key={invoice.id}
@@ -348,7 +349,7 @@ export const InvoiceHistorySection = () => {
                     <TableCell className="text-gray-600 py-3">{formatCurrency(invoice.amount)}</TableCell>
                     <TableCell className="text-gray-600 py-3 uppercase">{invoice.plan || "—"}</TableCell>
                     <TableCell className="text-gray-600 py-3">{formatMethod(invoice.payment_method)}</TableCell>
-                    <TableCell className="py-3">{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell className="py-3">{getStatusBadge(effective)}</TableCell>
                     <TableCell className="py-3 text-right">
                       {canPay ? (
                         <Button
@@ -367,6 +368,7 @@ export const InvoiceHistorySection = () => {
                   </TableRow>
                 );
               })
+
             )}
           </TableBody>
         </Table>
