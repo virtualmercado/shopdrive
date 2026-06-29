@@ -352,6 +352,16 @@ const Login = () => {
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
+
+              {loginError && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2 text-center"
+                >
+                  {loginError}
+                </div>
+              )}
             </form>
 
             <div className="mt-6 text-center text-sm">
