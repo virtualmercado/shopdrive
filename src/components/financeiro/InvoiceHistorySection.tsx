@@ -49,24 +49,62 @@ type Row = (Invoice & { isVirtual?: false }) | UpcomingInvoice;
 
 const ITEMS_PER_PAGE = 12;
 
-const PAYABLE_STATUSES = new Set(["pending", "overdue", "failed", "expired", "rejected", "upcoming"]);
+const GRACE_DAYS = 37;
+
+// Statuses considered "open/aguardando pagamento" before expiry
+const OPEN_STATUSES = new Set(["pending", "overdue", "failed", "rejected"]);
+// Statuses that are terminal / not payable regardless of date
+const TERMINAL_STATUSES = new Set(["paid", "cancelled", "refunded", "exempt", "expired"]);
+
+const daysSince = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+};
+
+/** Effective status applied on the client for display/eligibility only. */
+const getEffectiveStatus = (status: string, dueDate: string): string => {
+  if (status === "upcoming") return "upcoming";
+  if (TERMINAL_STATUSES.has(status)) return status;
+  if (OPEN_STATUSES.has(status) && daysSince(dueDate) > GRACE_DAYS) {
+    return "expired";
+  }
+  return status;
+};
+
+const isPayable = (effectiveStatus: string, subscriptionStatus?: string) => {
+  // Subscription already downgraded / ended → never payable
+  if (subscriptionStatus && ["cancelled", "canceled", "ended"].includes(subscriptionStatus)) {
+    return false;
+  }
+  if (effectiveStatus === "upcoming") return true;
+  if (OPEN_STATUSES.has(effectiveStatus)) return true;
+  return false;
+};
+
+// Sort priority: upcoming → open (asc by due) → paid (desc) → expired (desc)
+const sortPriority = (effectiveStatus: string): number => {
+  if (effectiveStatus === "upcoming") return 0;
+  if (OPEN_STATUSES.has(effectiveStatus)) return 1;
+  if (effectiveStatus === "paid") return 2;
+  if (effectiveStatus === "expired") return 3;
+  return 4;
+};
 
 const getStatusBadge = (status: string) => {
-  const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[140px] inline-block";
+  const baseClasses = "text-white font-normal text-xs py-1 rounded text-center w-[160px] inline-block";
 
   switch (status) {
     case "pending":
+    case "overdue":
+    case "failed":
+    case "rejected":
       return <Badge className={`bg-orange-400 hover:bg-orange-400 ${baseClasses}`}>Aguardando pagamento</Badge>;
     case "paid":
       return <Badge className={`bg-green-500 hover:bg-green-500 ${baseClasses}`}>Paga</Badge>;
-    case "rejected":
-    case "failed":
-      return <Badge className={`bg-red-500 hover:bg-red-500 ${baseClasses}`}>Recusado</Badge>;
     case "expired":
+      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Expirada</Badge>;
     case "cancelled":
-      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Expirado</Badge>;
-    case "overdue":
-      return <Badge className={`bg-red-500 hover:bg-red-500 ${baseClasses}`}>Vencida</Badge>;
+      return <Badge className={`bg-gray-500 hover:bg-gray-500 ${baseClasses}`}>Cancelada</Badge>;
     case "refunded":
       return <Badge className={`bg-blue-500 hover:bg-blue-500 ${baseClasses}`}>Reembolsado</Badge>;
     case "exempt":
@@ -77,6 +115,7 @@ const getStatusBadge = (status: string) => {
       return <Badge className={`bg-gray-400 hover:bg-gray-400 ${baseClasses}`}>{status}</Badge>;
   }
 };
+
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -184,6 +223,17 @@ export const InvoiceHistorySection = () => {
   };
 
   const handlePayInvoice = (row: Row) => {
+    // Defensive guard: never open checkout for expired/terminal invoices
+    const effective = getEffectiveStatus(row.status, row.due_date);
+    if (!isPayable(effective, subscription?.status)) {
+      toast({
+        title: "Fatura indisponível para pagamento",
+        description:
+          "Esta cobrança expirou ou foi encerrada. Contrate novamente o plano para regularizar.",
+        variant: "destructive",
+      });
+      return;
+    }
     const planId =
       (row.plan || subscription?.plan_id || "pro").toLowerCase();
     const cycle =
@@ -194,13 +244,33 @@ export const InvoiceHistorySection = () => {
     );
   };
 
-  // Compose rows: upcoming on top + invoices
-  const allRows: Row[] = upcoming ? [upcoming, ...invoices] : invoices;
 
-  const totalPages = Math.ceil(allRows.length / ITEMS_PER_PAGE);
+  // Compose rows: upcoming on top + invoices, with effective status computed for sorting/eligibility
+  const composedRows: Array<Row & { _effectiveStatus: string }> = (upcoming
+    ? [upcoming as Row, ...invoices]
+    : (invoices as Row[])
+  ).map((row) => ({
+    ...row,
+    _effectiveStatus: getEffectiveStatus(row.status, row.due_date),
+  }));
+
+  // Sort: upcoming → aguardando pagamento (asc by due) → paga (desc by due) → expirada (desc by due)
+  composedRows.sort((a, b) => {
+    const pa = sortPriority(a._effectiveStatus);
+    const pb = sortPriority(b._effectiveStatus);
+    if (pa !== pb) return pa - pb;
+    const da = new Date(a.due_date).getTime();
+    const db = new Date(b.due_date).getTime();
+    // Open invoices: oldest first (most urgent). Others: newest first.
+    if (pa === 1) return da - db;
+    return db - da;
+  });
+
+  const totalPages = Math.ceil(composedRows.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentInvoices = allRows.slice(startIndex, endIndex);
+  const currentInvoices = composedRows.slice(startIndex, endIndex);
+
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -274,7 +344,8 @@ export const InvoiceHistorySection = () => {
             ) : (
               currentInvoices.map((invoice, index) => {
                 const isVirtual = (invoice as UpcomingInvoice).isVirtual === true;
-                const canPay = PAYABLE_STATUSES.has(invoice.status);
+                const effective = invoice._effectiveStatus;
+                const canPay = isPayable(effective, subscription?.status);
                 return (
                   <TableRow
                     key={invoice.id}
@@ -290,7 +361,7 @@ export const InvoiceHistorySection = () => {
                     <TableCell className="text-gray-600 py-3">{formatCurrency(invoice.amount)}</TableCell>
                     <TableCell className="text-gray-600 py-3 uppercase">{invoice.plan || "—"}</TableCell>
                     <TableCell className="text-gray-600 py-3">{formatMethod(invoice.payment_method)}</TableCell>
-                    <TableCell className="py-3">{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell className="py-3">{getStatusBadge(effective)}</TableCell>
                     <TableCell className="py-3 text-right">
                       {canPay ? (
                         <Button
@@ -309,6 +380,7 @@ export const InvoiceHistorySection = () => {
                   </TableRow>
                 );
               })
+
             )}
           </TableBody>
         </Table>
