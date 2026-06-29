@@ -60,12 +60,29 @@ export const useAuth = () => {
     });
 
     if (error) {
+      // Mensagem amigável — nunca expor mensagem técnica do backend
+      const raw = (error.message || '').toLowerCase();
+      let friendly = 'Não foi possível realizar o login. Tente novamente.';
+      if (
+        raw.includes('invalid login') ||
+        raw.includes('invalid credentials') ||
+        raw.includes('invalid email or password')
+      ) {
+        friendly = 'E-mail ou senha incorretos.';
+      } else if (raw.includes('email not confirmed')) {
+        friendly = 'Confirme seu e-mail antes de fazer login.';
+      } else if (raw.includes('rate limit') || raw.includes('too many')) {
+        friendly = 'Muitas tentativas. Aguarde alguns instantes e tente novamente.';
+      } else if (raw.includes('network') || raw.includes('fetch')) {
+        friendly = 'Falha de conexão. Verifique sua internet e tente novamente.';
+      }
+
       toast({
-        title: "Erro ao fazer login",
-        description: error.message,
+        title: "Não foi possível entrar",
+        description: friendly,
         variant: "destructive",
       });
-      return { error };
+      return { error: { ...error, friendlyMessage: friendly } as typeof error & { friendlyMessage: string } };
     }
 
     logAuditEvent({
