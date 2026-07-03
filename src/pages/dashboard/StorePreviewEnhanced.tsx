@@ -347,7 +347,7 @@ const StorePreviewEnhanced = () => {
 
       await supabase
         .from("profiles")
-        .update({ [arrayField]: newUrls, [legacyField]: null })
+        .update({ [arrayField]: newUrls, [legacyField]: null } as any)
         .eq("id", user.id);
 
       toast({ title: "Imagem removida e alterações salvas" });
