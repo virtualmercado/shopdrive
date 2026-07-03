@@ -707,8 +707,19 @@ const CheckoutContent = () => {
 
     setLoading(true);
 
+    // Pre-open a blank tab for WhatsApp to preserve the user gesture while we persist the order
+    let whatsappWindow: Window | null = null;
+    if (formData.payment_method === "whatsapp" && storeData?.whatsapp_number) {
+      try {
+        whatsappWindow = window.open("about:blank", "_blank");
+      } catch {
+        whatsappWindow = null;
+      }
+    }
+
     try {
       if (!storeData) throw new Error("Dados da loja não encontrados");
+
 
       const subtotal = getTotal();
       const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
