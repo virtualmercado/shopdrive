@@ -313,7 +313,7 @@ const StorePreviewEnhanced = () => {
       // Salva automaticamente no banco apenas quando há novas imagens
       await supabase
         .from("profiles")
-        .update({ [arrayField]: newUrls, [legacyField]: null })
+        .update({ [arrayField]: newUrls, [legacyField]: null } as any)
         .eq("id", user.id);
 
       toast({
