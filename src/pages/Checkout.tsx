@@ -1114,10 +1114,14 @@ const CheckoutContent = () => {
       setTimeout(() => navigate(`/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
       console.error("Checkout error:", error);
-      toast.error(error.message || "Erro ao finalizar pedido");
+      if (whatsappWindow && !whatsappWindow.closed) {
+        try { whatsappWindow.close(); } catch { /* noop */ }
+      }
+      toast.error(error.message || "Não foi possível registrar seu pedido. Tente novamente.");
     } finally {
       setLoading(false);
     }
+
   };
 
   const handlePixPaymentConfirmed = () => {
