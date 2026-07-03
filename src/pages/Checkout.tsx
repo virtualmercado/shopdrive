@@ -935,6 +935,50 @@ const CheckoutContent = () => {
         );
       }
 
+      // WhatsApp flow: order + items already persisted. Now open WhatsApp with the order number.
+      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
+        const { buildItemizedWhatsAppMessage } = await import("@/lib/whatsappOrderMessage");
+        const itemsForWa = cart.map((item) => ({
+          product_name: item.name,
+          quantity: item.quantity,
+          product_price: item.promotional_price || item.price,
+          subtotal: (item.promotional_price || item.price) * item.quantity,
+          variations: item.variations || null,
+        }));
+        const whatsappMessage = buildItemizedWhatsAppMessage(
+          {
+            order_number: (order as any).order_number ?? null,
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone,
+            created_at: (order as any).created_at || new Date(),
+            subtotal,
+            delivery_fee: deliveryFee,
+            total_amount: total,
+            delivery_method: formData.delivery_method,
+            payment_method: "whatsapp",
+            notes: formData.notes || null,
+          },
+          itemsForWa,
+          storeData.store_name || "Loja"
+        );
+
+        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
+        if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+
+        if (whatsappWindow && !whatsappWindow.closed) {
+          try {
+            whatsappWindow.location.href = whatsappUrl;
+          } catch {
+            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+          }
+        } else {
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        }
+        whatsappWindow = null;
+      }
+
+
       // InfinitePay flow (PIX or Cartão) — redirect to InfinitePay-hosted checkout
       const isInfinitepayFlow =
         (formData.payment_method === "pix" && pixGateway === "infinitepay") ||
