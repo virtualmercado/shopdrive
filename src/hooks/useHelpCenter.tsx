@@ -260,7 +260,7 @@ export function useUpdateHelpArticle() {
     mutationFn: async ({ id, ...updates }: Partial<HelpArticle> & { id: string }) => {
       const { data, error } = await supabase
         .from("help_articles")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id)
         .select()
         .single();
