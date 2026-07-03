@@ -211,7 +211,7 @@ const AdminSupport = () => {
 
     const { error } = await supabase
       .from('merchant_support_tickets')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', ticketId);
 
     if (error) {
