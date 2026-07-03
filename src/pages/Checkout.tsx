@@ -878,46 +878,7 @@ const CheckoutContent = () => {
         }
       }
 
-      // WhatsApp: abrir o WhatsApp Web imediatamente (sem api.whatsapp.com) enquanto ainda existe gesto do usuário
-      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
-        const { buildItemizedWhatsAppMessage } = await import("@/lib/whatsappOrderMessage");
-        const itemsForWa = cart.map((item) => ({
-          product_name: item.name,
-          quantity: item.quantity,
-          product_price: item.promotional_price || item.price,
-          subtotal: (item.promotional_price || item.price) * item.quantity,
-          variations: item.variations || null,
-        }));
-        const whatsappMessage = buildItemizedWhatsAppMessage(
-          {
-            customer_name: formData.customer_name,
-            customer_phone: formData.customer_phone,
-            created_at: new Date(),
-            subtotal,
-            delivery_fee: deliveryFee,
-            total_amount: total,
-            delivery_method: formData.delivery_method,
-            payment_method: "whatsapp",
-            notes: formData.notes || null,
-          },
-          itemsForWa,
-          storeData.store_name || "Loja"
-        );
-
-        // Normalize phone to E.164 (55DDDNUMERO)
-        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
-        if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
-        const encodedMessage = encodeURIComponent(whatsappMessage);
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-
-        const link = document.createElement("a");
-        link.href = whatsappUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
+      // WhatsApp order persistence happens after order + items are created (see below).
 
       // For non-credit card payments, create order first
       const { data: order, error: orderError } = await supabase
@@ -928,6 +889,7 @@ const CheckoutContent = () => {
           customer_name: formData.customer_name,
           customer_email: customerEmail || "",
           customer_phone: formData.customer_phone,
+
           customer_address: addressString,
           delivery_method: deliveryMethodLabel,
           payment_method: formData.payment_method,
