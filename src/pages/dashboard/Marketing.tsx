@@ -146,7 +146,7 @@ const Marketing = () => {
       if (existing) {
         const { error } = await supabase
           .from('marketing_settings')
-          .update(updateData)
+          .update(updateData as any)
           .eq('user_id', user.id);
         
         if (error) throw error;

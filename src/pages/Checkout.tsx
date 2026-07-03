@@ -707,8 +707,19 @@ const CheckoutContent = () => {
 
     setLoading(true);
 
+    // Pre-open a blank tab for WhatsApp to preserve the user gesture while we persist the order
+    let whatsappWindow: Window | null = null;
+    if (formData.payment_method === "whatsapp" && storeData?.whatsapp_number) {
+      try {
+        whatsappWindow = window.open("about:blank", "_blank");
+      } catch {
+        whatsappWindow = null;
+      }
+    }
+
     try {
       if (!storeData) throw new Error("Dados da loja não encontrados");
+
 
       const subtotal = getTotal();
       const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
@@ -867,46 +878,7 @@ const CheckoutContent = () => {
         }
       }
 
-      // WhatsApp: abrir o WhatsApp Web imediatamente (sem api.whatsapp.com) enquanto ainda existe gesto do usuário
-      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
-        const { buildItemizedWhatsAppMessage } = await import("@/lib/whatsappOrderMessage");
-        const itemsForWa = cart.map((item) => ({
-          product_name: item.name,
-          quantity: item.quantity,
-          product_price: item.promotional_price || item.price,
-          subtotal: (item.promotional_price || item.price) * item.quantity,
-          variations: item.variations || null,
-        }));
-        const whatsappMessage = buildItemizedWhatsAppMessage(
-          {
-            customer_name: formData.customer_name,
-            customer_phone: formData.customer_phone,
-            created_at: new Date(),
-            subtotal,
-            delivery_fee: deliveryFee,
-            total_amount: total,
-            delivery_method: formData.delivery_method,
-            payment_method: "whatsapp",
-            notes: formData.notes || null,
-          },
-          itemsForWa,
-          storeData.store_name || "Loja"
-        );
-
-        // Normalize phone to E.164 (55DDDNUMERO)
-        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
-        if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
-        const encodedMessage = encodeURIComponent(whatsappMessage);
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-
-        const link = document.createElement("a");
-        link.href = whatsappUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
+      // WhatsApp order persistence happens after order + items are created (see below).
 
       // For non-credit card payments, create order first
       const { data: order, error: orderError } = await supabase
@@ -917,6 +889,7 @@ const CheckoutContent = () => {
           customer_name: formData.customer_name,
           customer_email: customerEmail || "",
           customer_phone: formData.customer_phone,
+
           customer_address: addressString,
           delivery_method: deliveryMethodLabel,
           payment_method: formData.payment_method,
@@ -961,6 +934,50 @@ const CheckoutContent = () => {
           "Não foi possível registrar os itens do pedido. Por favor, tente finalizar novamente."
         );
       }
+
+      // WhatsApp flow: order + items already persisted. Now open WhatsApp with the order number.
+      if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
+        const { buildItemizedWhatsAppMessage } = await import("@/lib/whatsappOrderMessage");
+        const itemsForWa = cart.map((item) => ({
+          product_name: item.name,
+          quantity: item.quantity,
+          product_price: item.promotional_price || item.price,
+          subtotal: (item.promotional_price || item.price) * item.quantity,
+          variations: item.variations || null,
+        }));
+        const whatsappMessage = buildItemizedWhatsAppMessage(
+          {
+            order_number: (order as any).order_number ?? null,
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone,
+            created_at: (order as any).created_at || new Date(),
+            subtotal,
+            delivery_fee: deliveryFee,
+            total_amount: total,
+            delivery_method: formData.delivery_method,
+            payment_method: "whatsapp",
+            notes: formData.notes || null,
+          },
+          itemsForWa,
+          storeData.store_name || "Loja"
+        );
+
+        let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
+        if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+
+        if (whatsappWindow && !whatsappWindow.closed) {
+          try {
+            whatsappWindow.location.href = whatsappUrl;
+          } catch {
+            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+          }
+        } else {
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        }
+        whatsappWindow = null;
+      }
+
 
       // InfinitePay flow (PIX or Cartão) — redirect to InfinitePay-hosted checkout
       const isInfinitepayFlow =
@@ -1097,10 +1114,14 @@ const CheckoutContent = () => {
       setTimeout(() => navigate(`/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
       console.error("Checkout error:", error);
-      toast.error(error.message || "Erro ao finalizar pedido");
+      if (whatsappWindow && !whatsappWindow.closed) {
+        try { whatsappWindow.close(); } catch { /* noop */ }
+      }
+      toast.error(error.message || "Não foi possível registrar seu pedido. Tente novamente.");
     } finally {
       setLoading(false);
     }
+
   };
 
   const handlePixPaymentConfirmed = () => {
