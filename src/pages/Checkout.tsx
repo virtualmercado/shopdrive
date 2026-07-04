@@ -730,7 +730,8 @@ const CheckoutContent = () => {
         : storeData.pickup_address || "Retirada na loja";
 
       const deliveryMethodLabel = formData.delivery_method === "retirada" ? "retirada" : "entrega";
-      const isGuestOrder = !user;
+      const checkoutCustomerId = customerProfile?.id || null;
+      const isGuestOrder = !checkoutCustomerId;
       const orderItemsPayload = cart.map((item) => ({
         product_id: item.id,
         product_name: item.name,
@@ -747,7 +748,7 @@ const CheckoutContent = () => {
       };
       const buildCheckoutOrderPayload = (status: string, paymentStatus = getPaymentStatus(formData.payment_method)) => ({
         p_store_owner_id: storeData.id,
-        p_customer_id: user?.id || null,
+        p_customer_id: checkoutCustomerId,
         p_customer_name: formData.customer_name,
         p_customer_email: customerEmail || "",
         p_customer_phone: formData.customer_phone,
@@ -776,7 +777,7 @@ const CheckoutContent = () => {
           total,
         });
         console.log("[Checkout] modo do cliente", isGuestOrder ? "convidado" : "cadastrado", {
-          customer_id: user?.id || null,
+          customer_id: checkoutCustomerId,
           checkout_origin: payload.p_checkout_origin,
         });
         console.log("[Checkout] método de pagamento escolhido", formData.payment_method);
@@ -797,6 +798,27 @@ const CheckoutContent = () => {
         if (createOrderError || !createdOrder) {
           console.error("[Checkout] create_checkout_order error:", createOrderError);
           throw new Error("Não foi possível registrar seu pedido. Tente novamente.");
+        }
+
+        try {
+          sessionStorage.setItem(
+            `shopdrive_checkout_order:${(createdOrder as any).id}`,
+            JSON.stringify({
+              order: createdOrder,
+              items: orderItemsPayload,
+              store: {
+                primary_color: storeData.primary_color || null,
+                address: storeData.address || null,
+                address_number: storeData.address_number || null,
+                address_neighborhood: storeData.address_neighborhood || null,
+                address_city: storeData.address_city || null,
+                address_state: storeData.address_state || null,
+                address_zip_code: storeData.address_zip_code || null,
+              },
+            })
+          );
+        } catch (storageError) {
+          console.warn("[Checkout] não foi possível salvar cache local da confirmação", storageError);
         }
 
         return createdOrder as any;
