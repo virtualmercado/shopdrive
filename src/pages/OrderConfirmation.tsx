@@ -90,12 +90,20 @@ const OrderConfirmation = () => {
         // Fetch store data for primary color and address
         const { data: store } = await (supabase as any)
           .from("public_store_profiles")
-          .select("primary_color, address, address_number, address_neighborhood, address_city, address_state, address_zip_code")
+          .select("primary_color, address, address_number, address_neighborhood, address_city, address_state, merchant_reference_cep")
           .eq("id", order.store_owner_id)
           .maybeSingle();
 
         if (store) {
-          setStoreData(store);
+          setStoreData({
+            primary_color: store.primary_color,
+            address: store.address,
+            address_number: store.address_number,
+            address_neighborhood: store.address_neighborhood,
+            address_city: store.address_city,
+            address_state: store.address_state,
+            address_zip_code: store.merchant_reference_cep,
+          });
         } else if (cachedCheckoutOrder?.store) {
           setStoreData(cachedCheckoutOrder.store);
         }
