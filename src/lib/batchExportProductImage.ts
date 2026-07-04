@@ -27,7 +27,8 @@ const getCropDimensions = (imgWidth: number, imgHeight: number, preset: EditorSe
   return { width: imgWidth, height: Math.round(imgWidth / ratio) };
 };
 
-// Helper: apply sharpness using unsharp mask technique (same mapping as editor)
+// Helper: apply sharpness using unsharp mask with 3x3 Gaussian blur
+// (mirrors editor implementation so exported JPEG matches the preview).
 const applySharpness = (imageData: ImageData, amount: number): ImageData => {
   if (amount === 0) return imageData;
 
@@ -37,22 +38,31 @@ const applySharpness = (imageData: ImageData, amount: number): ImageData => {
   const result = new ImageData(new Uint8ClampedArray(data), width, height);
   const resultData = result.data;
 
-  const strength = (amount / 30) * 0.6;
+  const strength = (amount / 30) * 2.2;
+  const HALO_LIMIT = 40;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const idx = (y * width + x) * 4;
-
-      const idxUp = ((y - 1) * width + x) * 4;
-      const idxDown = ((y + 1) * width + x) * 4;
-      const idxLeft = (y * width + (x - 1)) * 4;
-      const idxRight = (y * width + (x + 1)) * 4;
+      const rowT = (y - 1) * width;
+      const rowM = y * width;
+      const rowB = (y + 1) * width;
 
       for (let c = 0; c < 3; c++) {
-        const center = data[idx + c];
-        const blur = (data[idxUp + c] + data[idxDown + c] + data[idxLeft + c] + data[idxRight + c]) / 4;
-        const detail = center - blur;
-        resultData[idx + c] = Math.max(0, Math.min(255, center + detail * strength));
+        const tl = data[(rowT + (x - 1)) * 4 + c];
+        const tc = data[(rowT + x) * 4 + c];
+        const tr = data[(rowT + (x + 1)) * 4 + c];
+        const ml = data[(rowM + (x - 1)) * 4 + c];
+        const mc = data[idx + c];
+        const mr = data[(rowM + (x + 1)) * 4 + c];
+        const bl = data[(rowB + (x - 1)) * 4 + c];
+        const bc = data[(rowB + x) * 4 + c];
+        const br = data[(rowB + (x + 1)) * 4 + c];
+        const blur = (tl + 2 * tc + tr + 2 * ml + 4 * mc + 2 * mr + bl + 2 * bc + br) / 16;
+        let detail = mc - blur;
+        if (detail > HALO_LIMIT) detail = HALO_LIMIT + (detail - HALO_LIMIT) * 0.3;
+        else if (detail < -HALO_LIMIT) detail = -HALO_LIMIT + (detail + HALO_LIMIT) * 0.3;
+        resultData[idx + c] = Math.max(0, Math.min(255, mc + detail * strength));
       }
       resultData[idx + 3] = data[idx + 3];
     }
