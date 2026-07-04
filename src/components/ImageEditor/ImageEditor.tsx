@@ -432,106 +432,114 @@ const analyzeImageHistogram = (imageData: ImageData): HistogramAnalysis => {
   };
 };
 
-// Helper: calculate auto adjustments based on histogram (PROFESSIONAL pipeline)
+// Helper: calculate auto adjustments based on histogram analysis.
+// PURELY CONDITIONAL — no fixed preset is ever applied. Each slider is
+// decided independently from real image metrics. Well-exposed images
+// receive near-zero adjustments; only clearly problematic images get
+// stronger corrections (mimicking Lightroom's Auto behavior).
 const calculateAutoAdjustments = (analysis: HistogramAnalysis): ImageAdjustments => {
-  const { 
-    median, stdDev, 
+  const {
+    median, stdDev,
     clippingHighlights, clippingShadows,
-    hasWhiteBackground, dynamicRange,
+    p1, p99, dynamicRange,
   } = analysis;
 
-  // === STEP 1: AUTO WHITE BALANCE (via exposure correction) ===
-  const targetMedian = 0.52;
   let exposure = 0;
-  const medianDev = median - targetMedian;
-  if (medianDev < -0.05) {
-    // Underexposed → lift
-    exposure = Math.min(45, Math.abs(medianDev) * 130);
-  } else if (medianDev > 0.08 && !hasWhiteBackground) {
-    // Overexposed → pull down (skip for white bg)
-    exposure = Math.max(-35, -medianDev * 110);
-  }
-  // White bg: never reduce exposure
-  if (hasWhiteBackground && exposure < 0) exposure = 0;
-  // Minimum visible change
-  if (Math.abs(exposure) > 0 && Math.abs(exposure) < 5) {
-    exposure = exposure > 0 ? 5 : -5;
-  }
-
-  // === STEP 2: DYNAMIC RANGE EXPANSION (contrast) ===
   let contrast = 0;
-  if (stdDev < 0.16) {
-    // Washed out → boost contrast
-    contrast = Math.min(30, (0.22 - stdDev) * 220);
-  } else if (stdDev > 0.34) {
-    // Too harsh → soften
-    contrast = Math.max(-20, (0.28 - stdDev) * 120);
-  }
-  // White bg: limit contrast to preserve background
-  if (hasWhiteBackground) contrast = Math.min(contrast, 10);
-  // Ensure minimum visible change
-  if (Math.abs(contrast) > 0 && Math.abs(contrast) < 4) {
-    contrast = contrast > 0 ? 4 : -4;
-  }
-
-  // === STEP 3: HIGHLIGHT RECOVERY ===
   let highlights = 0;
-  if (clippingHighlights > 0.02) {
-    highlights = Math.max(-50, -clippingHighlights * 350);
-  }
-  // White bg: gentle recovery only
-  if (hasWhiteBackground) highlights = Math.max(highlights, -8);
-
-  // === STEP 4: SHADOW RECOVERY ===
   let shadows = 0;
-  if (clippingShadows > 0.015) {
-    shadows = Math.min(40, clippingShadows * 500);
-  } else if (median < 0.45) {
-    // Dark image: lift shadows even without clipping
-    shadows = Math.min(25, (0.45 - median) * 100);
-  }
-  // Ensure minimum visible change
-  if (shadows > 0 && shadows < 5) shadows = 5;
-
-  // === STEP 5: WHITES COMPRESSION ===
   let whites = 0;
-  if (clippingHighlights > 0.04 && !hasWhiteBackground) {
-    whites = Math.max(-35, -clippingHighlights * 300);
-  }
-
-  // === STEP 6: BLACKS (depth) ===
   let blacks = 0;
-  if (dynamicRange < 0.55) {
-    // Low dynamic range: add depth via blacks
-    blacks = Math.min(20, (0.65 - dynamicRange) * 100);
+  let sharpness = 0;
+
+  // ── EXPOSURE (only if clearly under/over exposed) ─────────────────
+  // Target median ≈ 0.5. Deadzone 0.40–0.65 → no change.
+  if (median < 0.30) {
+    // Clearly dark → allow up to +35
+    exposure = Math.min(35, Math.round((0.50 - median) * 80));
+  } else if (median < 0.40) {
+    // Slightly dark → gentle lift ≤ +20
+    exposure = Math.min(20, Math.round((0.50 - median) * 60));
+  } else if (median > 0.78) {
+    // Clearly bright → allow down to -30
+    exposure = Math.max(-30, Math.round((0.50 - median) * 70));
+  } else if (median > 0.65) {
+    // Slightly bright → gentle pull ≤ -18
+    exposure = Math.max(-18, Math.round((0.50 - median) * 55));
   }
-  if (hasWhiteBackground) blacks = 0;
+  // else: well-exposed, leave exposure at 0
 
-  // === STEP 7: CLARITY / SHARPNESS ===
-  // Always add moderate sharpness for e-commerce crispness
-  let sharpness = 10;
-  if (dynamicRange < 0.45) sharpness = 15;
-  if (dynamicRange > 0.7) sharpness = 6;
+  // ── CONTRAST (only if washed out or too harsh) ────────────────────
+  if (stdDev < 0.13) {
+    // Flat / washed → boost
+    contrast = Math.min(25, Math.round((0.20 - stdDev) * 220));
+  } else if (stdDev > 0.34) {
+    // Overly harsh → soften slightly
+    contrast = Math.max(-15, Math.round((0.30 - stdDev) * 100));
+  }
 
-  // === FINAL: ensure at least SOME visible change ===
-  const proposed = {
-    exposure: Math.round(exposure),
-    contrast: Math.round(contrast),
-    highlights: Math.round(highlights),
-    shadows: Math.round(shadows),
-    whites: Math.round(whites),
-    blacks: Math.round(blacks),
-    sharpness: Math.round(sharpness),
+  // ── HIGHLIGHTS (recover only when clipping is real) ───────────────
+  if (clippingHighlights > 0.03) {
+    highlights = Math.max(-45, Math.round(-clippingHighlights * 400));
+  } else if (clippingHighlights > 0.01 && p99 > 0.97) {
+    highlights = -8;
+  }
+
+  // ── SHADOWS (open only when dark clipping or overall darkness) ────
+  if (clippingShadows > 0.03) {
+    shadows = Math.min(40, Math.round(clippingShadows * 500));
+  } else if (median < 0.42 && p1 < 0.06) {
+    shadows = Math.min(22, Math.round((0.45 - median) * 60));
+  } else if (p1 > 0.20 && stdDev < 0.18) {
+    // Shadows already too lifted → gentle pull
+    shadows = Math.max(-12, Math.round(-(p1 - 0.15) * 60));
+  }
+
+  // ── WHITES (extend or compress tonal top) ─────────────────────────
+  if (clippingHighlights > 0.05) {
+    whites = Math.max(-25, Math.round(-clippingHighlights * 250));
+  } else if (p99 < 0.85 && stdDev < 0.20) {
+    // Opaque image → lift whites gently
+    whites = Math.min(15, Math.round((0.92 - p99) * 60));
+  }
+
+  // ── BLACKS (add depth or open blocked shadows) ────────────────────
+  if (clippingShadows > 0.05) {
+    // Blocked shadows → open blacks
+    blacks = Math.min(20, Math.round(clippingShadows * 200));
+  } else if (p1 > 0.12 && stdDev < 0.20) {
+    // Washed low end → gentle deepen
+    blacks = Math.max(-15, Math.round(-(p1 - 0.05) * 90));
+  }
+
+  // ── SHARPNESS (moderate, image-adaptive) ──────────────────────────
+  if (dynamicRange < 0.45) sharpness = 8;
+  else if (dynamicRange < 0.65) sharpness = 6;
+  else sharpness = 4;
+
+  const proposed: ImageAdjustments = {
+    exposure,
+    contrast,
+    highlights,
+    shadows,
+    whites,
+    blacks,
+    sharpness,
   };
 
-  // If all tonal adjustments are zero, force a minimal enhancement
-  const tonalSum = Math.abs(proposed.exposure) + Math.abs(proposed.contrast) + 
-    Math.abs(proposed.highlights) + Math.abs(proposed.shadows);
-  if (tonalSum === 0) {
-    // Image is near-perfect but apply subtle professional polish
-    proposed.contrast = 5;
-    proposed.shadows = 8;
-    proposed.sharpness = 8;
+  if (typeof console !== "undefined") {
+    console.log("[VM][AutoIA]", {
+      metrics: {
+        median: +median.toFixed(3),
+        stdDev: +stdDev.toFixed(3),
+        p1: +p1.toFixed(3),
+        p99: +p99.toFixed(3),
+        dynamicRange: +dynamicRange.toFixed(3),
+        clippingHighlights: +clippingHighlights.toFixed(4),
+        clippingShadows: +clippingShadows.toFixed(4),
+      },
+      applied: proposed,
+    });
   }
 
   return proposed;
