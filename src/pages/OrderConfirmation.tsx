@@ -58,6 +58,14 @@ const OrderConfirmation = () => {
       if (!orderId) return;
 
       try {
+        let cachedCheckoutOrder: { order?: OrderData; items?: OrderItem[]; store?: StoreData } | null = null;
+        try {
+          const cached = sessionStorage.getItem(`shopdrive_checkout_order:${orderId}`);
+          cachedCheckoutOrder = cached ? JSON.parse(cached) : null;
+        } catch (cacheError) {
+          console.warn("[OrderConfirmation] Não foi possível ler o cache local do pedido", cacheError);
+        }
+
         // Fetch order
         const { data: order, error: orderError } = await supabase
           .from("orders")
@@ -66,20 +74,38 @@ const OrderConfirmation = () => {
           .single();
 
         if (orderError || !order) {
+          if (cachedCheckoutOrder?.order) {
+            setOrderData(cachedCheckoutOrder.order);
+            setOrderItems(cachedCheckoutOrder.items || []);
+            if (cachedCheckoutOrder.store) {
+              setStoreData(cachedCheckoutOrder.store);
+            }
+            return;
+          }
           throw new Error("Pedido não encontrado");
         }
 
         setOrderData(order);
 
         // Fetch store data for primary color and address
-        const { data: store } = await supabase
-          .from("profiles")
-          .select("primary_color, address, address_number, address_neighborhood, address_city, address_state, address_zip_code")
+        const { data: store } = await (supabase as any)
+          .from("public_store_profiles")
+          .select("primary_color, address, address_number, address_neighborhood, address_city, address_state, merchant_reference_cep")
           .eq("id", order.store_owner_id)
-          .single();
+          .maybeSingle();
 
         if (store) {
-          setStoreData(store);
+          setStoreData({
+            primary_color: store.primary_color,
+            address: store.address,
+            address_number: store.address_number,
+            address_neighborhood: store.address_neighborhood,
+            address_city: store.address_city,
+            address_state: store.address_state,
+            address_zip_code: store.merchant_reference_cep,
+          });
+        } else if (cachedCheckoutOrder?.store) {
+          setStoreData(cachedCheckoutOrder.store);
         }
 
         // Fetch order items
@@ -89,6 +115,10 @@ const OrderConfirmation = () => {
           .eq("order_id", orderId);
 
         if (itemsError) {
+          if (cachedCheckoutOrder?.items) {
+            setOrderItems(cachedCheckoutOrder.items);
+            return;
+          }
           throw new Error("Erro ao carregar itens do pedido");
         }
 

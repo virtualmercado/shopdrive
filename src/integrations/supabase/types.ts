@@ -2671,6 +2671,7 @@ export type Database = {
           boleto_payment_id: string | null
           boleto_payment_status: string | null
           boleto_url: string | null
+          checkout_origin: string | null
           created_at: string
           customer_address: string | null
           customer_email: string
@@ -2680,10 +2681,12 @@ export type Database = {
           delivery_fee: number | null
           delivery_method: string | null
           id: string
+          is_guest_order: boolean
           notes: string | null
           order_number: string | null
           order_source: string
           payment_method: string | null
+          payment_status: string
           pix_expires_at: string | null
           pix_payment_id: string | null
           pix_payment_status: string | null
@@ -2702,6 +2705,7 @@ export type Database = {
           boleto_payment_id?: string | null
           boleto_payment_status?: string | null
           boleto_url?: string | null
+          checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
           customer_email: string
@@ -2711,10 +2715,12 @@ export type Database = {
           delivery_fee?: number | null
           delivery_method?: string | null
           id?: string
+          is_guest_order?: boolean
           notes?: string | null
           order_number?: string | null
           order_source?: string
           payment_method?: string | null
+          payment_status?: string
           pix_expires_at?: string | null
           pix_payment_id?: string | null
           pix_payment_status?: string | null
@@ -2733,6 +2739,7 @@ export type Database = {
           boleto_payment_id?: string | null
           boleto_payment_status?: string | null
           boleto_url?: string | null
+          checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
           customer_email?: string
@@ -2742,10 +2749,12 @@ export type Database = {
           delivery_fee?: number | null
           delivery_method?: string | null
           id?: string
+          is_guest_order?: boolean
           notes?: string | null
           order_number?: string | null
           order_source?: string
           payment_method?: string | null
+          payment_status?: string
           pix_expires_at?: string | null
           pix_payment_id?: string | null
           pix_payment_status?: string | null
@@ -5739,6 +5748,29 @@ export type Database = {
       coupon_usage_is_valid: {
         Args: { p_email: string; p_order_id: string }
         Returns: boolean
+      }
+      create_checkout_order: {
+        Args: {
+          p_checkout_origin?: string
+          p_customer_address?: string
+          p_customer_email?: string
+          p_customer_id?: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_delivery_fee?: number
+          p_delivery_method?: string
+          p_is_guest_order?: boolean
+          p_items?: Json
+          p_notes?: string
+          p_order_source?: string
+          p_payment_method?: string
+          p_payment_status?: string
+          p_status?: string
+          p_store_owner_id: string
+          p_subtotal?: number
+          p_total_amount?: number
+        }
+        Returns: Json
       }
       create_store_referral: {
         Args: {
