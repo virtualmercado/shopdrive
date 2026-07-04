@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,7 @@ const CheckoutContent = () => {
   const [pixGateway, setPixGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
   const [creditCardGateway, setCreditCardGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
   const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
+  const finalizingRef = useRef(false);
   
   // Customer data
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
@@ -667,6 +668,10 @@ const CheckoutContent = () => {
 
   const handleFinalize = async (cardTokenData?: CardTokenData) => {
     setCardProcessingError(null);
+    if (finalizingRef.current) {
+      console.warn("[Checkout] Finalização ignorada: pedido já está em processamento");
+      return;
+    }
     
     if (cart.length === 0) {
       toast.error("Seu carrinho está vazio");
@@ -705,6 +710,7 @@ const CheckoutContent = () => {
       }
     }
 
+    finalizingRef.current = true;
     setLoading(true);
 
     // Pre-open a blank tab for WhatsApp to preserve the user gesture while we persist the order
@@ -720,7 +726,6 @@ const CheckoutContent = () => {
     try {
       if (!storeData) throw new Error("Dados da loja não encontrados");
 
-
       const subtotal = getTotal();
       const couponDiscount = appliedCoupon?.isValid ? appliedCoupon.discount : 0;
       const pixDiscountPercent = (formData.payment_method === "pix" && paymentSettings?.pix_discount_percent > 0) 
@@ -733,6 +738,77 @@ const CheckoutContent = () => {
         : storeData.pickup_address || "Retirada na loja";
 
       const deliveryMethodLabel = formData.delivery_method === "retirada" ? "retirada" : "entrega";
+      const isGuestOrder = !user;
+      const orderItemsPayload = cart.map((item) => ({
+        product_id: item.id,
+        product_name: item.name,
+        product_price: item.promotional_price || item.price,
+        quantity: item.quantity,
+        subtotal: (item.promotional_price || item.price) * item.quantity,
+        variations: item.variations || null,
+      }));
+      const orderSource = sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store';
+      const getPaymentStatus = (method: PaymentMethod, gatewayStatus?: string) => {
+        if (method === "whatsapp") return "aguardando_combinar";
+        if (method === "cartao_credito") return gatewayStatus === "approved" ? "approved" : "pending";
+        return "pending";
+      };
+      const buildCheckoutOrderPayload = (status: string, paymentStatus = getPaymentStatus(formData.payment_method)) => ({
+        p_store_owner_id: storeData.id,
+        p_customer_id: user?.id || null,
+        p_customer_name: formData.customer_name,
+        p_customer_email: customerEmail || "",
+        p_customer_phone: formData.customer_phone,
+        p_customer_address: addressString,
+        p_delivery_method: deliveryMethodLabel,
+        p_payment_method: formData.payment_method,
+        p_subtotal: subtotal,
+        p_delivery_fee: deliveryFee,
+        p_total_amount: total,
+        p_status: status,
+        p_payment_status: paymentStatus,
+        p_notes: formData.notes || null,
+        p_order_source: orderSource,
+        p_checkout_origin: isGuestOrder ? "checkout_guest" : "checkout_customer",
+        p_is_guest_order: isGuestOrder,
+        p_items: orderItemsPayload as any,
+      });
+      const createCheckoutOrder = async (status: string, paymentStatus = getPaymentStatus(formData.payment_method)) => {
+        const payload = buildCheckoutOrderPayload(status, paymentStatus);
+        console.log("[Checkout] início do checkout", {
+          store_id: storeData.id,
+          store_slug: storeSlug,
+          cart_items: cart.length,
+          subtotal,
+          delivery_fee: deliveryFee,
+          total,
+        });
+        console.log("[Checkout] modo do cliente", isGuestOrder ? "convidado" : "cadastrado", {
+          customer_id: user?.id || null,
+          checkout_origin: payload.p_checkout_origin,
+        });
+        console.log("[Checkout] método de pagamento escolhido", formData.payment_method);
+        console.log("[Checkout] payload enviado para criar pedido", payload);
+
+        const { data: createdOrder, error: createOrderError } = await supabase.rpc(
+          "create_checkout_order" as any,
+          payload
+        );
+
+        console.log("[Checkout] resposta da criação do pedido", { data: createdOrder, error: createOrderError });
+        console.log("[Checkout] resposta da criação dos itens", {
+          success: !createOrderError && !!createdOrder,
+          items_count: orderItemsPayload.length,
+          order_id: (createdOrder as any)?.id || null,
+        });
+
+        if (createOrderError || !createdOrder) {
+          console.error("[Checkout] create_checkout_order error:", createOrderError);
+          throw new Error("Não foi possível registrar seu pedido. Tente novamente.");
+        }
+
+        return createdOrder as any;
+      };
 
       // CREDIT CARD FLOW - Process payment BEFORE creating order using card token
       if (formData.payment_method === "cartao_credito" && cardTokenData) {
@@ -773,6 +849,7 @@ const CheckoutContent = () => {
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
+            finalizingRef.current = false;
             return;
           }
 
@@ -785,37 +862,13 @@ const CheckoutContent = () => {
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
+            finalizingRef.current = false;
             return;
           }
 
-          // Payment approved or pending - create order with payment info
+          // Payment approved or pending - create order and items atomically with payment info
           const orderStatus = paymentData.status === "approved" ? "confirmed" : "pending";
-          
-          const { data: order, error: orderError } = await supabase
-            .from("orders")
-            .insert({
-              store_owner_id: storeData.id,
-              customer_id: user?.id || null,
-              customer_name: formData.customer_name,
-              customer_email: customerEmail || "",
-              customer_phone: formData.customer_phone,
-              customer_address: addressString,
-              delivery_method: deliveryMethodLabel,
-              payment_method: formData.payment_method,
-              subtotal,
-              delivery_fee: deliveryFee,
-              total_amount: total,
-              status: orderStatus,
-              notes: formData.notes || null,
-              order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
-            })
-            .select()
-            .single();
-
-          if (orderError || !order) {
-            console.error("Order creation error after payment:", orderError);
-            throw new Error("Pagamento aprovado, mas houve erro ao criar o pedido. Entre em contato com a loja.");
-          }
+          const order = await createCheckoutOrder(orderStatus, getPaymentStatus("cartao_credito", paymentData.status));
 
           logAuditEvent({
             action: "order_created",
@@ -823,28 +876,6 @@ const CheckoutContent = () => {
             entityId: order.id,
             description: "Novo pedido registrado na loja",
           });
-
-          // Insert order items via secure RPC (avoids RLS window + propagates variations)
-          const ccOrderItemsPayload = cart.map((item) => ({
-            product_id: item.id,
-            product_name: item.name,
-            product_price: item.promotional_price || item.price,
-            quantity: item.quantity,
-            subtotal: (item.promotional_price || item.price) * item.quantity,
-            variations: item.variations || null,
-          }));
-          const { error: itemsError } = await supabase.rpc("insert_order_items_secure" as any, {
-            p_order_id: order.id,
-            p_items: ccOrderItemsPayload as any,
-          });
-          if (itemsError) {
-            console.error("[Checkout-CC] order_items insert error:", itemsError);
-            // Revert orphan order
-            await supabase.from("orders").delete().eq("id", order.id);
-            throw new Error(
-              "Pagamento aprovado, mas não foi possível registrar os itens do pedido. Entre em contato com a loja."
-            );
-          }
 
           // Record coupon usage
           if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
@@ -874,36 +905,15 @@ const CheckoutContent = () => {
           setCardProcessingError(errorMessage);
           toast.error(errorMessage);
           setLoading(false);
+          finalizingRef.current = false;
           return;
         }
       }
 
       // WhatsApp order persistence happens after order + items are created (see below).
 
-      // For non-credit card payments, create order first
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          store_owner_id: storeData.id,
-          customer_id: user?.id || null,
-          customer_name: formData.customer_name,
-          customer_email: customerEmail || "",
-          customer_phone: formData.customer_phone,
-
-          customer_address: addressString,
-          delivery_method: deliveryMethodLabel,
-          payment_method: formData.payment_method,
-          subtotal,
-          delivery_fee: deliveryFee,
-          total_amount: total,
-          status: "pending",
-          notes: formData.notes || null,
-          order_source: sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store',
-        })
-        .select()
-        .single();
-
-      if (orderError || !order) throw new Error("Erro ao criar pedido");
+      // For non-credit card payments, create order and items first in a single secure backend routine
+      const order = await createCheckoutOrder("pending");
 
       logAuditEvent({
         action: "order_created",
@@ -911,29 +921,6 @@ const CheckoutContent = () => {
         entityId: order.id,
         description: "Novo pedido registrado na loja",
       });
-
-      // Insert order items via secure RPC (avoids 60s RLS window and propagates variations)
-      const orderItemsPayload = cart.map((item) => ({
-        product_id: item.id,
-        product_name: item.name,
-        product_price: item.promotional_price || item.price,
-        quantity: item.quantity,
-        subtotal: (item.promotional_price || item.price) * item.quantity,
-        variations: item.variations || null,
-      }));
-
-      const { error: itemsError } = await supabase.rpc("insert_order_items_secure" as any, {
-        p_order_id: order.id,
-        p_items: orderItemsPayload as any,
-      });
-      if (itemsError) {
-        console.error("[Checkout] order_items insert error:", itemsError);
-        // Revert orphan order to avoid orders without items
-        await supabase.from("orders").delete().eq("id", order.id);
-        throw new Error(
-          "Não foi possível registrar os itens do pedido. Por favor, tente finalizar novamente."
-        );
-      }
 
       // WhatsApp flow: order + items already persisted. Now open WhatsApp with the order number.
       if (formData.payment_method === "whatsapp" && storeData.whatsapp_number) {
@@ -965,6 +952,7 @@ const CheckoutContent = () => {
         let cleanPhone = storeData.whatsapp_number.replace(/\D/g, "");
         if (!cleanPhone.startsWith("55")) cleanPhone = "55" + cleanPhone;
         const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+        console.log("[Checkout] abertura do WhatsApp", { order_id: order.id, order_number: (order as any).order_number ?? null });
 
         if (whatsappWindow && !whatsappWindow.closed) {
           try {
@@ -1013,6 +1001,7 @@ const CheckoutContent = () => {
             console.error("InfinitePay error:", ipResp.error, ipResp.data);
             toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
             setLoading(false);
+            finalizingRef.current = false;
             return;
           }
 
@@ -1029,6 +1018,7 @@ const CheckoutContent = () => {
           console.error("InfinitePay exception:", ipErr);
           toast.error("Não foi possível iniciar o pagamento pela InfinitePay. Tente novamente ou escolha outro método.");
           setLoading(false);
+          finalizingRef.current = false;
           return;
         }
       }
@@ -1040,6 +1030,7 @@ const CheckoutContent = () => {
         setCreatedOrderId(order.id);
         setShowPixPayment(true);
         setLoading(false);
+        finalizingRef.current = false;
         return;
       }
 
@@ -1114,12 +1105,14 @@ const CheckoutContent = () => {
       setTimeout(() => navigate(`/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
     } catch (error: any) {
       console.error("Checkout error:", error);
+      console.error("[Checkout] erro completo", error);
       if (whatsappWindow && !whatsappWindow.closed) {
         try { whatsappWindow.close(); } catch { /* noop */ }
       }
-      toast.error(error.message || "Não foi possível registrar seu pedido. Tente novamente.");
+      toast.error("Não foi possível registrar seu pedido. Tente novamente.");
     } finally {
       setLoading(false);
+      finalizingRef.current = false;
     }
 
   };
