@@ -713,15 +713,7 @@ const CheckoutContent = () => {
     finalizingRef.current = true;
     setLoading(true);
 
-    // Pre-open a blank tab for WhatsApp to preserve the user gesture while we persist the order
     let whatsappWindow: Window | null = null;
-    if (formData.payment_method === "whatsapp" && storeData?.whatsapp_number) {
-      try {
-        whatsappWindow = window.open("about:blank", "_blank");
-      } catch {
-        whatsappWindow = null;
-      }
-    }
 
     try {
       if (!storeData) throw new Error("Dados da loja não encontrados");
@@ -1091,7 +1083,7 @@ const CheckoutContent = () => {
         return;
       }
 
-      // WhatsApp flow: o WhatsApp Web é aberto antes da criação do pedido (para manter o gesto do usuário).
+      // WhatsApp flow: WhatsApp is opened only after the order and items are saved.
 
       if (appliedCoupon?.isValid && appliedCoupon.couponId && customerEmail) {
         await recordCouponUsage(appliedCoupon.couponId, customerEmail, order.id);
