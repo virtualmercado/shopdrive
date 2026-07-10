@@ -193,7 +193,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [imageEditorBlockOpen, setImageEditorBlockOpen] = useState(false);
 
   // Plan check for image editor
-  const { limits: planLimits } = useMerchantPlan();
+  const { limits: planLimits, loading: planLoading, productCount } = useMerchantPlan();
 
   // Batch apply state (padronização em lote)
   const [batchApplyStatus, setBatchApplyStatus] = useState({ inProgress: false, completed: 0, total: 0, failed: 0 });
@@ -745,6 +745,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         if (!isNaN(endDate.getTime())) promoCountdownIso = endDate.toISOString();
       }
 
+      const shouldCreateInactiveByPlanLimit = !product
+        && !planLoading
+        && planLimits.maxProducts !== null
+        && productCount >= planLimits.maxProducts;
+
       const productData = {
         name: name.trim(),
         description: description?.trim() || null,
@@ -767,6 +772,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         promotion_countdown_enabled: promoCountdownEnabled,
         promotion_countdown_text: (promoCountdownText || "Oferta termina em").trim() || "Oferta termina em",
         promotion_countdown_ends_at: promoCountdownIso,
+        ...(!product && shouldCreateInactiveByPlanLimit
+          ? { is_active: false, inactive_reason: "plan_limit" }
+          : {}),
       };
 
       if (product) {
@@ -806,7 +814,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
         toast({
           title: "Sucesso",
-          description: "Produto criado com sucesso",
+          description: shouldCreateInactiveByPlanLimit
+            ? "Produto criado como inativo porque o limite de produtos ativos do plano foi atingido"
+            : "Produto criado com sucesso",
         });
       }
 
