@@ -152,10 +152,6 @@ const Products = () => {
   };
 
   const handleNewProduct = () => {
-    if (!canAddProduct) {
-      setLimitModalOpen(true);
-      return;
-    }
     setSelectedProduct(null);
     setFormOpen(true);
   };
