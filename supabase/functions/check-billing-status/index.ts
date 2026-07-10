@@ -27,6 +27,16 @@ async function applyConfirmedDowngrade(supabase: any, userId: string, newPlan: s
   return count;
 }
 
+async function isEffectiveSubscription(supabase: any, userId: string, subscriptionId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("get_effective_store_plan", { p_store_id: userId });
+  if (error) {
+    console.error("Error resolving effective subscription", { userId, subscriptionId, error });
+    return false;
+  }
+
+  return data?.subscriptionId === subscriptionId;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -59,6 +69,11 @@ serve(async (req) => {
     }
 
     for (const sub of overdueActive || []) {
+      if (!(await isEffectiveSubscription(supabase, sub.user_id, sub.id))) {
+        console.log("Skipping stale overdue subscription", { subscriptionId: sub.id, userId: sub.user_id, planId: sub.plan_id });
+        continue;
+      }
+
       // Skip if already has grace period set (already handled)
       if (sub.grace_period_ends_at) continue;
 
@@ -116,6 +131,11 @@ serve(async (req) => {
     }
 
     for (const sub of expiredGrace || []) {
+      if (!(await isEffectiveSubscription(supabase, sub.user_id, sub.id))) {
+        console.log("Skipping stale expired-grace subscription", { subscriptionId: sub.id, userId: sub.user_id, planId: sub.plan_id });
+        continue;
+      }
+
       console.log(`Sub ${sub.id}: grace period expired, downgrading to FREE from ${sub.plan_id}`);
 
       const previousPlanId = sub.plan_id;
@@ -183,6 +203,11 @@ serve(async (req) => {
     }
 
     for (const sub of activeWithExpiredGrace || []) {
+      if (!(await isEffectiveSubscription(supabase, sub.user_id, sub.id))) {
+        console.log("Skipping stale active-with-expired-grace subscription", { subscriptionId: sub.id, userId: sub.user_id, planId: sub.plan_id });
+        continue;
+      }
+
       console.log(`Sub ${sub.id}: active with expired grace, downgrading`);
 
       const previousPlanId = sub.plan_id;
