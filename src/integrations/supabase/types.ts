@@ -5704,6 +5704,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_product_with_plan_validation: {
+        Args: { p_active: boolean; p_product_id: string }
+        Returns: Json
+      }
       activate_template_for_current_user: {
         Args: {
           p_full_name?: string
@@ -5711,6 +5715,10 @@ export type Database = {
           p_template_slug: string
         }
         Returns: Json
+      }
+      apply_confirmed_plan_downgrade: {
+        Args: { p_new_plan: string; p_store_id: string }
+        Returns: number
       }
       apply_template_to_existing_store: {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
@@ -5812,6 +5820,7 @@ export type Database = {
           impressions: number
         }[]
       }
+      get_effective_store_plan: { Args: { p_store_id: string }; Returns: Json }
       get_melhor_envio_status: {
         Args: { p_user_id: string }
         Returns: {
@@ -5820,6 +5829,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
       get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
       get_referral_stats: {
         Args: { p_store_id: string }
