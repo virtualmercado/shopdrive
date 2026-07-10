@@ -82,7 +82,7 @@ const Products = () => {
   const gridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const { plan, limits, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
+  const { plan, limits, loading: planLoading, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
 
   useEffect(() => {
     fetchProducts();
@@ -211,31 +211,47 @@ const Products = () => {
   const handleToggleActive = async (productId: string, currentActive: boolean) => {
     const newActive = !currentActive;
 
-    // Block activation if plan limit reached
-    if (newActive && limits.maxProducts !== null) {
-      const currentActiveCount = products.filter(p => p.is_active).length;
-      if (currentActiveCount >= limits.maxProducts) {
+    if (newActive && planLoading) {
+      toast({
+        title: "Aguarde",
+        description: "Estamos confirmando seu plano antes de publicar o produto.",
+      });
+      return;
+    }
+
+    // UX hint only. The definitive validation happens atomically in the backend.
+    if (newActive && limits.maxProducts !== null && productCount >= limits.maxProducts) {
         toast({
           title: "Limite do plano atingido",
-          description: `Seu plano atual permite até ${limits.maxProducts} produtos ativos. Faça upgrade para liberar mais produtos.`,
+          description: "Você atingiu o limite de produtos ativos do seu plano. Faça upgrade para publicar mais produtos.",
+          variant: "destructive",
+        });
+        return;
+    }
+
+    try {
+      const { data, error } = await (supabase.rpc as any)('activate_product_with_plan_validation', {
+        p_product_id: productId,
+        p_active: newActive,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success?: boolean; message?: string; reason?: string } | null;
+      if (result?.success === false) {
+        toast({
+          title: result.reason === 'plan_limit' ? "Limite do plano atingido" : "Não foi possível alterar o produto",
+          description: result.message || "Não foi possível alterar o status do produto.",
           variant: "destructive",
         });
         return;
       }
-    }
 
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, is_active: newActive } : p))
-    );
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          is_active: newActive,
-          inactive_reason: newActive ? null : 'manual',
-        })
-        .eq('id', productId);
-      if (error) throw error;
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, is_active: newActive } : p))
+      );
+      void refetchPlan();
+
       toast({
         title: newActive ? "Produto ativado" : "Produto desativado",
         description: newActive
@@ -243,12 +259,9 @@ const Products = () => {
           : "Produto oculto da loja online",
       });
     } catch (error) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, is_active: currentActive } : p))
-      );
       toast({
         title: "Erro",
-        description: "Erro ao alterar status do produto",
+        description: error instanceof Error ? error.message : "Erro ao alterar status do produto",
         variant: "destructive",
       });
     }
@@ -323,7 +336,7 @@ const Products = () => {
         {/* Plan limit indicator */}
         {limits.maxProducts !== null && (
           <div className="text-sm text-muted-foreground">
-            Produtos ativos: <strong>{products.filter(p => p.is_active).length}</strong> / {limits.maxProducts}
+            Produtos ativos: <strong>{productCount}</strong> / {limits.maxProducts}
             {products.filter(p => !p.is_active).length > 0 && (
               <span className="ml-2">({products.filter(p => !p.is_active).length} inativos)</span>
             )}

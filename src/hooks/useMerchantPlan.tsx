@@ -45,9 +45,19 @@ interface UseMerchantPlanReturn {
   refetch: () => Promise<void>;
 }
 
+interface ProductPlanUsageResponse {
+  plan?: string;
+  productLimit?: number | null;
+  unlimited?: boolean;
+  totalProducts?: number;
+  activeProducts?: number;
+  remainingActivations?: number | null;
+  canActivateMore?: boolean;
+}
+
 export const useMerchantPlan = (): UseMerchantPlanReturn => {
   const { user, loading: authLoading } = useAuth();
-  const [plan, setPlan] = useState<MerchantPlan>('free');
+  const [plan, setPlan] = useState<MerchantPlan>('unknown');
   const [loading, setLoading] = useState(true);
   const [productCount, setProductCount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
@@ -56,7 +66,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
 
   const fetchPlanAndCounts = async () => {
     if (!user) {
-      setPlan('free');
+      setPlan('unknown');
       setProductCount(0);
       setCustomerCount(0);
       setLoading(false);
@@ -64,38 +74,28 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
     }
 
     try {
-      // Fetch subscription, product count, and customer count in parallel
-      const [subResult, productResult, customerResult] = await Promise.all([
-        supabase
-          .from('master_subscriptions')
-          .select('plan_id, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id),
+      const [usageResult, customerResult] = await Promise.all([
+        (supabase.rpc as any)('get_product_plan_usage', { p_store_id: user.id }),
         supabase
           .from('store_customers')
           .select('id', { count: 'exact', head: true })
           .eq('store_owner_id', user.id),
       ]);
 
-      // Determine plan
-      const sub = subResult.data;
-      if (sub && (sub.status === 'active' || sub.status === 'past_due')) {
-        setPlan(getPlanFromPlanId(sub.plan_id));
-      } else {
-        setPlan('free');
-      }
+      if (usageResult.error) throw usageResult.error;
 
-      setProductCount(productResult.count ?? 0);
+      const usage = usageResult.data as ProductPlanUsageResponse | null;
+      if (usage?.plan) {
+        setPlan(getPlanFromPlanId(usage.plan));
+        setProductCount(Number(usage.activeProducts ?? 0));
+      } else {
+        setPlan('unknown');
+        setProductCount(0);
+      }
       setCustomerCount(customerResult.count ?? 0);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching merchant plan:', error);
-      setPlan('free');
+      setPlan('unknown');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
     loading: loading || authLoading,
     productCount,
     customerCount,
-    canAddProduct: isWithinLimit(productCount, limits.maxProducts),
+    canAddProduct: (loading || authLoading) ? true : isWithinLimit(productCount, limits.maxProducts),
     canAddCustomer: isWithinLimit(customerCount, limits.maxCustomers),
     refetch: fetchPlanAndCounts,
   };

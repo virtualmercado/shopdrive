@@ -1,4 +1,4 @@
-export type MerchantPlan = 'free' | 'pro' | 'premium';
+export type MerchantPlan = 'unknown' | 'free' | 'pro' | 'premium';
 
 export interface PlanLimits {
   maxProducts: number | null; // null = unlimited
@@ -14,6 +14,18 @@ export interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
+  unknown: {
+    maxProducts: null,
+    maxCustomers: null,
+    canCustomizeLogo: false,
+    canCustomizeColors: false,
+    canUseCustomDomain: false,
+    canUseImageEditor: false,
+    canUseMarketing: false,
+    canUseCoupons: false,
+    canUseWhatsAppSupport: false,
+    canUseReviews: false,
+  },
   free: {
     maxProducts: 20,
     maxCustomers: 40,
@@ -53,13 +65,14 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
 };
 
 export const PLAN_DISPLAY_NAMES: Record<MerchantPlan, string> = {
+  unknown: 'Carregando',
   free: 'Grátis',
   pro: 'Pro',
   premium: 'Premium',
 };
 
 export function getPlanFromPlanId(planId: string | null | undefined): MerchantPlan {
-  if (!planId) return 'free';
+  if (!planId) return 'unknown';
   const normalized = planId.toLowerCase().trim();
   if (normalized === 'premium') return 'premium';
   if (normalized === 'pro') return 'pro';

@@ -9,61 +9,20 @@ const corsHeaders = {
 const GRACE_PERIOD_DAYS_MONTHLY = 7;
 const GRACE_PERIOD_DAYS_ANNUAL = 14;
 
-/**
- * Deactivate excess active products for a user, keeping only the oldest N.
- * Returns the number of products deactivated.
- */
-async function deactivateExcessProducts(supabase: any, userId: string, maxActive: number): Promise<number> {
-  // Get all active product IDs ordered by creation date
-  const { data: activeProducts, error } = await supabase
-    .from("products")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-
-  if (error || !activeProducts) {
-    console.error("Error fetching active products for user", userId, error);
-    return 0;
-  }
-
-  if (activeProducts.length <= maxActive) return 0;
-
-  const idsToDeactivate = activeProducts.slice(maxActive).map((p: any) => p.id);
-
-  const { error: updateError } = await supabase
-    .from("products")
-    .update({ is_active: false, inactive_reason: "plan_limit" })
-    .in("id", idsToDeactivate);
-
-  if (updateError) {
-    console.error("Error deactivating excess products:", updateError);
-    return 0;
-  }
-
-  console.log(`Deactivated ${idsToDeactivate.length} excess products for user ${userId}`);
-  return idsToDeactivate.length;
-}
-
-/**
- * Reactivate all products for a user after plan upgrade.
- */
-async function reactivateAllProducts(supabase: any, userId: string): Promise<number> {
-  const { data, error } = await supabase
-    .from("products")
-    .update({ is_active: true })
-    .eq("user_id", userId)
-    .eq("is_active", false)
-    .select("id");
+async function applyConfirmedDowngrade(supabase: any, userId: string, newPlan: string): Promise<number> {
+  const { data, error } = await supabase.rpc("apply_confirmed_plan_downgrade", {
+    p_store_id: userId,
+    p_new_plan: newPlan,
+  });
 
   if (error) {
-    console.error("Error reactivating products:", error);
+    console.error("Error applying confirmed downgrade:", { userId, newPlan, error });
     return 0;
   }
 
-  const count = data?.length || 0;
+  const count = Number(data || 0);
   if (count > 0) {
-    console.log(`Reactivated ${count} products for user ${userId}`);
+    console.log("[billing][confirmed_downgrade] products deactivated", { userId, newPlan, count });
   }
   return count;
 }
@@ -194,8 +153,7 @@ serve(async (req) => {
         },
       });
 
-      // Deactivate excess products (keep only first 20 by created_at ASC)
-      const deactivatedCount = await deactivateExcessProducts(supabase, sub.user_id, 20);
+      const deactivatedCount = await applyConfirmedDowngrade(supabase, sub.user_id, "free");
 
       results.push({
         subscriptionId: sub.id,
@@ -254,8 +212,7 @@ serve(async (req) => {
         metadata: { previousPlanId, reason: "nonpayment_cleanup" },
       });
 
-      // Deactivate excess products
-      const deactivatedCount = await deactivateExcessProducts(supabase, sub.user_id, 20);
+      const deactivatedCount = await applyConfirmedDowngrade(supabase, sub.user_id, "free");
 
       results.push({
         subscriptionId: sub.id,
@@ -266,34 +223,8 @@ serve(async (req) => {
       });
     }
 
-    // ─────────────────────────────────────────────────────
-    // PHASE 4: Continuous enforcement — ensure ALL gratis accounts
-    // respect the 20-product limit (catches missed downgrades)
-    // ─────────────────────────────────────────────────────
-    const FREE_PRODUCT_LIMIT = 20;
-
-    const { data: gratisAccounts, error: err4 } = await supabase
-      .from("master_subscriptions")
-      .select("id, user_id")
-      .eq("status", "active")
-      .in("plan_id", ["gratis", "free"]);
-
-    if (err4) {
-      console.error("Error fetching gratis accounts for enforcement:", err4);
-    }
-
-    for (const sub of gratisAccounts || []) {
-      const deactivatedCount = await deactivateExcessProducts(supabase, sub.user_id, FREE_PRODUCT_LIMIT);
-      if (deactivatedCount > 0) {
-        console.log(`Enforcement: deactivated ${deactivatedCount} excess products for gratis user ${sub.user_id}`);
-        results.push({
-          subscriptionId: sub.id,
-          userId: sub.user_id,
-          action: "enforce_product_limit",
-          productsDeactivated: deactivatedCount,
-        });
-      }
-    }
+    // No continuous product-limit enforcement here. Product deactivation is only
+    // allowed inside the confirmed downgrade branches above or by explicit manual/admin actions.
 
     console.log("=== check-billing-status completed ===", JSON.stringify(results));
 
