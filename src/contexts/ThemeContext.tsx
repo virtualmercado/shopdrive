@@ -200,8 +200,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     fetchColors();
 
     // Subscribe to real-time changes
+    // Use a unique channel name per instance so a second ThemeProvider mount
+    // (e.g. a page-level wrapper) never collides with an already-subscribed
+    // 'profile-colors' channel and throws during .on() registration.
     const channel = supabase
-      .channel('profile-colors')
+      .channel(`profile-colors-${user.id}-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
