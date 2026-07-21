@@ -199,6 +199,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     fetchColors();
 
+    // No signed-in user → nothing to subscribe to; also avoids reading user.id below.
+    if (!user) {
+      return;
+    }
+
     // Subscribe to real-time changes
     // Use a unique channel name per instance so a second ThemeProvider mount
     // (e.g. a page-level wrapper) never collides with an already-subscribed
