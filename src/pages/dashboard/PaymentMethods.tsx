@@ -1182,11 +1182,12 @@ const PaymentMethodsContent = () => {
 };
 
 const PaymentMethods = () => {
-  return (
-    <ThemeProvider>
-      <PaymentMethodsContent />
-    </ThemeProvider>
-  );
+  // Note: ThemeProvider is already mounted at the App root — wrapping again
+  // registered a duplicate realtime channel ('profile-colors') which threw
+  // "cannot add postgres_changes callbacks after subscribe()" and left the
+  // page blank, especially in template-editor mode.
+  return <PaymentMethodsContent />;
 };
+
 
 export default PaymentMethods;
