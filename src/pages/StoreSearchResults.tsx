@@ -112,26 +112,19 @@ const StoreSearchResultsContent = () => {
       }
 
       setLoadingProducts(true);
-      console.log("[StoreSearchResults] Searching products with term:", q, "in store:", storeSlug);
+      console.log("[StoreSearchResults] Smart search:", q, "store:", storeSlug);
 
       try {
-        // Normalize search term for better matching
-        const normalizedTerm = q.toLowerCase().trim();
-        const like = `%${normalizedTerm}%`;
-        
-        console.log("[StoreSearchResults] Query:", { storeSlug, like });
-
-        const { data, error } = await supabase
-          .from("public_store_products")
-          .select("id,name,price,promotional_price,image_url,images,stock,promotion_countdown_enabled,promotion_countdown_text,promotion_countdown_ends_at")
-          .eq("store_slug", storeSlug as string)
-          .ilike("name", like as string)
-          .order("popularity_score", { ascending: false })
-          .order("created_at", { ascending: false })
-          .limit(60) as any;
+        const { data, error } = await (supabase as any).rpc("search_store_products", {
+          p_store_slug: storeSlug,
+          p_query: q,
+          p_category_id: null,
+          p_limit: 60,
+          p_offset: 0,
+        });
 
         if (error) {
-          console.error("[StoreSearchResults] Query error:", error);
+          console.error("[StoreSearchResults] RPC error:", error);
           setProducts([]);
         } else {
           console.log("[StoreSearchResults] Found", data?.length || 0, "products");
