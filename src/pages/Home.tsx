@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Helmet } from "react-helmet-async";
 import { Store, Palette, ShoppingCart, BarChart3, Menu, X, Instagram, Facebook, Youtube, TrendingUp, Linkedin, Twitter, Percent, LayoutDashboard, ImagePlus, Tag, Heart, Gift, Truck, Shield, Star, Zap, Clock, Globe } from "lucide-react";
 import { PlansSection } from "@/components/plans/PlansSection";
 import { Link, useNavigate } from "react-router-dom";
@@ -289,7 +290,26 @@ const Home = () => {
     );
   };
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: (faqContent.items || []).map((item: any) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
+
   return <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>ShopDrive — Crie sua loja virtual grátis em minutos</title>
+        <meta name="description" content="Monte sua loja online ou catálogo digital com PIX, cartão, boleto e WhatsApp. Plataforma completa da ShopDrive para lojistas brasileiros." />
+        <link rel="canonical" href="https://shopdrive.com.br/" />
+        <meta property="og:title" content="ShopDrive — Crie sua loja virtual grátis em minutos" />
+        <meta property="og:description" content="Monte sua loja online ou catálogo digital com PIX, cartão, boleto e WhatsApp." />
+        <meta property="og:url" content="https://shopdrive.com.br/" />
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
+      </Helmet>
       {/* Header */}
       <header className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 md:py-4">
