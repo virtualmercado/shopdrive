@@ -5892,6 +5892,7 @@ export type Database = {
         }
         Returns: string
       }
+      normalize_search_text: { Args: { input_text: string }; Returns: string }
       propagate_content_banner_from_template: {
         Args: { p_user_id: string }
         Returns: Json
@@ -5909,6 +5910,41 @@ export type Database = {
         Returns: undefined
       }
       repair_incomplete_template_stores: { Args: never; Returns: Json }
+      search_store_products: {
+        Args: {
+          p_category_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_query: string
+          p_store_slug: string
+        }
+        Returns: {
+          brand_id: string
+          category_id: string
+          height: number
+          id: string
+          image_url: string
+          images: Json
+          is_featured: boolean
+          is_new: boolean
+          length: number
+          name: string
+          popularity_score: number
+          price: number
+          promotion_countdown_enabled: boolean
+          promotion_countdown_ends_at: string
+          promotion_countdown_text: string
+          promotional_price: number
+          relevance: number
+          stock: number
+          total_count: number
+          variations: Json
+          weight: number
+          width: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sync_invoice_for_payment: {
         Args: { p_payment_id: string }
         Returns: string
@@ -5931,6 +5967,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      unaccent: { Args: { "": string }; Returns: string }
       validate_store_coupon: {
         Args: { p_code: string; p_store_user_id: string }
         Returns: {
