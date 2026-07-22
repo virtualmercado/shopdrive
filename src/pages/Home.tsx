@@ -345,6 +345,8 @@ const Home = () => {
                 variant="ghost" 
                 size="sm"
                 className="h-8 w-8 p-0"
+                aria-label={isMobileMenuOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+                aria-expanded={isMobileMenuOpen}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
