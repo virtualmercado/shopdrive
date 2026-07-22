@@ -1,0 +1,22 @@
+# ShopDrive
+
+> Plataforma brasileira completa para criar, personalizar e gerenciar lojas virtuais e catálogos digitais, com pagamentos, envio e integrações prontos para uso.
+
+ShopDrive ajuda empreendedores a montar sua loja no digital em minutos, receber pagamentos (PIX, cartão, boleto), organizar produtos e vender pelo WhatsApp ou pela loja online.
+
+## Pages
+
+- [Home](/): Visão geral da plataforma, planos e benefícios.
+- [Sobre nós](/sobre-nos): Quem somos, missão e valores da ShopDrive.
+- [Central de ajuda](/central-de-ajuda): Artigos e tutoriais para lojistas.
+- [Fale conosco](/fale-conosco): Canais de contato com o suporte.
+- [Criar conta](/criar-conta): Cadastro gratuito para novos lojistas.
+- [Blog](/blog): Conteúdo sobre e-commerce e empreendedorismo.
+- [Programa de afiliados](/programa-de-afiliados): Como indicar e ganhar.
+
+## Optional
+
+- [Termos de uso](/termos-de-uso)
+- [Política de privacidade](/politica-de-privacidade)
+- [Política de cookies](/politica-de-cookies)
+- [Política de devolução](/politica-de-devolucao)
