@@ -1,6 +1,7 @@
 import { useCMSContent, getContent } from "@/hooks/useCMSContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import LandingLayout from "@/components/layout/LandingLayout";
+import { Helmet } from "react-helmet-async";
 
 const LandingAboutUs = () => {
   const { data: cmsContent, isLoading } = useCMSContent();
@@ -10,7 +11,7 @@ const LandingAboutUs = () => {
     title: getContent(cmsContent, "about_us", "title", "Sobre Nós"),
     content: getContent(cmsContent, "about_us", "content", "Informações sobre a ShopDrive..."),
     image_url: getContent(cmsContent, "about_us", "image_url", ""),
-    image_alt: getContent(cmsContent, "about_us", "image_alt", "Sobre a ShopDrive"),
+    image_alt: getContent(cmsContent, "about_us", "image_alt", "Equipe da ShopDrive e história da plataforma de lojas virtuais"),
     is_active: cmsContent?.about_us?.is_active ?? true,
   };
 
@@ -34,6 +35,14 @@ const LandingAboutUs = () => {
 
   return (
     <LandingLayout>
+      <Helmet>
+        <title>Sobre a ShopDrive — Nossa história e missão</title>
+        <meta name="description" content="Conheça a ShopDrive: plataforma brasileira que ajuda empreendedores a criar lojas virtuais e catálogos digitais com pagamentos, envio e integrações." />
+        <link rel="canonical" href="https://shopdrive.com.br/sobre-nos" />
+        <meta property="og:title" content="Sobre a ShopDrive — Nossa história e missão" />
+        <meta property="og:description" content="Conheça a ShopDrive: plataforma brasileira que ajuda empreendedores a criar lojas virtuais e catálogos digitais." />
+        <meta property="og:url" content="https://shopdrive.com.br/sobre-nos" />
+      </Helmet>
       {/* Main Content - Two Column Layout */}
       <div className="py-24 md:py-32 px-4 bg-background">
         <div className="container mx-auto">
