@@ -556,14 +556,18 @@ Deno.serve(async (req) => {
         },
         counts: {
           products: productsCopied,
+          productsDeactivatedByPlan,
           categories: categoriesCopied,
           brands: brandsCopied,
           images: imagesCopied,
         },
+        pendingPlanId,
+        subscriptionStatus: pendingPlanId ? "pending_payment" : "active",
         resetLink,
         temporaryPassword: passwordStrategy === "temporary_password" ? temporaryPassword : null,
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
       });
     } catch (cloneErr) {
       // Rollback: delete the partial new user (cascades profile via auth deletion)
