@@ -27,17 +27,17 @@ import {
 interface PaymentSettings {
   id?: string;
   user_id: string;
-  // Legacy fields for gateway credentials
+  // Legacy fields for gateway credentials (non-sensitive only; secrets stay server-side)
   mercadopago_enabled: boolean;
-  mercadopago_access_token: string | null;
+  mercadopago_access_token_set: boolean;
   mercadopago_public_key: string | null;
   pagbank_enabled: boolean;
-  pagbank_token: string | null;
+  pagbank_token_set: boolean;
   pagbank_email: string | null;
   // New gateways (optional for backwards compatibility)
   stone_ton_enabled?: boolean;
   stone_ton_public_key?: string | null;
-  stone_ton_secret_key?: string | null;
+  stone_ton_secret_key_set?: boolean;
   stone_ton_merchant_id?: string | null;
   infinitepay_enabled?: boolean;
   infinitepay_handle?: string | null;
@@ -54,14 +54,14 @@ interface PaymentSettings {
 
 const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   mercadopago_enabled: false,
-  mercadopago_access_token: null,
+  mercadopago_access_token_set: false,
   mercadopago_public_key: null,
   pagbank_enabled: false,
-  pagbank_token: null,
+  pagbank_token_set: false,
   pagbank_email: null,
   stone_ton_enabled: false,
   stone_ton_public_key: null,
-  stone_ton_secret_key: null,
+  stone_ton_secret_key_set: false,
   stone_ton_merchant_id: null,
   infinitepay_enabled: false,
   infinitepay_handle: null,
@@ -74,6 +74,7 @@ const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   boleto_enabled: false,
   boleto_provider: null,
 };
+
 
 const PaymentMethodsContent = () => {
   const { user } = useAuth();
@@ -121,11 +122,12 @@ const PaymentMethodsContent = () => {
   const [boletoEnabled, setBoletoEnabled] = useState(false);
   const [boletoProvider, setBoletoProvider] = useState<string>("");
 
-  const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token && settings?.mercadopago_public_key);
-  const hasPagbankCredentials = !!(settings?.pagbank_token && settings?.pagbank_email);
-  const hasStoneTonCredentials = !!(settings?.stone_ton_public_key && settings?.stone_ton_secret_key);
+  const hasMercadoPagoCredentials = !!(settings?.mercadopago_access_token_set && settings?.mercadopago_public_key);
+  const hasPagbankCredentials = !!(settings?.pagbank_token_set && settings?.pagbank_email);
+  const hasStoneTonCredentials = !!(settings?.stone_ton_public_key && settings?.stone_ton_secret_key_set);
   const hasInfinitePayCredentials = !!(settings?.infinitepay_handle && settings.infinitepay_handle.trim());
   const hasAnyGateway = hasMercadoPagoCredentials || hasPagbankCredentials || hasStoneTonCredentials || hasInfinitePayCredentials;
+
 
   useEffect(() => {
     if (user) {
@@ -146,13 +148,23 @@ const PaymentMethodsContent = () => {
     }
   }, [settings]);
 
+  const SAFE_COLUMNS =
+    "id,user_id," +
+    "mercadopago_enabled,mercadopago_public_key,mercadopago_access_token_set,mercadopago_webhook_secret_set," +
+    "pagbank_enabled,pagbank_email,pagbank_token_set,pagbank_webhook_secret_set," +
+    "stone_ton_enabled,stone_ton_public_key,stone_ton_merchant_id,stone_ton_secret_key_set," +
+    "infinitepay_enabled,infinitepay_handle,infinitepay_client_secret_set,infinitepay_webhook_secret_set," +
+    "pix_enabled,pix_provider,pix_discount_percent," +
+    "credit_card_enabled,credit_card_provider,credit_card_installments_no_interest," +
+    "boleto_enabled,boleto_provider";
+
   const fetchSettings = async () => {
     if (!user) return;
     
     try {
       const { data, error } = await supabase
         .from("payment_settings")
-        .select("*")
+        .select(SAFE_COLUMNS)
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -175,6 +187,7 @@ const PaymentMethodsContent = () => {
     }
   };
 
+
   const saveSettings = async (newSettings: Partial<PaymentSettings>) => {
     if (!user || !settings) return;
     
@@ -193,8 +206,9 @@ const PaymentMethodsContent = () => {
         const { data, error } = await supabase
           .from("payment_settings")
           .insert({ ...updatedSettings, user_id: user.id })
-          .select()
+          .select(SAFE_COLUMNS)
           .single();
+
         
         if (error) throw error;
         if (data) {
@@ -314,7 +328,7 @@ const PaymentMethodsContent = () => {
       mercadopago_enabled: true,
       mercadopago_access_token: tempMercadoPago.accessToken,
       mercadopago_public_key: tempMercadoPago.publicKey,
-    });
+    } as any);
     setMercadoPagoDialogOpen(false);
   };
 
@@ -328,7 +342,7 @@ const PaymentMethodsContent = () => {
       pagbank_enabled: true,
       pagbank_token: tempPagbank.token,
       pagbank_email: tempPagbank.email,
-    });
+    } as any);
     setPagbankDialogOpen(false);
   };
 
@@ -343,9 +357,10 @@ const PaymentMethodsContent = () => {
       stone_ton_public_key: tempStoneTon.publicKey,
       stone_ton_secret_key: tempStoneTon.secretKey,
       stone_ton_merchant_id: tempStoneTon.merchantId || null,
-    });
+    } as any);
     setStoneTonDialogOpen(false);
   };
+
 
   const saveInfinitePayCredentials = async () => {
     const rawHandle = tempInfinitePay.handle.trim();
@@ -367,8 +382,9 @@ const PaymentMethodsContent = () => {
   };
 
   const openMercadoPagoConfig = () => {
+    // Secret values are never returned to the client. Prefill only the non-sensitive fields.
     setTempMercadoPago({
-      accessToken: settings?.mercadopago_access_token || "",
+      accessToken: "",
       publicKey: settings?.mercadopago_public_key || "",
     });
     setMercadoPagoDialogOpen(true);
@@ -376,7 +392,7 @@ const PaymentMethodsContent = () => {
 
   const openPagbankConfig = () => {
     setTempPagbank({
-      token: settings?.pagbank_token || "",
+      token: "",
       email: settings?.pagbank_email || "",
     });
     setPagbankDialogOpen(true);
@@ -385,11 +401,12 @@ const PaymentMethodsContent = () => {
   const openStoneTonConfig = () => {
     setTempStoneTon({
       publicKey: settings?.stone_ton_public_key || "",
-      secretKey: settings?.stone_ton_secret_key || "",
+      secretKey: "",
       merchantId: settings?.stone_ton_merchant_id || "",
     });
     setStoneTonDialogOpen(true);
   };
+
 
   const openInfinitePayConfig = () => {
     setTempInfinitePay({

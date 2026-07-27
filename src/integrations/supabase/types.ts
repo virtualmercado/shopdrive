@@ -2794,23 +2794,29 @@ export type Database = {
           id: string
           infinitepay_client_id: string | null
           infinitepay_client_secret: string | null
+          infinitepay_client_secret_set: boolean
           infinitepay_enabled: boolean | null
           infinitepay_handle: string | null
           infinitepay_webhook_secret: string | null
+          infinitepay_webhook_secret_set: boolean
           mercadopago_accepts_credit: boolean | null
           mercadopago_accepts_pix: boolean | null
           mercadopago_access_token: string | null
+          mercadopago_access_token_set: boolean
           mercadopago_enabled: boolean
           mercadopago_installments_free: number | null
           mercadopago_pix_discount: number | null
           mercadopago_public_key: string | null
           mercadopago_webhook_secret: string | null
+          mercadopago_webhook_secret_set: boolean
           pagbank_accepts_credit: boolean | null
           pagbank_accepts_pix: boolean | null
           pagbank_email: string | null
           pagbank_enabled: boolean
           pagbank_token: string | null
+          pagbank_token_set: boolean
           pagbank_webhook_secret: string | null
+          pagbank_webhook_secret_set: boolean
           pix_discount_percent: number | null
           pix_enabled: boolean | null
           pix_provider: string | null
@@ -2818,6 +2824,7 @@ export type Database = {
           stone_ton_merchant_id: string | null
           stone_ton_public_key: string | null
           stone_ton_secret_key: string | null
+          stone_ton_secret_key_set: boolean
           updated_at: string
           user_id: string
           whatsapp_accepts_cash: boolean | null
@@ -2838,23 +2845,29 @@ export type Database = {
           id?: string
           infinitepay_client_id?: string | null
           infinitepay_client_secret?: string | null
+          infinitepay_client_secret_set?: boolean
           infinitepay_enabled?: boolean | null
           infinitepay_handle?: string | null
           infinitepay_webhook_secret?: string | null
+          infinitepay_webhook_secret_set?: boolean
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_access_token?: string | null
+          mercadopago_access_token_set?: boolean
           mercadopago_enabled?: boolean
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
           mercadopago_public_key?: string | null
           mercadopago_webhook_secret?: string | null
+          mercadopago_webhook_secret_set?: boolean
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pagbank_token_set?: boolean
           pagbank_webhook_secret?: string | null
+          pagbank_webhook_secret_set?: boolean
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
@@ -2862,6 +2875,7 @@ export type Database = {
           stone_ton_merchant_id?: string | null
           stone_ton_public_key?: string | null
           stone_ton_secret_key?: string | null
+          stone_ton_secret_key_set?: boolean
           updated_at?: string
           user_id: string
           whatsapp_accepts_cash?: boolean | null
@@ -2882,23 +2896,29 @@ export type Database = {
           id?: string
           infinitepay_client_id?: string | null
           infinitepay_client_secret?: string | null
+          infinitepay_client_secret_set?: boolean
           infinitepay_enabled?: boolean | null
           infinitepay_handle?: string | null
           infinitepay_webhook_secret?: string | null
+          infinitepay_webhook_secret_set?: boolean
           mercadopago_accepts_credit?: boolean | null
           mercadopago_accepts_pix?: boolean | null
           mercadopago_access_token?: string | null
+          mercadopago_access_token_set?: boolean
           mercadopago_enabled?: boolean
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
           mercadopago_public_key?: string | null
           mercadopago_webhook_secret?: string | null
+          mercadopago_webhook_secret_set?: boolean
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_email?: string | null
           pagbank_enabled?: boolean
           pagbank_token?: string | null
+          pagbank_token_set?: boolean
           pagbank_webhook_secret?: string | null
+          pagbank_webhook_secret_set?: boolean
           pix_discount_percent?: number | null
           pix_enabled?: boolean | null
           pix_provider?: string | null
@@ -2906,6 +2926,7 @@ export type Database = {
           stone_ton_merchant_id?: string | null
           stone_ton_public_key?: string | null
           stone_ton_secret_key?: string | null
+          stone_ton_secret_key_set?: boolean
           updated_at?: string
           user_id?: string
           whatsapp_accepts_cash?: boolean | null
