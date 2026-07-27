@@ -307,22 +307,13 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <Checkbox checked={copyPayments}
-                  onCheckedChange={(c) => setCopyPayments(!!c)} />
-                <span>Copiar configurações de pagamento (gateways)</span>
-              </label>
-              {copyPayments && (
-                <Alert variant="default" className="border-amber-500">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-xs">
-                    Atenção: credenciais e tokens de gateways serão copiados. Revise webhooks
-                    e referências antes de transacionar na loja clonada.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs">
+                Configurações de pagamento (gateways, tokens e webhooks) <strong>não</strong> são
+                copiadas por segurança. A nova loja precisará reconfigurar as credenciais.
+              </AlertDescription>
+            </Alert>
 
             <Alert>
               <AlertDescription className="text-xs">
