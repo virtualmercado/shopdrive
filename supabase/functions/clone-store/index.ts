@@ -520,45 +520,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 12) Payment settings (sensitive — only on explicit opt-in)
-      if (options.copyPayments) {
-        const { data } = await admin.from("payment_settings").select("*").eq("user_id", sourceProfileId);
-        for (const row of data || []) {
-          const { id, created_at, updated_at, ...rest } = row as Record<string, unknown>;
-          await admin.from("payment_settings").insert({ ...rest, user_id: newUserId });
-        }
-      }
-
-      // 13) Plan: assign same plan as source if requested.
-      if (plan && plan !== "gratis") {
-        let planId = plan;
-        if (plan === "same") {
-          const { data: srcSub } = await admin
-            .from("master_subscriptions")
-            .select("plan_id, billing_cycle, monthly_price, total_amount")
-            .eq("user_id", sourceProfileId)
-            .order("created_at", { ascending: false })
-            .limit(1).maybeSingle();
-          planId = (srcSub?.plan_id as string) || "gratis";
-          if (planId !== "gratis") {
-            await admin.from("master_subscriptions").insert({
-              user_id: newUserId,
-              plan_id: planId,
-              status: "active",
-              billing_cycle: srcSub?.billing_cycle || "monthly",
-              monthly_price: srcSub?.monthly_price || 0,
-              total_amount: srcSub?.total_amount || 0,
-            });
-          }
-        } else {
-          await admin.from("master_subscriptions").insert({
-            user_id: newUserId,
-            plan_id: planId,
-            status: "active",
-            billing_cycle: "monthly",
-          });
-        }
-      }
+      // 12) Payment settings: NUNCA copiar credenciais/segredos entre lojas
+      // (mesmo com opt-in). A opção legada `copyPayments` é ignorada aqui —
+      // qualquer credencial (tokens, webhooks, chaves) deve ser reconfigurada
+      // manualmente na nova loja para evitar cobrança cruzada e vazamentos.
+      // A assinatura da nova loja já foi criada no passo 6.5 com pending_plan_id.
 
       // 14) Password reset link (if requested)
       let resetLink: string | null = null;
