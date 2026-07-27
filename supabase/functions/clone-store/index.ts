@@ -214,6 +214,29 @@ Deno.serve(async (req) => {
       // If the listing fails we fall through — createUser() will still catch dup emails.
     }
 
+    // Idempotency: if header present and a successful log exists, return prior result.
+    const idempotencyKey = req.headers.get("Idempotency-Key");
+    if (idempotencyKey) {
+      const { data: prior } = await admin
+        .from("store_clone_logs")
+        .select("id, status, cloned_profile_id, cloned_store_slug, cloned_email, cloned_store_name")
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+      if (prior && prior.status === "success") {
+        return new Response(JSON.stringify({
+          success: true,
+          idempotent: true,
+          newStore: {
+            userId: prior.cloned_profile_id,
+            email: prior.cloned_email,
+            storeName: prior.cloned_store_name,
+            storeSlug: prior.cloned_store_slug,
+            publicUrl: `/${prior.cloned_store_slug}`,
+          },
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     // Prepare log row
     const { data: logRow } = await admin.from("store_clone_logs").insert({
       admin_user_id: adminUserId,
@@ -225,6 +248,7 @@ Deno.serve(async (req) => {
       clone_type: cloneType,
       options: options as unknown as Record<string, unknown>,
       status: "in_progress",
+      idempotency_key: idempotencyKey,
     }).select("id").single();
     const logId = logRow?.id;
 
