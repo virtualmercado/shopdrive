@@ -568,7 +568,6 @@ Deno.serve(async (req) => {
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      });
     } catch (cloneErr) {
       // Rollback: delete the partial new user (cascades profile via auth deletion)
       const msg = cloneErr instanceof Error ? cloneErr.message : String(cloneErr);
