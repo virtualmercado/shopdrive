@@ -344,15 +344,76 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 6.5) Assinatura: criar ANTES dos produtos.
+      // Para planos pagos ("same" com origem paga, ou plano pago escolhido),
+      // a assinatura nasce em plano Grátis com pending_plan_id preenchido,
+      // status='pending_payment'. Os benefícios do plano pago só serão liberados
+      // pelo webhook após confirmação do pagamento.
+      let pendingPlanId: string | null = null;
+      if (plan && plan !== "gratis") {
+        let targetPlan = plan as string;
+        let cycle: string | null = null;
+        let monthly = 0;
+        let total = 0;
+        if (plan === "same") {
+          const { data: srcSub } = await admin
+            .from("master_subscriptions")
+            .select("plan_id, billing_cycle, monthly_price, total_amount")
+            .eq("user_id", sourceProfileId)
+            .order("created_at", { ascending: false })
+            .limit(1).maybeSingle();
+          targetPlan = (srcSub?.plan_id as string) || "gratis";
+          cycle = (srcSub?.billing_cycle as string) || "monthly";
+          monthly = Number(srcSub?.monthly_price ?? 0);
+          total = Number(srcSub?.total_amount ?? 0);
+        } else {
+          cycle = "monthly";
+        }
+        if (targetPlan && targetPlan !== "gratis") {
+          pendingPlanId = targetPlan;
+          await admin.from("master_subscriptions").insert({
+            user_id: newUserId,
+            plan_id: "gratis",
+            pending_plan_id: targetPlan,
+            source_profile_id: sourceProfileId,
+            status: "pending_payment",
+            billing_cycle: cycle,
+            monthly_price: monthly,
+            total_amount: total,
+          });
+        }
+      }
+
       // 7) Products + images
+      // A loja recém-criada tem plano efetivo = Grátis (limite provisório).
+      // O trigger validate_product_activation_limit bloqueia INSERTs ativos
+      // acima do limite. Estratégia: ordenar produtos da origem (ativos primeiro,
+      // depois por created_at ASC, id ASC), inserir tentando manter is_active
+      // original; ao receber a exception de limite, reinserir o mesmo produto
+      // como inativo, com inactive_reason='pending_plan_limit' e
+      // was_active_before_plan_restriction=true. Assim TODOS os produtos são
+      // cadastrados; o pagamento reativa via reactivate_products_after_upgrade.
       let productsCopied = 0;
       let imagesCopied = 0;
+      let productsDeactivatedByPlan = 0;
+      const LIMIT_MARK = "limite de produtos ativos";
       if (options.copyProducts) {
         const { data: prods } = await admin
           .from("products").select("*").eq("user_id", sourceProfileId);
 
-        for (const p of prods || []) {
+        const sortedProds = [...(prods || [])].sort((a, b) => {
+          const aa = (a as { is_active?: boolean }).is_active ? 0 : 1;
+          const bb = (b as { is_active?: boolean }).is_active ? 0 : 1;
+          if (aa !== bb) return aa - bb;
+          const ac = String((a as { created_at?: string }).created_at ?? "");
+          const bc = String((b as { created_at?: string }).created_at ?? "");
+          if (ac !== bc) return ac < bc ? -1 : 1;
+          return String((a as { id: string }).id).localeCompare(String((b as { id: string }).id));
+        });
+
+        for (const p of sortedProds) {
           const oldProductId = p.id as string;
+          const wasActive = (p as { is_active?: boolean }).is_active === true;
           const {
             id, created_at, updated_at, views_count, sales_count, popularity_score,
             ...rest
@@ -377,12 +438,34 @@ Deno.serve(async (req) => {
             newRow.brand_id = null;
           }
 
-          const { data: insProd, error: prodErr } = await admin
+          let { data: insProd, error: prodErr } = await admin
             .from("products").insert(newRow).select("id").single();
-          if (prodErr || !insProd) continue;
+
+          // Handle "plan limit" exception → retry as inactive (was_active_before_plan_restriction preserved).
+          if (prodErr && wasActive && String(prodErr.message || "").toLowerCase().includes(LIMIT_MARK)) {
+            const retryRow = {
+              ...newRow,
+              is_active: false,
+              inactive_reason: "pending_plan_limit",
+              was_active_before_plan_restriction: true,
+            };
+            const retry = await admin
+              .from("products").insert(retryRow).select("id").single();
+            insProd = retry.data ?? null;
+            prodErr = retry.error;
+            if (!prodErr && insProd) productsDeactivatedByPlan++;
+          }
+
+          if (prodErr || !insProd) {
+            if (prodErr) {
+              // Log real error for diagnostics instead of silent drop.
+              console.error("[clone-store] product insert failed", oldProductId, prodErr.message);
+            }
+            continue;
+          }
           productsCopied++;
 
-          // Images for this product (URL-reference copy; documented fallback for MVP)
+          // Images for this product (URL-reference copy)
           if (options.copyImages) {
             const { data: imgs } = await admin
               .from("product_images").select("*").eq("product_id", oldProductId);
