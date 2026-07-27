@@ -177,11 +177,29 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
             <div className="rounded-lg border p-4 space-y-2 text-sm">
               <div><span className="text-muted-foreground">E-mail:</span> {result.email}</div>
               <div><span className="text-muted-foreground">Slug:</span> /{result.storeSlug}</div>
-              <div><span className="text-muted-foreground">Produtos:</span> {result.counts.products}</div>
+              <div>
+                <span className="text-muted-foreground">Produtos:</span> {result.counts.products}
+                {result.counts.productsDeactivatedByPlan ? (
+                  <span className="ml-2 text-amber-700 dark:text-amber-400">
+                    ({result.counts.productsDeactivatedByPlan} inativos até confirmação do pagamento)
+                  </span>
+                ) : null}
+              </div>
               <div><span className="text-muted-foreground">Categorias:</span> {result.counts.categories}</div>
               <div><span className="text-muted-foreground">Marcas:</span> {result.counts.brands}</div>
               <div><span className="text-muted-foreground">Imagens:</span> {result.counts.images}</div>
             </div>
+
+            {result.pendingPlanId && (
+              <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
+                  A assinatura está em <strong>pagamento pendente</strong> no plano
+                  <strong> {result.pendingPlanId}</strong>. Os benefícios só serão ativados após
+                  a confirmação do pagamento pela nova conta-loja.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {result.temporaryPassword && (
               <Alert>
