@@ -51,13 +51,18 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
   const [copyCoupons, setCopyCoupons] = useState(false);
   const [copyCustomerGroups, setCopyCustomerGroups] = useState(false);
   const [copyMarketing, setCopyMarketing] = useState(false);
-  const [copyPayments, setCopyPayments] = useState(false);
+  // Copiar credenciais de pagamento entre lojas foi removido por segurança:
+  // ver clone-store/index.ts (passo 12). O checkbox permanece por compat mas
+  // é sempre falso — os segredos nunca são replicados.
+  const copyPayments = false;
 
   const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [result, setResult] = useState<null | {
     publicUrl: string; email: string; storeName: string; storeSlug: string;
-    counts: { products: number; categories: number; brands: number; images: number };
+    counts: { products: number; productsDeactivatedByPlan?: number; categories: number; brands: number; images: number };
     resetLink: string | null; temporaryPassword: string | null;
+    pendingPlanId: string | null; subscriptionStatus: "pending_payment" | "active";
   }>(null);
 
   const reset = () => {
@@ -92,6 +97,7 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("clone-store", {
+        headers: { "Idempotency-Key": idempotencyKey },
         body: {
           sourceProfileId: subscriber.id,
           newStoreName: newStoreName.trim(),
@@ -108,9 +114,6 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
           },
         },
       });
-      // supabase.functions.invoke wraps non-2xx responses in a FunctionsHttpError
-      // whose message is only "non-2xx status code". The real payload lives on
-      // error.context.response — read it to surface the actual error to the admin.
       if (error) {
         let realMsg = error.message || "Falha desconhecida";
         try {
@@ -119,12 +122,15 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
             const body = await resp.json();
             if (body?.error) realMsg = body.error;
           }
-        } catch (_) {
-          // ignore — keep fallback message
-        }
+        } catch (_) { /* ignore */ }
         throw new Error(realMsg);
       }
-      const payload = data as { success: boolean; error?: string; newStore?: any; counts?: any; resetLink?: string | null; temporaryPassword?: string | null };
+      const payload = data as {
+        success: boolean; error?: string; newStore?: any; counts?: any;
+        resetLink?: string | null; temporaryPassword?: string | null;
+        pendingPlanId?: string | null;
+        subscriptionStatus?: "pending_payment" | "active";
+      };
       if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
 
       setResult({
@@ -135,6 +141,8 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
         counts: payload.counts,
         resetLink: payload.resetLink ?? null,
         temporaryPassword: payload.temporaryPassword ?? null,
+        pendingPlanId: payload.pendingPlanId ?? null,
+        subscriptionStatus: payload.subscriptionStatus ?? "active",
       });
       toast.success("Loja duplicada com sucesso!");
     } catch (e: any) {
@@ -169,11 +177,29 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
             <div className="rounded-lg border p-4 space-y-2 text-sm">
               <div><span className="text-muted-foreground">E-mail:</span> {result.email}</div>
               <div><span className="text-muted-foreground">Slug:</span> /{result.storeSlug}</div>
-              <div><span className="text-muted-foreground">Produtos:</span> {result.counts.products}</div>
+              <div>
+                <span className="text-muted-foreground">Produtos:</span> {result.counts.products}
+                {result.counts.productsDeactivatedByPlan ? (
+                  <span className="ml-2 text-amber-700 dark:text-amber-400">
+                    ({result.counts.productsDeactivatedByPlan} inativos até confirmação do pagamento)
+                  </span>
+                ) : null}
+              </div>
               <div><span className="text-muted-foreground">Categorias:</span> {result.counts.categories}</div>
               <div><span className="text-muted-foreground">Marcas:</span> {result.counts.brands}</div>
               <div><span className="text-muted-foreground">Imagens:</span> {result.counts.images}</div>
             </div>
+
+            {result.pendingPlanId && (
+              <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
+                  A assinatura está em <strong>pagamento pendente</strong> no plano
+                  <strong> {result.pendingPlanId}</strong>. Os benefícios só serão ativados após
+                  a confirmação do pagamento pela nova conta-loja.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {result.temporaryPassword && (
               <Alert>
@@ -299,22 +325,13 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <Checkbox checked={copyPayments}
-                  onCheckedChange={(c) => setCopyPayments(!!c)} />
-                <span>Copiar configurações de pagamento (gateways)</span>
-              </label>
-              {copyPayments && (
-                <Alert variant="default" className="border-amber-500">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-xs">
-                    Atenção: credenciais e tokens de gateways serão copiados. Revise webhooks
-                    e referências antes de transacionar na loja clonada.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs">
+                Configurações de pagamento (gateways, tokens e webhooks) <strong>não</strong> são
+                copiadas por segurança. A nova loja precisará reconfigurar as credenciais.
+              </AlertDescription>
+            </Alert>
 
             <Alert>
               <AlertDescription className="text-xs">

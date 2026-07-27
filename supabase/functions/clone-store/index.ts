@@ -214,6 +214,29 @@ Deno.serve(async (req) => {
       // If the listing fails we fall through — createUser() will still catch dup emails.
     }
 
+    // Idempotency: if header present and a successful log exists, return prior result.
+    const idempotencyKey = req.headers.get("Idempotency-Key");
+    if (idempotencyKey) {
+      const { data: prior } = await admin
+        .from("store_clone_logs")
+        .select("id, status, cloned_profile_id, cloned_store_slug, cloned_email, cloned_store_name")
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+      if (prior && prior.status === "success") {
+        return new Response(JSON.stringify({
+          success: true,
+          idempotent: true,
+          newStore: {
+            userId: prior.cloned_profile_id,
+            email: prior.cloned_email,
+            storeName: prior.cloned_store_name,
+            storeSlug: prior.cloned_store_slug,
+            publicUrl: `/${prior.cloned_store_slug}`,
+          },
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     // Prepare log row
     const { data: logRow } = await admin.from("store_clone_logs").insert({
       admin_user_id: adminUserId,
@@ -225,6 +248,7 @@ Deno.serve(async (req) => {
       clone_type: cloneType,
       options: options as unknown as Record<string, unknown>,
       status: "in_progress",
+      idempotency_key: idempotencyKey,
     }).select("id").single();
     const logId = logRow?.id;
 
@@ -320,15 +344,76 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 6.5) Assinatura: criar ANTES dos produtos.
+      // Para planos pagos ("same" com origem paga, ou plano pago escolhido),
+      // a assinatura nasce em plano Grátis com pending_plan_id preenchido,
+      // status='pending_payment'. Os benefícios do plano pago só serão liberados
+      // pelo webhook após confirmação do pagamento.
+      let pendingPlanId: string | null = null;
+      if (plan && plan !== "gratis") {
+        let targetPlan = plan as string;
+        let cycle: string | null = null;
+        let monthly = 0;
+        let total = 0;
+        if (plan === "same") {
+          const { data: srcSub } = await admin
+            .from("master_subscriptions")
+            .select("plan_id, billing_cycle, monthly_price, total_amount")
+            .eq("user_id", sourceProfileId)
+            .order("created_at", { ascending: false })
+            .limit(1).maybeSingle();
+          targetPlan = (srcSub?.plan_id as string) || "gratis";
+          cycle = (srcSub?.billing_cycle as string) || "monthly";
+          monthly = Number(srcSub?.monthly_price ?? 0);
+          total = Number(srcSub?.total_amount ?? 0);
+        } else {
+          cycle = "monthly";
+        }
+        if (targetPlan && targetPlan !== "gratis") {
+          pendingPlanId = targetPlan;
+          await admin.from("master_subscriptions").insert({
+            user_id: newUserId,
+            plan_id: "gratis",
+            pending_plan_id: targetPlan,
+            source_profile_id: sourceProfileId,
+            status: "pending_payment",
+            billing_cycle: cycle,
+            monthly_price: monthly,
+            total_amount: total,
+          });
+        }
+      }
+
       // 7) Products + images
+      // A loja recém-criada tem plano efetivo = Grátis (limite provisório).
+      // O trigger validate_product_activation_limit bloqueia INSERTs ativos
+      // acima do limite. Estratégia: ordenar produtos da origem (ativos primeiro,
+      // depois por created_at ASC, id ASC), inserir tentando manter is_active
+      // original; ao receber a exception de limite, reinserir o mesmo produto
+      // como inativo, com inactive_reason='pending_plan_limit' e
+      // was_active_before_plan_restriction=true. Assim TODOS os produtos são
+      // cadastrados; o pagamento reativa via reactivate_products_after_upgrade.
       let productsCopied = 0;
       let imagesCopied = 0;
+      let productsDeactivatedByPlan = 0;
+      const LIMIT_MARK = "limite de produtos ativos";
       if (options.copyProducts) {
         const { data: prods } = await admin
           .from("products").select("*").eq("user_id", sourceProfileId);
 
-        for (const p of prods || []) {
+        const sortedProds = [...(prods || [])].sort((a, b) => {
+          const aa = (a as { is_active?: boolean }).is_active ? 0 : 1;
+          const bb = (b as { is_active?: boolean }).is_active ? 0 : 1;
+          if (aa !== bb) return aa - bb;
+          const ac = String((a as { created_at?: string }).created_at ?? "");
+          const bc = String((b as { created_at?: string }).created_at ?? "");
+          if (ac !== bc) return ac < bc ? -1 : 1;
+          return String((a as { id: string }).id).localeCompare(String((b as { id: string }).id));
+        });
+
+        for (const p of sortedProds) {
           const oldProductId = p.id as string;
+          const wasActive = (p as { is_active?: boolean }).is_active === true;
           const {
             id, created_at, updated_at, views_count, sales_count, popularity_score,
             ...rest
@@ -353,12 +438,34 @@ Deno.serve(async (req) => {
             newRow.brand_id = null;
           }
 
-          const { data: insProd, error: prodErr } = await admin
+          let { data: insProd, error: prodErr } = await admin
             .from("products").insert(newRow).select("id").single();
-          if (prodErr || !insProd) continue;
+
+          // Handle "plan limit" exception → retry as inactive (was_active_before_plan_restriction preserved).
+          if (prodErr && wasActive && String(prodErr.message || "").toLowerCase().includes(LIMIT_MARK)) {
+            const retryRow = {
+              ...newRow,
+              is_active: false,
+              inactive_reason: "pending_plan_limit",
+              was_active_before_plan_restriction: true,
+            };
+            const retry = await admin
+              .from("products").insert(retryRow).select("id").single();
+            insProd = retry.data ?? null;
+            prodErr = retry.error;
+            if (!prodErr && insProd) productsDeactivatedByPlan++;
+          }
+
+          if (prodErr || !insProd) {
+            if (prodErr) {
+              // Log real error for diagnostics instead of silent drop.
+              console.error("[clone-store] product insert failed", oldProductId, prodErr.message);
+            }
+            continue;
+          }
           productsCopied++;
 
-          // Images for this product (URL-reference copy; documented fallback for MVP)
+          // Images for this product (URL-reference copy)
           if (options.copyImages) {
             const { data: imgs } = await admin
               .from("product_images").select("*").eq("product_id", oldProductId);
@@ -413,45 +520,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 12) Payment settings (sensitive — only on explicit opt-in)
-      if (options.copyPayments) {
-        const { data } = await admin.from("payment_settings").select("*").eq("user_id", sourceProfileId);
-        for (const row of data || []) {
-          const { id, created_at, updated_at, ...rest } = row as Record<string, unknown>;
-          await admin.from("payment_settings").insert({ ...rest, user_id: newUserId });
-        }
-      }
-
-      // 13) Plan: assign same plan as source if requested.
-      if (plan && plan !== "gratis") {
-        let planId = plan;
-        if (plan === "same") {
-          const { data: srcSub } = await admin
-            .from("master_subscriptions")
-            .select("plan_id, billing_cycle, monthly_price, total_amount")
-            .eq("user_id", sourceProfileId)
-            .order("created_at", { ascending: false })
-            .limit(1).maybeSingle();
-          planId = (srcSub?.plan_id as string) || "gratis";
-          if (planId !== "gratis") {
-            await admin.from("master_subscriptions").insert({
-              user_id: newUserId,
-              plan_id: planId,
-              status: "active",
-              billing_cycle: srcSub?.billing_cycle || "monthly",
-              monthly_price: srcSub?.monthly_price || 0,
-              total_amount: srcSub?.total_amount || 0,
-            });
-          }
-        } else {
-          await admin.from("master_subscriptions").insert({
-            user_id: newUserId,
-            plan_id: planId,
-            status: "active",
-            billing_cycle: "monthly",
-          });
-        }
-      }
+      // 12) Payment settings: NUNCA copiar credenciais/segredos entre lojas
+      // (mesmo com opt-in). A opção legada `copyPayments` é ignorada aqui —
+      // qualquer credencial (tokens, webhooks, chaves) deve ser reconfigurada
+      // manualmente na nova loja para evitar cobrança cruzada e vazamentos.
+      // A assinatura da nova loja já foi criada no passo 6.5 com pending_plan_id.
 
       // 14) Password reset link (if requested)
       let resetLink: string | null = null;
@@ -483,10 +556,13 @@ Deno.serve(async (req) => {
         },
         counts: {
           products: productsCopied,
+          productsDeactivatedByPlan,
           categories: categoriesCopied,
           brands: brandsCopied,
           images: imagesCopied,
         },
+        pendingPlanId,
+        subscriptionStatus: pendingPlanId ? "pending_payment" : "active",
         resetLink,
         temporaryPassword: passwordStrategy === "temporary_password" ? temporaryPassword : null,
       }), {

@@ -1,102 +1,107 @@
-## Diagnóstico
+# Correção da duplicação de loja — clonagem integral + plano pendente
 
-A migração de segurança `20260523233913_2c73ca3c-f657-4e37-9521-faf69f5e99e4.sql` (linhas 67–117) revogou `EXECUTE` de `anon, authenticated, PUBLIC` para um conjunto de funções `SECURITY DEFINER`, incluindo todas as RPCs do sistema de Templates por Marca:
+## Causa raiz do bug atual (por que só 20 produtos foram copiados)
 
-- `apply_template_to_existing_store(uuid,uuid,boolean)`
-- `sync_template_from_profile(uuid)`
-- `complement_template_data(uuid,uuid)`
-- `backfill_partner_templates()`
-- `clone_template_to_store(uuid,uuid)`
-- `link_template_to_profile(uuid,uuid)`
+A tabela `products` tem o trigger `trg_validate_product_activation_limit` (BEFORE INSERT OR UPDATE OF is_active) que executa `validate_product_activation_limit()`. Essa função:
 
-Essas RPCs são chamadas do client em:
-- `src/pages/Register.tsx` → `clone_template_to_store` (usuário recém-criado)
-- `src/contexts/TemplateEditorContext.tsx`, `src/hooks/useTemplateEditor.tsx`, `src/lib/templatePreviewSync.ts` → `sync_template_from_profile`
-- `src/components/admin/TemplateMaintenanceTab.tsx` → `apply_template_to_existing_store`, `complement_template_data`, `backfill_partner_templates`
+1. Consulta `get_effective_store_plan(NEW.user_id)`.
+2. Como a Edge Function `clone-store` insere os produtos **antes** de criar a `master_subscriptions`, a nova conta ainda não tem assinatura → plano efetivo = Grátis (limite 20).
+3. Ao tentar inserir o 21º produto com `is_active = true`, o trigger lança `RAISE EXCEPTION 'Você atingiu o limite...'`.
+4. O laço em `clone-store/index.ts` faz `if (prodErr || !insProd) continue;` — o erro é engolido silenciosamente e os 195 produtos restantes são perdidos. Nenhum log detalhado é gravado.
 
-Resultado: todo o fluxo (cadastro via link, sincronizar, complementar, backfill, forçar) responde **permission denied for function**, deixando lojas em `pending`/`incomplete` e bloqueando retry.
+Consequência: clone com 20 produtos ativos, 0 inativos, e plano registrado como Grátis (porque a atribuição de plano acontece depois e a UI mostrou "Grátis" no teste).
 
-O erro **"User already registered"** vem de tentativas repetidas no `Register.tsx`: o usuário do auth é criado com sucesso, mas o `clone_template_to_store` falha por permissão; quando o lojista repete o cadastro, o `signUp` rejeita porque o e-mail já existe — sem caminho de recuperação no front.
+## Correção — escopo mínimo, isolado ao fluxo de clonagem
 
-## Plano de correção
+### 1. Schema (migration)
 
-### 1. Migração: restaurar permissões com segurança por papel
+Adicionar em `public.products`:
+- `deactivation_reason text` (nullable). Valores usados: `pending_plan_limit`, `plan_downgrade`, `manual`, `overdue`. Sem CHECK constraint — validação em código.
+- `was_active_before_plan_restriction boolean default false`.
 
-Reaplicar `GRANT EXECUTE` nas funções de template, mas com **gate interno** dentro de cada função administrativa para impedir abuso por usuários comuns:
+Adicionar em `public.master_subscriptions`:
+- `pending_plan_id text` (nullable) — plano pretendido aguardando pagamento.
+- `source_profile_id uuid` (nullable) — auditoria: loja original quando criada por clonagem.
 
-- `apply_template_to_existing_store`, `complement_template_data`, `backfill_partner_templates`, `link_template_to_profile`: adicionar no topo do corpo
-  ```sql
-  IF NOT public.has_role(auth.uid(), 'admin') THEN
-    RAISE EXCEPTION 'Acesso negado: requer papel admin';
-  END IF;
-  ```
-  e `GRANT EXECUTE ... TO authenticated` (auth.uid() necessário para o check).
-- `sync_template_from_profile(uuid)`: permitir admin **ou** o próprio dono do `source_profile_id` do template (lojista no modo template-editor). `GRANT EXECUTE ... TO authenticated`.
-- `clone_template_to_store(uuid,uuid)`: permitir quando `auth.uid() = p_user_id` (auto-clone no cadastro) **ou** admin. `GRANT EXECUTE ... TO authenticated`.
+Ajustar `validate_product_activation_limit()`:
+- Antes do `RAISE EXCEPTION`, verificar se a sessão está dentro do contexto de clonagem: usar um GUC `SET LOCAL app.cloning_in_progress = 'on'` que a Edge Function ativa antes do laço via `admin.rpc('set_config', ...)` (ou via chamada de uma função SECURITY DEFINER `begin_clone_context(target_user_id)`).
+- Quando a flag estiver ligada **e** `NEW.user_id` coincidir com o alvo do contexto, permitir a inserção mesmo acima do limite, mas **forçar** `NEW.is_active := false`, `NEW.deactivation_reason := 'pending_plan_limit'`, `NEW.was_active_before_plan_restriction := (OLD source active state)`.
+- Fora do contexto: comportamento atual permanece intacto (nenhum outro fluxo é afetado).
 
-Sem reabrir para `anon` — todas as chamadas hoje partem de sessão autenticada (signup já loga o usuário antes do `Register.tsx` chamar a RPC).
+Nova função `reactivate_products_after_upgrade()` (já existe — vamos reutilizar/estender):
+- Reativa apenas produtos com `deactivation_reason = 'pending_plan_limit'` **e** `was_active_before_plan_restriction = true`, respeitando o novo limite. Produtos com `deactivation_reason = 'manual'` (decisão do lojista) permanecem inativos.
 
-### 2. Migração: blindagem transacional das funções
+### 2. Edge Function `supabase/functions/clone-store/index.ts`
 
-Em `apply_template_to_existing_store`, `clone_template_to_store` e `complement_template_data`:
+Fluxo revisado (transacional-lógico, sem alterar o rollback já existente):
 
-- Envolver o corpo em `BEGIN ... EXCEPTION WHEN OTHERS` (já existe) e gravar `template_apply_status`, `template_apply_error` e `template_applied_at` em **todos** os caminhos (sucesso, parcial, falha) — hoje alguns saem cedo sem atualizar status.
-- Em `clone_template_to_store`: ao sair com `retry=true` (profile ainda não existe), **não** apagar nada e não marcar `applied`. OK como está; reforçar com `template_apply_status='pending'` explícito.
-- Garantir que `apply_template_to_existing_store` com `p_force=true` execute `DELETE FROM products` dentro do mesmo bloco que chama `copy_template_products_to_store`, em uma sub-transação `SAVEPOINT`, para evitar perder produtos caso o copy falhe.
+1. Criar user + profile clone (igual hoje).
+2. **Criar a `master_subscriptions` ANTES dos produtos** com:
+   - Se `plan = 'same'` e origem é Premium/Pro: `plan_id = 'gratis'`, `pending_plan_id = <plano origem>`, `status = 'pending_payment'`, `source_profile_id = sourceProfileId`.
+   - Se `plan = 'gratis'`: nenhum pending, sem cobrança.
+   - Se `plan = 'pro'|'premium'` explícito: `plan_id = 'gratis'`, `pending_plan_id = plan`, `status = 'pending_payment'`.
+3. Abrir contexto de clonagem: `await admin.rpc('begin_clone_context', { p_user_id: newUserId })`. Idempotente por transação/sessão.
+4. Copiar categorias, marcas, produtos, imagens (loop atual). Para cada produto:
+   - Passar `deactivation_reason` conforme trigger decidir; NÃO filtrar por limite no código.
+   - Registrar `was_active_before_plan_restriction = source.is_active` para todos.
+   - Se o trigger inserir com `is_active=false` por limite: OK, tudo cadastrado.
+5. Fechar contexto: `admin.rpc('end_clone_context')`.
+6. **Nunca copiar** `payment_settings`, `master_subscriptions` da origem, tokens, credenciais Correios/Melhor Envio secretas, cartões, faturas, webhooks (já é o comportamento — reforçar comentário e remover a opção `copyPayments` do payload para evitar cópia indevida de credenciais; opção continua no modal mas ignorada com aviso).
+7. Retornar `pendingPlan` e `checkoutUrl` (gerado via função existente `create-master-subscription` para o `pending_plan_id`) além dos dados atuais.
 
-### 3. Migração: rotina de reparo idempotente
+Idempotência:
+- Header `Idempotency-Key` opcional; a Edge Function grava em `store_clone_logs.idempotency_key` e retorna o resultado anterior se a mesma chave já teve `status = success`.
+- Frontend gera UUID por abertura do modal.
 
-Criar `public.repair_incomplete_template_stores()` (`SECURITY DEFINER`, admin-only) que:
+### 3. Webhook de pagamento
 
-1. Seleciona profiles com `source_template_id IS NOT NULL` e (`template_apply_status IN ('pending','failed','incomplete')` **ou** falta de banners/produtos versus `brand_template_products`).
-2. Para cada loja:
-   - Se `template_applied = false` → chama `apply_template_to_existing_store(..., p_force := false)`.
-   - Senão → chama `complement_template_data`.
-3. Recalcula `template_apply_status` no final via checklist de integridade (ver §4).
-4. Retorna `jsonb` com `processed`, `repaired`, `still_incomplete`, `details[]` por loja.
+`supabase/functions/master-subscription-webhook/index.ts` — no evento de pagamento confirmado:
+- Se a assinatura tem `pending_plan_id` e `status = 'pending_payment'`:
+  - `plan_id := pending_plan_id`, `pending_plan_id := NULL`, `status := 'active'`.
+  - Chamar `reactivate_products_after_upgrade(user_id)`.
+- Idempotência já existente por `webhook_events` — só reutilizar.
 
-Nunca cria auth user nem duplica profile.
+### 4. Frontend
 
-### 4. Migração: checklist de integridade
+`src/components/admin/CloneStoreModal.tsx`:
+- Ao sucesso com `pendingPlan`, mostrar aviso: "Loja duplicada. Plano <X> aguardando pagamento." + botão "Copiar link de checkout" com `checkoutUrl`.
+- Enviar `Idempotency-Key`.
 
-Criar `public.template_integrity_check(p_user_id uuid)` retornando `jsonb` com flags:
-`has_banners_desktop`, `has_banners_mobile`, `has_mini_banners`, `has_benefit_banners`, `has_content_banner`, `has_products`, `has_brands`, `has_categories`, `has_about_us`, `has_colors`, `has_footer`, mais `missing[]`.
+`src/pages/dashboard/Products.tsx` + `useMerchantPlan`:
+- Quando `subscription_status = 'pending_payment'` e `pending_plan_id` existir, exibir banner: "Plano <X> aguardando pagamento. Ative para liberar todos os produtos." com CTA para checkout.
+- Toggle `is_active` bloqueado para produtos com `deactivation_reason = 'pending_plan_limit'` (tooltip explicando).
 
-Chamar ao fim de `apply_template_to_existing_store`, `complement_template_data` e `repair_incomplete_template_stores` para definir `template_apply_status` como `applied` apenas se `missing[]` estiver vazio; caso contrário `incomplete` com `template_apply_error = 'Itens faltantes: ...'`.
+Nenhuma outra tela é alterada. Cadastro pela landing, templates por marca, downgrade/inadimplência, lojas existentes: intocados.
 
-### 5. Frontend: recuperar "User already registered"
+### 5. Correção retroativa da loja Aroma duplicada no teste
 
-Em `src/pages/Register.tsx`:
+Script único (rodado uma vez via `insert` tool após confirmação do ID do clone):
+1. Identificar o clone (buscar em `store_clone_logs` a última entrada com `source_profile_id` = Aroma).
+2. Comparar `products` de origem × clone via `cloned_from_product_id`.
+3. Inserir apenas os ausentes, com `is_active = false`, `deactivation_reason = 'pending_plan_limit'`, `was_active_before_plan_restriction = <origem>.is_active`, dentro do contexto de clonagem.
+4. Atualizar `master_subscriptions` do clone: `pending_plan_id = 'premium'`, `status = 'pending_payment'`.
+5. Não duplicar (chave = `cloned_from_product_id`).
 
-- Quando `signUp` retornar erro com código `user_already_exists` (ou mensagem equivalente) **e** houver `template` no contexto:
-  1. Tentar `signInWithPassword` usando as mesmas credenciais.
-  2. Se logar com sucesso, buscar o `profiles.template_apply_status` do usuário:
-     - `pending`/`failed`/`incomplete` → seguir o mesmo loop de retry de `clone_template_to_store` já existente (recuperação).
-     - `applied` → redirecionar direto para `/onboarding` ou `/gestor`.
-  3. Se o sign-in falhar (senha errada), exibir mensagem clara orientando login/recuperação de senha, sem perder o `template` na URL.
+## Arquivos afetados
 
-- Adicionar telemetria de console (`[Register][recovery]`) em cada ramo para facilitar suporte.
+- **Migration**: adiciona 2 colunas em `products`, 2 em `master_subscriptions`, cria `begin_clone_context`/`end_clone_context` (SECURITY DEFINER), ajusta `validate_product_activation_limit`, ajusta `reactivate_products_after_upgrade`. GRANTs revalidados.
+- `supabase/functions/clone-store/index.ts` — reordenação: assinatura antes dos produtos; abertura/fechamento do contexto; sem filtro por limite; retorno de `pendingPlan`/`checkoutUrl`; idempotency-key.
+- `supabase/functions/master-subscription-webhook/index.ts` — resolver `pending_plan_id` na confirmação.
+- `src/components/admin/CloneStoreModal.tsx` — idempotency-key, exibição do checkout.
+- `src/pages/dashboard/Products.tsx` — banner de plano pendente + bloqueio de toggle.
+- (Opcional) `src/hooks/useMerchantPlan.tsx` — expor `pendingPlanId` e `subscriptionStatus`.
 
-### 6. Frontend: feedback dos botões admin
+## Fora de escopo (não será tocado)
 
-Em `src/components/admin/TemplateMaintenanceTab.tsx`:
+Landing/cadastro público, templates por marca, fluxo de downgrade após 7 dias, regras globais de inadimplência, planos de lojas já existentes, loja pública (que já filtra `is_active`), produtos de outras contas, limite do plano Grátis.
 
-- Mostrar mensagem explícita quando a RPC retornar `permission denied` (futuro proofing) sugerindo verificar papel admin.
-- Após `apply`/`complement`/`backfill`, exibir o `jsonb` retornado (especialmente `missing[]` e contagem de produtos) num diálogo de resultado, para que o admin enxergue por que algo ficou `incomplete`.
+## Testes que serão executados
 
-### 7. Verificação pós-migração
+A. Clone Aroma (215) com "Mesmo da origem" → 215 cadastrados, ≤20 ativos, Premium pendente.
+B. Webhook Premium confirmado → produtos originalmente ativos reativados; manualmente inativos permanecem inativos.
+C. Pagamento não concluído → dados preservados, sem Premium.
+D. Clone com "Grátis" → 215 cadastrados, 20 ativos, sem cobrança.
+E. Falha meio do caminho → rollback (delete do auth user) já existente permanece.
+F. Webhook repetido → sem duplicar produtos nem reativar duas vezes (idempotência via `webhook_events`).
 
-1. Rodar `repair_incomplete_template_stores()` uma vez via `supabase--insert` para reparar lojas afetadas em produção.
-2. Smoke test manual:
-   - Novo cadastro via link de template → loja completa.
-   - Repetir mesmo e-mail → recuperação automática.
-   - "Forçar sincronização" no editor de template → 200.
-   - "Complementar" e "Backfill" no painel admin → 200 + relatório.
-
-## Detalhes técnicos
-
-- Funções afetadas (todas em `public`, `SECURITY DEFINER`, `search_path=public`): ver §1.
-- Tabelas tocadas: `profiles`, `products`, `product_brands`, `product_categories`, `brand_templates`, `brand_template_products`.
-- Sem mudança de schema — apenas `CREATE OR REPLACE FUNCTION`, `GRANT`, novas funções de reparo/check, edits frontend em `Register.tsx` e `TemplateMaintenanceTab.tsx`.
-- `has_role` já é `SECURITY DEFINER` e bypassa RLS para checar `user_roles`.
-- Não reabre acesso a `anon`; mantém o ganho de segurança da migração anterior, corrigindo apenas o falso positivo.
+Confirma para eu executar a migration e os ajustes?
