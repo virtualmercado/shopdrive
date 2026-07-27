@@ -108,7 +108,22 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
           },
         },
       });
-      if (error) throw error;
+      // supabase.functions.invoke wraps non-2xx responses in a FunctionsHttpError
+      // whose message is only "non-2xx status code". The real payload lives on
+      // error.context.response — read it to surface the actual error to the admin.
+      if (error) {
+        let realMsg = error.message || "Falha desconhecida";
+        try {
+          const resp = (error as any)?.context?.response;
+          if (resp && typeof resp.json === "function") {
+            const body = await resp.json();
+            if (body?.error) realMsg = body.error;
+          }
+        } catch (_) {
+          // ignore — keep fallback message
+        }
+        throw new Error(realMsg);
+      }
       const payload = data as { success: boolean; error?: string; newStore?: any; counts?: any; resetLink?: string | null; temporaryPassword?: string | null };
       if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
 
