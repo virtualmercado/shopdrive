@@ -97,6 +97,7 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("clone-store", {
+        headers: { "Idempotency-Key": idempotencyKey },
         body: {
           sourceProfileId: subscriber.id,
           newStoreName: newStoreName.trim(),
@@ -113,9 +114,6 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
           },
         },
       });
-      // supabase.functions.invoke wraps non-2xx responses in a FunctionsHttpError
-      // whose message is only "non-2xx status code". The real payload lives on
-      // error.context.response — read it to surface the actual error to the admin.
       if (error) {
         let realMsg = error.message || "Falha desconhecida";
         try {
@@ -124,12 +122,15 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
             const body = await resp.json();
             if (body?.error) realMsg = body.error;
           }
-        } catch (_) {
-          // ignore — keep fallback message
-        }
+        } catch (_) { /* ignore */ }
         throw new Error(realMsg);
       }
-      const payload = data as { success: boolean; error?: string; newStore?: any; counts?: any; resetLink?: string | null; temporaryPassword?: string | null };
+      const payload = data as {
+        success: boolean; error?: string; newStore?: any; counts?: any;
+        resetLink?: string | null; temporaryPassword?: string | null;
+        pendingPlanId?: string | null;
+        subscriptionStatus?: "pending_payment" | "active";
+      };
       if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
 
       setResult({
@@ -140,6 +141,8 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
         counts: payload.counts,
         resetLink: payload.resetLink ?? null,
         temporaryPassword: payload.temporaryPassword ?? null,
+        pendingPlanId: payload.pendingPlanId ?? null,
+        subscriptionStatus: payload.subscriptionStatus ?? "active",
       });
       toast.success("Loja duplicada com sucesso!");
     } catch (e: any) {
