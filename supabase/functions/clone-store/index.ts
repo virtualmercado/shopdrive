@@ -187,6 +187,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Email uniqueness (auth.users) — pre-check to return a friendly error
+    // instead of failing later inside createUser().
+    try {
+      const { data: existing } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      const emailLower = newEmail.trim().toLowerCase();
+      const clash = existing?.users?.find(
+        (u) => (u.email || "").toLowerCase() === emailLower,
+      );
+      if (clash) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Este e-mail já está cadastrado na plataforma. Use um e-mail diferente para a loja duplicada.",
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    } catch (_) {
+      // If the listing fails we fall through — createUser() will still catch dup emails.
+    }
+
     // Prepare log row
     const { data: logRow } = await admin.from("store_clone_logs").insert({
       admin_user_id: adminUserId,
