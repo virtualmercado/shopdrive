@@ -51,13 +51,18 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
   const [copyCoupons, setCopyCoupons] = useState(false);
   const [copyCustomerGroups, setCopyCustomerGroups] = useState(false);
   const [copyMarketing, setCopyMarketing] = useState(false);
-  const [copyPayments, setCopyPayments] = useState(false);
+  // Copiar credenciais de pagamento entre lojas foi removido por segurança:
+  // ver clone-store/index.ts (passo 12). O checkbox permanece por compat mas
+  // é sempre falso — os segredos nunca são replicados.
+  const copyPayments = false;
 
   const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [result, setResult] = useState<null | {
     publicUrl: string; email: string; storeName: string; storeSlug: string;
-    counts: { products: number; categories: number; brands: number; images: number };
+    counts: { products: number; productsDeactivatedByPlan?: number; categories: number; brands: number; images: number };
     resetLink: string | null; temporaryPassword: string | null;
+    pendingPlanId: string | null; subscriptionStatus: "pending_payment" | "active";
   }>(null);
 
   const reset = () => {
