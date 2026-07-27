@@ -148,13 +148,23 @@ const PaymentMethodsContent = () => {
     }
   }, [settings]);
 
+  const SAFE_COLUMNS =
+    "id,user_id," +
+    "mercadopago_enabled,mercadopago_public_key,mercadopago_access_token_set,mercadopago_webhook_secret_set," +
+    "pagbank_enabled,pagbank_email,pagbank_token_set,pagbank_webhook_secret_set," +
+    "stone_ton_enabled,stone_ton_public_key,stone_ton_merchant_id,stone_ton_secret_key_set," +
+    "infinitepay_enabled,infinitepay_handle,infinitepay_client_secret_set,infinitepay_webhook_secret_set," +
+    "pix_enabled,pix_provider,pix_discount_percent," +
+    "credit_card_enabled,credit_card_provider,credit_card_installments_no_interest," +
+    "boleto_enabled,boleto_provider";
+
   const fetchSettings = async () => {
     if (!user) return;
     
     try {
       const { data, error } = await supabase
         .from("payment_settings")
-        .select("*")
+        .select(SAFE_COLUMNS)
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -176,6 +186,7 @@ const PaymentMethodsContent = () => {
       setLoading(false);
     }
   };
+
 
   const saveSettings = async (newSettings: Partial<PaymentSettings>) => {
     if (!user || !settings) return;
