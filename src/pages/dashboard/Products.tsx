@@ -84,11 +84,31 @@ const Products = () => {
 
   const { plan, limits, loading: planLoading, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
 
+  const [pendingPlan, setPendingPlan] = useState<{ planId: string; subscriptionId: string } | null>(null);
+  const pendingInactiveCount = products.filter(p => !p.is_active && (p as any).inactive_reason === 'pending_plan_limit').length;
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
     fetchStoreName();
+    fetchPendingPlan();
   }, []);
+
+  const fetchPendingPlan = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await (supabase as any)
+      .from('master_subscriptions')
+      .select('id, pending_plan_id, status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (data?.pending_plan_id && data.status === 'pending_payment') {
+      setPendingPlan({ planId: data.pending_plan_id, subscriptionId: data.id });
+    } else {
+      setPendingPlan(null);
+    }
+  };
+
 
   const fetchStoreName = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -329,6 +349,26 @@ const Products = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {pendingPlan && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-sm text-amber-900">
+              <strong>Pagamento pendente:</strong> a ativação do plano{' '}
+              <strong>{PLAN_DISPLAY_NAMES[pendingPlan.planId as keyof typeof PLAN_DISPLAY_NAMES] || pendingPlan.planId}</strong>{' '}
+              está aguardando a confirmação do pagamento.
+              {pendingInactiveCount > 0 && (
+                <> Existem <strong>{pendingInactiveCount}</strong> produto(s) inativo(s) que serão reativados após a confirmação.</>
+              )}
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() => window.location.assign('/financeiro')}
+            >
+              Pagar agora
+            </Button>
+          </div>
+        )}
+
         {/* Plan limit indicator */}
         {limits.maxProducts !== null && (
           <div className="text-sm text-muted-foreground">

@@ -384,6 +384,14 @@ serve(async (req) => {
           console.log(`Reactivating plan: gratis -> ${previousPlan}`);
         }
 
+        // Promote pending_plan_id -> plan_id (cloned/pending stores)
+        const pendingPlan = (payment.master_subscriptions as any)?.pending_plan_id;
+        if (pendingPlan) {
+          subscriptionUpdate.plan_id = pendingPlan;
+          subscriptionUpdate.pending_plan_id = null;
+          console.log(`Promoting pending plan -> ${pendingPlan}`);
+        }
+
         // Determine effective new plan and reactivate products that were
         // disabled by plan limit. Use ONLY the inactive_reason='plan_limit' marker
         // so manual deactivations stay untouched.
