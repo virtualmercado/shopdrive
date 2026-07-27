@@ -316,7 +316,7 @@ const PaymentMethodsContent = () => {
       mercadopago_enabled: true,
       mercadopago_access_token: tempMercadoPago.accessToken,
       mercadopago_public_key: tempMercadoPago.publicKey,
-    });
+    } as any);
     setMercadoPagoDialogOpen(false);
   };
 
@@ -330,7 +330,7 @@ const PaymentMethodsContent = () => {
       pagbank_enabled: true,
       pagbank_token: tempPagbank.token,
       pagbank_email: tempPagbank.email,
-    });
+    } as any);
     setPagbankDialogOpen(false);
   };
 
@@ -345,9 +345,10 @@ const PaymentMethodsContent = () => {
       stone_ton_public_key: tempStoneTon.publicKey,
       stone_ton_secret_key: tempStoneTon.secretKey,
       stone_ton_merchant_id: tempStoneTon.merchantId || null,
-    });
+    } as any);
     setStoneTonDialogOpen(false);
   };
+
 
   const saveInfinitePayCredentials = async () => {
     const rawHandle = tempInfinitePay.handle.trim();
