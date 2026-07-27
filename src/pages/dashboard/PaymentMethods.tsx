@@ -27,17 +27,17 @@ import {
 interface PaymentSettings {
   id?: string;
   user_id: string;
-  // Legacy fields for gateway credentials
+  // Legacy fields for gateway credentials (non-sensitive only; secrets stay server-side)
   mercadopago_enabled: boolean;
-  mercadopago_access_token: string | null;
+  mercadopago_access_token_set: boolean;
   mercadopago_public_key: string | null;
   pagbank_enabled: boolean;
-  pagbank_token: string | null;
+  pagbank_token_set: boolean;
   pagbank_email: string | null;
   // New gateways (optional for backwards compatibility)
   stone_ton_enabled?: boolean;
   stone_ton_public_key?: string | null;
-  stone_ton_secret_key?: string | null;
+  stone_ton_secret_key_set?: boolean;
   stone_ton_merchant_id?: string | null;
   infinitepay_enabled?: boolean;
   infinitepay_handle?: string | null;
@@ -54,14 +54,14 @@ interface PaymentSettings {
 
 const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   mercadopago_enabled: false,
-  mercadopago_access_token: null,
+  mercadopago_access_token_set: false,
   mercadopago_public_key: null,
   pagbank_enabled: false,
-  pagbank_token: null,
+  pagbank_token_set: false,
   pagbank_email: null,
   stone_ton_enabled: false,
   stone_ton_public_key: null,
-  stone_ton_secret_key: null,
+  stone_ton_secret_key_set: false,
   stone_ton_merchant_id: null,
   infinitepay_enabled: false,
   infinitepay_handle: null,
@@ -74,6 +74,7 @@ const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
   boleto_enabled: false,
   boleto_provider: null,
 };
+
 
 const PaymentMethodsContent = () => {
   const { user } = useAuth();
