@@ -2271,6 +2271,7 @@ export type Database = {
           no_charge: boolean | null
           origin: string | null
           payment_method: string | null
+          pending_plan_id: string | null
           plan_id: string
           previous_plan_id: string | null
           recurring_consent_accepted: boolean | null
@@ -2278,6 +2279,7 @@ export type Database = {
           recurring_consent_ip: string | null
           requires_card_update: boolean | null
           retry_count: number | null
+          source_profile_id: string | null
           started_at: string | null
           status: string
           total_amount: number
@@ -2310,6 +2312,7 @@ export type Database = {
           no_charge?: boolean | null
           origin?: string | null
           payment_method?: string | null
+          pending_plan_id?: string | null
           plan_id: string
           previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
@@ -2317,6 +2320,7 @@ export type Database = {
           recurring_consent_ip?: string | null
           requires_card_update?: boolean | null
           retry_count?: number | null
+          source_profile_id?: string | null
           started_at?: string | null
           status?: string
           total_amount: number
@@ -2349,6 +2353,7 @@ export type Database = {
           no_charge?: boolean | null
           origin?: string | null
           payment_method?: string | null
+          pending_plan_id?: string | null
           plan_id?: string
           previous_plan_id?: string | null
           recurring_consent_accepted?: boolean | null
@@ -2356,6 +2361,7 @@ export type Database = {
           recurring_consent_ip?: string | null
           requires_card_update?: boolean | null
           retry_count?: number | null
+          source_profile_id?: string | null
           started_at?: string | null
           status?: string
           total_amount?: number
@@ -3344,6 +3350,7 @@ export type Database = {
           user_id: string
           variations: Json | null
           views_count: number
+          was_active_before_plan_restriction: boolean
           weight: number | null
           width: number | null
         }
@@ -3377,6 +3384,7 @@ export type Database = {
           user_id: string
           variations?: Json | null
           views_count?: number
+          was_active_before_plan_restriction?: boolean
           weight?: number | null
           width?: number | null
         }
@@ -3410,6 +3418,7 @@ export type Database = {
           user_id?: string
           variations?: Json | null
           views_count?: number
+          was_active_before_plan_restriction?: boolean
           weight?: number | null
           width?: number | null
         }
@@ -4083,6 +4092,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          idempotency_key: string | null
           images_copied: number
           options: Json
           products_copied: number
@@ -4103,6 +4113,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           images_copied?: number
           options?: Json
           products_copied?: number
@@ -4123,6 +4134,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           images_copied?: number
           options?: Json
           products_copied?: number
