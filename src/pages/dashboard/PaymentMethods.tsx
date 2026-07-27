@@ -370,8 +370,9 @@ const PaymentMethodsContent = () => {
   };
 
   const openMercadoPagoConfig = () => {
+    // Secret values are never returned to the client. Prefill only the non-sensitive fields.
     setTempMercadoPago({
-      accessToken: settings?.mercadopago_access_token || "",
+      accessToken: "",
       publicKey: settings?.mercadopago_public_key || "",
     });
     setMercadoPagoDialogOpen(true);
@@ -379,7 +380,7 @@ const PaymentMethodsContent = () => {
 
   const openPagbankConfig = () => {
     setTempPagbank({
-      token: settings?.pagbank_token || "",
+      token: "",
       email: settings?.pagbank_email || "",
     });
     setPagbankDialogOpen(true);
@@ -388,11 +389,12 @@ const PaymentMethodsContent = () => {
   const openStoneTonConfig = () => {
     setTempStoneTon({
       publicKey: settings?.stone_ton_public_key || "",
-      secretKey: settings?.stone_ton_secret_key || "",
+      secretKey: "",
       merchantId: settings?.stone_ton_merchant_id || "",
     });
     setStoneTonDialogOpen(true);
   };
+
 
   const openInfinitePayConfig = () => {
     setTempInfinitePay({
