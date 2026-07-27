@@ -206,8 +206,9 @@ const PaymentMethodsContent = () => {
         const { data, error } = await supabase
           .from("payment_settings")
           .insert({ ...updatedSettings, user_id: user.id })
-          .select()
+          .select(SAFE_COLUMNS)
           .single();
+
         
         if (error) throw error;
         if (data) {
