@@ -163,7 +163,7 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
         throw new Error(realMsg);
       }
       console.info("[clone-store] invoke success", { requestId, response: data });
-      const payload = data as {
+      const responsePayload = data as {
         success: boolean; error?: string;
         async?: boolean; logId?: string; requestId?: string;
         newStore?: any; counts?: any;
@@ -171,18 +171,18 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
         pendingPlanId?: string | null;
         subscriptionStatus?: "pending_payment" | "active";
       };
-      if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
+      if (!responsePayload?.success) throw new Error(responsePayload?.error || "Falha desconhecida");
 
       // Async mode: poll the log row until status transitions.
-      let finalStore = payload.newStore;
-      let finalCounts = payload.counts;
-      let finalResetLink = payload.resetLink ?? null;
-      let finalTempPwd = payload.temporaryPassword ?? null;
-      let finalPendingPlanId = payload.pendingPlanId ?? null;
-      let finalSubStatus = payload.subscriptionStatus ?? "active";
+      let finalStore = responsePayload.newStore;
+      let finalCounts = responsePayload.counts;
+      let finalResetLink = responsePayload.resetLink ?? null;
+      let finalTempPwd = responsePayload.temporaryPassword ?? null;
+      let finalPendingPlanId = responsePayload.pendingPlanId ?? null;
+      let finalSubStatus = responsePayload.subscriptionStatus ?? "active";
 
-      if (payload.async && payload.logId) {
-        const logId = payload.logId;
+      if (responsePayload.async && responsePayload.logId) {
+        const logId = responsePayload.logId;
         console.info("[clone-store] polling start", { requestId, logId });
         const deadline = Date.now() + 5 * 60 * 1000; // 5 min
         // eslint-disable-next-line no-constant-condition
