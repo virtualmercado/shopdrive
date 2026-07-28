@@ -2279,6 +2279,7 @@ export type Database = {
           recurring_consent_ip: string | null
           requires_card_update: boolean | null
           retry_count: number | null
+          source_plan_id: string | null
           source_profile_id: string | null
           started_at: string | null
           status: string
@@ -2320,6 +2321,7 @@ export type Database = {
           recurring_consent_ip?: string | null
           requires_card_update?: boolean | null
           retry_count?: number | null
+          source_plan_id?: string | null
           source_profile_id?: string | null
           started_at?: string | null
           status?: string
@@ -2361,6 +2363,7 @@ export type Database = {
           recurring_consent_ip?: string | null
           requires_card_update?: boolean | null
           retry_count?: number | null
+          source_plan_id?: string | null
           source_profile_id?: string | null
           started_at?: string | null
           status?: string
@@ -4108,11 +4111,13 @@ export type Database = {
           cloned_store_name: string | null
           cloned_store_slug: string | null
           created_at: string
+          current_entitlement_plan_id: string | null
           error_message: string | null
           id: string
           idempotency_key: string | null
           images_copied: number
           integrity_report: Json
+          intended_plan_id: string | null
           options: Json
           pending_plan_id: string | null
           products_copied: number
@@ -4122,6 +4127,7 @@ export type Database = {
           source_brands_count: number
           source_categories_count: number
           source_images_count: number
+          source_plan_id: string | null
           source_products_count: number
           source_profile_id: string | null
           source_store_name: string | null
@@ -4148,11 +4154,13 @@ export type Database = {
           cloned_store_name?: string | null
           cloned_store_slug?: string | null
           created_at?: string
+          current_entitlement_plan_id?: string | null
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
           images_copied?: number
           integrity_report?: Json
+          intended_plan_id?: string | null
           options?: Json
           pending_plan_id?: string | null
           products_copied?: number
@@ -4162,6 +4170,7 @@ export type Database = {
           source_brands_count?: number
           source_categories_count?: number
           source_images_count?: number
+          source_plan_id?: string | null
           source_products_count?: number
           source_profile_id?: string | null
           source_store_name?: string | null
@@ -4188,11 +4197,13 @@ export type Database = {
           cloned_store_name?: string | null
           cloned_store_slug?: string | null
           created_at?: string
+          current_entitlement_plan_id?: string | null
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
           images_copied?: number
           integrity_report?: Json
+          intended_plan_id?: string | null
           options?: Json
           pending_plan_id?: string | null
           products_copied?: number
@@ -4202,6 +4213,7 @@ export type Database = {
           source_brands_count?: number
           source_categories_count?: number
           source_images_count?: number
+          source_plan_id?: string | null
           source_products_count?: number
           source_profile_id?: string | null
           source_store_name?: string | null
