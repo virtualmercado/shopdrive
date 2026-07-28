@@ -4095,10 +4095,15 @@ export type Database = {
           idempotency_key: string | null
           images_copied: number
           options: Json
+          pending_plan_id: string | null
           products_copied: number
+          products_deactivated_by_plan: number | null
+          reset_link: string | null
           source_profile_id: string | null
           source_store_name: string | null
           status: string
+          subscription_status: string | null
+          temporary_password: string | null
           updated_at: string
         }
         Insert: {
@@ -4116,10 +4121,15 @@ export type Database = {
           idempotency_key?: string | null
           images_copied?: number
           options?: Json
+          pending_plan_id?: string | null
           products_copied?: number
+          products_deactivated_by_plan?: number | null
+          reset_link?: string | null
           source_profile_id?: string | null
           source_store_name?: string | null
           status?: string
+          subscription_status?: string | null
+          temporary_password?: string | null
           updated_at?: string
         }
         Update: {
@@ -4137,10 +4147,15 @@ export type Database = {
           idempotency_key?: string | null
           images_copied?: number
           options?: Json
+          pending_plan_id?: string | null
           products_copied?: number
+          products_deactivated_by_plan?: number | null
+          reset_link?: string | null
           source_profile_id?: string | null
           source_store_name?: string | null
           status?: string
+          subscription_status?: string | null
+          temporary_password?: string | null
           updated_at?: string
         }
         Relationships: [

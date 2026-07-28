@@ -257,9 +257,13 @@ Deno.serve(async (req) => {
       await admin.from("store_clone_logs").update(patch).eq("id", logId);
     };
 
-    let newUserId: string | null = null;
+    // Kick off the heavy clone work in the background so the client
+    // doesn't hit proxy/fetch timeouts on large stores. The modal polls
+    // `store_clone_logs` by `logId` until status !== 'in_progress'.
+    const runClone = async () => {
+      let newUserId: string | null = null;
+      try {
 
-    try {
       // 3) Create new auth user
       const createParams: Record<string, unknown> = {
         email: newEmail,
@@ -542,43 +546,42 @@ Deno.serve(async (req) => {
         categories_copied: categoriesCopied,
         brands_copied: brandsCopied,
         images_copied: imagesCopied,
+        products_deactivated_by_plan: productsDeactivatedByPlan,
+        pending_plan_id: pendingPlanId,
+        subscription_status: pendingPlanId ? "pending_payment" : "active",
+        reset_link: resetLink,
+        temporary_password: passwordStrategy === "temporary_password" ? temporaryPassword : null,
         status: "success",
       });
-
-      return new Response(JSON.stringify({
-        success: true,
-        newStore: {
-          userId: newUserId,
-          email: newEmail,
-          storeName: newStoreName,
-          storeSlug: newSlug,
-          publicUrl: `/${newSlug}`,
-        },
-        counts: {
-          products: productsCopied,
-          productsDeactivatedByPlan,
-          categories: categoriesCopied,
-          brands: brandsCopied,
-          images: imagesCopied,
-        },
-        pendingPlanId,
-        subscriptionStatus: pendingPlanId ? "pending_payment" : "active",
-        resetLink,
-        temporaryPassword: passwordStrategy === "temporary_password" ? temporaryPassword : null,
-      }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch (cloneErr) {
-      // Rollback: delete the partial new user (cascades profile via auth deletion)
-      const msg = cloneErr instanceof Error ? cloneErr.message : String(cloneErr);
-      if (newUserId) {
-        try { await admin.auth.admin.deleteUser(newUserId); } catch (_) { /* ignore */ }
+      } catch (cloneErr) {
+        // Rollback: delete the partial new user (cascades profile via auth deletion)
+        const msg = cloneErr instanceof Error ? cloneErr.message : String(cloneErr);
+        if (newUserId) {
+          try { await admin.auth.admin.deleteUser(newUserId); } catch (_) { /* ignore */ }
+        }
+        await updateLog({ status: "failed", error_message: msg });
       }
-      await updateLog({ status: "failed", error_message: msg });
-      return new Response(JSON.stringify({ error: msg }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    };
+
+    // Run in background: return 202 immediately so the browser doesn't
+    // timeout on long clones. Client polls store_clone_logs by logId.
+    // deno-lint-ignore no-explicit-any
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime?.waitUntil) {
+      runtime.waitUntil(runClone());
+    } else {
+      // Fallback (local dev): fire-and-forget.
+      runClone();
     }
+
+    return new Response(JSON.stringify({
+      success: true,
+      async: true,
+      logId,
+      message: "Clonagem iniciada. Aguardando conclusão...",
+    }), {
+      status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return new Response(JSON.stringify({ error: msg }), {
@@ -586,3 +589,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
