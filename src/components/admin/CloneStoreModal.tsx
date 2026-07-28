@@ -126,23 +126,76 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
         throw new Error(realMsg);
       }
       const payload = data as {
-        success: boolean; error?: string; newStore?: any; counts?: any;
+        success: boolean; error?: string;
+        async?: boolean; logId?: string;
+        newStore?: any; counts?: any;
         resetLink?: string | null; temporaryPassword?: string | null;
         pendingPlanId?: string | null;
         subscriptionStatus?: "pending_payment" | "active";
       };
       if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
 
+      // Async mode: poll the log row until status transitions.
+      let finalStore = payload.newStore;
+      let finalCounts = payload.counts;
+      let finalResetLink = payload.resetLink ?? null;
+      let finalTempPwd = payload.temporaryPassword ?? null;
+      let finalPendingPlanId = payload.pendingPlanId ?? null;
+      let finalSubStatus = payload.subscriptionStatus ?? "active";
+
+      if (payload.async && payload.logId) {
+        const logId = payload.logId;
+        const deadline = Date.now() + 5 * 60 * 1000; // 5 min
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          if (Date.now() > deadline) {
+            throw new Error("Tempo esgotado aguardando a conclusão da clonagem. Verifique o log em Admin > Duplicações.");
+          }
+          await new Promise((r) => setTimeout(r, 2500));
+          const { data: row, error: pollErr } = await supabase
+            .from("store_clone_logs")
+            .select("status, error_message, cloned_profile_id, cloned_email, cloned_store_name, cloned_store_slug, products_copied, products_deactivated_by_plan, categories_copied, brands_copied, images_copied, reset_link, temporary_password, pending_plan_id, subscription_status")
+            .eq("id", logId)
+            .maybeSingle();
+          if (pollErr) continue;
+          if (!row) continue;
+          if (row.status === "failed") {
+            throw new Error(row.error_message || "Falha na clonagem");
+          }
+          if (row.status === "success") {
+            finalStore = {
+              userId: row.cloned_profile_id,
+              email: row.cloned_email,
+              storeName: row.cloned_store_name,
+              storeSlug: row.cloned_store_slug,
+              publicUrl: `/${row.cloned_store_slug}`,
+            };
+            finalCounts = {
+              products: row.products_copied ?? 0,
+              productsDeactivatedByPlan: row.products_deactivated_by_plan ?? 0,
+              categories: row.categories_copied ?? 0,
+              brands: row.brands_copied ?? 0,
+              images: row.images_copied ?? 0,
+            };
+            finalResetLink = row.reset_link ?? null;
+            finalTempPwd = row.temporary_password ?? null;
+            finalPendingPlanId = row.pending_plan_id ?? null;
+            finalSubStatus = (row.subscription_status as any) ?? "active";
+            break;
+          }
+        }
+      }
+
       setResult({
-        publicUrl: payload.newStore.publicUrl,
-        email: payload.newStore.email,
-        storeName: payload.newStore.storeName,
-        storeSlug: payload.newStore.storeSlug,
-        counts: payload.counts,
-        resetLink: payload.resetLink ?? null,
-        temporaryPassword: payload.temporaryPassword ?? null,
-        pendingPlanId: payload.pendingPlanId ?? null,
-        subscriptionStatus: payload.subscriptionStatus ?? "active",
+        publicUrl: finalStore.publicUrl,
+        email: finalStore.email,
+        storeName: finalStore.storeName,
+        storeSlug: finalStore.storeSlug,
+        counts: finalCounts,
+        resetLink: finalResetLink,
+        temporaryPassword: finalTempPwd,
+        pendingPlanId: finalPendingPlanId,
+        subscriptionStatus: finalSubStatus,
       });
       toast.success("Loja duplicada com sucesso!");
     } catch (e: any) {
