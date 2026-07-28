@@ -95,56 +95,95 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
     }
 
     setSubmitting(true);
+    const requestId = crypto.randomUUID();
+    const payload = {
+      sourceProfileId: subscriber.id,
+      newStoreName: newStoreName.trim(),
+      newSlug: newSlug.trim(),
+      newEmail: newEmail.trim().toLowerCase(),
+      cloneType,
+      passwordStrategy: pwdStrategy,
+      temporaryPassword: pwdStrategy === "temporary_password" ? tempPwd : undefined,
+      plan,
+      requestId,
+      options: {
+        copyProducts, copyCategories, copyBrands, copyImages,
+        copyAppearance, copyBanners, copyPersonalization, copyShipping,
+        copyCoupons, copyCustomerGroups, copyMarketing, copyPayments,
+      },
+    };
+
     try {
-      const { data, error } = await supabase.functions.invoke("clone-store", {
-        headers: { "Idempotency-Key": idempotencyKey },
-        body: {
-          sourceProfileId: subscriber.id,
-          newStoreName: newStoreName.trim(),
-          newSlug: newSlug.trim(),
-          newEmail: newEmail.trim().toLowerCase(),
-          cloneType,
-          passwordStrategy: pwdStrategy,
-          temporaryPassword: pwdStrategy === "temporary_password" ? tempPwd : undefined,
-          plan,
-          options: {
-            copyProducts, copyCategories, copyBrands, copyImages,
-            copyAppearance, copyBanners, copyPersonalization, copyShipping,
-            copyCoupons, copyCustomerGroups, copyMarketing, copyPayments,
-          },
+      console.info("[clone-store] submit clicked", {
+        requestId,
+        sourceProfileId: subscriber.id,
+        functionName: "clone-store",
+        projectId: import.meta.env.VITE_SUPABASE_PROJECT_ID,
+        backendUrl: import.meta.env.VITE_SUPABASE_URL,
+        origin: window.location.origin,
+      });
+      console.info("[clone-store] invoke start", {
+        requestId,
+        payloadSummary: {
+          sourceProfileId: payload.sourceProfileId,
+          newSlug: payload.newSlug,
+          newEmail: payload.newEmail,
+          cloneType: payload.cloneType,
+          plan: payload.plan,
+          passwordStrategy: payload.passwordStrategy,
+          copyOptions: payload.options,
         },
+      });
+
+      const { data, error } = await supabase.functions.invoke("clone-store", {
+        headers: { "Idempotency-Key": idempotencyKey, "x-request-id": requestId },
+        body: payload,
       });
       if (error) {
         let realMsg = error.message || "Falha desconhecida";
+        let status: number | undefined;
+        let responseBody: unknown;
         try {
           const resp = (error as any)?.context?.response;
+          status = resp?.status;
           if (resp && typeof resp.json === "function") {
             const body = await resp.json();
-            if (body?.error) realMsg = body.error;
+            responseBody = body;
+            if (body?.message || body?.error) realMsg = body.message || body.error;
           }
         } catch (_) { /* ignore */ }
+        console.error("[clone-store] invoke error", {
+          requestId,
+          name: (error as any)?.name,
+          message: error.message,
+          status,
+          responseBody,
+          context: (error as any)?.context,
+        });
         throw new Error(realMsg);
       }
-      const payload = data as {
+      console.info("[clone-store] invoke success", { requestId, response: data });
+      const responsePayload = data as {
         success: boolean; error?: string;
-        async?: boolean; logId?: string;
+        async?: boolean; logId?: string; requestId?: string;
         newStore?: any; counts?: any;
         resetLink?: string | null; temporaryPassword?: string | null;
         pendingPlanId?: string | null;
         subscriptionStatus?: "pending_payment" | "active";
       };
-      if (!payload?.success) throw new Error(payload?.error || "Falha desconhecida");
+      if (!responsePayload?.success) throw new Error(responsePayload?.error || "Falha desconhecida");
 
       // Async mode: poll the log row until status transitions.
-      let finalStore = payload.newStore;
-      let finalCounts = payload.counts;
-      let finalResetLink = payload.resetLink ?? null;
-      let finalTempPwd = payload.temporaryPassword ?? null;
-      let finalPendingPlanId = payload.pendingPlanId ?? null;
-      let finalSubStatus = payload.subscriptionStatus ?? "active";
+      let finalStore = responsePayload.newStore;
+      let finalCounts = responsePayload.counts;
+      let finalResetLink = responsePayload.resetLink ?? null;
+      let finalTempPwd = responsePayload.temporaryPassword ?? null;
+      let finalPendingPlanId = responsePayload.pendingPlanId ?? null;
+      let finalSubStatus = responsePayload.subscriptionStatus ?? "active";
 
-      if (payload.async && payload.logId) {
-        const logId = payload.logId;
+      if (responsePayload.async && responsePayload.logId) {
+        const logId = responsePayload.logId;
+        console.info("[clone-store] polling start", { requestId, logId });
         const deadline = Date.now() + 5 * 60 * 1000; // 5 min
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -159,6 +198,11 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
             .maybeSingle();
           if (pollErr) continue;
           if (!row) continue;
+          console.info("[clone-store] polling tick", {
+            requestId,
+            logId,
+            status: row.status,
+          });
           if (row.status === "failed") {
             throw new Error(row.error_message || "Falha na clonagem");
           }
@@ -200,6 +244,7 @@ export function CloneStoreModal({ subscriber, open, onOpenChange }: Props) {
       toast.success("Loja duplicada com sucesso!");
     } catch (e: any) {
       const msg = e?.message || "Erro ao duplicar loja";
+      console.error("[clone-store] submit failed", { requestId, message: msg, error: e });
       toast.error(msg);
     } finally {
       setSubmitting(false);
