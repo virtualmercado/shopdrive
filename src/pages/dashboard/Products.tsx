@@ -51,6 +51,7 @@ interface Product {
   length?: number | null;
   height?: number | null;
   width?: number | null;
+  inactive_reason?: string | null;
 }
 
 interface Category {
@@ -85,7 +86,8 @@ const Products = () => {
   const { plan, limits, loading: planLoading, productCount, canAddProduct, refetch: refetchPlan } = useMerchantPlan();
 
   const [pendingPlan, setPendingPlan] = useState<{ planId: string; subscriptionId: string } | null>(null);
-  const pendingInactiveCount = products.filter(p => !p.is_active && (p as any).inactive_reason === 'pending_plan_limit').length;
+  const pendingLimitReasons = new Set(['pending_plan_limit', 'clone_pending_plan_limit']);
+  const pendingInactiveCount = products.filter(p => !p.is_active && pendingLimitReasons.has(p.inactive_reason || '')).length;
 
   useEffect(() => {
     fetchProducts();
@@ -226,6 +228,16 @@ const Products = () => {
 
   const handleToggleActive = async (productId: string, currentActive: boolean) => {
     const newActive = !currentActive;
+    const product = products.find((item) => item.id === productId);
+
+    if (newActive && product?.inactive_reason && pendingLimitReasons.has(product.inactive_reason)) {
+      toast({
+        title: "Produto aguardando plano",
+        description: "Este produto foi copiado na duplicação da loja e será liberado após a confirmação do plano compatível.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (newActive && planLoading) {
       toast({
