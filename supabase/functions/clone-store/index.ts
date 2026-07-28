@@ -43,7 +43,7 @@ const CLONE_STORE_FULL_DATA_V2_FLAG = "clone_store_full_data_v2";
 const CLONE_BATCH_SIZE = 50;
 const CLONE_PLAN_LIMIT_REASON = "clone_pending_plan_limit";
 
-type DbClient = ReturnType<typeof createClient>;
+type DbClient = any;
 
 type SourceProduct = Record<string, unknown> & {
   id: string;
@@ -582,7 +582,7 @@ Deno.serve(async (req) => {
       // pelo webhook após confirmação do pagamento.
       let pendingPlanId: string | null = null;
       let sourcePlanId = "gratis";
-      let intendedPlanId = plan === "same" ? "gratis" : (plan || "gratis");
+      let intendedPlanId: string = plan === "same" ? "gratis" : (plan || "gratis");
       const { data: sourceSubscription } = await admin
         .from("master_subscriptions")
         .select("plan_id, billing_cycle, monthly_price, total_amount")
