@@ -137,9 +137,10 @@ async function isFullCloneV2Enabled(admin: DbClient): Promise<boolean> {
 
   if (error) {
     console.warn("[clone-store] feature flag read failed", { flag: CLONE_STORE_FULL_DATA_V2_FLAG, message: error.message });
-    return false;
+    return true;
   }
 
+  if (!data) return true;
   return parseBooleanFlag((data as { setting_value?: unknown } | null)?.setting_value);
 }
 
@@ -538,9 +539,11 @@ Deno.serve(async (req) => {
       await updateLog({ clone_phase: "copying_categories" });
       const categoryMap = new Map<string, string>();
       let categoriesCopied = 0;
+      let sourceCategoriesTotal = 0;
       if (options.copyCategories) {
         const { data: cats } = await admin
           .from("product_categories").select("*").eq("user_id", sourceProfileId);
+        sourceCategoriesTotal = (cats || []).length;
         for (const c of cats || []) {
           const { id: oldId, created_at, updated_at, ...rest } = c as Record<string, unknown>;
           const { data: ins, error } = await admin.from("product_categories")
@@ -556,9 +559,11 @@ Deno.serve(async (req) => {
       await updateLog({ clone_phase: "copying_brands" });
       const brandMap = new Map<string, string>();
       let brandsCopied = 0;
+      let sourceBrandsTotal = 0;
       if (options.copyBrands) {
         const { data: brands } = await admin
           .from("product_brands").select("*").eq("user_id", sourceProfileId);
+        sourceBrandsTotal = (brands || []).length;
         for (const b of brands || []) {
           const { id: oldId, created_at, updated_at, ...rest } = b as Record<string, unknown>;
           const { data: ins, error } = await admin.from("product_brands")
@@ -627,9 +632,9 @@ Deno.serve(async (req) => {
       const LIMIT_MARK = "limite de produtos ativos";
       let sourceProductsCount = 0;
       let clonedProductsCount = 0;
-      let sourceCategoriesCount = options.copyCategories ? categoriesCopied : 0;
+      let sourceCategoriesCount = options.copyCategories ? sourceCategoriesTotal : 0;
       let clonedCategoriesCount = options.copyCategories ? categoriesCopied : 0;
-      let sourceBrandsCount = options.copyBrands ? brandsCopied : 0;
+      let sourceBrandsCount = options.copyBrands ? sourceBrandsTotal : 0;
       let clonedBrandsCount = options.copyBrands ? brandsCopied : 0;
       let sourceImagesCount = 0;
       let clonedImagesCount = 0;
@@ -676,8 +681,6 @@ Deno.serve(async (req) => {
               } = p as Record<string, unknown>;
 
               const keepActive = wasActive && (activeLimit === null || activeAssigned < activeLimit);
-              if (keepActive) activeAssigned++;
-
               const newRow: Record<string, unknown> = {
                 ...rest,
                 user_id: newUserId,
@@ -724,6 +727,7 @@ Deno.serve(async (req) => {
                 }
                 clonedProductId = insProd.id as string;
                 batchInserted++;
+                if (keepActive) activeAssigned++;
                 if (!keepActive && wasActive) productsDeactivatedByPlan++;
               }
 
@@ -854,11 +858,19 @@ Deno.serve(async (req) => {
       }
 
       if (fullDataV2Enabled) {
+        const { data: clonedProductIdsData } = await admin
+          .from("products")
+          .select("id")
+          .eq("user_id", newUserId)
+          .not("cloned_from_product_id", "is", null);
+        const clonedProductIds = (clonedProductIdsData || []).map((row) => row.id as string);
         const [sourceProductCountResult, clonedProductCountResult, clonedImageCountResult] = await Promise.all([
           admin.from("products").select("id", { count: "exact", head: true }).eq("user_id", sourceProfileId),
           admin.from("products").select("id", { count: "exact", head: true }).eq("user_id", newUserId).not("cloned_from_product_id", "is", null),
           options.copyImages
-            ? admin.from("product_images").select("id", { count: "exact", head: true }).in("product_id", (await admin.from("products").select("id").eq("user_id", newUserId).not("cloned_from_product_id", "is", null)).data?.map((row) => row.id) || [])
+            ? (clonedProductIds.length > 0
+              ? admin.from("product_images").select("id", { count: "exact", head: true }).in("product_id", clonedProductIds)
+              : Promise.resolve({ count: 0 }))
             : Promise.resolve({ count: 0 }),
         ]);
         sourceProductsCount = sourceProductCountResult.count ?? sourceProductsCount;
