@@ -466,6 +466,14 @@ Deno.serve(async (req) => {
       await admin.from("store_clone_logs").update(patch).eq("id", logId);
     };
 
+    const fullDataV2Enabled = await isFullCloneV2Enabled(admin);
+    console.log("[clone-store] feature flag resolved", {
+      requestId,
+      logId,
+      flag: CLONE_STORE_FULL_DATA_V2_FLAG,
+      enabled: fullDataV2Enabled,
+    });
+
     // Kick off the heavy clone work in the background so the client
     // doesn't hit proxy/fetch timeouts on large stores. The modal polls
     // `store_clone_logs` by `logId` until status !== 'in_progress'.
