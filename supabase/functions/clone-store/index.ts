@@ -591,6 +591,11 @@ Deno.serve(async (req) => {
         .limit(1).maybeSingle();
       sourcePlanId = String(sourceSubscription?.plan_id || "gratis").toLowerCase();
       if (plan === "same") intendedPlanId = sourcePlanId;
+      await updateLog({
+        source_plan_id: sourcePlanId,
+        intended_plan_id: intendedPlanId,
+        current_entitlement_plan_id: "gratis",
+      });
 
       await updateLog({ clone_phase: "configuring_subscription" });
       if (plan && plan !== "gratis") {
@@ -987,8 +992,31 @@ Deno.serve(async (req) => {
         brands_copied: brandsCopied,
         images_copied: imagesCopied,
         products_deactivated_by_plan: productsDeactivatedByPlan,
+        source_products_count: sourceProductsCount,
+        cloned_products_count: clonedProductsCount,
+        source_categories_count: sourceCategoriesCount,
+        cloned_categories_count: clonedCategoriesCount,
+        source_brands_count: sourceBrandsCount,
+        cloned_brands_count: clonedBrandsCount,
+        source_images_count: sourceImagesCount,
+        cloned_images_count: clonedImagesCount,
+        source_plan_id: sourcePlanId,
+        intended_plan_id: intendedPlanId,
+        current_entitlement_plan_id: "gratis",
         pending_plan_id: pendingPlanId,
         subscription_status: pendingPlanId ? "pending_payment" : "active",
+        integrity_report: {
+          sourceProductsCount,
+          clonedProductsCount,
+          sourceCategoriesCount,
+          clonedCategoriesCount,
+          sourceBrandsCount,
+          clonedBrandsCount,
+          sourceImagesCount,
+          clonedImagesCount,
+          productsDeactivatedByPlan,
+          fullDataV2Enabled,
+        },
         reset_link: resetLink,
         temporary_password: passwordStrategy === "temporary_password" ? temporaryPassword : null,
         status: "success",
