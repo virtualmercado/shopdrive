@@ -39,6 +39,25 @@ interface ClonePayload {
   options: CloneOptions;
 }
 
+const CLONE_STORE_FULL_DATA_V2_FLAG = "clone_store_full_data_v2";
+const CLONE_BATCH_SIZE = 50;
+const CLONE_PLAN_LIMIT_REASON = "clone_pending_plan_limit";
+
+type DbClient = any;
+
+type SourceProduct = Record<string, unknown> & {
+  id: string;
+  is_active?: boolean;
+  created_at?: string;
+};
+
+type ProductCloneMapEntry = {
+  sourceProductId: string;
+  clonedProductId: string;
+  sourceWasActive: boolean;
+  sourceCreatedAt: string;
+};
+
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -103,6 +122,88 @@ const PERSONALIZATION_FIELDS = [
 
 function stripFields(obj: Record<string, unknown>, fields: string[]) {
   for (const f of fields) delete obj[f];
+}
+
+function parseBooleanFlag(value: unknown): boolean {
+  return ["true", "1", "enabled", "on", "yes", "sim"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+async function isFullCloneV2Enabled(admin: DbClient): Promise<boolean> {
+  const { data, error } = await admin
+    .from("platform_settings")
+    .select("setting_value")
+    .eq("setting_key", CLONE_STORE_FULL_DATA_V2_FLAG)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[clone-store] feature flag read failed", { flag: CLONE_STORE_FULL_DATA_V2_FLAG, message: error.message });
+    return true;
+  }
+
+  if (!data) return true;
+  return parseBooleanFlag((data as { setting_value?: unknown } | null)?.setting_value);
+}
+
+function getPlanActiveLimit(planId: string | null | undefined): number | null {
+  const normalized = String(planId || "gratis").trim().toLowerCase();
+  if (normalized === "premium") return null;
+  if (normalized === "pro") return 150;
+  return 20;
+}
+
+function sortSourceProducts(products: SourceProduct[]) {
+  return [...products].sort((a, b) => {
+    const aa = a.is_active === true ? 0 : 1;
+    const bb = b.is_active === true ? 0 : 1;
+    if (aa !== bb) return aa - bb;
+    const ac = String(a.created_at ?? "");
+    const bc = String(b.created_at ?? "");
+    if (ac !== bc) return ac < bc ? -1 : 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
+async function fetchAllRows(
+  admin: DbClient,
+  table: string,
+  column: string,
+  value: string,
+) {
+  const pageSize = 1000;
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from(table)
+      .select("*")
+      .eq(column, value)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`Falha ao ler ${table}: ${error.message}`);
+    rows.push(...((data || []) as Record<string, unknown>[]));
+    if (!data || data.length < pageSize) break;
+  }
+  return rows;
+}
+
+async function fetchProductImagesBySourceProduct(admin: DbClient, sourceProductIds: string[]) {
+  const imageMap = new Map<string, Record<string, unknown>[]>();
+  if (sourceProductIds.length === 0) return imageMap;
+
+  for (let i = 0; i < sourceProductIds.length; i += 100) {
+    const chunk = sourceProductIds.slice(i, i + 100);
+    const { data, error } = await admin
+      .from("product_images")
+      .select("*")
+      .in("product_id", chunk);
+    if (error) throw new Error(`Falha ao ler imagens dos produtos: ${error.message}`);
+    for (const img of (data || []) as Record<string, unknown>[]) {
+      const sourceProductId = String(img.product_id || "");
+      const list = imageMap.get(sourceProductId) || [];
+      list.push(img);
+      imageMap.set(sourceProductId, list);
+    }
+  }
+
+  return imageMap;
 }
 
 Deno.serve(async (req) => {
@@ -366,6 +467,14 @@ Deno.serve(async (req) => {
       await admin.from("store_clone_logs").update(patch).eq("id", logId);
     };
 
+    const fullDataV2Enabled = await isFullCloneV2Enabled(admin);
+    console.log("[clone-store] feature flag resolved", {
+      requestId,
+      logId,
+      flag: CLONE_STORE_FULL_DATA_V2_FLAG,
+      enabled: fullDataV2Enabled,
+    });
+
     // Kick off the heavy clone work in the background so the client
     // doesn't hit proxy/fetch timeouts on large stores. The modal polls
     // `store_clone_logs` by `logId` until status !== 'in_progress'.
@@ -430,9 +539,11 @@ Deno.serve(async (req) => {
       await updateLog({ clone_phase: "copying_categories" });
       const categoryMap = new Map<string, string>();
       let categoriesCopied = 0;
+      let sourceCategoriesTotal = 0;
       if (options.copyCategories) {
         const { data: cats } = await admin
           .from("product_categories").select("*").eq("user_id", sourceProfileId);
+        sourceCategoriesTotal = (cats || []).length;
         for (const c of cats || []) {
           const { id: oldId, created_at, updated_at, ...rest } = c as Record<string, unknown>;
           const { data: ins, error } = await admin.from("product_categories")
@@ -448,9 +559,11 @@ Deno.serve(async (req) => {
       await updateLog({ clone_phase: "copying_brands" });
       const brandMap = new Map<string, string>();
       let brandsCopied = 0;
+      let sourceBrandsTotal = 0;
       if (options.copyBrands) {
         const { data: brands } = await admin
           .from("product_brands").select("*").eq("user_id", sourceProfileId);
+        sourceBrandsTotal = (brands || []).length;
         for (const b of brands || []) {
           const { id: oldId, created_at, updated_at, ...rest } = b as Record<string, unknown>;
           const { data: ins, error } = await admin.from("product_brands")
@@ -468,6 +581,22 @@ Deno.serve(async (req) => {
       // status='pending_payment'. Os benefícios do plano pago só serão liberados
       // pelo webhook após confirmação do pagamento.
       let pendingPlanId: string | null = null;
+      let sourcePlanId = "gratis";
+      let intendedPlanId: string = plan === "same" ? "gratis" : (plan || "gratis");
+      const { data: sourceSubscription } = await admin
+        .from("master_subscriptions")
+        .select("plan_id, billing_cycle, monthly_price, total_amount")
+        .eq("user_id", sourceProfileId)
+        .order("created_at", { ascending: false })
+        .limit(1).maybeSingle();
+      sourcePlanId = String(sourceSubscription?.plan_id || "gratis").toLowerCase();
+      if (plan === "same") intendedPlanId = sourcePlanId;
+      await updateLog({
+        source_plan_id: sourcePlanId,
+        intended_plan_id: intendedPlanId,
+        current_entitlement_plan_id: "gratis",
+      });
+
       await updateLog({ clone_phase: "configuring_subscription" });
       if (plan && plan !== "gratis") {
         let targetPlan = plan as string;
@@ -475,16 +604,10 @@ Deno.serve(async (req) => {
         let monthly = 0;
         let total = 0;
         if (plan === "same") {
-          const { data: srcSub } = await admin
-            .from("master_subscriptions")
-            .select("plan_id, billing_cycle, monthly_price, total_amount")
-            .eq("user_id", sourceProfileId)
-            .order("created_at", { ascending: false })
-            .limit(1).maybeSingle();
-          targetPlan = (srcSub?.plan_id as string) || "gratis";
-          cycle = (srcSub?.billing_cycle as string) || "monthly";
-          monthly = Number(srcSub?.monthly_price ?? 0);
-          total = Number(srcSub?.total_amount ?? 0);
+          targetPlan = sourcePlanId;
+          cycle = (sourceSubscription?.billing_cycle as string) || "monthly";
+          monthly = Number(sourceSubscription?.monthly_price ?? 0);
+          total = Number(sourceSubscription?.total_amount ?? 0);
         } else {
           cycle = "monthly";
         }
@@ -495,6 +618,7 @@ Deno.serve(async (req) => {
             plan_id: "gratis",
             pending_plan_id: targetPlan,
             source_profile_id: sourceProfileId,
+            source_plan_id: sourcePlanId,
             status: "pending_payment",
             billing_cycle: cycle,
             monthly_price: monthly,
@@ -504,33 +628,171 @@ Deno.serve(async (req) => {
       }
 
       // 7) Products + images
-      // A loja recém-criada tem plano efetivo = Grátis (limite provisório).
-      // O trigger validate_product_activation_limit bloqueia INSERTs ativos
-      // acima do limite. Estratégia: ordenar produtos da origem (ativos primeiro,
-      // depois por created_at ASC, id ASC), inserir tentando manter is_active
-      // original; ao receber a exception de limite, reinserir o mesmo produto
-      // como inativo, com inactive_reason='pending_plan_limit' e
-      // was_active_before_plan_restriction=true. Assim TODOS os produtos são
-      // cadastrados; o pagamento reativa via reactivate_products_after_upgrade.
+      // V2 separates full data copy from plan entitlement. The clone routine never
+      // limits how many products are copied; it only decides the provisional
+      // `is_active` state using the current entitlement (free until payment).
       let productsCopied = 0;
       let imagesCopied = 0;
       let productsDeactivatedByPlan = 0;
       const LIMIT_MARK = "limite de produtos ativos";
+      let sourceProductsCount = 0;
+      let clonedProductsCount = 0;
+      let sourceCategoriesCount = options.copyCategories ? sourceCategoriesTotal : 0;
+      let clonedCategoriesCount = options.copyCategories ? categoriesCopied : 0;
+      let sourceBrandsCount = options.copyBrands ? sourceBrandsTotal : 0;
+      let clonedBrandsCount = options.copyBrands ? brandsCopied : 0;
+      let sourceImagesCount = 0;
+      let clonedImagesCount = 0;
+
       if (options.copyProducts) {
         await updateLog({ clone_phase: "copying_products" });
-        const { data: prods } = await admin
-          .from("products").select("*").eq("user_id", sourceProfileId);
-
-        const sortedProds = [...(prods || [])].sort((a, b) => {
-          const aa = (a as { is_active?: boolean }).is_active ? 0 : 1;
-          const bb = (b as { is_active?: boolean }).is_active ? 0 : 1;
-          if (aa !== bb) return aa - bb;
-          const ac = String((a as { created_at?: string }).created_at ?? "");
-          const bc = String((b as { created_at?: string }).created_at ?? "");
-          if (ac !== bc) return ac < bc ? -1 : 1;
-          return String((a as { id: string }).id).localeCompare(String((b as { id: string }).id));
+        const prods = (await fetchAllRows(admin, "products", "user_id", sourceProfileId)) as SourceProduct[];
+        const sortedProds = sortSourceProducts(prods);
+        sourceProductsCount = sortedProds.length;
+        await updateLog({
+          source_products_count: sourceProductsCount,
+          clone_batch_size: CLONE_BATCH_SIZE,
+          integrity_report: {
+            sourceProductsCount,
+            stage: "products_read",
+            fullDataV2Enabled,
+          },
         });
 
+        if (fullDataV2Enabled) {
+          const sourceProductIds = sortedProds.map((p) => p.id);
+          const sourceImagesByProduct = options.copyImages
+            ? await fetchProductImagesBySourceProduct(admin, sourceProductIds)
+            : new Map<string, Record<string, unknown>[]>();
+          sourceImagesCount = Array.from(sourceImagesByProduct.values()).reduce((sum, rows) => sum + rows.length, 0);
+          const activeLimit = getPlanActiveLimit("gratis");
+          let activeAssigned = 0;
+          let batchNumber = 0;
+          const productMap: ProductCloneMapEntry[] = [];
+
+          for (let offset = 0; offset < sortedProds.length; offset += CLONE_BATCH_SIZE) {
+            batchNumber++;
+            const batch = sortedProds.slice(offset, offset + CLONE_BATCH_SIZE);
+            let batchInserted = 0;
+            let batchRead = batch.length;
+            const batchErrors: string[] = [];
+
+            for (const p of batch) {
+              const oldProductId = p.id;
+              const wasActive = p.is_active === true;
+              const {
+                id, created_at, updated_at, views_count, sales_count, popularity_score,
+                ...rest
+              } = p as Record<string, unknown>;
+
+              const keepActive = wasActive && (activeLimit === null || activeAssigned < activeLimit);
+              const newRow: Record<string, unknown> = {
+                ...rest,
+                user_id: newUserId,
+                cloned_from_product_id: oldProductId,
+                clone_job_id: logId,
+                is_active: keepActive,
+                inactive_reason: keepActive
+                  ? null
+                  : (wasActive ? CLONE_PLAN_LIMIT_REASON : (rest.inactive_reason || "manual")),
+                was_active_before_plan_restriction: wasActive && !keepActive,
+                views_count: 0,
+                sales_count: 0,
+                popularity_score: 0,
+              };
+              if (rest.category_id && categoryMap.has(rest.category_id as string)) {
+                newRow.category_id = categoryMap.get(rest.category_id as string);
+              } else if (rest.category_id && !options.copyCategories) {
+                newRow.category_id = null;
+              }
+              if (rest.brand_id && brandMap.has(rest.brand_id as string)) {
+                newRow.brand_id = brandMap.get(rest.brand_id as string);
+              } else if (rest.brand_id && !options.copyBrands) {
+                newRow.brand_id = null;
+              }
+
+              let clonedProductId: string | null = null;
+              const { data: existingProduct } = await admin
+                .from("products")
+                .select("id, is_active, inactive_reason")
+                .eq("user_id", newUserId)
+                .eq("cloned_from_product_id", oldProductId)
+                .maybeSingle();
+
+              if (existingProduct?.id) {
+                clonedProductId = existingProduct.id as string;
+                if (existingProduct.is_active === true) activeAssigned++;
+                if (wasActive && existingProduct.inactive_reason === CLONE_PLAN_LIMIT_REASON) productsDeactivatedByPlan++;
+              } else {
+                const { data: insProd, error: prodErr } = await admin
+                  .from("products").insert(newRow).select("id").single();
+                if (prodErr || !insProd) {
+                  const errMsg = `${oldProductId}: ${prodErr?.message || "insert sem retorno"}`;
+                  batchErrors.push(errMsg);
+                  console.error("[clone-store] product insert failed", { requestId, logId, oldProductId, message: prodErr?.message });
+                  continue;
+                }
+                clonedProductId = insProd.id as string;
+                batchInserted++;
+                if (keepActive) activeAssigned++;
+                if (!keepActive && wasActive) productsDeactivatedByPlan++;
+              }
+
+              productsCopied++;
+              productMap.push({
+                sourceProductId: oldProductId,
+                clonedProductId,
+                sourceWasActive: wasActive,
+                sourceCreatedAt: String(p.created_at || ""),
+              });
+
+              if (options.copyImages) {
+                const sourceImages = sourceImagesByProduct.get(oldProductId) || [];
+                if (sourceImages.length > 0) {
+                  const { count: existingImageCount } = await admin
+                    .from("product_images")
+                    .select("id", { count: "exact", head: true })
+                    .eq("product_id", clonedProductId);
+                  if ((existingImageCount || 0) === 0) {
+                    if (imagesCopied === 0) await updateLog({ clone_phase: "copying_images" });
+                    for (const img of sourceImages) {
+                      const { id: imgId, ...imgRest } = img;
+                      const { error: imgErr } = await admin
+                        .from("product_images")
+                        .insert({ ...imgRest, product_id: clonedProductId });
+                      if (!imgErr) imagesCopied++;
+                      else console.error("[clone-store] image insert failed", { requestId, logId, oldProductId, message: imgErr.message });
+                    }
+                  }
+                }
+              }
+            }
+
+            await updateLog({
+              clone_phase: "copying_products",
+              products_copied: productsCopied,
+              products_deactivated_by_plan: productsDeactivatedByPlan,
+              images_copied: imagesCopied,
+              clone_batches_processed: batchNumber,
+              clone_last_product_cursor: batch[batch.length - 1]?.id || null,
+              integrity_report: {
+                sourceProductsCount,
+                productsAttempted: Math.min(offset + batchRead, sourceProductsCount),
+                productsCopied,
+                productsDeactivatedByPlan,
+                imagesCopied,
+                lastBatch: {
+                  batchNumber,
+                  read: batchRead,
+                  inserted: batchInserted,
+                  errors: batchErrors.slice(0, 20),
+                },
+                productMapCount: productMap.length,
+                fullDataV2Enabled,
+              },
+            });
+          }
+        } else {
         for (const p of sortedProds) {
           const oldProductId = p.id as string;
           const wasActive = (p as { is_active?: boolean }).is_active === true;
@@ -566,8 +828,9 @@ Deno.serve(async (req) => {
             const retryRow = {
               ...newRow,
               is_active: false,
-              inactive_reason: "pending_plan_limit",
+              inactive_reason: CLONE_PLAN_LIMIT_REASON,
               was_active_before_plan_restriction: true,
+              clone_job_id: logId,
             };
             const retry = await admin
               .from("products").insert(retryRow).select("id").single();
@@ -598,6 +861,71 @@ Deno.serve(async (req) => {
             }
           }
         }
+        }
+      }
+
+      if (fullDataV2Enabled) {
+        const { data: clonedProductIdsData } = await admin
+          .from("products")
+          .select("id")
+          .eq("user_id", newUserId)
+          .not("cloned_from_product_id", "is", null);
+        const clonedProductIds = (clonedProductIdsData || []).map((row) => row.id as string);
+        const [sourceProductCountResult, clonedProductCountResult, clonedImageCountResult] = await Promise.all([
+          admin.from("products").select("id", { count: "exact", head: true }).eq("user_id", sourceProfileId),
+          admin.from("products").select("id", { count: "exact", head: true }).eq("user_id", newUserId).not("cloned_from_product_id", "is", null),
+          options.copyImages
+            ? (clonedProductIds.length > 0
+              ? admin.from("product_images").select("id", { count: "exact", head: true }).in("product_id", clonedProductIds)
+              : Promise.resolve({ count: 0 }))
+            : Promise.resolve({ count: 0 }),
+        ]);
+        sourceProductsCount = sourceProductCountResult.count ?? sourceProductsCount;
+        clonedProductsCount = clonedProductCountResult.count ?? productsCopied;
+        clonedImagesCount = clonedImageCountResult.count ?? imagesCopied;
+
+        const integrityReport = {
+          sourceProductsCount,
+          clonedProductsCount,
+          sourceCategoriesCount,
+          clonedCategoriesCount,
+          sourceBrandsCount,
+          clonedBrandsCount,
+          sourceImagesCount,
+          clonedImagesCount,
+          productsDeactivatedByPlan,
+          fullDataV2Enabled,
+        };
+        const integrityFailures: string[] = [];
+        if (sourceProductsCount !== clonedProductsCount) integrityFailures.push(`products ${clonedProductsCount}/${sourceProductsCount}`);
+        if (sourceCategoriesCount !== clonedCategoriesCount) integrityFailures.push(`categories ${clonedCategoriesCount}/${sourceCategoriesCount}`);
+        if (sourceBrandsCount !== clonedBrandsCount) integrityFailures.push(`brands ${clonedBrandsCount}/${sourceBrandsCount}`);
+        if (sourceImagesCount !== clonedImagesCount) integrityFailures.push(`images ${clonedImagesCount}/${sourceImagesCount}`);
+
+        if (integrityFailures.length > 0) {
+          const errorMessage = `Falha de integridade na clonagem: ${integrityFailures.join(", ")}`;
+          await updateLog({
+            cloned_profile_id: newUserId,
+            source_products_count: sourceProductsCount,
+            cloned_products_count: clonedProductsCount,
+            source_categories_count: sourceCategoriesCount,
+            cloned_categories_count: clonedCategoriesCount,
+            source_brands_count: sourceBrandsCount,
+            cloned_brands_count: clonedBrandsCount,
+            source_images_count: sourceImagesCount,
+            cloned_images_count: clonedImagesCount,
+            integrity_report: integrityReport,
+            status: "failed_integrity_check",
+            clone_phase: "failed_integrity_check",
+            error_message: errorMessage,
+          });
+          try { await admin.auth.admin.deleteUser(newUserId); } catch (_) { /* ignore */ }
+          console.error("[clone-store] integrity check failed", { requestId, logId, integrityReport });
+          return;
+        }
+      } else {
+        clonedProductsCount = productsCopied;
+        clonedImagesCount = imagesCopied;
       }
 
       // 8) Shipping
@@ -666,8 +994,31 @@ Deno.serve(async (req) => {
         brands_copied: brandsCopied,
         images_copied: imagesCopied,
         products_deactivated_by_plan: productsDeactivatedByPlan,
+        source_products_count: sourceProductsCount,
+        cloned_products_count: clonedProductsCount,
+        source_categories_count: sourceCategoriesCount,
+        cloned_categories_count: clonedCategoriesCount,
+        source_brands_count: sourceBrandsCount,
+        cloned_brands_count: clonedBrandsCount,
+        source_images_count: sourceImagesCount,
+        cloned_images_count: clonedImagesCount,
+        source_plan_id: sourcePlanId,
+        intended_plan_id: intendedPlanId,
+        current_entitlement_plan_id: "gratis",
         pending_plan_id: pendingPlanId,
         subscription_status: pendingPlanId ? "pending_payment" : "active",
+        integrity_report: {
+          sourceProductsCount,
+          clonedProductsCount,
+          sourceCategoriesCount,
+          clonedCategoriesCount,
+          sourceBrandsCount,
+          clonedBrandsCount,
+          sourceImagesCount,
+          clonedImagesCount,
+          productsDeactivatedByPlan,
+          fullDataV2Enabled,
+        },
         reset_link: resetLink,
         temporary_password: passwordStrategy === "temporary_password" ? temporaryPassword : null,
         status: "success",
