@@ -257,7 +257,12 @@ Deno.serve(async (req) => {
       await admin.from("store_clone_logs").update(patch).eq("id", logId);
     };
 
-    let newUserId: string | null = null;
+    // Kick off the heavy clone work in the background so the client
+    // doesn't hit proxy/fetch timeouts on large stores. The modal polls
+    // `store_clone_logs` by `logId` until status !== 'in_progress'.
+    const runClone = async () => {
+      let newUserId: string | null = null;
+      try {
 
     try {
       // 3) Create new auth user
