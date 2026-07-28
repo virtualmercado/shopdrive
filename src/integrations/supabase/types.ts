@@ -3323,6 +3323,7 @@ export type Database = {
         Row: {
           brand_id: string | null
           category_id: string | null
+          clone_job_id: string | null
           cloned_from_product_id: string | null
           created_at: string
           description: string | null
@@ -3357,6 +3358,7 @@ export type Database = {
         Insert: {
           brand_id?: string | null
           category_id?: string | null
+          clone_job_id?: string | null
           cloned_from_product_id?: string | null
           created_at?: string
           description?: string | null
@@ -3391,6 +3393,7 @@ export type Database = {
         Update: {
           brand_id?: string | null
           category_id?: string | null
+          clone_job_id?: string | null
           cloned_from_product_id?: string | null
           created_at?: string
           description?: string | null
@@ -3435,6 +3438,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_clone_job_id_fkey"
+            columns: ["clone_job_id"]
+            isOneToOne: false
+            referencedRelation: "store_clone_logs"
             referencedColumns: ["id"]
           },
           {
@@ -4084,9 +4094,16 @@ export type Database = {
           admin_user_id: string | null
           brands_copied: number
           categories_copied: number
+          clone_batch_size: number
+          clone_batches_processed: number
+          clone_last_product_cursor: string | null
           clone_phase: string
           clone_type: string | null
+          cloned_brands_count: number
+          cloned_categories_count: number
           cloned_email: string | null
+          cloned_images_count: number
+          cloned_products_count: number
           cloned_profile_id: string | null
           cloned_store_name: string | null
           cloned_store_slug: string | null
@@ -4095,12 +4112,17 @@ export type Database = {
           id: string
           idempotency_key: string | null
           images_copied: number
+          integrity_report: Json
           options: Json
           pending_plan_id: string | null
           products_copied: number
           products_deactivated_by_plan: number | null
           request_id: string | null
           reset_link: string | null
+          source_brands_count: number
+          source_categories_count: number
+          source_images_count: number
+          source_products_count: number
           source_profile_id: string | null
           source_store_name: string | null
           status: string
@@ -4112,9 +4134,16 @@ export type Database = {
           admin_user_id?: string | null
           brands_copied?: number
           categories_copied?: number
+          clone_batch_size?: number
+          clone_batches_processed?: number
+          clone_last_product_cursor?: string | null
           clone_phase?: string
           clone_type?: string | null
+          cloned_brands_count?: number
+          cloned_categories_count?: number
           cloned_email?: string | null
+          cloned_images_count?: number
+          cloned_products_count?: number
           cloned_profile_id?: string | null
           cloned_store_name?: string | null
           cloned_store_slug?: string | null
@@ -4123,12 +4152,17 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           images_copied?: number
+          integrity_report?: Json
           options?: Json
           pending_plan_id?: string | null
           products_copied?: number
           products_deactivated_by_plan?: number | null
           request_id?: string | null
           reset_link?: string | null
+          source_brands_count?: number
+          source_categories_count?: number
+          source_images_count?: number
+          source_products_count?: number
           source_profile_id?: string | null
           source_store_name?: string | null
           status?: string
@@ -4140,9 +4174,16 @@ export type Database = {
           admin_user_id?: string | null
           brands_copied?: number
           categories_copied?: number
+          clone_batch_size?: number
+          clone_batches_processed?: number
+          clone_last_product_cursor?: string | null
           clone_phase?: string
           clone_type?: string | null
+          cloned_brands_count?: number
+          cloned_categories_count?: number
           cloned_email?: string | null
+          cloned_images_count?: number
+          cloned_products_count?: number
           cloned_profile_id?: string | null
           cloned_store_name?: string | null
           cloned_store_slug?: string | null
@@ -4151,12 +4192,17 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           images_copied?: number
+          integrity_report?: Json
           options?: Json
           pending_plan_id?: string | null
           products_copied?: number
           products_deactivated_by_plan?: number | null
           request_id?: string | null
           reset_link?: string | null
+          source_brands_count?: number
+          source_categories_count?: number
+          source_images_count?: number
+          source_products_count?: number
           source_profile_id?: string | null
           source_store_name?: string | null
           status?: string
