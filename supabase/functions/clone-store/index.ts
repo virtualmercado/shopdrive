@@ -264,7 +264,6 @@ Deno.serve(async (req) => {
       let newUserId: string | null = null;
       try {
 
-    try {
       // 3) Create new auth user
       const createParams: Record<string, unknown> = {
         email: newEmail,
