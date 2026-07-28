@@ -714,13 +714,15 @@ Deno.serve(async (req) => {
               let clonedProductId: string | null = null;
               const { data: existingProduct } = await admin
                 .from("products")
-                .select("id")
+                .select("id, is_active, inactive_reason")
                 .eq("user_id", newUserId)
                 .eq("cloned_from_product_id", oldProductId)
                 .maybeSingle();
 
               if (existingProduct?.id) {
                 clonedProductId = existingProduct.id as string;
+                if (existingProduct.is_active === true) activeAssigned++;
+                if (wasActive && existingProduct.inactive_reason === CLONE_PLAN_LIMIT_REASON) productsDeactivatedByPlan++;
               } else {
                 const { data: insProd, error: prodErr } = await admin
                   .from("products").insert(newRow).select("id").single();
