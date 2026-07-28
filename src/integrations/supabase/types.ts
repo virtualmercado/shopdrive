@@ -4084,6 +4084,7 @@ export type Database = {
           admin_user_id: string | null
           brands_copied: number
           categories_copied: number
+          clone_phase: string
           clone_type: string | null
           cloned_email: string | null
           cloned_profile_id: string | null
@@ -4098,6 +4099,7 @@ export type Database = {
           pending_plan_id: string | null
           products_copied: number
           products_deactivated_by_plan: number | null
+          request_id: string | null
           reset_link: string | null
           source_profile_id: string | null
           source_store_name: string | null
@@ -4110,6 +4112,7 @@ export type Database = {
           admin_user_id?: string | null
           brands_copied?: number
           categories_copied?: number
+          clone_phase?: string
           clone_type?: string | null
           cloned_email?: string | null
           cloned_profile_id?: string | null
@@ -4124,6 +4127,7 @@ export type Database = {
           pending_plan_id?: string | null
           products_copied?: number
           products_deactivated_by_plan?: number | null
+          request_id?: string | null
           reset_link?: string | null
           source_profile_id?: string | null
           source_store_name?: string | null
@@ -4136,6 +4140,7 @@ export type Database = {
           admin_user_id?: string | null
           brands_copied?: number
           categories_copied?: number
+          clone_phase?: string
           clone_type?: string | null
           cloned_email?: string | null
           cloned_profile_id?: string | null
@@ -4150,6 +4155,7 @@ export type Database = {
           pending_plan_id?: string | null
           products_copied?: number
           products_deactivated_by_plan?: number | null
+          request_id?: string | null
           reset_link?: string | null
           source_profile_id?: string | null
           source_store_name?: string | null
