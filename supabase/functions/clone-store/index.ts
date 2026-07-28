@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, idempotency-key, x-idempotency-key, x-request-id, x-supabase-api-version, accept",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -35,8 +35,15 @@ interface ClonePayload {
   passwordStrategy: "reset_link" | "temporary_password";
   temporaryPassword?: string;
   plan: "gratis" | "pro" | "premium" | "same";
+  requestId?: string;
   options: CloneOptions;
 }
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 // Fields that must NOT be carried over directly when cloning a profile.
 const PROFILE_EXCLUDED_FIELDS = new Set<string>([
@@ -99,6 +106,9 @@ function stripFields(obj: Record<string, unknown>, fields: string[]) {
 }
 
 Deno.serve(async (req) => {
+  const headerRequestId = req.headers.get("x-request-id") || crypto.randomUUID();
+  console.log("[clone-store] request received", { requestId: headerRequestId, method: req.method });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -108,10 +118,26 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Sessão administrativa inválida ou expirada.",
+        error: "Sessão administrativa inválida ou expirada.",
+        requestId: headerRequestId,
+      }, 401);
     }
+
+    if (req.method !== "POST") {
+      return jsonResponse({
+        success: false,
+        code: "METHOD_NOT_ALLOWED",
+        message: "Método não permitido.",
+        error: "Método não permitido.",
+        requestId: headerRequestId,
+      }, 405);
+    }
+
+    console.log("[clone-store] auth header present", { requestId: headerRequestId });
 
     // 1) Validate caller is an admin
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -120,9 +146,17 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claims, error: claimsError } = await userClient.auth.getClaims(token);
     if (claimsError || !claims?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.warn("[clone-store] claims validation failed", {
+        requestId: headerRequestId,
+        message: claimsError?.message,
       });
+      return jsonResponse({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Sessão administrativa inválida ou expirada.",
+        error: "Sessão administrativa inválida ou expirada.",
+        requestId: headerRequestId,
+      }, 401);
     }
     const adminUserId = claims.claims.sub as string;
 
@@ -134,28 +168,61 @@ Deno.serve(async (req) => {
       _user_id: adminUserId, _role: "admin",
     });
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("[clone-store] forbidden non-admin", { requestId: headerRequestId, adminUserId });
+      return jsonResponse({
+        success: false,
+        code: "FORBIDDEN",
+        message: "Usuário sem permissão para duplicar lojas.",
+        error: "Usuário sem permissão para duplicar lojas.",
+        requestId: headerRequestId,
+      }, 403);
     }
 
     // 2) Validate payload
     const payload = (await req.json()) as ClonePayload;
+    const requestId = String(payload.requestId || headerRequestId);
+    if (payload.requestId && payload.requestId !== headerRequestId) {
+      console.warn("[clone-store] request id mismatch", {
+        requestId,
+        headerRequestId,
+        bodyRequestId: payload.requestId,
+      });
+    }
     const {
       sourceProfileId, newStoreName, newSlug, newEmail, cloneType,
       passwordStrategy, temporaryPassword, plan, options,
     } = payload;
 
+    console.log("[clone-store] payload received", {
+      requestId,
+      functionName: "clone-store",
+      sourceProfileId,
+      newSlug,
+      newEmail,
+      cloneType,
+      plan,
+      passwordStrategy,
+      optionKeys: options ? Object.keys(options) : [],
+    });
+
     const slugRegex = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
     if (!sourceProfileId || !newStoreName?.trim() || !newSlug || !newEmail || !cloneType) {
-      return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "VALIDATION_ERROR",
+        message: "Campos obrigatórios ausentes.",
+        error: "Campos obrigatórios ausentes.",
+        requestId,
+      }, 400);
     }
     if (!slugRegex.test(newSlug)) {
-      return new Response(JSON.stringify({ error: "Slug inválido. Use letras minúsculas, números e hífens." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "INVALID_SLUG",
+        message: "Slug inválido. Use letras minúsculas, números e hífens.",
+        error: "Slug inválido. Use letras minúsculas, números e hífens.",
+        requestId,
+      }, 400);
     }
 
     // Reserved slug check (mirrors front-end reservedSlugs list — short version)
@@ -164,27 +231,39 @@ Deno.serve(async (req) => {
       "auth","onboarding","checkout","carrinho","cart","print","public","404","500",
     ]);
     if (reserved.has(newSlug)) {
-      return new Response(JSON.stringify({ error: "Este slug é reservado pela plataforma." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "RESERVED_SLUG",
+        message: "Este slug é reservado pela plataforma.",
+        error: "Este slug é reservado pela plataforma.",
+        requestId,
+      }, 400);
     }
 
     // Source profile
     const { data: sourceProfile, error: srcErr } = await admin
       .from("profiles").select("*").eq("id", sourceProfileId).maybeSingle();
     if (srcErr || !sourceProfile) {
-      return new Response(JSON.stringify({ error: "Loja de origem não encontrada." }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "SOURCE_STORE_NOT_FOUND",
+        message: "Loja de origem não encontrada.",
+        error: "Loja de origem não encontrada.",
+        requestId,
+      }, 404);
     }
 
     // Slug uniqueness
     const { data: slugTaken } = await admin
       .from("profiles").select("id").eq("store_slug", newSlug).maybeSingle();
     if (slugTaken) {
-      return new Response(JSON.stringify({ error: "Slug já está em uso." }), {
-        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({
+        success: false,
+        code: "SLUG_ALREADY_EXISTS",
+        message: "Slug já está em uso.",
+        error: "Slug já está em uso.",
+        requestId,
+      }, 409);
     }
 
     // Email uniqueness (auth.users) — pre-check to return a friendly error
@@ -199,32 +278,38 @@ Deno.serve(async (req) => {
         (u) => (u.email || "").toLowerCase() === emailLower,
       );
       if (clash) {
-        return new Response(
-          JSON.stringify({
-            error:
-              "Este e-mail já está cadastrado na plataforma. Use um e-mail diferente para a loja duplicada.",
-          }),
-          {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return jsonResponse({
+          success: false,
+          code: "EMAIL_ALREADY_EXISTS",
+          message: "Este e-mail já está cadastrado na plataforma. Use um e-mail diferente para a loja duplicada.",
+          error: "Este e-mail já está cadastrado na plataforma. Use um e-mail diferente para a loja duplicada.",
+          requestId,
+        }, 409);
       }
     } catch (_) {
       // If the listing fails we fall through — createUser() will still catch dup emails.
     }
 
     // Idempotency: if header present and a successful log exists, return prior result.
-    const idempotencyKey = req.headers.get("Idempotency-Key");
+    const idempotencyKey = req.headers.get("Idempotency-Key") || req.headers.get("x-idempotency-key");
     if (idempotencyKey) {
       const { data: prior } = await admin
         .from("store_clone_logs")
-        .select("id, status, cloned_profile_id, cloned_store_slug, cloned_email, cloned_store_name")
+        .select("id, status, cloned_profile_id, cloned_store_slug, cloned_email, cloned_store_name, request_id")
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
+      if (prior) {
+        console.log("[clone-store] idempotency hit", {
+          requestId,
+          priorRequestId: prior.request_id,
+          logId: prior.id,
+          status: prior.status,
+        });
+      }
       if (prior && prior.status === "success") {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
+          requestId,
           idempotent: true,
           newStore: {
             userId: prior.cloned_profile_id,
@@ -233,7 +318,17 @@ Deno.serve(async (req) => {
             storeSlug: prior.cloned_store_slug,
             publicUrl: `/${prior.cloned_store_slug}`,
           },
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }, 200);
+      }
+      if (prior && prior.status === "in_progress") {
+        return jsonResponse({
+          success: true,
+          requestId,
+          idempotent: true,
+          async: true,
+          logId: prior.id,
+          message: "Clonagem já em andamento. Aguardando conclusão...",
+        }, 202);
       }
     }
 
@@ -248,9 +343,23 @@ Deno.serve(async (req) => {
       clone_type: cloneType,
       options: options as unknown as Record<string, unknown>,
       status: "in_progress",
+      request_id: requestId,
+      clone_phase: "queued",
       idempotency_key: idempotencyKey,
     }).select("id").single();
     const logId = logRow?.id;
+
+    if (!logId) {
+      return jsonResponse({
+        success: false,
+        code: "LOG_CREATE_FAILED",
+        message: "Não foi possível iniciar o registro da duplicação.",
+        error: "Não foi possível iniciar o registro da duplicação.",
+        requestId,
+      }, 500);
+    }
+
+    console.log("[clone-store] log created", { requestId, logId });
 
     const updateLog = async (patch: Record<string, unknown>) => {
       if (!logId) return;
@@ -263,6 +372,8 @@ Deno.serve(async (req) => {
     const runClone = async () => {
       let newUserId: string | null = null;
       try {
+        console.log("[clone-store] background clone started", { requestId, logId });
+        await updateLog({ clone_phase: "creating_owner" });
 
       // 3) Create new auth user
       const createParams: Record<string, unknown> = {
@@ -289,6 +400,7 @@ Deno.serve(async (req) => {
       newUserId = newUser.user.id;
 
       // 4) Build cloned profile payload
+      await updateLog({ clone_phase: "creating_store" });
       const profileClone: Record<string, unknown> = { ...sourceProfile };
       for (const k of PROFILE_EXCLUDED_FIELDS) delete profileClone[k];
       if (!options.copyAppearance) stripFields(profileClone, APPEARANCE_FIELDS);
@@ -315,6 +427,7 @@ Deno.serve(async (req) => {
       if (upErr) throw new Error(`Falha ao atualizar profile: ${upErr.message}`);
 
       // 5) Categories
+      await updateLog({ clone_phase: "copying_categories" });
       const categoryMap = new Map<string, string>();
       let categoriesCopied = 0;
       if (options.copyCategories) {
@@ -332,6 +445,7 @@ Deno.serve(async (req) => {
       }
 
       // 6) Brands
+      await updateLog({ clone_phase: "copying_brands" });
       const brandMap = new Map<string, string>();
       let brandsCopied = 0;
       if (options.copyBrands) {
@@ -354,6 +468,7 @@ Deno.serve(async (req) => {
       // status='pending_payment'. Os benefícios do plano pago só serão liberados
       // pelo webhook após confirmação do pagamento.
       let pendingPlanId: string | null = null;
+      await updateLog({ clone_phase: "configuring_subscription" });
       if (plan && plan !== "gratis") {
         let targetPlan = plan as string;
         let cycle: string | null = null;
@@ -402,6 +517,7 @@ Deno.serve(async (req) => {
       let productsDeactivatedByPlan = 0;
       const LIMIT_MARK = "limite de produtos ativos";
       if (options.copyProducts) {
+        await updateLog({ clone_phase: "copying_products" });
         const { data: prods } = await admin
           .from("products").select("*").eq("user_id", sourceProfileId);
 
@@ -471,6 +587,7 @@ Deno.serve(async (req) => {
 
           // Images for this product (URL-reference copy)
           if (options.copyImages) {
+            if (imagesCopied === 0) await updateLog({ clone_phase: "copying_images" });
             const { data: imgs } = await admin
               .from("product_images").select("*").eq("product_id", oldProductId);
             for (const img of imgs || []) {
@@ -484,6 +601,7 @@ Deno.serve(async (req) => {
       }
 
       // 8) Shipping
+      await updateLog({ clone_phase: "copying_settings" });
       if (options.copyShipping) {
         const cloneSingleton = async (table: string) => {
           const { data } = await admin.from(table).select("*").eq("user_id", sourceProfileId);
@@ -531,6 +649,7 @@ Deno.serve(async (req) => {
       // A assinatura da nova loja já foi criada no passo 6.5 com pending_plan_id.
 
       // 14) Password reset link (if requested)
+      await updateLog({ clone_phase: "finalizing" });
       let resetLink: string | null = null;
       if (passwordStrategy === "reset_link") {
         const { data: linkData } = await admin.auth.admin.generateLink({
@@ -552,6 +671,15 @@ Deno.serve(async (req) => {
         reset_link: resetLink,
         temporary_password: passwordStrategy === "temporary_password" ? temporaryPassword : null,
         status: "success",
+        clone_phase: "completed",
+      });
+      console.log("[clone-store] background clone completed", {
+        requestId,
+        logId,
+        productsCopied,
+        imagesCopied,
+        categoriesCopied,
+        brandsCopied,
       });
       } catch (cloneErr) {
         // Rollback: delete the partial new user (cascades profile via auth deletion)
@@ -559,7 +687,8 @@ Deno.serve(async (req) => {
         if (newUserId) {
           try { await admin.auth.admin.deleteUser(newUserId); } catch (_) { /* ignore */ }
         }
-        await updateLog({ status: "failed", error_message: msg });
+        console.error("[clone-store] background clone failed", { requestId, logId, message: msg });
+        await updateLog({ status: "failed", clone_phase: "failed", error_message: msg });
       }
     };
 
@@ -574,19 +703,28 @@ Deno.serve(async (req) => {
       runClone();
     }
 
-    return new Response(JSON.stringify({
+    console.log("[clone-store] returning 202", { requestId, logId });
+
+    return jsonResponse({
       success: true,
+      requestId,
       async: true,
       logId,
       message: "Clonagem iniciada. Aguardando conclusão...",
-    }), {
-      status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }, 202);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error("[clone-store] request failed before 202", {
+      requestId: headerRequestId,
+      message: msg,
     });
+    return jsonResponse({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: msg,
+      error: msg,
+      requestId: headerRequestId,
+    }, 500);
   }
 });
 
