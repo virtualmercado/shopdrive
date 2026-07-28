@@ -183,6 +183,28 @@ async function fetchAllRows(
   return rows;
 }
 
+async function fetchProductImagesBySourceProduct(admin: DbClient, sourceProductIds: string[]) {
+  const imageMap = new Map<string, Record<string, unknown>[]>();
+  if (sourceProductIds.length === 0) return imageMap;
+
+  for (let i = 0; i < sourceProductIds.length; i += 100) {
+    const chunk = sourceProductIds.slice(i, i + 100);
+    const { data, error } = await admin
+      .from("product_images")
+      .select("*")
+      .in("product_id", chunk);
+    if (error) throw new Error(`Falha ao ler imagens dos produtos: ${error.message}`);
+    for (const img of (data || []) as Record<string, unknown>[]) {
+      const sourceProductId = String(img.product_id || "");
+      const list = imageMap.get(sourceProductId) || [];
+      list.push(img);
+      imageMap.set(sourceProductId, list);
+    }
+  }
+
+  return imageMap;
+}
+
 Deno.serve(async (req) => {
   const headerRequestId = req.headers.get("x-request-id") || crypto.randomUUID();
   console.log("[clone-store] request received", { requestId: headerRequestId, method: req.method });
