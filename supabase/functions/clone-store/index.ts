@@ -39,6 +39,25 @@ interface ClonePayload {
   options: CloneOptions;
 }
 
+const CLONE_STORE_FULL_DATA_V2_FLAG = "clone_store_full_data_v2";
+const CLONE_BATCH_SIZE = 50;
+const CLONE_PLAN_LIMIT_REASON = "clone_pending_plan_limit";
+
+type DbClient = ReturnType<typeof createClient>;
+
+type SourceProduct = Record<string, unknown> & {
+  id: string;
+  is_active?: boolean;
+  created_at?: string;
+};
+
+type ProductCloneMapEntry = {
+  sourceProductId: string;
+  clonedProductId: string;
+  sourceWasActive: boolean;
+  sourceCreatedAt: string;
+};
+
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -103,6 +122,65 @@ const PERSONALIZATION_FIELDS = [
 
 function stripFields(obj: Record<string, unknown>, fields: string[]) {
   for (const f of fields) delete obj[f];
+}
+
+function parseBooleanFlag(value: unknown): boolean {
+  return ["true", "1", "enabled", "on", "yes", "sim"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+async function isFullCloneV2Enabled(admin: DbClient): Promise<boolean> {
+  const { data, error } = await admin
+    .from("platform_settings")
+    .select("setting_value")
+    .eq("setting_key", CLONE_STORE_FULL_DATA_V2_FLAG)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[clone-store] feature flag read failed", { flag: CLONE_STORE_FULL_DATA_V2_FLAG, message: error.message });
+    return false;
+  }
+
+  return parseBooleanFlag((data as { setting_value?: unknown } | null)?.setting_value);
+}
+
+function getPlanActiveLimit(planId: string | null | undefined): number | null {
+  const normalized = String(planId || "gratis").trim().toLowerCase();
+  if (normalized === "premium") return null;
+  if (normalized === "pro") return 150;
+  return 20;
+}
+
+function sortSourceProducts(products: SourceProduct[]) {
+  return [...products].sort((a, b) => {
+    const aa = a.is_active === true ? 0 : 1;
+    const bb = b.is_active === true ? 0 : 1;
+    if (aa !== bb) return aa - bb;
+    const ac = String(a.created_at ?? "");
+    const bc = String(b.created_at ?? "");
+    if (ac !== bc) return ac < bc ? -1 : 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
+async function fetchAllRows(
+  admin: DbClient,
+  table: string,
+  column: string,
+  value: string,
+) {
+  const pageSize = 1000;
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from(table)
+      .select("*")
+      .eq(column, value)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`Falha ao ler ${table}: ${error.message}`);
+    rows.push(...((data || []) as Record<string, unknown>[]));
+    if (!data || data.length < pageSize) break;
+  }
+  return rows;
 }
 
 Deno.serve(async (req) => {
