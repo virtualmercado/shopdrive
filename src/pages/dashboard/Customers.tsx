@@ -777,7 +777,7 @@ const Customers = () => {
       return [
         code,
         c.full_name,
-        c.email,
+        c.email || '',
         c.phone || '',
         birthDate,
         addr?.state || '',
