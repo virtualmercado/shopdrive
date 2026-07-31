@@ -46,7 +46,7 @@ interface CustomerAddress {
 
 interface NewCustomerData {
   full_name: string;
-  email: string | null;
+  email: string;
   phone: string;
   cpf: string;
   group_id: string;
