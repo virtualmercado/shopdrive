@@ -406,10 +406,16 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   pdf.line(margin + 50, yPos, pageWidth - margin, yPos);
   yPos += 15;
 
-  // Footer
+  // Footer (dinâmico por plano efetivo da loja dona do pedido)
+  const footerText = await resolveFooterText(order);
   pdf.setFontSize(8);
   pdf.setTextColor(150, 150, 150);
-  pdf.text("Documento gerado automaticamente pela VirtualMercado", pageWidth / 2, pageHeight - 10, { align: "center" });
+  const footerLines = pdf.splitTextToSize(footerText, contentWidth).slice(0, 2);
+  const footerStartY = pageHeight - 10 - (footerLines.length - 1) * 4;
+  footerLines.forEach((line: string, i: number) => {
+    pdf.text(line, pageWidth / 2, footerStartY + i * 4, { align: "center" });
+  });
+
 
   // Save PDF
   const fileName = `pedido_${order.order_number || order.id.slice(0, 8)}_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`;
