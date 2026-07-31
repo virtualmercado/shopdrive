@@ -1240,14 +1240,18 @@ export type Database = {
         Row: {
           birth_date: string | null
           cpf: string | null
+          cpf_normalized: string | null
           created_at: string
-          email: string
+          email: string | null
+          email_normalized: string | null
           full_name: string
           gender: string | null
           home_phone: string | null
           id: string
+          is_guest_record: boolean
           person_type: string | null
           phone: string | null
+          phone_normalized: string | null
           receive_promotions: boolean | null
           registered_store_id: string | null
           updated_at: string
@@ -1255,14 +1259,18 @@ export type Database = {
         Insert: {
           birth_date?: string | null
           cpf?: string | null
+          cpf_normalized?: string | null
           created_at?: string
-          email: string
+          email?: string | null
+          email_normalized?: string | null
           full_name: string
           gender?: string | null
           home_phone?: string | null
-          id: string
+          id?: string
+          is_guest_record?: boolean
           person_type?: string | null
           phone?: string | null
+          phone_normalized?: string | null
           receive_promotions?: boolean | null
           registered_store_id?: string | null
           updated_at?: string
@@ -1270,14 +1278,18 @@ export type Database = {
         Update: {
           birth_date?: string | null
           cpf?: string | null
+          cpf_normalized?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
+          email_normalized?: string | null
           full_name?: string
           gender?: string | null
           home_phone?: string | null
           id?: string
+          is_guest_record?: boolean
           person_type?: string | null
           phone?: string | null
+          phone_normalized?: string | null
           receive_promotions?: boolean | null
           registered_store_id?: string | null
           updated_at?: string
@@ -4272,9 +4284,16 @@ export type Database = {
           created_at: string
           customer_code: string | null
           customer_id: string
+          deactivated_at: string | null
+          deactivated_by_system: boolean
+          deactivation_reason: string | null
+          first_order_at: string | null
           id: string
           is_active: boolean
+          is_incomplete: boolean
+          last_order_at: string | null
           origin: string
+          source_order_id: string | null
           store_owner_id: string
           updated_at: string
         }
@@ -4282,9 +4301,16 @@ export type Database = {
           created_at?: string
           customer_code?: string | null
           customer_id: string
+          deactivated_at?: string | null
+          deactivated_by_system?: boolean
+          deactivation_reason?: string | null
+          first_order_at?: string | null
           id?: string
           is_active?: boolean
+          is_incomplete?: boolean
+          last_order_at?: string | null
           origin?: string
+          source_order_id?: string | null
           store_owner_id: string
           updated_at?: string
         }
@@ -4292,9 +4318,16 @@ export type Database = {
           created_at?: string
           customer_code?: string | null
           customer_id?: string
+          deactivated_at?: string | null
+          deactivated_by_system?: boolean
+          deactivation_reason?: string | null
+          first_order_at?: string | null
           id?: string
           is_active?: boolean
+          is_incomplete?: boolean
+          last_order_at?: string | null
           origin?: string
+          source_order_id?: string | null
           store_owner_id?: string
           updated_at?: string
         }
@@ -4304,6 +4337,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_customers_source_order_id_fkey"
+            columns: ["source_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -5843,6 +5883,10 @@ export type Database = {
       assert_caller_is_admin: { Args: never; Returns: undefined }
       backfill_partner_templates: { Args: never; Returns: Json }
       backfill_partner_templates_impl: { Args: never; Returns: Json }
+      backfill_store_customers: {
+        Args: { p_dry_run?: boolean; p_limit?: number; p_store_id: string }
+        Returns: Json
+      }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {
@@ -5949,6 +5993,10 @@ export type Database = {
           active_referrals: number
           total_referrals: number
         }[]
+      }
+      get_store_customer_limit: {
+        Args: { p_store_id: string }
+        Returns: number
       }
       get_template_by_slug: {
         Args: { p_slug: string }
@@ -6057,6 +6105,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_customer_from_order: { Args: { p_order_id: string }; Returns: Json }
       sync_invoice_for_payment: {
         Args: { p_payment_id: string }
         Returns: string
