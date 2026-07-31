@@ -20,7 +20,7 @@ import { PLAN_DISPLAY_NAMES } from '@/lib/planLimits';
 interface Customer {
   id: string;
   full_name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   cpf: string | null;
   created_at: string;
@@ -332,7 +332,7 @@ const Customers = () => {
 
     const filtered = customers.filter(c => 
       c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
     setCustomers(filtered);
   };
@@ -733,7 +733,7 @@ const Customers = () => {
                   <tr>
                     <td>${code}</td>
                     <td>${c.full_name}</td>
-                    <td>${c.email}</td>
+                    <td>${c.email ?? "-"}</td>
                     <td>${c.phone || '-'}</td>
                     <td>${birthDate}</td>
                     <td>${addr?.state || '-'}</td>
@@ -777,7 +777,7 @@ const Customers = () => {
       return [
         code,
         c.full_name,
-        c.email,
+        c.email || '',
         c.phone || '',
         birthDate,
         addr?.state || '',
@@ -812,7 +812,7 @@ const Customers = () => {
     : (searchTerm 
       ? customers.filter(c => 
           c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.email.toLowerCase().includes(searchTerm.toLowerCase())
+          (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
         )
       : customers);
 
@@ -935,7 +935,7 @@ const Customers = () => {
                           <span className="text-text-subtle mr-2">{customerCodes.get(customer.id) || '-'}</span>
                           {customer.full_name}
                         </TableCell>
-                        <TableCell>{customer.email}</TableCell>
+                        <TableCell>{customer.email || "-"}</TableCell>
                         <TableCell>
                           {formatDistanceToNow(new Date(customer.created_at), {
                             addSuffix: false,
@@ -1300,7 +1300,7 @@ const Customers = () => {
                           <TableRow key={customer.id}>
                             <TableCell className="text-xs py-2 text-muted-foreground">{customerCodes.get(customer.id) || '-'}</TableCell>
                             <TableCell className="text-xs py-2">{customer.full_name}</TableCell>
-                            <TableCell className="text-xs py-2">{customer.email}</TableCell>
+                            <TableCell className="text-xs py-2">{customer.email || "-"}</TableCell>
                             <TableCell className="text-xs py-2">{customer.phone || '-'}</TableCell>
                             <TableCell className="text-xs py-2">{formatBirthDate(customer.birth_date)}</TableCell>
                             <TableCell className="text-xs py-2">{addr?.state || '-'}</TableCell>
