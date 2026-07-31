@@ -77,6 +77,8 @@ interface OrderData {
   payment_method?: string | null;
   notes?: string | null;
   order_items?: OrderItem[];
+  store_owner_id?: string | null;
+
 }
 
 interface StoreData {
