@@ -1,6 +1,51 @@
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+
+const DEFAULT_FOOTER = "Documento gerado automaticamente pela ShopDrive";
+
+/**
+ * Rodapé dinâmico: nome da loja apenas quando o plano pago estiver
+ * efetivamente ativo (fonte autoritativa: RPC get_effective_store_plan).
+ * Sem cache global — resolvido por pedido/loja a cada geração.
+ */
+const resolveFooterText = async (order: { store_owner_id?: string | null }): Promise<string> => {
+  const storeOwnerId = order?.store_owner_id;
+  if (!storeOwnerId) return DEFAULT_FOOTER;
+
+  try {
+    const { data: planData, error: planError } = await supabase.rpc("get_effective_store_plan", {
+      p_store_id: storeOwnerId,
+    });
+    if (planError || !planData) return DEFAULT_FOOTER;
+
+    const plan = planData as {
+      plan?: string;
+      subscriptionStatus?: string;
+      resolved?: boolean;
+    };
+
+    const effectivePlan = (plan.plan || "free").toLowerCase();
+    const status = (plan.subscriptionStatus || "none").toLowerCase();
+    const hasActivePaidPlan =
+      plan.resolved === true && effectivePlan !== "free" && effectivePlan !== "unknown" && status === "active";
+
+    if (!hasActivePaidPlan) return DEFAULT_FOOTER;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("store_name")
+      .eq("id", storeOwnerId)
+      .maybeSingle();
+
+    const storeName = (profile?.store_name || "").trim();
+    return storeName ? `Documento gerado automaticamente por ${storeName}` : DEFAULT_FOOTER;
+  } catch {
+    return DEFAULT_FOOTER;
+  }
+};
+
 
 interface OrderItem {
   product_name: string;
@@ -32,6 +77,8 @@ interface OrderData {
   payment_method?: string | null;
   notes?: string | null;
   order_items?: OrderItem[];
+  store_owner_id?: string | null;
+
 }
 
 interface StoreData {
@@ -406,10 +453,16 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   pdf.line(margin + 50, yPos, pageWidth - margin, yPos);
   yPos += 15;
 
-  // Footer
+  // Footer (dinâmico por plano efetivo da loja dona do pedido)
+  const footerText = await resolveFooterText(order);
   pdf.setFontSize(8);
   pdf.setTextColor(150, 150, 150);
-  pdf.text("Documento gerado automaticamente pela VirtualMercado", pageWidth / 2, pageHeight - 10, { align: "center" });
+  const footerLines = pdf.splitTextToSize(footerText, contentWidth).slice(0, 2);
+  const footerStartY = pageHeight - 10 - (footerLines.length - 1) * 4;
+  footerLines.forEach((line: string, i: number) => {
+    pdf.text(line, pageWidth / 2, footerStartY + i * 4, { align: "center" });
+  });
+
 
   // Save PDF
   const fileName = `pedido_${order.order_number || order.id.slice(0, 8)}_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`;
