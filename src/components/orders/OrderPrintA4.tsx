@@ -255,101 +255,201 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
 
   yPos += 10;
 
+  // ==================== PAGINATION HELPERS ====================
+
+  const FOOTER_RESERVED = 14; // altura reservada ao rodapé em todas as páginas
+  const contentBottom = pageHeight - margin - FOOTER_RESERVED;
+  const usableHeight = contentBottom - margin;
+
+  const colWidths = { item: 12, desc: 85, qty: 25, unit: 28, total: 30 };
+
+  const drawTableHeader = () => {
+    const headerY = yPos + 4;
+    pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+    pdf.rect(margin, headerY - 4, contentWidth, 8, "F");
+
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(255, 255, 255);
+
+    let hx = margin + 2;
+    pdf.text("ITEM", hx, headerY);
+    hx += colWidths.item;
+    pdf.text("DESCRIÇÃO", hx, headerY);
+    hx += colWidths.desc;
+    pdf.text("QTD", hx + 5, headerY);
+    hx += colWidths.qty;
+    pdf.text("VL. UNIT.", hx, headerY);
+    hx += colWidths.unit;
+    pdf.text("VL. TOTAL", hx, headerY);
+
+    yPos = headerY + 6;
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(40, 40, 40);
+  };
+
+  // Cria nova página apenas quando existe conteúdo pendente que não cabe
+  const ensureSpace = (needed: number, repeatTableHeader = false) => {
+    if (yPos + needed <= contentBottom) return false;
+    pdf.addPage();
+    yPos = margin;
+    if (repeatTableHeader) drawTableHeader();
+    return true;
+  };
+
   // ==================== ITEMS TABLE ====================
-  
+
   pdf.setFontSize(11);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(rgb.r, rgb.g, rgb.b);
   pdf.text("ITENS DO PEDIDO", margin, yPos);
   yPos += 6;
 
-  // Table header
-  const colWidths = { item: 12, desc: 85, qty: 25, unit: 28, total: 30 };
-  const headerY = yPos;
-  
-  pdf.setFillColor(rgb.r, rgb.g, rgb.b);
-  pdf.rect(margin, headerY - 4, contentWidth, 8, "F");
-  
-  pdf.setFontSize(8);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(255, 255, 255);
-  
-  let colX = margin + 2;
-  pdf.text("ITEM", colX, headerY);
-  colX += colWidths.item;
-  pdf.text("DESCRIÇÃO", colX, headerY);
-  colX += colWidths.desc;
-  pdf.text("QTD", colX + 5, headerY);
-  colX += colWidths.qty;
-  pdf.text("VL. UNIT.", colX, headerY);
-  colX += colWidths.unit;
-  pdf.text("VL. TOTAL", colX, headerY);
-
-  yPos = headerY + 6;
+  drawTableHeader();
 
   // Table rows
   pdf.setTextColor(40, 40, 40);
   pdf.setFont("helvetica", "normal");
-  
+  pdf.setFontSize(8);
+
+  const items = order.order_items || [];
   let totalItems = 0;
   let totalUnits = 0;
   let productsTotal = 0;
+  let renderedRows = 0;
 
-  (order.order_items || []).forEach((item, index) => {
-    const variations =
-      item.variations && typeof item.variations === "object"
-        ? Object.entries(item.variations as Record<string, string>)
+  const DESC_LINE_H = 4;
+  const VAR_LINE_H = 3.5;
+
+  items.forEach((item, index) => {
+    const variationsText =
+      item.variations && typeof item.variations === "object" && !Array.isArray(item.variations)
+        ? Object.entries(item.variations as Record<string, unknown>)
+            .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
             .map(([k, v]) => `${k}: ${v}`)
             .join(" • ")
         : "";
-    const descBase = item.product_name.length > 40
-      ? item.product_name.substring(0, 40) + "..."
-      : item.product_name;
-    const descLines: string[] = [descBase];
-    if (variations) descLines.push(variations);
-    const rowHeight = descLines.length > 1 ? 11 : 7;
 
-    const rowY = yPos;
+    pdf.setFontSize(8);
+    const nameLines: string[] = pdf.splitTextToSize(
+      String(item.product_name || "Produto"),
+      colWidths.desc - 3
+    );
+    pdf.setFontSize(7);
+    const varLines: string[] = variationsText
+      ? pdf.splitTextToSize(variationsText, colWidths.desc - 3)
+      : [];
+    pdf.setFontSize(8);
 
-    if (index % 2 === 0) {
-      pdf.setFillColor(248, 248, 248);
-      pdf.rect(margin, rowY - 4, contentWidth, rowHeight, "F");
-    }
+    // blocos de texto da descrição (nome + variações), com altura de linha própria
+    const blocks: { text: string; h: number; variation: boolean }[] = [
+      ...nameLines.map((t) => ({ text: t, h: DESC_LINE_H, variation: false })),
+      ...varLines.map((t) => ({ text: t, h: VAR_LINE_H, variation: true })),
+    ];
 
-    colX = margin + 2;
-    pdf.setTextColor(40, 40, 40);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(String(index + 1).padStart(2, "0"), colX, rowY);
-    colX += colWidths.item;
+    let cursor = 0;
+    let firstChunk = true;
 
-    pdf.text(descBase, colX, rowY);
-    if (variations) {
-      pdf.setFontSize(7);
-      pdf.setTextColor(110, 110, 110);
-      pdf.text(variations, colX, rowY + 4);
+    // Renderiza a linha em blocos; linhas maiores que a página são
+    // continuadas na página seguinte sem perda de conteúdo.
+    while (cursor < blocks.length) {
+      // altura mínima para renderizar pelo menos um bloco
+      const minChunk = 3 + blocks[cursor].h;
+      ensureSpace(minChunk, true);
+
+      // quantos blocos cabem no espaço restante desta página
+      const available = contentBottom - yPos - 3;
+      let used = 0;
+      let end = cursor;
+      while (end < blocks.length && used + blocks[end].h <= Math.max(available, blocks[cursor].h)) {
+        used += blocks[end].h;
+        end += 1;
+      }
+      if (end === cursor) {
+        used = blocks[cursor].h;
+        end = cursor + 1;
+      }
+
+      // Se a linha inteira cabe, mantém o bloco íntegro (break-inside: avoid)
+      if (firstChunk && end < blocks.length) {
+        const fullHeight = 3 + blocks.reduce((acc, b) => acc + b.h, 0);
+        if (fullHeight <= usableHeight) {
+          ensureSpace(fullHeight, true);
+          used = fullHeight - 3;
+          end = blocks.length;
+        }
+      }
+
+      const rowHeight = used + 3;
+      const rowY = yPos;
+
+      if (index % 2 === 0) {
+        pdf.setFillColor(248, 248, 248);
+        pdf.rect(margin, rowY - 4, contentWidth, rowHeight, "F");
+      }
+
+      let colX = margin + 2;
+      pdf.setTextColor(40, 40, 40);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+
+      if (firstChunk) {
+        pdf.text(String(index + 1).padStart(2, "0"), colX, rowY);
+      }
+      colX += colWidths.item;
+
+      let textY = rowY;
+      for (let b = cursor; b < end; b += 1) {
+        const block = blocks[b];
+        if (block.variation) {
+          pdf.setFontSize(7);
+          pdf.setTextColor(110, 110, 110);
+        } else {
+          pdf.setFontSize(8);
+          pdf.setTextColor(40, 40, 40);
+        }
+        pdf.text(block.text, colX, textY);
+        textY += block.h;
+      }
       pdf.setFontSize(8);
       pdf.setTextColor(40, 40, 40);
+      colX += colWidths.desc;
+
+      if (firstChunk) {
+        pdf.text(String(item.quantity), colX + 8, rowY);
+        colX += colWidths.qty;
+        pdf.text(`R$ ${Number(item.product_price || 0).toFixed(2)}`, colX, rowY);
+        colX += colWidths.unit;
+        pdf.text(`R$ ${Number(item.subtotal || 0).toFixed(2)}`, colX, rowY);
+      }
+
+      yPos += rowHeight;
+      cursor = end;
+      firstChunk = false;
     }
-    colX += colWidths.desc;
 
-    pdf.text(String(item.quantity), colX + 8, rowY);
-    colX += colWidths.qty;
-
-    pdf.text(`R$ ${item.product_price.toFixed(2)}`, colX, rowY);
-    colX += colWidths.unit;
-
-    pdf.text(`R$ ${item.subtotal.toFixed(2)}`, colX, rowY);
-
-    yPos += rowHeight;
-    totalItems++;
-    totalUnits += item.quantity;
-    productsTotal += item.subtotal;
+    renderedRows += 1;
+    totalItems += 1;
+    totalUnits += Number(item.quantity || 0);
+    productsTotal += Number(item.subtotal || 0);
   });
+
+  // Invariante de integridade: nenhum item pode ser perdido
+  if (renderedRows !== items.length) {
+    throw new Error(
+      `PDF incompleto: ${renderedRows} de ${items.length} itens renderizados (pedido ${order.id}).`
+    );
+  }
 
   yPos += 5;
 
   // ==================== TOTALS ====================
-  
+
+  // Bloco de totais precisa caber íntegro; caso contrário vai para a próxima página
+  const totalsBlockHeight =
+    8 + 6 + 5 + (order.delivery_fee && order.delivery_fee > 0 ? 5 : 0) + 6 + 5 + (order.payment_method ? 8 : 0);
+  ensureSpace(totalsBlockHeight);
+
   // Divider
   pdf.setDrawColor(200, 200, 200);
   pdf.setLineWidth(0.3);
@@ -358,7 +458,7 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
 
   const totalsX = pageWidth - margin - 60;
   pdf.setFontSize(9);
-  
+
   // Items count
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(80, 80, 80);
@@ -385,7 +485,7 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   pdf.setLineWidth(0.5);
   pdf.line(totalsX - 5, yPos, pageWidth - margin, yPos);
   yPos += 6;
-  
+
   pdf.setFontSize(11);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(rgb.r, rgb.g, rgb.b);
@@ -406,36 +506,48 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
       debito: "Cartão de Débito",
     }[order.payment_method] || order.payment_method;
     pdf.text(`Forma de Pagamento: ${paymentLabel}`, margin, yPos);
+    yPos += 5;
   }
 
-  yPos += 12;
+  yPos += 7;
 
   // ==================== OBSERVATIONS ====================
-  
+
   if (order.notes) {
+    pdf.setFontSize(9);
+    const notesLines: string[] = pdf.splitTextToSize(order.notes, contentWidth);
+
+    ensureSpace(5 + 4 + 4); // título + primeira linha
+
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(rgb.r, rgb.g, rgb.b);
     pdf.text("OBSERVAÇÕES", margin, yPos);
     yPos += 5;
-    
+
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(60, 60, 60);
-    const notesLines = pdf.splitTextToSize(order.notes, contentWidth);
-    pdf.text(notesLines, margin, yPos);
-    yPos += notesLines.length * 4 + 8;
+
+    // Observações longas quebram entre páginas sem perda de texto
+    notesLines.forEach((line) => {
+      ensureSpace(4);
+      pdf.text(line, margin, yPos);
+      yPos += 4;
+    });
+    yPos += 8;
   }
 
   // ==================== SIGNATURE AREA ====================
-  
-  // Check if we need a new page
-  if (yPos > pageHeight - 60) {
+
+  const SIGNATURE_BLOCK = 27;
+  if (yPos + SIGNATURE_BLOCK > contentBottom) {
     pdf.addPage();
     yPos = margin;
+  } else {
+    // mantém o bloco ancorado ao pé da página quando há espaço
+    yPos = Math.max(yPos, contentBottom - SIGNATURE_BLOCK);
   }
-
-  yPos = Math.max(yPos, pageHeight - 55);
 
   pdf.setDrawColor(150, 150, 150);
   pdf.setLineWidth(0.3);
@@ -451,18 +563,30 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   // Signature line
   pdf.text("Assinatura do Recebedor:", margin, yPos);
   pdf.line(margin + 50, yPos, pageWidth - margin, yPos);
-  yPos += 15;
 
-  // Footer (dinâmico por plano efetivo da loja dona do pedido)
+  // ==================== FOOTER (todas as páginas) ====================
+
   const footerText = await resolveFooterText(order);
-  pdf.setFontSize(8);
-  pdf.setTextColor(150, 150, 150);
-  const footerLines = pdf.splitTextToSize(footerText, contentWidth).slice(0, 2);
-  const footerStartY = pageHeight - 10 - (footerLines.length - 1) * 4;
-  footerLines.forEach((line: string, i: number) => {
-    pdf.text(line, pageWidth / 2, footerStartY + i * 4, { align: "center" });
-  });
+  const totalPages = pdf.getNumberOfPages();
 
+  for (let page = 1; page <= totalPages; page += 1) {
+    pdf.setPage(page);
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(150, 150, 150);
+
+    const footerLines: string[] = pdf.splitTextToSize(footerText, contentWidth - 40).slice(0, 2);
+    const footerStartY = pageHeight - 10 - (footerLines.length - 1) * 4;
+    footerLines.forEach((line: string, i: number) => {
+      pdf.text(line, pageWidth / 2, footerStartY + i * 4, { align: "center" });
+    });
+
+    if (totalPages > 1) {
+      pdf.text(`Página ${page} de ${totalPages}`, pageWidth - margin, pageHeight - 10, {
+        align: "right",
+      });
+    }
+  }
 
   // Save PDF
   const fileName = `pedido_${order.order_number || order.id.slice(0, 8)}_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`;
