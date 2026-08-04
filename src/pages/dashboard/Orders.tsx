@@ -256,16 +256,26 @@ const Orders = () => {
     const order = printOrder;
     if (!order) return;
     try {
-      const { data: orderData } = await supabase
+      // Multitenant: pedido obrigatoriamente da loja autenticada
+      const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", order.id)
+        .eq("store_owner_id", user!.id)
         .single();
 
-      const { data: itemsData } = await supabase
+      if (orderError || !orderData) throw orderError || new Error("Pedido não encontrado");
+
+      // Todos os itens do pedido, ordenação determinística e sem limite implícito
+      const { data: itemsData, error: itemsError } = await supabase
         .from("order_items")
         .select("*")
-        .eq("order_id", order.id);
+        .eq("order_id", orderData.id)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(0, 4999);
+
+      if (itemsError) throw itemsError;
 
       const store = await fetchStoreData();
 
