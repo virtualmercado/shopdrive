@@ -14,15 +14,52 @@ import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
 
 type TabType = 'account' | 'orders' | 'wishlist' | 'password';
 
+// URL <-> internal tab mapping (URL is the source of truth)
+const TAB_TO_SLUG: Record<TabType, string> = {
+  account: 'conta',
+  orders: 'pedidos',
+  wishlist: 'favoritos',
+  password: 'senha',
+};
+const SLUG_TO_TAB: Record<string, TabType> = {
+  conta: 'account',
+  pedidos: 'orders',
+  favoritos: 'wishlist',
+  senha: 'password',
+};
+
 const CustomerAccount = () => {
   const { storeSlug } = useParams<{ storeSlug: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading, signOut } = useCustomerAuth();
 
   const [storeProfile, setStoreProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('account');
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const activeTab: TabType = SLUG_TO_TAB[searchParams.get('tab') || ''] || 'account';
+  const selectedOrderId = activeTab === 'orders' ? searchParams.get('pedido') : null;
+
+  const setActiveTab = useCallback((tab: TabType) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'account') next.delete('tab');
+      else next.set('tab', TAB_TO_SLUG[tab]);
+      next.delete('pedido');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const setSelectedOrderId = useCallback((orderId: string | null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', TAB_TO_SLUG.orders);
+      if (orderId) next.set('pedido', orderId);
+      else next.delete('pedido');
+      return next;
+    });
+  }, [setSearchParams]);
 
   const { isTemplatePreview: isTemplateMode } = useTemplatePreviewSandbox();
 
