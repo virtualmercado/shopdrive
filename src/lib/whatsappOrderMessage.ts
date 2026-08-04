@@ -114,6 +114,9 @@ export const buildItemizedWhatsAppMessage = (
   });
 
   lines.push("");
+  const { numberOfItems, totalUnits } = calculateOrderItemSummary(items);
+  lines.push(`Nº de itens: ${numberOfItems}`);
+  lines.push(`Total de unidades: ${fmtQty(totalUnits)}`);
   if (order.subtotal != null) lines.push(`Subtotal: ${fmtBRL(order.subtotal)}`);
   if (order.delivery_fee != null && order.delivery_fee > 0) {
     lines.push(`Frete: ${fmtBRL(order.delivery_fee)}`);
