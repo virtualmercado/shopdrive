@@ -261,7 +261,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/${storeSlug}/conta`}
+                      to={`/${storeSlug}/conta?tab=favoritos`}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}
@@ -294,8 +294,9 @@ const CustomerAccountDropdown = ({
                     {orders.map((order) => (
                       <Link
                         key={order.id}
-                        to={`/${storeSlug}/conta`}
-                        className="block hover:bg-gray-50 rounded p-2 transition-colors"
+                        to={`/${storeSlug}/conta?tab=pedidos&pedido=${order.id}`}
+                        aria-label={`Pedido ${order.order_number || order.id.slice(0, 6)} — ${formatCurrency(order.total_amount)}`}
+                        className="block hover:bg-gray-50 rounded p-2 transition-colors focus-visible:outline focus-visible:outline-2"
                         onClick={() => setIsOpen(false)}
                       >
                         <div className="flex items-center justify-between">
@@ -312,7 +313,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/${storeSlug}/conta`}
+                      to={`/${storeSlug}/conta?tab=pedidos`}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}
