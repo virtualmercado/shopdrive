@@ -26,14 +26,17 @@ interface CustomerOrdersSectionProps {
   storeProfile: any;
   userId: string;
   isTemplateMode?: boolean;
+  selectedOrderId?: string | null;
+  onSelectOrder?: (orderId: string | null) => void;
 }
 
-const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }: CustomerOrdersSectionProps) => {
+const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false, selectedOrderId = null, onSelectOrder }: CustomerOrdersSectionProps) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [accessError, setAccessError] = useState(false);
 
   useEffect(() => {
     if (isTemplateMode) {
@@ -52,14 +55,16 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }:
       .select('id, order_number, created_at, status, total_amount, customer_address, delivery_method, payment_method')
       .eq('customer_id', userId)
       .eq('store_owner_id', storeProfile.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
 
     if (data) setOrders(data);
     setLoading(false);
   };
 
-  const handleViewOrder = async (order: Order) => {
+  const loadOrderItems = async (order: Order) => {
     setSelectedOrder(order);
+    setOrderItems([]);
     setLoadingItems(true);
 
     const { data } = await supabase
@@ -67,9 +72,48 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }:
       .select('id, product_name, quantity, product_price, subtotal')
       .eq('order_id', order.id);
 
-    if (data) setOrderItems(data);
+    setOrderItems(data || []);
     setLoadingItems(false);
   };
+
+  // URL-driven detail: only orders returned by the scoped query above can open
+  useEffect(() => {
+    if (loading || isTemplateMode) return;
+    if (!selectedOrderId) {
+      setSelectedOrder(null);
+      setOrderItems([]);
+      setAccessError(false);
+      return;
+    }
+    if (selectedOrder?.id === selectedOrderId) return;
+    const match = orders.find((o) => o.id === selectedOrderId);
+    if (!match) {
+      setSelectedOrder(null);
+      setOrderItems([]);
+      setAccessError(true);
+      return;
+    }
+    setAccessError(false);
+    loadOrderItems(match);
+  }, [selectedOrderId, orders, loading, isTemplateMode]);
+
+  const handleViewOrder = (order: Order) => {
+    if (onSelectOrder) {
+      onSelectOrder(order.id);
+      return;
+    }
+    loadOrderItems(order);
+  };
+
+  const handleCloseOrder = () => {
+    if (onSelectOrder) {
+      onSelectOrder(null);
+      return;
+    }
+    setSelectedOrder(null);
+    setOrderItems([]);
+  };
+
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -144,6 +188,21 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }:
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Meus Pedidos</h1>
+
+      {accessError && (
+        <div role="alert" className="bg-white rounded-lg border border-red-200 p-4 text-sm">
+          <p className="font-medium text-red-700">Não foi possível acessar este pedido.</p>
+          <button
+            type="button"
+            onClick={handleCloseOrder}
+            className="mt-2 underline text-muted-foreground"
+          >
+            Voltar para Meus Pedidos
+          </button>
+        </div>
+      )}
+
+
 
       {orders.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
@@ -228,7 +287,7 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false }:
       )}
 
       {/* Order Details Modal */}
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) handleCloseOrder(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
