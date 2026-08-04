@@ -272,7 +272,7 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false, s
       )}
 
       {/* Order Details Modal */}
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) handleCloseOrder(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
