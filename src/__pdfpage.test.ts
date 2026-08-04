@@ -5,19 +5,14 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }),
   },
 }));
-const saved: any[] = [];
-vi.mock("jspdf", async () => {
-  const actual: any = await vi.importActual("jspdf");
-  const J = actual.jsPDF;
-  const orig = J.prototype.save;
-  J.prototype.save = function (name: string) {
-    saved.push({ name, pages: this.getNumberOfPages(), doc: this });
-    return this;
-  };
-  void orig;
-  return actual;
-});
+import { jsPDF } from "jspdf";
 import { printOrderA4 } from "@/components/orders/OrderPrintA4";
+
+const saved: any[] = [];
+(jsPDF as any).prototype.save = function (name: string) {
+  saved.push({ name, pages: this.getNumberOfPages(), doc: this });
+  return this;
+};
 
 const mkItems = (n: number, longName = false) =>
   Array.from({ length: n }, (_, i) => ({
