@@ -62,6 +62,29 @@ const deliveryLabel = (method?: string | null): string => {
   return labels[method] || method;
 };
 
+// Normaliza quantidade: aceita número ou string numérica; rejeita NaN/Infinity/negativos.
+const normalizeQuantity = (q: unknown): number => {
+  const n = typeof q === "number" ? q : typeof q === "string" ? Number(q.replace(",", ".")) : NaN;
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+};
+
+const fmtQty = (v: number): string =>
+  Number.isInteger(v) ? String(v) : String(v).replace(".", ",");
+
+// Função pura e reutilizável: conta linhas válidas e soma unidades.
+export const calculateOrderItemSummary = (
+  items: readonly (WhatsAppOrderItemInput | null | undefined)[] | null | undefined
+): { numberOfItems: number; totalUnits: number } => {
+  const valid = (items || []).filter(
+    (it): it is WhatsAppOrderItemInput => !!it && typeof it === "object"
+  );
+  return {
+    numberOfItems: valid.length,
+    totalUnits: valid.reduce((sum, it) => sum + normalizeQuantity(it.quantity), 0),
+  };
+};
+
 export const buildItemizedWhatsAppMessage = (
   order: WhatsAppOrderInput,
   items: WhatsAppOrderItemInput[],
