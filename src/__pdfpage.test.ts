@@ -9,10 +9,12 @@ import { jsPDF } from "jspdf";
 import { printOrderA4 } from "@/components/orders/OrderPrintA4";
 
 const saved: any[] = [];
-(jsPDF as any).prototype.save = function (name: string) {
+const capture = function (this: any, name: string) {
   saved.push({ name, pages: this.getNumberOfPages(), doc: this });
   return this;
 };
+(jsPDF as any).prototype.save = capture;
+(jsPDF as any).API.save = capture;
 
 const mkItems = (n: number, longName = false) =>
   Array.from({ length: n }, (_, i) => ({
