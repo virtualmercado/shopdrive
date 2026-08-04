@@ -88,7 +88,7 @@ describe("buildItemizedWhatsAppMessage", () => {
     expect(msg).toContain("Entrega: Retirada na loja");
     expect(msg).toContain("Pagamento: Combinar via WhatsApp");
     expect(msg).toContain("Olá! Gostaria de confirmar este pedido");
-    expect(msg.indexOf("Nº de itens")).toBeLessThan(msg.indexOf("Subtotal: R$"));
+    expect(msg.indexOf("Nº de itens")).toBeLessThan(msg.indexOf("\nSubtotal: R$"));
     expect(msg.indexOf("Produto 22")).toBeLessThan(msg.indexOf("Nº de itens"));
   });
 
