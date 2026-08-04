@@ -189,6 +189,21 @@ const CustomerOrdersSection = ({ storeProfile, userId, isTemplateMode = false, s
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Meus Pedidos</h1>
 
+      {accessError && (
+        <div role="alert" className="bg-white rounded-lg border border-red-200 p-4 text-sm">
+          <p className="font-medium text-red-700">Não foi possível acessar este pedido.</p>
+          <button
+            type="button"
+            onClick={handleCloseOrder}
+            className="mt-2 underline text-muted-foreground"
+          >
+            Voltar para Meus Pedidos
+          </button>
+        </div>
+      )}
+
+
+
       {orders.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
           <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
