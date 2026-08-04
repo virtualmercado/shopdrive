@@ -288,6 +288,8 @@ const CustomerAccount = () => {
                 storeProfile={storeProfile}
                 userId={safeUserId}
                 isTemplateMode={isTemplateMode}
+                selectedOrderId={selectedOrderId}
+                onSelectOrder={setSelectedOrderId}
               />
             )}
             {activeTab === 'wishlist' && (
