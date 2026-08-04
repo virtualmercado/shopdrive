@@ -67,7 +67,8 @@ const CustomerAccount = () => {
     // In template mode, skip auth redirect — page is a neutral preview
     if (isTemplateMode) return;
     if (!authLoading && !user) {
-      navigate(`/${storeSlug}/auth`, { replace: true });
+      const intent = `${window.location.pathname}${window.location.search}`;
+      navigate(`/${storeSlug}/auth?redirect=${encodeURIComponent(intent)}`, { replace: true });
     }
   }, [user, authLoading, navigate, storeSlug, isTemplateMode]);
 
