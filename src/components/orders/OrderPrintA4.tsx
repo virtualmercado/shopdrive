@@ -541,13 +541,12 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
   // ==================== SIGNATURE AREA ====================
 
   const SIGNATURE_BLOCK = 27;
+  yPos += 12; // respiro após os totais/observações
   if (yPos + SIGNATURE_BLOCK > contentBottom) {
     pdf.addPage();
     yPos = margin;
-  } else {
-    // mantém o bloco ancorado ao pé da página quando há espaço
-    yPos = Math.max(yPos, contentBottom - SIGNATURE_BLOCK);
   }
+
 
   pdf.setDrawColor(150, 150, 150);
   pdf.setLineWidth(0.3);
