@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,14 +40,22 @@ const CustomerAuth = () => {
   const [storeProfile, setStoreProfile] = useState<any>(null);
   const [recoverySent, setRecoverySent] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signIn, signUp } = useCustomerAuth();
+
+  // Preserve navigation intent (e.g. ?tab=pedidos&pedido=...) only for same-store paths
+  const rawRedirect = searchParams.get('redirect');
+  const redirectTarget =
+    rawRedirect && storeSlug && rawRedirect.startsWith(`/${storeSlug}/`)
+      ? rawRedirect
+      : `/${storeSlug}/conta`;
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      navigate(`/${storeSlug}/conta`, { replace: true });
+      navigate(redirectTarget, { replace: true });
     }
-  }, [user, navigate, storeSlug]);
+  }, [user, navigate, redirectTarget]);
 
   useEffect(() => {
     const fetchStoreProfile = async () => {
@@ -85,7 +93,7 @@ const CustomerAuth = () => {
       const validatedData = loginSchema.parse({ email, password });
       const { error } = await signIn(validatedData.email, validatedData.password);
       if (!error) {
-        navigate(`/${storeSlug}/conta`);
+        navigate(redirectTarget);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
