@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeStoreLayout } from "@/lib/storeLayout";
 import { useToast } from "@/hooks/use-toast";
 import { StoreLayoutPreview } from "./StoreLayoutPreview";
 
@@ -72,7 +73,7 @@ export const StoreLayoutSelector = ({
       if (error) throw error;
       
       if (data?.store_layout) {
-        const layout = data.store_layout as StoreLayoutType;
+        const layout = normalizeStoreLayout(data.store_layout) as StoreLayoutType;
         setSelectedLayout(layout);
         setSavedLayout(layout);
       }
@@ -88,7 +89,7 @@ export const StoreLayoutSelector = ({
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ store_layout: selectedLayout })
+        .update({ store_layout: normalizeStoreLayout(selectedLayout) })
         .eq("id", userId);
       
       if (error) throw error;

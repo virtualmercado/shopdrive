@@ -3,8 +3,8 @@ import MiniBannerSection from "./MiniBannerSection";
 import { BrandSection } from "./BrandSection";
 import HomeVideoSection from "./HomeVideoSection";
 import StoreReviewsSection from "./StoreReviewsSection";
+import { normalizeStoreLayout, type StoreLayoutType } from "@/lib/storeLayout";
 
-type StoreLayoutType = "layout_01" | "layout_02" | "layout_03";
 
 interface StoreLayoutContentProps {
   storeData: {
@@ -18,7 +18,7 @@ interface StoreLayoutContentProps {
     home_video_id?: string | null;
     home_video_title?: string | null;
     home_video_description?: string | null;
-    store_layout?: StoreLayoutType;
+    store_layout?: string | null;
   };
   storeSlug: string | undefined;
   buttonBgColor: string;
@@ -189,8 +189,11 @@ const layoutOrder: Record<StoreLayoutType, (keyof typeof ModuleComponents)[]> = 
 };
 
 export const StoreLayoutContent = (props: StoreLayoutContentProps) => {
-  const currentLayout = props.storeData.store_layout || "layout_01";
-  const moduleOrder = layoutOrder[currentLayout];
+  // Normalize legacy/unknown values ("modelo-1"...) to canonical layout keys.
+  const currentLayout = normalizeStoreLayout(props.storeData.store_layout);
+  // Double protection: never call .map() on undefined.
+  const moduleOrder = layoutOrder[currentLayout] ?? layoutOrder.layout_01;
+
 
   return (
     <>

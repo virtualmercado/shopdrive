@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeStoreLayout } from "@/lib/storeLayout";
 import { toast } from "sonner";
 import { Store, Settings, Package, Rocket, ArrowRight, ArrowLeft, SkipForward, Loader2 } from "lucide-react";
 import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
@@ -52,7 +53,7 @@ const Onboarding = () => {
   const [settingsData, setSettingsData] = useState({
     currency: "BRL",
     catalogType: "grid",
-    layout: "modelo-1",
+    layout: "layout_01",
   });
 
   const [productData, setProductData] = useState({
@@ -173,7 +174,7 @@ const Onboarding = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          store_layout: settingsData.layout,
+          store_layout: normalizeStoreLayout(settingsData.layout),
         })
         .eq("id", user.id);
 
@@ -396,9 +397,9 @@ const Onboarding = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="modelo-1">Modelo 1 — Clássico</SelectItem>
-                      <SelectItem value="modelo-2">Modelo 2 — Moderno</SelectItem>
-                      <SelectItem value="modelo-3">Modelo 3 — Minimalista</SelectItem>
+                      <SelectItem value="layout_01">Modelo 1 — Clássico</SelectItem>
+                      <SelectItem value="layout_02">Modelo 2 — Moderno</SelectItem>
+                      <SelectItem value="layout_03">Modelo 3 — Minimalista</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
