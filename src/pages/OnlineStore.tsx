@@ -20,6 +20,7 @@ import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveBanners } from "@/lib/defaultBanners";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
+import { normalizeStoreLayout, type StoreLayoutType } from "@/lib/storeLayout";
 
 type StoreModelType = "loja_virtual" | "catalogo_digital";
 
@@ -70,7 +71,7 @@ interface StoreData {
   home_video_title?: string | null;
   home_video_description?: string | null;
   // Store layout
-  store_layout?: "layout_01" | "layout_02" | "layout_03";
+  store_layout?: StoreLayoutType;
   // Store model
   store_model?: StoreModelType;
   // Benefit banners
@@ -124,7 +125,7 @@ const OnlineStoreContent = () => {
         home_video_title: (data as any).home_video_title || null,
         home_video_description: (data as any).home_video_description || null,
         // Store layout
-        store_layout: (data.store_layout as StoreData["store_layout"]) || "layout_01",
+        store_layout: normalizeStoreLayout(data.store_layout),
         // Store model
         store_model: ((data as any).store_model as StoreModelType) || "loja_virtual",
         // Benefit banners

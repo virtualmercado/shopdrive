@@ -18,7 +18,7 @@ interface StoreLayoutContentProps {
     home_video_id?: string | null;
     home_video_title?: string | null;
     home_video_description?: string | null;
-    store_layout?: StoreLayoutType;
+    store_layout?: string | null;
   };
   storeSlug: string | undefined;
   buttonBgColor: string;
