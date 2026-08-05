@@ -3,8 +3,8 @@ import MiniBannerSection from "./MiniBannerSection";
 import { BrandSection } from "./BrandSection";
 import HomeVideoSection from "./HomeVideoSection";
 import StoreReviewsSection from "./StoreReviewsSection";
+import { normalizeStoreLayout, type StoreLayoutType } from "@/lib/storeLayout";
 
-type StoreLayoutType = "layout_01" | "layout_02" | "layout_03";
 
 interface StoreLayoutContentProps {
   storeData: {
