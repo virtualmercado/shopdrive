@@ -161,13 +161,14 @@ const AdminSubscribers = () => {
             else planName = pid || 'Grátis';
           }
 
-          let subscriptionStatus = 'inactive';
+          // No paid subscription row (or free/downgraded plan) = operating on the Free plan.
+          let subscriptionStatus = 'free';
           if (masterSub) {
             if (masterSub.plan_id === 'gratis') {
-              subscriptionStatus = 'inactive';
+              subscriptionStatus = 'free';
               planName = 'Grátis';
             } else if (masterSub.status === 'cancelled' && masterSub.downgrade_reason === 'payment_failed') {
-              subscriptionStatus = 'inactive';
+              subscriptionStatus = 'free';
               planName = 'Grátis';
             } else if (masterSub.status === 'active') {
               subscriptionStatus = 'active';
@@ -186,7 +187,7 @@ const AdminSubscribers = () => {
               if (latestInvoice.plan) {
                 planName = latestInvoice.plan === 'premium' ? 'Premium' : latestInvoice.plan === 'pro' ? 'Pro' : latestInvoice.plan;
               }
-            } else if (latestInvoice.status === 'pending' && subscriptionStatus === 'inactive') {
+            } else if (latestInvoice.status === 'pending' && (subscriptionStatus === 'inactive' || subscriptionStatus === 'free')) {
               subscriptionStatus = 'pending';
             }
           }
@@ -256,8 +257,15 @@ const AdminSubscribers = () => {
     { key: 'excluida', label: 'Excluídos', icon: UserX, color: 'text-muted-foreground' },
   ];
 
-  const getStatusBadge = (status: string) => {
+  // Visual-only derivation. Real account states (suspended/blocked/deleted)
+  // always take precedence over the subscription-derived label.
+  const getStatusBadge = (status: string, accountStatus?: string) => {
+    if (accountStatus === 'excluida') return <Badge variant="secondary">Excluída</Badge>;
+    if (accountStatus === 'bloqueado') return <Badge variant="destructive">Bloqueado</Badge>;
+    if (accountStatus === 'suspenso') return <Badge className="bg-amber-100 text-amber-800">Suspenso</Badge>;
     switch (status) {
+      case 'free':
+        return <Badge variant="outline">Grátis</Badge>;
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Ativo</Badge>;
       case 'cancelled':
@@ -477,7 +485,7 @@ const AdminSubscribers = () => {
                         {format(new Date(subscriber.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(subscriber.subscriptionStatus)}
+                        {getStatusBadge(subscriber.subscriptionStatus, subscriber.account_status)}
                       </TableCell>
                       <TableCell>
                         {getAccountStatusBadge(subscriber.account_status)}
