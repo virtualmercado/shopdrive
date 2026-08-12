@@ -435,22 +435,19 @@ const Customers = () => {
 
     setAddingCustomer(true);
     try {
-      // Generate a unique ID for the customer
-      const customerId = crypto.randomUUID();
+      // Create the customer profile and the store link server-side (secure RPC)
+      const { data: newCustomerId, error: rpcError } = await supabase.rpc(
+        'create_manual_store_customer',
+        {
+          p_full_name: newCustomerData.full_name.trim(),
+          p_email: newCustomerData.email.trim().toLowerCase(),
+          p_phone: newCustomerData.phone.trim() || null,
+          p_cpf: newCustomerData.cpf.trim() || null,
+        }
+      );
 
-      // Create customer profile
-      const { error: profileError } = await supabase
-        .from('customer_profiles')
-        .insert({
-          id: customerId,
-          full_name: newCustomerData.full_name.trim(),
-          email: newCustomerData.email.trim().toLowerCase(),
-          phone: newCustomerData.phone.trim() || null,
-          cpf: newCustomerData.cpf.trim() || null
-        });
-
-      if (profileError) {
-        if (profileError.code === '23505') {
+      if (rpcError) {
+        if (rpcError.code === '23505' || rpcError.code === '23515') {
           toast({
             title: 'Erro',
             description: 'Já existe um cliente com este e-mail.',
@@ -458,20 +455,11 @@ const Customers = () => {
           });
           return;
         }
-        throw profileError;
+        throw rpcError;
       }
 
-      // Create store_customers relationship
-      const { error: storeCustomerError } = await supabase
-        .from('store_customers')
-        .insert({
-          store_owner_id: user.id,
-          customer_id: customerId,
-          is_active: true,
-          origin: 'manual'
-        });
+      const customerId = newCustomerId as string;
 
-      if (storeCustomerError) throw storeCustomerError;
 
       // Create customer address
       const { error: addressError } = await supabase
