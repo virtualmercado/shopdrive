@@ -5936,6 +5936,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_manual_store_customer: {
+        Args: {
+          p_cpf?: string
+          p_email: string
+          p_full_name: string
+          p_phone?: string
+        }
+        Returns: string
+      }
       create_store_referral: {
         Args: {
           p_inviter_store_id: string
