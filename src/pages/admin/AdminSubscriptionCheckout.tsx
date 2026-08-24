@@ -272,6 +272,8 @@ const AdminSubscriptionCheckout = () => {
     }
 
 
+    paymentTrack("card_tokenization_started");
+
     try {
       const cardNumber = cardForm.cardNumber.replace(/\s/g, "");
       const cardBrand = detectCardBrand(cardNumber);
@@ -290,7 +292,7 @@ const AdminSubscriptionCheckout = () => {
       const response = await mpRef.current.createCardToken(cardTokenData);
       
       if (response.id) {
-        console.log("Card tokenized successfully:", response.id);
+        paymentTrack("card_tokenization_success");
         return {
           token: response.id,
           paymentMethodId: cardBrand
@@ -299,10 +301,11 @@ const AdminSubscriptionCheckout = () => {
         throw new Error("Failed to tokenize card");
       }
     } catch (error: any) {
-      console.error("Card tokenization error:", error);
+      paymentTrack("card_tokenization_failed");
       toast.error("Erro ao processar dados do cartão. Verifique os dados informados.");
       return null;
     }
+
   };
 
   const handleSubmit = async () => {
