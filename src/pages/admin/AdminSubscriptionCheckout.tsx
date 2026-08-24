@@ -145,56 +145,33 @@ const AdminSubscriptionCheckout = () => {
   // Check if user is logged in for identification validation
   const isUserLoggedIn = !!(user && session);
 
-  // Carregar SDK do Mercado Pago
-  useEffect(() => {
-    const loadMercadoPagoSDK = async () => {
-      // Buscar public key do gateway master
-      const { data: gateway, error } = await (supabase as any)
-        .from("master_gateway_public_keys")
-        .select("mercadopago_public_key")
-        .maybeSingle();
+  // Inicialização do SDK de pagamento (config pública + script + instância)
+  const setupPaymentSdk = useCallback(async () => {
+    setSdkErrorKind(null);
+    setMpLoaded(false);
+    mpRef.current = null;
+    setSdkStatus("loading_config");
 
-      if (error) {
-        console.error("Erro ao buscar gateway de pagamento:", error);
-        toast.error("Erro ao carregar configurações de pagamento. Recarregue a página.");
-        return;
-      }
-
-      if (!gateway?.mercadopago_public_key) {
-        console.warn("MercadoPago public key não encontrada - verifique as políticas RLS e configurações do gateway");
-        toast.error("Configuração de pagamento não encontrada. Contate o suporte.");
-        return;
-      }
-
-      setMpPublicKey(gateway.mercadopago_public_key);
-
-      // Carregar SDK se ainda não carregado
-      if (!window.MercadoPago) {
-        const script = document.createElement("script");
-        script.src = "https://sdk.mercadopago.com/js/v2";
-        script.async = true;
-        script.onload = () => {
-          mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
-            locale: "pt-BR"
-          });
-          setMpLoaded(true);
-          console.log("MercadoPago SDK loaded successfully");
-        };
-        script.onerror = () => {
-          console.error("Falha ao carregar script do MercadoPago");
-          toast.error("Erro ao carregar SDK de pagamento. Verifique sua conexão.");
-        };
-        document.body.appendChild(script);
-      } else {
-        mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
-          locale: "pt-BR"
-        });
-        setMpLoaded(true);
-      }
-    };
-
-    loadMercadoPagoSDK();
+    try {
+      const { mp, config } = await initializePaymentSdk();
+      mpRef.current = mp;
+      setMpPublicKey(config.publicKey);
+      setSdkStatus("ready");
+      setMpLoaded(true);
+    } catch (error) {
+      const kind = error instanceof PaymentSdkError ? error.kind : "init";
+      setSdkErrorKind(kind);
+      setSdkStatus("error");
+      setMpPublicKey(null);
+      toast.error(paymentSdkErrorMessage(kind));
+    }
   }, []);
+
+  useEffect(() => {
+    setupPaymentSdk();
+  }, [setupPaymentSdk]);
+
+  const isPaymentSdkReady = Boolean(mpPublicKey) && Boolean(mpRef.current) && mpLoaded;
 
   // Buscar perfil do usuário
   useEffect(() => {
