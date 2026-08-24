@@ -5986,6 +5986,15 @@ export type Database = {
         }[]
       }
       get_effective_store_plan: { Args: { p_store_id: string }; Returns: Json }
+      get_master_gateway_public_config: {
+        Args: never
+        Returns: {
+          display_name: string
+          environment: string
+          gateway_name: string
+          mercadopago_public_key: string
+        }[]
+      }
       get_melhor_envio_status: {
         Args: { p_user_id: string }
         Returns: {
