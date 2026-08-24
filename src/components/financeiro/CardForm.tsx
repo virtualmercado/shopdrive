@@ -125,10 +125,11 @@ export const CardForm = ({
   };
 
   const tokenizeCard = async (): Promise<{ token: string; paymentMethodId: string } | null> => {
-    if (!mpRef.current) {
-      console.error("MercadoPago SDK not initialized");
+    if (!isPaymentSdkReady) {
       return null;
     }
+
+    paymentTrack("card_tokenization_started");
 
     try {
       const cardTokenData = {
@@ -144,19 +145,23 @@ export const CardForm = ({
       const response = await mpRef.current.createCardToken(cardTokenData);
       
       if (response.id) {
+        paymentTrack("card_tokenization_success");
         return {
           token: response.id,
           paymentMethodId: cardBrand || "visa",
         };
       }
+      paymentTrack("card_tokenization_failed", { reason: "no_token" });
       return null;
     } catch (error) {
-      console.error("Card tokenization error:", error);
+      paymentTrack("card_tokenization_failed");
       return null;
     }
   };
 
   const handleSubmit = async () => {
+    if (!isPaymentSdkReady) return;
+
     // Try to tokenize with Mercado Pago
     const tokenData = await tokenizeCard();
     
@@ -172,11 +177,13 @@ export const CardForm = ({
   };
 
   const isFormValid = 
+    isPaymentSdkReady &&
     cardNumber.replace(/\s/g, "").length >= 13 &&
     holderName.length >= 3 &&
     expirationMonth &&
     expirationYear &&
     cvv.length >= 3;
+
 
   const months = Array.from({ length: 12 }, (_, i) => 
     String(i + 1).padStart(2, "0")
