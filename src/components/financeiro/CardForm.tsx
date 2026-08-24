@@ -62,36 +62,35 @@ export const CardForm = ({
   const [cvv, setCvv] = useState("");
   const [cardBrand, setCardBrand] = useState<string | null>(null);
   const mpRef = useRef<any>(null);
+  const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
+  const [sdkErrorKind, setSdkErrorKind] = useState<PaymentSdkErrorKind | null>(null);
+  const [sdkReady, setSdkReady] = useState(false);
 
-  // Initialize Mercado Pago SDK
-  useEffect(() => {
-    const initMP = async () => {
-      if (window.MercadoPago && !mpRef.current) {
-        try {
-          // Get public key from secure view (no secret tokens exposed)
-          const { data, error: gwError } = await (supabase as any)
-            .from("master_gateway_public_keys")
-            .select("mercadopago_public_key")
-            .maybeSingle();
-          
-          if (gwError) {
-            console.error("Erro ao buscar public key:", gwError);
-            return;
-          }
-          
-          if (data?.mercadopago_public_key) {
-            mpRef.current = new window.MercadoPago(data.mercadopago_public_key, {
-              locale: "pt-BR",
-            });
-          }
-        } catch (error) {
-          console.error("Error initializing MercadoPago:", error);
-        }
-      }
-    };
+  // Initialize Mercado Pago SDK (shared secure flow)
+  const setupSdk = useCallback(async () => {
+    setSdkErrorKind(null);
+    setSdkReady(false);
+    mpRef.current = null;
+    setSdkStatus("loading_config");
 
-    initMP();
+    try {
+      const { mp } = await initializePaymentSdk();
+      mpRef.current = mp;
+      setSdkStatus("ready");
+      setSdkReady(true);
+    } catch (error) {
+      const kind = error instanceof PaymentSdkError ? error.kind : "init";
+      setSdkErrorKind(kind);
+      setSdkStatus("error");
+    }
   }, []);
+
+  useEffect(() => {
+    setupSdk();
+  }, [setupSdk]);
+
+  const isPaymentSdkReady = sdkReady && Boolean(mpRef.current);
+
 
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
