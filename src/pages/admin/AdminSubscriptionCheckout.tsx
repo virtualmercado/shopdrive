@@ -256,6 +256,7 @@ const AdminSubscriptionCheckout = () => {
     if (!termsAccepted) return false;
     if (billingCycle === "monthly" && paymentMethod === "credit_card" && !recurringConsent) return false;
     if (paymentMethod === "credit_card") {
+      if (!isPaymentSdkReady) return false;
       const { cardNumber, holderName, expirationMonth, expirationYear, cvv } = cardForm;
       if (!cardNumber || !holderName || !expirationMonth || !expirationYear || !cvv) {
         return false;
@@ -265,11 +266,11 @@ const AdminSubscriptionCheckout = () => {
   };
 
   const tokenizeCard = async (): Promise<{ token: string; paymentMethodId: string } | null> => {
-    if (!mpRef.current || !mpLoaded) {
-      console.error("MercadoPago SDK not loaded");
-      toast.error("SDK de pagamento não carregado. Aguarde ou recarregue a página.");
+    if (!isPaymentSdkReady) {
+      toast.error(paymentSdkErrorMessage(sdkErrorKind ?? "init"));
       return null;
     }
+
 
     try {
       const cardNumber = cardForm.cardNumber.replace(/\s/g, "");
