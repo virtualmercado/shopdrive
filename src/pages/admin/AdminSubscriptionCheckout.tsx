@@ -121,6 +121,8 @@ const AdminSubscriptionCheckout = () => {
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
+  const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
+  const [sdkErrorKind, setSdkErrorKind] = useState<PaymentSdkErrorKind | null>(null);
 
   // Dados de pagamento
   const [pixData, setPixData] = useState<PixData | null>(null);
