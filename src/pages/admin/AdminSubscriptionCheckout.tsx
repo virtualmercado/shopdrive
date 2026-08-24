@@ -1236,10 +1236,25 @@ const AdminSubscriptionCheckout = () => {
                     </div>
                   </div>
 
-                  {!mpLoaded && mpPublicKey && (
+                  {sdkStatus !== "ready" && sdkStatus !== "error" && (
                     <div className="flex items-center gap-2 text-sm text-amber-600">
                       <RefreshCw className="h-4 w-4 animate-spin" />
-                      Carregando SDK de pagamento...
+                      Preparando pagamento seguro...
+                    </div>
+                  )}
+
+                  {sdkStatus === "error" && (
+                    <div className="flex flex-col gap-2 text-sm text-destructive">
+                      <span>{paymentSdkErrorMessage(sdkErrorKind ?? "init")}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        onClick={() => setupPaymentSdk()}
+                      >
+                        Tentar novamente
+                      </Button>
                     </div>
                   )}
                 </div>
