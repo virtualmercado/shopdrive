@@ -1393,7 +1393,7 @@ const AdminSubscriptionCheckout = () => {
               {/* Botão Assinar */}
               <Button
                 onClick={handleSubmit}
-                disabled={!canProceed() || isProcessing || (paymentMethod === "credit_card" && !mpLoaded && !!mpPublicKey)}
+                disabled={!canProceed() || isProcessing || (paymentMethod === "credit_card" && !isPaymentSdkReady)}
                 className="w-full h-12 text-lg"
                 style={{ 
                   backgroundColor: canProceed() ? VM_PRIMARY : undefined,
