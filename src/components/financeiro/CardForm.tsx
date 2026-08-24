@@ -1,5 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  initializePaymentSdk,
+  paymentSdkErrorMessage,
+  paymentTrack,
+  PaymentSdkError,
+  type PaymentSdkErrorKind,
+  type PaymentSdkStatus,
+} from "@/lib/paymentSdk";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,36 +62,35 @@ export const CardForm = ({
   const [cvv, setCvv] = useState("");
   const [cardBrand, setCardBrand] = useState<string | null>(null);
   const mpRef = useRef<any>(null);
+  const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
+  const [sdkErrorKind, setSdkErrorKind] = useState<PaymentSdkErrorKind | null>(null);
+  const [sdkReady, setSdkReady] = useState(false);
 
-  // Initialize Mercado Pago SDK
-  useEffect(() => {
-    const initMP = async () => {
-      if (window.MercadoPago && !mpRef.current) {
-        try {
-          // Get public key from secure view (no secret tokens exposed)
-          const { data, error: gwError } = await (supabase as any)
-            .from("master_gateway_public_keys")
-            .select("mercadopago_public_key")
-            .maybeSingle();
-          
-          if (gwError) {
-            console.error("Erro ao buscar public key:", gwError);
-            return;
-          }
-          
-          if (data?.mercadopago_public_key) {
-            mpRef.current = new window.MercadoPago(data.mercadopago_public_key, {
-              locale: "pt-BR",
-            });
-          }
-        } catch (error) {
-          console.error("Error initializing MercadoPago:", error);
-        }
-      }
-    };
+  // Initialize Mercado Pago SDK (shared secure flow)
+  const setupSdk = useCallback(async () => {
+    setSdkErrorKind(null);
+    setSdkReady(false);
+    mpRef.current = null;
+    setSdkStatus("loading_config");
 
-    initMP();
+    try {
+      const { mp } = await initializePaymentSdk();
+      mpRef.current = mp;
+      setSdkStatus("ready");
+      setSdkReady(true);
+    } catch (error) {
+      const kind = error instanceof PaymentSdkError ? error.kind : "init";
+      setSdkErrorKind(kind);
+      setSdkStatus("error");
+    }
   }, []);
+
+  useEffect(() => {
+    setupSdk();
+  }, [setupSdk]);
+
+  const isPaymentSdkReady = sdkReady && Boolean(mpRef.current);
+
 
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -119,10 +125,11 @@ export const CardForm = ({
   };
 
   const tokenizeCard = async (): Promise<{ token: string; paymentMethodId: string } | null> => {
-    if (!mpRef.current) {
-      console.error("MercadoPago SDK not initialized");
+    if (!isPaymentSdkReady) {
       return null;
     }
+
+    paymentTrack("card_tokenization_started");
 
     try {
       const cardTokenData = {
@@ -138,19 +145,23 @@ export const CardForm = ({
       const response = await mpRef.current.createCardToken(cardTokenData);
       
       if (response.id) {
+        paymentTrack("card_tokenization_success");
         return {
           token: response.id,
           paymentMethodId: cardBrand || "visa",
         };
       }
+      paymentTrack("card_tokenization_failed", { reason: "no_token" });
       return null;
     } catch (error) {
-      console.error("Card tokenization error:", error);
+      paymentTrack("card_tokenization_failed");
       return null;
     }
   };
 
   const handleSubmit = async () => {
+    if (!isPaymentSdkReady) return;
+
     // Try to tokenize with Mercado Pago
     const tokenData = await tokenizeCard();
     
@@ -166,11 +177,13 @@ export const CardForm = ({
   };
 
   const isFormValid = 
+    isPaymentSdkReady &&
     cardNumber.replace(/\s/g, "").length >= 13 &&
     holderName.length >= 3 &&
     expirationMonth &&
     expirationYear &&
     cvv.length >= 3;
+
 
   const months = Array.from({ length: 12 }, (_, i) => 
     String(i + 1).padStart(2, "0")
@@ -306,6 +319,29 @@ export const CardForm = ({
           </div>
         </div>
       </div>
+
+      {/* SDK readiness feedback */}
+      {sdkStatus !== "ready" && sdkStatus !== "error" && (
+        <div className="flex items-center gap-2 text-sm text-amber-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Preparando pagamento seguro...
+        </div>
+      )}
+
+      {sdkStatus === "error" && (
+        <div className="flex flex-col gap-2 text-sm text-destructive">
+          <span>{paymentSdkErrorMessage(sdkErrorKind ?? "init")}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => setupSdk()}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
 
       {/* Gateway info */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">

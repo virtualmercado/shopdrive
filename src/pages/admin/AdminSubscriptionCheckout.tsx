@@ -27,6 +27,14 @@ import {
   Mail
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  initializePaymentSdk,
+  paymentSdkErrorMessage,
+  paymentTrack,
+  PaymentSdkError,
+  type PaymentSdkErrorKind,
+  type PaymentSdkStatus,
+} from "@/lib/paymentSdk";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -121,6 +129,8 @@ const AdminSubscriptionCheckout = () => {
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
+  const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
+  const [sdkErrorKind, setSdkErrorKind] = useState<PaymentSdkErrorKind | null>(null);
 
   // Dados de pagamento
   const [pixData, setPixData] = useState<PixData | null>(null);
@@ -143,56 +153,33 @@ const AdminSubscriptionCheckout = () => {
   // Check if user is logged in for identification validation
   const isUserLoggedIn = !!(user && session);
 
-  // Carregar SDK do Mercado Pago
-  useEffect(() => {
-    const loadMercadoPagoSDK = async () => {
-      // Buscar public key do gateway master
-      const { data: gateway, error } = await (supabase as any)
-        .from("master_gateway_public_keys")
-        .select("mercadopago_public_key")
-        .maybeSingle();
+  // Inicialização do SDK de pagamento (config pública + script + instância)
+  const setupPaymentSdk = useCallback(async () => {
+    setSdkErrorKind(null);
+    setMpLoaded(false);
+    mpRef.current = null;
+    setSdkStatus("loading_config");
 
-      if (error) {
-        console.error("Erro ao buscar gateway de pagamento:", error);
-        toast.error("Erro ao carregar configurações de pagamento. Recarregue a página.");
-        return;
-      }
-
-      if (!gateway?.mercadopago_public_key) {
-        console.warn("MercadoPago public key não encontrada - verifique as políticas RLS e configurações do gateway");
-        toast.error("Configuração de pagamento não encontrada. Contate o suporte.");
-        return;
-      }
-
-      setMpPublicKey(gateway.mercadopago_public_key);
-
-      // Carregar SDK se ainda não carregado
-      if (!window.MercadoPago) {
-        const script = document.createElement("script");
-        script.src = "https://sdk.mercadopago.com/js/v2";
-        script.async = true;
-        script.onload = () => {
-          mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
-            locale: "pt-BR"
-          });
-          setMpLoaded(true);
-          console.log("MercadoPago SDK loaded successfully");
-        };
-        script.onerror = () => {
-          console.error("Falha ao carregar script do MercadoPago");
-          toast.error("Erro ao carregar SDK de pagamento. Verifique sua conexão.");
-        };
-        document.body.appendChild(script);
-      } else {
-        mpRef.current = new window.MercadoPago(gateway.mercadopago_public_key, {
-          locale: "pt-BR"
-        });
-        setMpLoaded(true);
-      }
-    };
-
-    loadMercadoPagoSDK();
+    try {
+      const { mp, config } = await initializePaymentSdk();
+      mpRef.current = mp;
+      setMpPublicKey(config.publicKey);
+      setSdkStatus("ready");
+      setMpLoaded(true);
+    } catch (error) {
+      const kind = error instanceof PaymentSdkError ? error.kind : "init";
+      setSdkErrorKind(kind);
+      setSdkStatus("error");
+      setMpPublicKey(null);
+      toast.error(paymentSdkErrorMessage(kind));
+    }
   }, []);
+
+  useEffect(() => {
+    setupPaymentSdk();
+  }, [setupPaymentSdk]);
+
+  const isPaymentSdkReady = Boolean(mpPublicKey) && Boolean(mpRef.current) && mpLoaded;
 
   // Buscar perfil do usuário
   useEffect(() => {
@@ -277,6 +264,7 @@ const AdminSubscriptionCheckout = () => {
     if (!termsAccepted) return false;
     if (billingCycle === "monthly" && paymentMethod === "credit_card" && !recurringConsent) return false;
     if (paymentMethod === "credit_card") {
+      if (!isPaymentSdkReady) return false;
       const { cardNumber, holderName, expirationMonth, expirationYear, cvv } = cardForm;
       if (!cardNumber || !holderName || !expirationMonth || !expirationYear || !cvv) {
         return false;
@@ -286,11 +274,13 @@ const AdminSubscriptionCheckout = () => {
   };
 
   const tokenizeCard = async (): Promise<{ token: string; paymentMethodId: string } | null> => {
-    if (!mpRef.current || !mpLoaded) {
-      console.error("MercadoPago SDK not loaded");
-      toast.error("SDK de pagamento não carregado. Aguarde ou recarregue a página.");
+    if (!isPaymentSdkReady) {
+      toast.error(paymentSdkErrorMessage(sdkErrorKind ?? "init"));
       return null;
     }
+
+
+    paymentTrack("card_tokenization_started");
 
     try {
       const cardNumber = cardForm.cardNumber.replace(/\s/g, "");
@@ -310,7 +300,7 @@ const AdminSubscriptionCheckout = () => {
       const response = await mpRef.current.createCardToken(cardTokenData);
       
       if (response.id) {
-        console.log("Card tokenized successfully:", response.id);
+        paymentTrack("card_tokenization_success");
         return {
           token: response.id,
           paymentMethodId: cardBrand
@@ -319,10 +309,11 @@ const AdminSubscriptionCheckout = () => {
         throw new Error("Failed to tokenize card");
       }
     } catch (error: any) {
-      console.error("Card tokenization error:", error);
+      paymentTrack("card_tokenization_failed");
       toast.error("Erro ao processar dados do cartão. Verifique os dados informados.");
       return null;
     }
+
   };
 
   const handleSubmit = async () => {
@@ -1245,10 +1236,25 @@ const AdminSubscriptionCheckout = () => {
                     </div>
                   </div>
 
-                  {!mpLoaded && mpPublicKey && (
+                  {sdkStatus !== "ready" && sdkStatus !== "error" && (
                     <div className="flex items-center gap-2 text-sm text-amber-600">
                       <RefreshCw className="h-4 w-4 animate-spin" />
-                      Carregando SDK de pagamento...
+                      Preparando pagamento seguro...
+                    </div>
+                  )}
+
+                  {sdkStatus === "error" && (
+                    <div className="flex flex-col gap-2 text-sm text-destructive">
+                      <span>{paymentSdkErrorMessage(sdkErrorKind ?? "init")}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        onClick={() => setupPaymentSdk()}
+                      >
+                        Tentar novamente
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1387,7 +1393,7 @@ const AdminSubscriptionCheckout = () => {
               {/* Botão Assinar */}
               <Button
                 onClick={handleSubmit}
-                disabled={!canProceed() || isProcessing || (paymentMethod === "credit_card" && !mpLoaded && !!mpPublicKey)}
+                disabled={!canProceed() || isProcessing || (paymentMethod === "credit_card" && !isPaymentSdkReady)}
                 className="w-full h-12 text-lg"
                 style={{ 
                   backgroundColor: canProceed() ? VM_PRIMARY : undefined,
