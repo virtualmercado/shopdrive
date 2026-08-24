@@ -32,21 +32,28 @@ export const SortableImageItem = ({ id, children }: SortableImageItemProps) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative">
+    <div ref={setNodeRef} style={style} className="relative group">
       {children}
-      {/* Drag handle — only this small zone starts a drag */}
+      {/* Drag handle (6 dots) — only this small zone starts a drag */}
       <button
         type="button"
-        aria-label="Arrastar para reordenar"
-        title="Arrastar para reordenar"
-        className="absolute bottom-1 right-1 z-20 h-6 w-6 rounded-md bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
+        aria-label="Reordenar imagem"
+        title="Arraste para reordenar"
+        className="absolute top-1 left-1 z-30 h-6 w-6 rounded-md bg-black/55 hover:bg-black/75 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
         {...attributes}
         {...listeners}
-        onClick={(e) => e.preventDefault()}
-        onDoubleClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
     </div>
   );
 };
+
