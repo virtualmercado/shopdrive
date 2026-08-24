@@ -1,5 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  initializePaymentSdk,
+  paymentSdkErrorMessage,
+  paymentTrack,
+  PaymentSdkError,
+  type PaymentSdkErrorKind,
+  type PaymentSdkStatus,
+} from "@/lib/paymentSdk";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
