@@ -27,6 +27,14 @@ import {
   Mail
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  initializePaymentSdk,
+  paymentSdkErrorMessage,
+  paymentTrack,
+  PaymentSdkError,
+  type PaymentSdkErrorKind,
+  type PaymentSdkStatus,
+} from "@/lib/paymentSdk";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
