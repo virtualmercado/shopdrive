@@ -320,6 +320,29 @@ export const CardForm = ({
         </div>
       </div>
 
+      {/* SDK readiness feedback */}
+      {sdkStatus !== "ready" && sdkStatus !== "error" && (
+        <div className="flex items-center gap-2 text-sm text-amber-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Preparando pagamento seguro...
+        </div>
+      )}
+
+      {sdkStatus === "error" && (
+        <div className="flex flex-col gap-2 text-sm text-destructive">
+          <span>{paymentSdkErrorMessage(sdkErrorKind ?? "init")}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => setupSdk()}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+
       {/* Gateway info */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <img 
