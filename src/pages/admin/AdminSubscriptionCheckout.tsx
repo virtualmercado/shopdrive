@@ -849,7 +849,66 @@ const AdminSubscriptionCheckout = () => {
   }
 
   // Render Success Step (for logged in users)
+  if (step === "in_review") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-8 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
+              <Clock className="h-10 w-10 text-blue-600 animate-pulse" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Pagamento em análise</h2>
+              <p className="text-muted-foreground">
+                {reviewMessage ||
+                  "Seu pagamento está sendo analisado pelo emissor do cartão. Você será notificado assim que for confirmado."}
+              </p>
+            </div>
+
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-left text-sm text-amber-900">
+              <strong>Não repita a tentativa.</strong> A cobrança já foi registrada e nenhuma
+              nova cobrança será feita. Assim que o emissor concluir a análise, seu plano é
+              ativado automaticamente.
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg text-left space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Plano</span>
+                <span className="font-medium">{plan.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Ciclo</span>
+                <span className="font-medium">{billingCycle === "monthly" ? "Mensal" : "Anual"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-medium">R$ {totalAmount.toFixed(2).replace(".", ",")}</span>
+              </div>
+            </div>
+
+            {reviewTimedOut && (
+              <p className="text-xs text-muted-foreground">
+                A análise está demorando mais que o normal. Você pode acompanhar o status no
+                Financeiro — nenhuma cobrança adicional será feita.
+              </p>
+            )}
+
+            <Button
+              className="w-full"
+              style={{ backgroundColor: VM_PRIMARY }}
+              onClick={() => navigate("/lojista/financeiro")}
+            >
+              Acompanhar no Financeiro
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (step === "success") {
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">
