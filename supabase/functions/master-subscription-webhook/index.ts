@@ -312,7 +312,7 @@ serve(async (req) => {
     }
 
     // Find payment in our database
-    const { data: payment, error: paymentError } = await supabase
+    let { data: payment, error: paymentError } = await supabase
       .from("master_subscription_payments")
       .select("*, master_subscriptions(*)")
       .eq("gateway_payment_id", paymentId)
@@ -320,6 +320,55 @@ serve(async (req) => {
 
     if (paymentError) {
       console.error("Error fetching payment:", paymentError);
+    }
+
+    // Pagamento gerado pela assinatura recorrente: vincular à tentativa aberta (idempotente)
+    if (!payment && preapprovalIdFromWebhook) {
+      const { data: sub } = await supabase
+        .from("master_subscriptions")
+        .select("*")
+        .eq("gateway_subscription_id", preapprovalIdFromWebhook)
+        .maybeSingle();
+
+      if (sub) {
+        const { data: openPayment } = await supabase
+          .from("master_subscription_payments")
+          .select("*")
+          .eq("subscription_id", sub.id)
+          .is("gateway_payment_id", null)
+          .in("status", ["pending", "in_process", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openPayment) {
+          const { data: adopted } = await supabase
+            .from("master_subscription_payments")
+            .update({ gateway_payment_id: paymentId })
+            .eq("id", openPayment.id)
+            .select("*, master_subscriptions(*)")
+            .single();
+          payment = adopted;
+          console.log("Adopted open payment row for preapproval payment:", openPayment.id);
+        } else {
+          const { data: created } = await supabase
+            .from("master_subscription_payments")
+            .insert({
+              subscription_id: sub.id,
+              user_id: sub.user_id,
+              amount: sub.monthly_price || sub.total_amount,
+              payment_method: "credit_card",
+              gateway: "mercadopago",
+              status: "pending",
+              gateway_payment_id: paymentId,
+              idempotency_key: `preapproval-${preapprovalIdFromWebhook}-${paymentId}`,
+            })
+            .select("*, master_subscriptions(*)")
+            .single();
+          payment = created;
+          console.log("Created payment row for recurring charge:", paymentId);
+        }
+      }
     }
 
     if (!payment) {
@@ -332,14 +381,6 @@ serve(async (req) => {
 
     console.log("Found payment:", payment.id, "subscription:", payment.subscription_id);
 
-    // Gateway credentials already fetched during signature verification
-    if (!gateway?.mercadopago_access_token) {
-      console.error("No gateway access token found");
-      return new Response(
-        JSON.stringify({ error: "Gateway credentials not found" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Fetch current payment status from Mercado Pago
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
