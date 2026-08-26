@@ -208,7 +208,33 @@ serve(async (req) => {
       (p: any) => ["pending", "in_process", "processing"].includes(p.status) && !p.gateway_payment_id
     );
 
-    if (subscription.gateway_subscription_id && mpToken && openCardPayment && subscription.status !== "active") {
+    // Se o preapproval está "authorized", o cartão foi aceito: ativa a assinatura sem esperar a cobrança
+    if (subscription.gateway_subscription_id && mpToken && subscription.status !== "active") {
+      try {
+        const preResp = await fetch(
+          `https://api.mercadopago.com/preapproval/${subscription.gateway_subscription_id}`,
+          { headers: { "Authorization": `Bearer ${mpToken}` } }
+        );
+        if (preResp.ok) {
+          const pre = await preResp.json();
+          console.log("Preapproval status:", pre?.status);
+          if (pre?.status === "authorized") {
+            await activateSubscription(openCardPayment?.id || null, { id: pre.id, status: "authorized" });
+          } else if (pre?.status === "cancelled") {
+            await supabase
+              .from("master_subscriptions")
+              .update({ status: "cancelled" })
+              .eq("id", subscription.id);
+            subscription.status = "cancelled";
+          }
+        }
+      } catch (error) {
+        console.error("Error checking preapproval:", error);
+      }
+    }
+
+    if (subscription.gateway_subscription_id && mpToken && openCardPayment) {
+
       try {
         const { data: openInvoice } = await supabase
           .from("invoices")
