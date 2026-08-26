@@ -70,7 +70,7 @@ const PLAN_FEATURES = {
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type BillingCycle = "monthly" | "annual";
 type PlanId = "pro" | "premium";
-type CheckoutStep = "form" | "pix" | "boleto" | "success" | "success_new_account";
+type CheckoutStep = "form" | "pix" | "boleto" | "in_review" | "success" | "success_new_account";
 
 interface CardFormData {
   cardNumber: string;
