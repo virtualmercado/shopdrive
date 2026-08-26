@@ -127,6 +127,9 @@ const AdminSubscriptionCheckout = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [step, setStep] = useState<CheckoutStep>("form");
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [reviewMessage, setReviewMessage] = useState<string>("");
+  const [reviewTimedOut, setReviewTimedOut] = useState(false);
+
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
