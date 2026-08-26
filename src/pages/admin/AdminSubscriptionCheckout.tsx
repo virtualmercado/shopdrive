@@ -494,40 +494,53 @@ const AdminSubscriptionCheckout = () => {
       console.log("Subscription response:", data);
       console.log("checkout_payment_success", { plan, billingCycle, paymentMethod });
 
-      setSubscriptionId(data.subscription?.id);
+      setSubscriptionId(data.subscription?.id || data.subscriptionId);
+
+      const normalized = data.normalizedStatus || data.payment?.normalizedStatus;
 
       // Tratar resposta baseado no método de pagamento
-      if (data.payment?.status === "approved" || data.subscription?.status === "active") {
+      if (data.payment?.status === "approved" || data.subscription?.status === "active" || normalized === "approved") {
         if (isGuest) {
           setStep("success_new_account");
         } else {
           setStep("success");
         }
         toast.success("Assinatura ativada com sucesso!");
-      } else if (data.payment?.paymentMethod === "pix") {
+      } else if (normalized === "in_review") {
+        // Cartão: assinatura recorrente criada, primeiro pagamento em análise no emissor
+        setReviewMessage(
+          data.message || data.payment?.message ||
+          "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado."
+        );
+        setStep("in_review");
+        toast.info("Pagamento em análise. Não é necessário tentar novamente.");
+      } else if (normalized === "rejected") {
+        toast.error(data.message || "Pagamento recusado. Atualize os dados do cartão e tente novamente.");
+      } else if (data.payment?.paymentMethod === "pix" || data.pixQrCode) {
         setPixData({
-          qrCode: data.payment.pixQrCode,
-          qrCodeBase64: data.payment.pixQrCodeBase64,
-          expiresAt: data.payment.pixExpiresAt,
-          amount: data.payment.amount
+          qrCode: data.payment?.pixQrCode || data.pixQrCode,
+          qrCodeBase64: data.payment?.pixQrCodeBase64 || data.pixQrCodeBase64,
+          expiresAt: data.payment?.pixExpiresAt || data.pixExpiresAt,
+          amount: data.payment?.amount
         });
         setStep("pix");
         toast.success("PIX gerado! Escaneie o QR Code para pagar.");
-      } else if (data.payment?.paymentMethod === "boleto") {
+      } else if (data.payment?.paymentMethod === "boleto" || data.boletoUrl) {
         setBoletoData({
-          url: data.payment.boletoUrl,
-          barcode: data.payment.boletoBarcode,
-          digitableLine: data.payment.boletoDigitableLine,
-          expiresAt: data.payment.boletoExpiresAt,
-          amount: data.payment.amount
+          url: data.payment?.boletoUrl || data.boletoUrl,
+          barcode: data.payment?.boletoBarcode || data.boletoBarcode,
+          digitableLine: data.payment?.boletoDigitableLine || data.boletoDigitableLine,
+          expiresAt: data.payment?.boletoExpiresAt || data.boletoExpiresAt,
+          amount: data.payment?.amount
         });
         setStep("boleto");
         toast.success("Boleto gerado! Pague até a data de vencimento.");
-      } else if (data.payment?.status === "pending") {
+      } else if (data.payment?.status === "pending" || normalized === "pending") {
         toast.info("Pagamento pendente de confirmação.");
       } else {
         toast.error(data.message || "Erro ao processar pagamento");
       }
+
     } catch (error: any) {
       console.error("Error processing subscription:", error);
       // Try to parse JSON from error message for structured error handling
