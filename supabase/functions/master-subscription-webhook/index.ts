@@ -192,13 +192,97 @@ serve(async (req) => {
       );
     }
 
-    if (topic !== "payment" && topic !== "merchant_order") {
+    const SUBSCRIPTION_TOPICS = ["subscription_preapproval", "preapproval", "subscription_preapproval_plan"];
+    const AUTHORIZED_PAYMENT_TOPICS = ["subscription_authorized_payment", "authorized_payment"];
+
+    if (!gateway?.mercadopago_access_token) {
+      console.error("No gateway access token found");
+      return new Response(
+        JSON.stringify({ error: "Gateway credentials not found" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const mpAuth = { "Authorization": `Bearer ${gateway.mercadopago_access_token}` };
+    let preapprovalIdFromWebhook: string | null = null;
+
+    // ── Tópico de assinatura recorrente (preapproval) ──
+    if (SUBSCRIPTION_TOPICS.includes(topic)) {
+      const preapprovalResp = await fetch(`https://api.mercadopago.com/preapproval/${paymentId}`, { headers: mpAuth });
+      if (!preapprovalResp.ok) {
+        console.error("Error fetching preapproval:", await preapprovalResp.text());
+        return new Response(
+          JSON.stringify({ received: true, message: "Preapproval fetch failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const preapproval = await preapprovalResp.json();
+      console.log("Preapproval status:", preapproval.status);
+
+      const { data: sub } = await supabase
+        .from("master_subscriptions")
+        .select("*")
+        .eq("gateway_subscription_id", paymentId)
+        .maybeSingle();
+
+      if (sub) {
+        const update: any = { updated_at: new Date().toISOString() };
+        if (preapproval.status === "cancelled") {
+          update.status = "cancelled";
+          update.cancelled_at = new Date().toISOString();
+        } else if (preapproval.status === "paused") {
+          update.status = "past_due";
+        }
+        if (preapproval.next_payment_date) {
+          update.current_period_end = new Date(preapproval.next_payment_date).toISOString();
+        }
+        await supabase.from("master_subscriptions").update(update).eq("id", sub.id);
+
+        await supabase.from("master_subscription_logs").insert({
+          subscription_id: sub.id,
+          user_id: sub.user_id,
+          event_type: "preapproval_updated",
+          event_description: `Assinatura recorrente atualizada no gateway (status ${preapproval.status})`,
+          metadata: { preapprovalId: paymentId, preapprovalStatus: preapproval.status }
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ received: true, topic, preapprovalStatus: preapproval.status }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Tópico de pagamento gerado pela assinatura recorrente ──
+    if (AUTHORIZED_PAYMENT_TOPICS.includes(topic)) {
+      const apResp = await fetch(`https://api.mercadopago.com/authorized_payments/${paymentId}`, { headers: mpAuth });
+      if (!apResp.ok) {
+        console.error("Error fetching authorized payment:", await apResp.text());
+        return new Response(
+          JSON.stringify({ received: true, message: "Authorized payment fetch failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const authorizedPayment = await apResp.json();
+      preapprovalIdFromWebhook = authorizedPayment.preapproval_id?.toString() || null;
+      const realPaymentId = authorizedPayment.payment?.id?.toString() || null;
+      console.log("Authorized payment:", { preapprovalIdFromWebhook, realPaymentId, status: authorizedPayment.status });
+
+      if (!realPaymentId) {
+        return new Response(
+          JSON.stringify({ received: true, message: "Authorized payment without payment id yet" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      paymentId = realPaymentId;
+    } else if (topic !== "payment" && topic !== "merchant_order") {
       console.log("Ignoring non-payment webhook:", topic);
       return new Response(
         JSON.stringify({ received: true, message: `Topic ${topic} ignored` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Dedup: check if this webhook event was already processed
     const eventId = body.id?.toString() || body.data?.id?.toString() || "";
@@ -228,7 +312,7 @@ serve(async (req) => {
     }
 
     // Find payment in our database
-    const { data: payment, error: paymentError } = await supabase
+    let { data: payment, error: paymentError } = await supabase
       .from("master_subscription_payments")
       .select("*, master_subscriptions(*)")
       .eq("gateway_payment_id", paymentId)
@@ -236,6 +320,55 @@ serve(async (req) => {
 
     if (paymentError) {
       console.error("Error fetching payment:", paymentError);
+    }
+
+    // Pagamento gerado pela assinatura recorrente: vincular à tentativa aberta (idempotente)
+    if (!payment && preapprovalIdFromWebhook) {
+      const { data: sub } = await supabase
+        .from("master_subscriptions")
+        .select("*")
+        .eq("gateway_subscription_id", preapprovalIdFromWebhook)
+        .maybeSingle();
+
+      if (sub) {
+        const { data: openPayment } = await supabase
+          .from("master_subscription_payments")
+          .select("*")
+          .eq("subscription_id", sub.id)
+          .is("gateway_payment_id", null)
+          .in("status", ["pending", "in_process", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openPayment) {
+          const { data: adopted } = await supabase
+            .from("master_subscription_payments")
+            .update({ gateway_payment_id: paymentId })
+            .eq("id", openPayment.id)
+            .select("*, master_subscriptions(*)")
+            .single();
+          payment = adopted;
+          console.log("Adopted open payment row for preapproval payment:", openPayment.id);
+        } else {
+          const { data: created } = await supabase
+            .from("master_subscription_payments")
+            .insert({
+              subscription_id: sub.id,
+              user_id: sub.user_id,
+              amount: sub.monthly_price || sub.total_amount,
+              payment_method: "credit_card",
+              gateway: "mercadopago",
+              status: "pending",
+              gateway_payment_id: paymentId,
+              idempotency_key: `preapproval-${preapprovalIdFromWebhook}-${paymentId}`,
+            })
+            .select("*, master_subscriptions(*)")
+            .single();
+          payment = created;
+          console.log("Created payment row for recurring charge:", paymentId);
+        }
+      }
     }
 
     if (!payment) {
@@ -248,14 +381,6 @@ serve(async (req) => {
 
     console.log("Found payment:", payment.id, "subscription:", payment.subscription_id);
 
-    // Gateway credentials already fetched during signature verification
-    if (!gateway?.mercadopago_access_token) {
-      console.error("No gateway access token found");
-      return new Response(
-        JSON.stringify({ error: "Gateway credentials not found" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Fetch current payment status from Mercado Pago
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -349,11 +474,35 @@ serve(async (req) => {
         invoiceUpdate.paid_at = mpPayment.date_approved || new Date().toISOString();
       }
 
-      await supabase
+      const { data: matchedInvoices } = await supabase
         .from("invoices")
         .update(invoiceUpdate)
-        .eq("mp_payment_id", paymentId);
+        .eq("mp_payment_id", paymentId)
+        .select("id");
+
+      // Cobranças da assinatura recorrente não têm mp_payment_id previamente: vincular a fatura aberta
+      if (!matchedInvoices?.length && payment.subscription_id) {
+        const { data: openInvoice } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("subscription_id", payment.subscription_id)
+          .in("status", ["pending", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openInvoice?.id) {
+          await supabase
+            .from("invoices")
+            .update({ ...invoiceUpdate, mp_payment_id: paymentId })
+            .eq("id", openInvoice.id);
+        }
+      }
     }
+
+
+
+
 
     // Update subscription if status changed
     if (newSubscriptionStatus && newSubscriptionStatus !== payment.master_subscriptions?.status) {

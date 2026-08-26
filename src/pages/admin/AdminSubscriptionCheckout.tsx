@@ -70,7 +70,7 @@ const PLAN_FEATURES = {
 type PaymentMethod = "credit_card" | "pix" | "boleto";
 type BillingCycle = "monthly" | "annual";
 type PlanId = "pro" | "premium";
-type CheckoutStep = "form" | "pix" | "boleto" | "success" | "success_new_account";
+type CheckoutStep = "form" | "pix" | "boleto" | "in_review" | "success" | "success_new_account";
 
 interface CardFormData {
   cardNumber: string;
@@ -127,6 +127,9 @@ const AdminSubscriptionCheckout = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [step, setStep] = useState<CheckoutStep>("form");
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [reviewMessage, setReviewMessage] = useState<string>("");
+  const [reviewTimedOut, setReviewTimedOut] = useState(false);
+
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [sdkStatus, setSdkStatus] = useState<PaymentSdkStatus>("idle");
@@ -208,28 +211,57 @@ const AdminSubscriptionCheckout = () => {
     }
   }, [billingCycle]);
 
-  // Polling para verificar status do pagamento (PIX/Boleto)
+  // Polling de status (PIX / Boleto / Cartão em análise) — sempre com estado terminal
   useEffect(() => {
-    if ((step === "pix" || step === "boleto") && subscriptionId) {
-      const interval = setInterval(async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke("check-master-subscription-status", {
-            body: { subscriptionId }
-          });
+    if (!subscriptionId) return;
+    if (!["pix", "boleto", "in_review"].includes(step)) return;
 
-          if (data?.subscription?.status === "active") {
-            setStep("success");
-            toast.success("Pagamento confirmado! Sua assinatura está ativa.");
-            clearInterval(interval);
-          }
-        } catch (error) {
-          console.error("Error checking status:", error);
+    const startedAt = Date.now();
+    const MAX_POLLING_MS = step === "in_review" ? 5 * 60 * 1000 : 35 * 60 * 1000;
+    let cancelled = false;
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-master-subscription-status", {
+          body: { subscriptionId }
+        });
+
+        if (cancelled) return;
+        const normalized = data?.normalizedStatus;
+
+        if (data?.subscription?.status === "active" || normalized === "approved") {
+          clearInterval(interval);
+          setStep("success");
+          toast.success("Pagamento confirmado! Sua assinatura está ativa.");
+          return;
         }
-      }, 5000); // Check every 5 seconds
 
-      return () => clearInterval(interval);
-    }
+        if (normalized === "rejected") {
+          clearInterval(interval);
+          setStep("form");
+          setIsProcessing(false);
+          toast.error(
+            data?.declineMessage ||
+            "Pagamento recusado pelo emissor. Atualize os dados do cartão e tente novamente."
+          );
+          return;
+        }
+
+        if (Date.now() - startedAt > MAX_POLLING_MS) {
+          clearInterval(interval);
+          setReviewTimedOut(true);
+        }
+      } catch (error) {
+        console.error("Error checking status:", error);
+      }
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [step, subscriptionId]);
+
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "");
@@ -494,40 +526,53 @@ const AdminSubscriptionCheckout = () => {
       console.log("Subscription response:", data);
       console.log("checkout_payment_success", { plan, billingCycle, paymentMethod });
 
-      setSubscriptionId(data.subscription?.id);
+      setSubscriptionId(data.subscription?.id || data.subscriptionId);
+
+      const normalized = data.normalizedStatus || data.payment?.normalizedStatus;
 
       // Tratar resposta baseado no método de pagamento
-      if (data.payment?.status === "approved" || data.subscription?.status === "active") {
+      if (data.payment?.status === "approved" || data.subscription?.status === "active" || normalized === "approved") {
         if (isGuest) {
           setStep("success_new_account");
         } else {
           setStep("success");
         }
         toast.success("Assinatura ativada com sucesso!");
-      } else if (data.payment?.paymentMethod === "pix") {
+      } else if (normalized === "in_review") {
+        // Cartão: assinatura recorrente criada, primeiro pagamento em análise no emissor
+        setReviewMessage(
+          data.message || data.payment?.message ||
+          "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado."
+        );
+        setStep("in_review");
+        toast.info("Pagamento em análise. Não é necessário tentar novamente.");
+      } else if (normalized === "rejected") {
+        toast.error(data.message || "Pagamento recusado. Atualize os dados do cartão e tente novamente.");
+      } else if (data.payment?.paymentMethod === "pix" || data.pixQrCode) {
         setPixData({
-          qrCode: data.payment.pixQrCode,
-          qrCodeBase64: data.payment.pixQrCodeBase64,
-          expiresAt: data.payment.pixExpiresAt,
-          amount: data.payment.amount
+          qrCode: data.payment?.pixQrCode || data.pixQrCode,
+          qrCodeBase64: data.payment?.pixQrCodeBase64 || data.pixQrCodeBase64,
+          expiresAt: data.payment?.pixExpiresAt || data.pixExpiresAt,
+          amount: data.payment?.amount
         });
         setStep("pix");
         toast.success("PIX gerado! Escaneie o QR Code para pagar.");
-      } else if (data.payment?.paymentMethod === "boleto") {
+      } else if (data.payment?.paymentMethod === "boleto" || data.boletoUrl) {
         setBoletoData({
-          url: data.payment.boletoUrl,
-          barcode: data.payment.boletoBarcode,
-          digitableLine: data.payment.boletoDigitableLine,
-          expiresAt: data.payment.boletoExpiresAt,
-          amount: data.payment.amount
+          url: data.payment?.boletoUrl || data.boletoUrl,
+          barcode: data.payment?.boletoBarcode || data.boletoBarcode,
+          digitableLine: data.payment?.boletoDigitableLine || data.boletoDigitableLine,
+          expiresAt: data.payment?.boletoExpiresAt || data.boletoExpiresAt,
+          amount: data.payment?.amount
         });
         setStep("boleto");
         toast.success("Boleto gerado! Pague até a data de vencimento.");
-      } else if (data.payment?.status === "pending") {
+      } else if (data.payment?.status === "pending" || normalized === "pending") {
         toast.info("Pagamento pendente de confirmação.");
       } else {
         toast.error(data.message || "Erro ao processar pagamento");
       }
+
     } catch (error: any) {
       console.error("Error processing subscription:", error);
       // Try to parse JSON from error message for structured error handling
@@ -804,7 +849,66 @@ const AdminSubscriptionCheckout = () => {
   }
 
   // Render Success Step (for logged in users)
+  if (step === "in_review") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-8 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
+              <Clock className="h-10 w-10 text-blue-600 animate-pulse" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Pagamento em análise</h2>
+              <p className="text-muted-foreground">
+                {reviewMessage ||
+                  "Seu pagamento está sendo analisado pelo emissor do cartão. Você será notificado assim que for confirmado."}
+              </p>
+            </div>
+
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-left text-sm text-amber-900">
+              <strong>Não repita a tentativa.</strong> A cobrança já foi registrada e nenhuma
+              nova cobrança será feita. Assim que o emissor concluir a análise, seu plano é
+              ativado automaticamente.
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg text-left space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Plano</span>
+                <span className="font-medium">{plan.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Ciclo</span>
+                <span className="font-medium">{billingCycle === "monthly" ? "Mensal" : "Anual"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-medium">R$ {totalAmount.toFixed(2).replace(".", ",")}</span>
+              </div>
+            </div>
+
+            {reviewTimedOut && (
+              <p className="text-xs text-muted-foreground">
+                A análise está demorando mais que o normal. Você pode acompanhar o status no
+                Financeiro — nenhuma cobrança adicional será feita.
+              </p>
+            )}
+
+            <Button
+              className="w-full"
+              style={{ backgroundColor: VM_PRIMARY }}
+              onClick={() => navigate("/lojista/financeiro")}
+            >
+              Acompanhar no Financeiro
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (step === "success") {
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">

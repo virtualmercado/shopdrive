@@ -180,49 +180,132 @@ serve(async (req) => {
 
     console.log("Calculated prices:", { monthlyPrice, annualMonthlyPrice, totalAmount, billingCycle });
 
-    // Check for existing active subscription
-    const { data: existingSubscription } = await supabase
+    // ── Resolução de intenção de assinatura (evita duplicidade de cobranças) ──
+    const NON_TERMINAL_PAYMENT_STATUSES = ["pending", "in_process", "in_review", "authorized", "processing"];
+
+    const { data: openSubscriptions } = await supabase
       .from("master_subscriptions")
-      .select("id, status, plan_id")
+      .select("*")
       .eq("user_id", userId)
-      .in("status", ["active", "pending", "inadimplent"])
-      .maybeSingle();
+      .in("status", ["active", "pending", "inadimplent", "past_due"])
+      .order("created_at", { ascending: false });
 
-    if (existingSubscription) {
-      const canReplace = 
-        existingSubscription.status === "pending" || 
-        ["gratis", "free"].includes(existingSubscription.plan_id?.toLowerCase());
+    const activePaidSubscription = (openSubscriptions || []).find(
+      (s: any) => s.status === "active" && !["gratis", "free"].includes((s.plan_id || "").toLowerCase())
+    );
 
-      if (canReplace) {
-        const reason = existingSubscription.status === "pending"
-          ? "Assinatura pendente cancelada automaticamente para nova tentativa"
-          : `Upgrade de plano ${existingSubscription.plan_id} para ${planId}`;
+    if (activePaidSubscription) {
+      return new Response(
+        JSON.stringify({
+          error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
+          existingSubscriptionId: activePaidSubscription.id
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-        console.log("Cancelling replaceable subscription:", existingSubscription.id, reason);
-        await supabase
-          .from("master_subscriptions")
-          .update({ 
-            status: "cancelled",
-            previous_plan_id: existingSubscription.plan_id,
-          })
-          .eq("id", existingSubscription.id);
+    // Assinatura pendente (intenção em aberto) — nunca criar nova cobrança em paralelo
+    const pendingSubscription = (openSubscriptions || []).find((s: any) => s.status === "pending");
+    let reusableSubscription: any = null;
 
+    if (pendingSubscription) {
+      const { data: pendingPayments } = await supabase
+        .from("master_subscription_payments")
+        .select("*")
+        .eq("subscription_id", pendingSubscription.id)
+        .order("created_at", { ascending: false });
+
+      const openPayment = (pendingPayments || []).find(
+        (p: any) => NON_TERMINAL_PAYMENT_STATUSES.includes(p.status)
+      );
+
+      if (openPayment) {
+        // Existe tentativa em aberto: devolvemos o estado atual, sem chamar o gateway
         await supabase.from("master_subscription_logs").insert({
-          subscription_id: existingSubscription.id,
+          subscription_id: pendingSubscription.id,
           user_id: userId,
-          event_type: "subscription_cancelled",
-          event_description: reason,
+          payment_id: openPayment.id,
+          event_type: "subscription_intent_reused",
+          event_description: "Tentativa reaproveitada: já existe pagamento em aberto para esta assinatura",
+          metadata: {
+            requestedPlanId: planId,
+            requestedBillingCycle: billingCycle,
+            requestedPaymentMethod: paymentMethod,
+            existingPaymentStatus: openPayment.status,
+            existingGatewayStatus: openPayment.gateway_status,
+          }
         });
-      } else {
+
+        const isCard = openPayment.payment_method === "credit_card";
+        const normalizedStatus = isCard ? "in_review" : "pending";
+
         return new Response(
-          JSON.stringify({ 
-            error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
-            existingSubscriptionId: existingSubscription.id
+          JSON.stringify({
+            success: false,
+            reused: true,
+            normalizedStatus,
+            requiresPolling: true,
+            subscriptionId: pendingSubscription.id,
+            paymentId: openPayment.gateway_payment_id || null,
+            paymentMethod: openPayment.payment_method,
+            pixQrCode: openPayment.pix_qr_code || null,
+            pixQrCodeBase64: openPayment.pix_qr_code_base64 || null,
+            pixExpiresAt: openPayment.pix_expires_at || null,
+            boletoUrl: openPayment.boleto_url || null,
+            boletoBarcode: openPayment.boleto_barcode || null,
+            boletoDigitableLine: openPayment.boleto_digitable_line || null,
+            boletoExpiresAt: openPayment.boleto_expires_at || null,
+            message: isCard
+              ? "Já existe um pagamento em análise para esta assinatura. Aguarde a conclusão — não é necessário pagar novamente."
+              : "Já existe um pagamento pendente para esta assinatura. Finalize-o para ativar o plano.",
           }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      const sameIntent =
+        pendingSubscription.plan_id === planId &&
+        pendingSubscription.billing_cycle === billingCycle;
+
+      if (sameIntent) {
+        // Todas as tentativas anteriores são terminais: reutilizamos a MESMA assinatura
+        reusableSubscription = pendingSubscription;
+        console.log("Reusing pending subscription intent:", pendingSubscription.id);
+      } else {
+        console.log("Cancelling divergent pending subscription:", pendingSubscription.id);
+        await supabase
+          .from("master_subscriptions")
+          .update({ status: "cancelled", previous_plan_id: pendingSubscription.plan_id })
+          .eq("id", pendingSubscription.id);
+
+        await supabase.from("master_subscription_logs").insert({
+          subscription_id: pendingSubscription.id,
+          user_id: userId,
+          event_type: "subscription_cancelled",
+          event_description: "Assinatura pendente cancelada: nova intenção com plano/ciclo diferente",
+        });
+      }
     }
+
+    // Assinatura gratuita ativa: substituída pelo upgrade
+    const activeFreeSubscription = (openSubscriptions || []).find(
+      (s: any) => s.status === "active" && ["gratis", "free"].includes((s.plan_id || "").toLowerCase())
+    );
+
+    if (activeFreeSubscription) {
+      await supabase
+        .from("master_subscriptions")
+        .update({ status: "cancelled", previous_plan_id: activeFreeSubscription.plan_id })
+        .eq("id", activeFreeSubscription.id);
+
+      await supabase.from("master_subscription_logs").insert({
+        subscription_id: activeFreeSubscription.id,
+        user_id: userId,
+        event_type: "subscription_cancelled",
+        event_description: `Upgrade de plano ${activeFreeSubscription.plan_id} para ${planId}`,
+      });
+    }
+
 
     // Get master gateway credentials
     const { data: gateway, error: gatewayError } = await supabase
@@ -265,9 +348,7 @@ serve(async (req) => {
       ? new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString()
       : new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString();
 
-    // Create subscription record
-    const idempotencyKey = `sub-${userId}-${planId}-${billingCycle}-${Date.now()}`;
-    
+    // Create (or reuse) subscription record
     const subscriptionData = {
       user_id: userId,
       plan_id: planId,
@@ -288,21 +369,43 @@ serve(async (req) => {
       payment_method: paymentMethod,
     };
 
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from("master_subscriptions")
-      .insert(subscriptionData)
-      .select()
-      .single();
+    let subscription: any = null;
+    let subscriptionError: any = null;
 
-    if (subscriptionError) {
-      console.error("Subscription insert error:", subscriptionError);
+    if (reusableSubscription) {
+      const { data, error } = await supabase
+        .from("master_subscriptions")
+        .update({
+          ...subscriptionData,
+          decline_type: null,
+          last_decline_code: null,
+          last_decline_message: null,
+        })
+        .eq("id", reusableSubscription.id)
+        .select()
+        .single();
+      subscription = data;
+      subscriptionError = error;
+    } else {
+      const { data, error } = await supabase
+        .from("master_subscriptions")
+        .insert(subscriptionData)
+        .select()
+        .single();
+      subscription = data;
+      subscriptionError = error;
+    }
+
+    if (subscriptionError || !subscription) {
+      console.error("Subscription upsert error:", subscriptionError);
       return new Response(
         JSON.stringify({ error: "Erro ao criar assinatura" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Subscription created:", subscription.id);
+    console.log("Subscription intent ready:", subscription.id, reusableSubscription ? "(reused)" : "(new)");
+
 
     // Log subscription creation
     await supabase.from("master_subscription_logs").insert({
@@ -347,8 +450,13 @@ serve(async (req) => {
     const invoiceRef = invoice?.invoice_id || subscription.id;
     console.log("Invoice pre-created with invoice_id:", invoiceRef);
 
+    // Chave de idempotência ESTÁVEL por intenção/fatura (nunca baseada em Date.now())
+    const idempotencyKey = `sub-${subscription.id}-${invoiceRef}`;
+    const webhookUrl = `${supabaseUrl}/functions/v1/master-subscription-webhook`;
+    const requestOrigin = req.headers.get("origin") || "https://shopdrive.com.br";
+
     if (billingCycle === "monthly" && paymentMethod === "credit_card") {
-      // Create recurring subscription with Mercado Pago Preapproval
+      // Assinatura RECORRENTE real no Mercado Pago (/preapproval)
       if (!cardToken) {
         return new Response(
           JSON.stringify({ error: "Token do cartão é obrigatório para plano mensal" }),
@@ -356,88 +464,90 @@ serve(async (req) => {
         );
       }
 
-      // Create first payment to validate card
-      const paymentPayload = {
-        transaction_amount: monthlyPrice,
-        token: cardToken,
-        description: `Assinatura ${plan.display_name} - Virtual Mercado`,
-        payment_method_id: paymentMethodId || "visa",
-        installments: 1,
-        payer: {
-          email: userEmail,
-          first_name: userName.split(' ')[0],
-          last_name: userName.split(' ').slice(1).join(' ') || userName.split(' ')[0],
-          identification: {
-            type: "CPF",
-            number: userCpf || "00000000000"
-          }
-        },
-        statement_descriptor: "VIRTUALMERCADO",
+      const preapprovalPayload = {
+        reason: `Assinatura ${plan.display_name} - ShopDrive`,
         external_reference: invoiceRef,
-        capture: true,
+
+        payer_email: userEmail,
+        card_token_id: cardToken,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: Math.round(monthlyPrice * 100) / 100,
+          currency_id: "BRL",
+        },
+        back_url: `${requestOrigin}/dashboard/financeiro`,
+        notification_url: webhookUrl,
+        status: "authorized",
       };
 
-      console.log("Processing monthly card payment...");
-      
-      const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+      console.log("Creating MP preapproval (recurring subscription)...");
+
+      const mpResponse = await fetch("https://api.mercadopago.com/preapproval", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${gateway.mercadopago_access_token}`,
           "Content-Type": "application/json",
           "X-Idempotency-Key": idempotencyKey,
         },
-        body: JSON.stringify(paymentPayload),
+        body: JSON.stringify(preapprovalPayload),
       });
 
       const mpData = await mpResponse.json();
-      console.log("Mercado Pago payment response:", mpData.status, mpData.status_detail);
+      console.log("MP preapproval response:", mpResponse.status, mpData?.status, mpData?.message || "");
 
-      if (!mpResponse.ok || mpData.status === "rejected") {
-        const statusDetail = mpData.status_detail || "unknown_error";
-        const isHardDecline = [
-          "cc_rejected_card_disabled",
-          "cc_rejected_bad_filled_card_number",
-          "cc_rejected_bad_filled_date",
-          "cc_rejected_bad_filled_security_code",
-          "expired_token",
-        ].includes(statusDetail);
-        
+      if (!mpResponse.ok || !mpData?.id) {
+        const statusDetail = mpData?.status_detail || mpData?.error || "preapproval_error";
         const userMessage = getUserFriendlyMessage(statusDetail);
-        
-        // For first-time subscription, cancel on rejection (no retry logic yet)
+
+        await supabase.from("master_subscription_payments").insert({
+          subscription_id: subscription.id,
+          user_id: userId,
+          amount: monthlyPrice,
+          payment_method: "credit_card",
+          gateway: "mercadopago",
+          status: "failed",
+          gateway_status: statusDetail,
+          gateway_response: mpData,
+          idempotency_key: idempotencyKey,
+        });
+
         await supabase
           .from("master_subscriptions")
-          .update({ 
+          .update({
             status: "cancelled",
-            decline_type: isHardDecline ? "hard" : "soft",
+            decline_type: "hard",
             last_decline_code: statusDetail,
             last_decline_message: userMessage,
           })
           .eq("id", subscription.id);
 
+        if (invoice?.id) {
+          await supabase.from("invoices").update({ status: "rejected" }).eq("id", invoice.id);
+        }
+
         await supabase.from("master_subscription_logs").insert({
           subscription_id: subscription.id,
           user_id: userId,
           event_type: "payment_failed",
-          event_description: `Pagamento rejeitado: ${statusDetail}`,
-          metadata: { 
-            mpData, 
-            declineType: isHardDecline ? "hard" : "soft",
-            userMessage 
-          }
+          event_description: `Falha ao criar assinatura recorrente: ${statusDetail}`,
+          metadata: { mpData, userMessage }
         });
 
         return new Response(
-          JSON.stringify({ 
-            error: userMessage, 
-            statusDetail: statusDetail,
-            declineType: isHardDecline ? "hard" : "soft"
+          JSON.stringify({
+            error: userMessage,
+            statusDetail,
+            declineType: "hard",
+            normalizedStatus: "rejected",
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Save payment record
+      const preapprovalStatus = mpData.status as string; // pending | authorized
+
+      // Tentativa registrada como pendente: o primeiro pagamento é gerado pelo MP de forma assíncrona
       const { data: payment, error: paymentError } = await supabase
         .from("master_subscription_payments")
         .insert({
@@ -446,11 +556,9 @@ serve(async (req) => {
           amount: monthlyPrice,
           payment_method: "credit_card",
           gateway: "mercadopago",
-          status: mpData.status === "approved" ? "paid" : "pending",
-          gateway_payment_id: mpData.id?.toString(),
-          gateway_status: mpData.status,
+          status: "pending",
+          gateway_status: `preapproval_${preapprovalStatus}`,
           gateway_response: mpData,
-          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
           idempotency_key: idempotencyKey,
         })
         .select()
@@ -460,55 +568,42 @@ serve(async (req) => {
         console.error("Payment insert error:", paymentError);
       }
 
-      // Update subscription with card token for future charges
-      if (mpData.status === "approved") {
-        await supabase
-          .from("master_subscriptions")
-          .update({ 
-            status: "active",
-            started_at: new Date().toISOString(),
-            gateway_customer_id: mpData.payer?.id?.toString(),
-          })
-          .eq("id", subscription.id);
+      await supabase
+        .from("master_subscriptions")
+        .update({
+          status: "pending",
+          gateway_subscription_id: mpData.id?.toString(),
+          gateway_customer_id: mpData.payer_id?.toString() || null,
+          requires_card_update: false,
+          retry_count: 0,
+          next_retry_at: null,
+        })
+        .eq("id", subscription.id);
 
-        await supabase.from("master_subscription_logs").insert({
-          subscription_id: subscription.id,
-          user_id: userId,
-          payment_id: payment?.id,
-          event_type: "subscription_activated",
-          event_description: "Assinatura ativada com sucesso",
-          metadata: { paymentId: mpData.id }
-        });
-
-        // Reactivate products disabled by plan limit (paid plan only)
-        if (planId && planId !== "gratis" && planId !== "free") {
-          const planLimits: Record<string, number | null> = { pro: 150, premium: null };
-          const max = planId in planLimits ? planLimits[planId] : 20;
-          const { data: rc, error: re } = await supabase.rpc(
-            "reactivate_products_after_upgrade",
-            { p_user_id: userId, p_max_products: max }
-          );
-          if (re) console.error("reactivate rpc error:", re);
-          else console.log(`Reactivated ${rc ?? 0} products on monthly activation`);
-        }
-      }
-
-      // Update pre-created invoice with payment data
       if (invoice?.id) {
-        await supabase.from("invoices").update({
-          status: mpData.status === "approved" ? "paid" : "pending",
-          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
-          mp_payment_id: mpData.id?.toString(),
-        }).eq("id", invoice.id);
+        await supabase.from("invoices").update({ status: "pending" }).eq("id", invoice.id);
       }
+
+      await supabase.from("master_subscription_logs").insert({
+        subscription_id: subscription.id,
+        user_id: userId,
+        payment_id: payment?.id,
+        event_type: "preapproval_created",
+        event_description: `Assinatura recorrente criada no gateway (status ${preapprovalStatus})`,
+        metadata: { preapprovalId: mpData.id, preapprovalStatus, idempotencyKey }
+      });
 
       paymentResult = {
-        success: mpData.status === "approved",
-        status: mpData.status,
-        statusDetail: mpData.status_detail,
-        paymentId: mpData.id,
+        success: false,
+        status: "in_review",
+        normalizedStatus: "in_review",
+        requiresPolling: true,
+        preapprovalId: mpData.id,
+        preapprovalStatus,
         subscriptionId: subscription.id,
+        message: "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado — não repita a tentativa.",
       };
+
 
     } else if (billingCycle === "annual" && paymentMethod === "credit_card") {
       // Single annual payment with credit card
@@ -536,6 +631,7 @@ serve(async (req) => {
         },
         statement_descriptor: "VIRTUALMERCADO",
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
         capture: true,
       };
 
@@ -676,6 +772,7 @@ serve(async (req) => {
         },
         date_of_expiration: pixExpiration.toISOString(),
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
       };
 
       console.log("Generating PIX for annual payment...");
@@ -777,6 +874,7 @@ serve(async (req) => {
         },
         date_of_expiration: boletoExpiration.toISOString(),
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
       };
 
       console.log("Generating Boleto for annual payment...");
@@ -867,16 +965,22 @@ serve(async (req) => {
           totalAmount,
         },
         payment: paymentResult,
-        message: paymentResult?.status === "approved" 
-          ? "Assinatura ativada com sucesso!" 
-          : paymentResult?.paymentMethod === "pix"
-            ? "PIX gerado! Escaneie o QR Code para pagar."
-            : paymentResult?.paymentMethod === "boleto"
-              ? "Boleto gerado! Pague até a data de vencimento."
-              : "Processando pagamento..."
+        normalizedStatus: paymentResult?.normalizedStatus
+          || (paymentResult?.status === "approved" ? "approved" : "pending"),
+        requiresPolling: !!paymentResult?.requiresPolling,
+        message: paymentResult?.status === "approved"
+          ? "Assinatura ativada com sucesso!"
+          : paymentResult?.normalizedStatus === "in_review"
+            ? paymentResult?.message
+            : paymentResult?.paymentMethod === "pix"
+              ? "PIX gerado! Escaneie o QR Code para pagar."
+              : paymentResult?.paymentMethod === "boleto"
+                ? "Boleto gerado! Pague até a data de vencimento."
+                : "Processando pagamento..."
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
 
   } catch (error: any) {
     console.error("Create subscription error:", error);

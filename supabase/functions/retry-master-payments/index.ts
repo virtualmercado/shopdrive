@@ -242,8 +242,21 @@ serve(async (req) => {
         continue;
       }
 
+      // Assinaturas recorrentes no gateway: as retentativas são do próprio Mercado Pago.
+      // Nunca criar cobrança paralela aqui (evita duplicidade financeira).
+      if (subscription.gateway_subscription_id) {
+        console.log(`Subscription ${subscription.id}: gateway-managed recurrence, skipping local retry`);
+        results.push({
+          subscriptionId: subscription.id,
+          action: "skipped",
+          reason: "gateway_managed_recurrence",
+        });
+        continue;
+      }
+
       // Skip if no saved card token
       if (!subscription.card_token && !subscription.gateway_customer_id) {
+
         console.log(`Subscription ${subscription.id}: no saved card, marking requires_card_update`);
         
         await supabase
