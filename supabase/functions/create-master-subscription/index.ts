@@ -180,49 +180,132 @@ serve(async (req) => {
 
     console.log("Calculated prices:", { monthlyPrice, annualMonthlyPrice, totalAmount, billingCycle });
 
-    // Check for existing active subscription
-    const { data: existingSubscription } = await supabase
+    // ── Resolução de intenção de assinatura (evita duplicidade de cobranças) ──
+    const NON_TERMINAL_PAYMENT_STATUSES = ["pending", "in_process", "in_review", "authorized", "processing"];
+
+    const { data: openSubscriptions } = await supabase
       .from("master_subscriptions")
-      .select("id, status, plan_id")
+      .select("*")
       .eq("user_id", userId)
-      .in("status", ["active", "pending", "inadimplent"])
-      .maybeSingle();
+      .in("status", ["active", "pending", "inadimplent", "past_due"])
+      .order("created_at", { ascending: false });
 
-    if (existingSubscription) {
-      const canReplace = 
-        existingSubscription.status === "pending" || 
-        ["gratis", "free"].includes(existingSubscription.plan_id?.toLowerCase());
+    const activePaidSubscription = (openSubscriptions || []).find(
+      (s: any) => s.status === "active" && !["gratis", "free"].includes((s.plan_id || "").toLowerCase())
+    );
 
-      if (canReplace) {
-        const reason = existingSubscription.status === "pending"
-          ? "Assinatura pendente cancelada automaticamente para nova tentativa"
-          : `Upgrade de plano ${existingSubscription.plan_id} para ${planId}`;
+    if (activePaidSubscription) {
+      return new Response(
+        JSON.stringify({
+          error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
+          existingSubscriptionId: activePaidSubscription.id
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-        console.log("Cancelling replaceable subscription:", existingSubscription.id, reason);
-        await supabase
-          .from("master_subscriptions")
-          .update({ 
-            status: "cancelled",
-            previous_plan_id: existingSubscription.plan_id,
-          })
-          .eq("id", existingSubscription.id);
+    // Assinatura pendente (intenção em aberto) — nunca criar nova cobrança em paralelo
+    const pendingSubscription = (openSubscriptions || []).find((s: any) => s.status === "pending");
+    let reusableSubscription: any = null;
 
+    if (pendingSubscription) {
+      const { data: pendingPayments } = await supabase
+        .from("master_subscription_payments")
+        .select("*")
+        .eq("subscription_id", pendingSubscription.id)
+        .order("created_at", { ascending: false });
+
+      const openPayment = (pendingPayments || []).find(
+        (p: any) => NON_TERMINAL_PAYMENT_STATUSES.includes(p.status)
+      );
+
+      if (openPayment) {
+        // Existe tentativa em aberto: devolvemos o estado atual, sem chamar o gateway
         await supabase.from("master_subscription_logs").insert({
-          subscription_id: existingSubscription.id,
+          subscription_id: pendingSubscription.id,
           user_id: userId,
-          event_type: "subscription_cancelled",
-          event_description: reason,
+          payment_id: openPayment.id,
+          event_type: "subscription_intent_reused",
+          event_description: "Tentativa reaproveitada: já existe pagamento em aberto para esta assinatura",
+          metadata: {
+            requestedPlanId: planId,
+            requestedBillingCycle: billingCycle,
+            requestedPaymentMethod: paymentMethod,
+            existingPaymentStatus: openPayment.status,
+            existingGatewayStatus: openPayment.gateway_status,
+          }
         });
-      } else {
+
+        const isCard = openPayment.payment_method === "credit_card";
+        const normalizedStatus = isCard ? "in_review" : "pending";
+
         return new Response(
-          JSON.stringify({ 
-            error: "Você já possui uma assinatura ativa. Cancele-a primeiro para criar uma nova.",
-            existingSubscriptionId: existingSubscription.id
+          JSON.stringify({
+            success: false,
+            reused: true,
+            normalizedStatus,
+            requiresPolling: true,
+            subscriptionId: pendingSubscription.id,
+            paymentId: openPayment.gateway_payment_id || null,
+            paymentMethod: openPayment.payment_method,
+            pixQrCode: openPayment.pix_qr_code || null,
+            pixQrCodeBase64: openPayment.pix_qr_code_base64 || null,
+            pixExpiresAt: openPayment.pix_expires_at || null,
+            boletoUrl: openPayment.boleto_url || null,
+            boletoBarcode: openPayment.boleto_barcode || null,
+            boletoDigitableLine: openPayment.boleto_digitable_line || null,
+            boletoExpiresAt: openPayment.boleto_expires_at || null,
+            message: isCard
+              ? "Já existe um pagamento em análise para esta assinatura. Aguarde a conclusão — não é necessário pagar novamente."
+              : "Já existe um pagamento pendente para esta assinatura. Finalize-o para ativar o plano.",
           }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      const sameIntent =
+        pendingSubscription.plan_id === planId &&
+        pendingSubscription.billing_cycle === billingCycle;
+
+      if (sameIntent) {
+        // Todas as tentativas anteriores são terminais: reutilizamos a MESMA assinatura
+        reusableSubscription = pendingSubscription;
+        console.log("Reusing pending subscription intent:", pendingSubscription.id);
+      } else {
+        console.log("Cancelling divergent pending subscription:", pendingSubscription.id);
+        await supabase
+          .from("master_subscriptions")
+          .update({ status: "cancelled", previous_plan_id: pendingSubscription.plan_id })
+          .eq("id", pendingSubscription.id);
+
+        await supabase.from("master_subscription_logs").insert({
+          subscription_id: pendingSubscription.id,
+          user_id: userId,
+          event_type: "subscription_cancelled",
+          event_description: "Assinatura pendente cancelada: nova intenção com plano/ciclo diferente",
+        });
+      }
     }
+
+    // Assinatura gratuita ativa: substituída pelo upgrade
+    const activeFreeSubscription = (openSubscriptions || []).find(
+      (s: any) => s.status === "active" && ["gratis", "free"].includes((s.plan_id || "").toLowerCase())
+    );
+
+    if (activeFreeSubscription) {
+      await supabase
+        .from("master_subscriptions")
+        .update({ status: "cancelled", previous_plan_id: activeFreeSubscription.plan_id })
+        .eq("id", activeFreeSubscription.id);
+
+      await supabase.from("master_subscription_logs").insert({
+        subscription_id: activeFreeSubscription.id,
+        user_id: userId,
+        event_type: "subscription_cancelled",
+        event_description: `Upgrade de plano ${activeFreeSubscription.plan_id} para ${planId}`,
+      });
+    }
+
 
     // Get master gateway credentials
     const { data: gateway, error: gatewayError } = await supabase
