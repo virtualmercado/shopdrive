@@ -546,8 +546,10 @@ serve(async (req) => {
       }
 
       const preapprovalStatus = mpData.status as string; // pending | authorized
+      // "authorized" = cartão aceito e assinatura recorrente criada no gateway.
+      // A primeira cobrança é gerada pelo MP de forma assíncrona (webhook confirma a fatura).
+      const isAuthorized = preapprovalStatus === "authorized";
 
-      // Tentativa registrada como pendente: o primeiro pagamento é gerado pelo MP de forma assíncrona
       const { data: payment, error: paymentError } = await supabase
         .from("master_subscription_payments")
         .insert({
@@ -571,12 +573,17 @@ serve(async (req) => {
       await supabase
         .from("master_subscriptions")
         .update({
-          status: "pending",
+          status: isAuthorized ? "active" : "pending",
+          started_at: isAuthorized ? new Date().toISOString() : null,
           gateway_subscription_id: mpData.id?.toString(),
           gateway_customer_id: mpData.payer_id?.toString() || null,
           requires_card_update: false,
           retry_count: 0,
           next_retry_at: null,
+          decline_type: null,
+          last_decline_code: null,
+          last_decline_message: null,
+          grace_period_ends_at: null,
         })
         .eq("id", subscription.id);
 
@@ -584,25 +591,40 @@ serve(async (req) => {
         await supabase.from("invoices").update({ status: "pending" }).eq("id", invoice.id);
       }
 
+      if (isAuthorized && planId && planId !== "gratis" && planId !== "free") {
+        const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+        const max = planId in planLimits ? planLimits[planId] : 20;
+        const { error: re } = await supabase.rpc(
+          "reactivate_products_after_upgrade",
+          { p_user_id: userId, p_max_products: max }
+        );
+        if (re) console.error("reactivate rpc error:", re);
+      }
+
       await supabase.from("master_subscription_logs").insert({
         subscription_id: subscription.id,
         user_id: userId,
         payment_id: payment?.id,
-        event_type: "preapproval_created",
-        event_description: `Assinatura recorrente criada no gateway (status ${preapprovalStatus})`,
+        event_type: isAuthorized ? "subscription_activated" : "preapproval_created",
+        event_description: isAuthorized
+          ? "Assinatura recorrente autorizada pelo emissor e ativada"
+          : `Assinatura recorrente criada no gateway (status ${preapprovalStatus})`,
         metadata: { preapprovalId: mpData.id, preapprovalStatus, idempotencyKey }
       });
 
       paymentResult = {
-        success: false,
-        status: "in_review",
-        normalizedStatus: "in_review",
-        requiresPolling: true,
+        success: isAuthorized,
+        status: isAuthorized ? "approved" : "in_review",
+        normalizedStatus: isAuthorized ? "approved" : "in_review",
+        requiresPolling: !isAuthorized,
         preapprovalId: mpData.id,
         preapprovalStatus,
         subscriptionId: subscription.id,
-        message: "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado — não repita a tentativa.",
+        message: isAuthorized
+          ? "Assinatura autorizada e ativada com sucesso!"
+          : "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado — não repita a tentativa.",
       };
+
 
 
     } else if (billingCycle === "annual" && paymentMethod === "credit_card") {
