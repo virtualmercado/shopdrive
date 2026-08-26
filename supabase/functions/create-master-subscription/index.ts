@@ -467,7 +467,7 @@ serve(async (req) => {
       const preapprovalPayload = {
         reason: `Assinatura ${plan.display_name} - ShopDrive`,
         external_reference: invoiceRef,
-        notification_url: webhookUrl,
+
         payer_email: userEmail,
         card_token_id: cardToken,
         auto_recurring: {
