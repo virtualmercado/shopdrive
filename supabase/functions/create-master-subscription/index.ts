@@ -348,9 +348,7 @@ serve(async (req) => {
       ? new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString()
       : new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString();
 
-    // Create subscription record
-    const idempotencyKey = `sub-${userId}-${planId}-${billingCycle}-${Date.now()}`;
-    
+    // Create (or reuse) subscription record
     const subscriptionData = {
       user_id: userId,
       plan_id: planId,
@@ -371,21 +369,43 @@ serve(async (req) => {
       payment_method: paymentMethod,
     };
 
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from("master_subscriptions")
-      .insert(subscriptionData)
-      .select()
-      .single();
+    let subscription: any = null;
+    let subscriptionError: any = null;
 
-    if (subscriptionError) {
-      console.error("Subscription insert error:", subscriptionError);
+    if (reusableSubscription) {
+      const { data, error } = await supabase
+        .from("master_subscriptions")
+        .update({
+          ...subscriptionData,
+          decline_type: null,
+          last_decline_code: null,
+          last_decline_message: null,
+        })
+        .eq("id", reusableSubscription.id)
+        .select()
+        .single();
+      subscription = data;
+      subscriptionError = error;
+    } else {
+      const { data, error } = await supabase
+        .from("master_subscriptions")
+        .insert(subscriptionData)
+        .select()
+        .single();
+      subscription = data;
+      subscriptionError = error;
+    }
+
+    if (subscriptionError || !subscription) {
+      console.error("Subscription upsert error:", subscriptionError);
       return new Response(
         JSON.stringify({ error: "Erro ao criar assinatura" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Subscription created:", subscription.id);
+    console.log("Subscription intent ready:", subscription.id, reusableSubscription ? "(reused)" : "(new)");
+
 
     // Log subscription creation
     await supabase.from("master_subscription_logs").insert({
