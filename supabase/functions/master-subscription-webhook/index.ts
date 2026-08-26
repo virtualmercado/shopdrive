@@ -496,8 +496,9 @@ serve(async (req) => {
             .from("invoices")
             .update({ ...invoiceUpdate, mp_payment_id: paymentId })
             .eq("id", openInvoice.id);
-        }
       }
+    }
+
 
 
     // Update subscription if status changed
