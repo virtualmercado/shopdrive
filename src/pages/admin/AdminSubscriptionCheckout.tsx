@@ -211,28 +211,57 @@ const AdminSubscriptionCheckout = () => {
     }
   }, [billingCycle]);
 
-  // Polling para verificar status do pagamento (PIX/Boleto)
+  // Polling de status (PIX / Boleto / Cartão em análise) — sempre com estado terminal
   useEffect(() => {
-    if ((step === "pix" || step === "boleto") && subscriptionId) {
-      const interval = setInterval(async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke("check-master-subscription-status", {
-            body: { subscriptionId }
-          });
+    if (!subscriptionId) return;
+    if (!["pix", "boleto", "in_review"].includes(step)) return;
 
-          if (data?.subscription?.status === "active") {
-            setStep("success");
-            toast.success("Pagamento confirmado! Sua assinatura está ativa.");
-            clearInterval(interval);
-          }
-        } catch (error) {
-          console.error("Error checking status:", error);
+    const startedAt = Date.now();
+    const MAX_POLLING_MS = step === "in_review" ? 5 * 60 * 1000 : 35 * 60 * 1000;
+    let cancelled = false;
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-master-subscription-status", {
+          body: { subscriptionId }
+        });
+
+        if (cancelled) return;
+        const normalized = data?.normalizedStatus;
+
+        if (data?.subscription?.status === "active" || normalized === "approved") {
+          clearInterval(interval);
+          setStep("success");
+          toast.success("Pagamento confirmado! Sua assinatura está ativa.");
+          return;
         }
-      }, 5000); // Check every 5 seconds
 
-      return () => clearInterval(interval);
-    }
+        if (normalized === "rejected") {
+          clearInterval(interval);
+          setStep("form");
+          setIsProcessing(false);
+          toast.error(
+            data?.declineMessage ||
+            "Pagamento recusado pelo emissor. Atualize os dados do cartão e tente novamente."
+          );
+          return;
+        }
+
+        if (Date.now() - startedAt > MAX_POLLING_MS) {
+          clearInterval(interval);
+          setReviewTimedOut(true);
+        }
+      } catch (error) {
+        console.error("Error checking status:", error);
+      }
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [step, subscriptionId]);
+
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "");
