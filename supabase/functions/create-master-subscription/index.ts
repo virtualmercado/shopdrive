@@ -467,6 +467,7 @@ serve(async (req) => {
       const preapprovalPayload = {
         reason: `Assinatura ${plan.display_name} - ShopDrive`,
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
         payer_email: userEmail,
         card_token_id: cardToken,
         auto_recurring: {
@@ -630,6 +631,7 @@ serve(async (req) => {
         },
         statement_descriptor: "VIRTUALMERCADO",
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
         capture: true,
       };
 
@@ -770,6 +772,7 @@ serve(async (req) => {
         },
         date_of_expiration: pixExpiration.toISOString(),
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
       };
 
       console.log("Generating PIX for annual payment...");
@@ -871,6 +874,7 @@ serve(async (req) => {
         },
         date_of_expiration: boletoExpiration.toISOString(),
         external_reference: invoiceRef,
+        notification_url: webhookUrl,
       };
 
       console.log("Generating Boleto for annual payment...");
