@@ -474,11 +474,31 @@ serve(async (req) => {
         invoiceUpdate.paid_at = mpPayment.date_approved || new Date().toISOString();
       }
 
-      await supabase
+      const { data: matchedInvoices } = await supabase
         .from("invoices")
         .update(invoiceUpdate)
-        .eq("mp_payment_id", paymentId);
-    }
+        .eq("mp_payment_id", paymentId)
+        .select("id");
+
+      // Cobranças da assinatura recorrente não têm mp_payment_id previamente: vincular a fatura aberta
+      if (!matchedInvoices?.length && payment.subscription_id) {
+        const { data: openInvoice } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("subscription_id", payment.subscription_id)
+          .in("status", ["pending", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openInvoice?.id) {
+          await supabase
+            .from("invoices")
+            .update({ ...invoiceUpdate, mp_payment_id: paymentId })
+            .eq("id", openInvoice.id);
+        }
+      }
+
 
     // Update subscription if status changed
     if (newSubscriptionStatus && newSubscriptionStatus !== payment.master_subscriptions?.status) {
