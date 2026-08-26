@@ -192,13 +192,97 @@ serve(async (req) => {
       );
     }
 
-    if (topic !== "payment" && topic !== "merchant_order") {
+    const SUBSCRIPTION_TOPICS = ["subscription_preapproval", "preapproval", "subscription_preapproval_plan"];
+    const AUTHORIZED_PAYMENT_TOPICS = ["subscription_authorized_payment", "authorized_payment"];
+
+    if (!gateway?.mercadopago_access_token) {
+      console.error("No gateway access token found");
+      return new Response(
+        JSON.stringify({ error: "Gateway credentials not found" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const mpAuth = { "Authorization": `Bearer ${gateway.mercadopago_access_token}` };
+    let preapprovalIdFromWebhook: string | null = null;
+
+    // ── Tópico de assinatura recorrente (preapproval) ──
+    if (SUBSCRIPTION_TOPICS.includes(topic)) {
+      const preapprovalResp = await fetch(`https://api.mercadopago.com/preapproval/${paymentId}`, { headers: mpAuth });
+      if (!preapprovalResp.ok) {
+        console.error("Error fetching preapproval:", await preapprovalResp.text());
+        return new Response(
+          JSON.stringify({ received: true, message: "Preapproval fetch failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const preapproval = await preapprovalResp.json();
+      console.log("Preapproval status:", preapproval.status);
+
+      const { data: sub } = await supabase
+        .from("master_subscriptions")
+        .select("*")
+        .eq("gateway_subscription_id", paymentId)
+        .maybeSingle();
+
+      if (sub) {
+        const update: any = { updated_at: new Date().toISOString() };
+        if (preapproval.status === "cancelled") {
+          update.status = "cancelled";
+          update.cancelled_at = new Date().toISOString();
+        } else if (preapproval.status === "paused") {
+          update.status = "past_due";
+        }
+        if (preapproval.next_payment_date) {
+          update.current_period_end = new Date(preapproval.next_payment_date).toISOString();
+        }
+        await supabase.from("master_subscriptions").update(update).eq("id", sub.id);
+
+        await supabase.from("master_subscription_logs").insert({
+          subscription_id: sub.id,
+          user_id: sub.user_id,
+          event_type: "preapproval_updated",
+          event_description: `Assinatura recorrente atualizada no gateway (status ${preapproval.status})`,
+          metadata: { preapprovalId: paymentId, preapprovalStatus: preapproval.status }
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ received: true, topic, preapprovalStatus: preapproval.status }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Tópico de pagamento gerado pela assinatura recorrente ──
+    if (AUTHORIZED_PAYMENT_TOPICS.includes(topic)) {
+      const apResp = await fetch(`https://api.mercadopago.com/authorized_payments/${paymentId}`, { headers: mpAuth });
+      if (!apResp.ok) {
+        console.error("Error fetching authorized payment:", await apResp.text());
+        return new Response(
+          JSON.stringify({ received: true, message: "Authorized payment fetch failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const authorizedPayment = await apResp.json();
+      preapprovalIdFromWebhook = authorizedPayment.preapproval_id?.toString() || null;
+      const realPaymentId = authorizedPayment.payment?.id?.toString() || null;
+      console.log("Authorized payment:", { preapprovalIdFromWebhook, realPaymentId, status: authorizedPayment.status });
+
+      if (!realPaymentId) {
+        return new Response(
+          JSON.stringify({ received: true, message: "Authorized payment without payment id yet" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      paymentId = realPaymentId;
+    } else if (topic !== "payment" && topic !== "merchant_order") {
       console.log("Ignoring non-payment webhook:", topic);
       return new Response(
         JSON.stringify({ received: true, message: `Topic ${topic} ignored` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Dedup: check if this webhook event was already processed
     const eventId = body.id?.toString() || body.data?.id?.toString() || "";
