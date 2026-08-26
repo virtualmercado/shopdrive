@@ -961,16 +961,22 @@ serve(async (req) => {
           totalAmount,
         },
         payment: paymentResult,
-        message: paymentResult?.status === "approved" 
-          ? "Assinatura ativada com sucesso!" 
-          : paymentResult?.paymentMethod === "pix"
-            ? "PIX gerado! Escaneie o QR Code para pagar."
-            : paymentResult?.paymentMethod === "boleto"
-              ? "Boleto gerado! Pague até a data de vencimento."
-              : "Processando pagamento..."
+        normalizedStatus: paymentResult?.normalizedStatus
+          || (paymentResult?.status === "approved" ? "approved" : "pending"),
+        requiresPolling: !!paymentResult?.requiresPolling,
+        message: paymentResult?.status === "approved"
+          ? "Assinatura ativada com sucesso!"
+          : paymentResult?.normalizedStatus === "in_review"
+            ? paymentResult?.message
+            : paymentResult?.paymentMethod === "pix"
+              ? "PIX gerado! Escaneie o QR Code para pagar."
+              : paymentResult?.paymentMethod === "boleto"
+                ? "Boleto gerado! Pague até a data de vencimento."
+                : "Processando pagamento..."
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
 
   } catch (error: any) {
     console.error("Create subscription error:", error);
