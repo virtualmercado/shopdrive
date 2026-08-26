@@ -141,9 +141,10 @@ export const SubscriptionStatusAlert = ({
           };
         case "credit_card":
           return {
-            title: "Processando pagamento",
-            description: "Pagamento por cartão é confirmado automaticamente após aprovação.",
+            title: "Pagamento em análise",
+            description: "O emissor do cartão está analisando a cobrança. Não é necessário pagar novamente — seu plano é ativado automaticamente após a aprovação.",
           };
+
         default:
           return {
             title: "Pagamento em processamento",
