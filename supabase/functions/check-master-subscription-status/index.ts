@@ -303,9 +303,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         found: true,
+        normalizedStatus,
+        declineCode: referencePayment?.decline_code || subscription.last_decline_code || null,
+        declineMessage: subscription.last_decline_message || null,
         subscription: {
           id: subscription.id,
           planId: subscription.plan_id,
+
           billingCycle: subscription.billing_cycle,
           status: subscription.status,
           monthlyPrice: subscription.monthly_price,
