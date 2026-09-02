@@ -533,12 +533,36 @@ const CheckoutContent = () => {
         setFormData(prev => ({ ...prev, delivery_method: "motoboy" }));
         return;
       }
+      // Entrega genérica antes de cair para retirada
+      if (genericDeliveryAvailable) {
+        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+        return;
+      }
       // Fallback to pickup if available
-      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+      if (pickupEnabled) {
         setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
       }
     }
   }, [cart, formData.delivery_method, melhorEnvioEnabled, melhorEnvioQuotes, motoboyAvailable, deliveryOption]);
+
+  // Define uma modalidade inicial coerente com as capacidades da loja,
+  // sem nunca esconder a opção de entrega no modo combinado.
+  useEffect(() => {
+    if (!storeData) return;
+    if (deliveryOption === "pickup_only") {
+      if (formData.delivery_method !== "retirada") {
+        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
+      }
+      return;
+    }
+    if (
+      genericDeliveryAvailable &&
+      formData.delivery_method !== "retirada" &&
+      formData.delivery_method !== "entrega"
+    ) {
+      setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+    }
+  }, [storeData, deliveryOption, genericDeliveryAvailable, formData.delivery_method]);
 
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
