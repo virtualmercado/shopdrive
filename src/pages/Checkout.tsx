@@ -18,7 +18,7 @@ import { CustomerColumn } from "@/components/checkout/CustomerColumn";
 import { DeliveryColumn } from "@/components/checkout/DeliveryColumn";
 import { PaymentColumn, CardTokenData } from "@/components/checkout/PaymentColumn";
 
-type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
+type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
 type PaymentMethod = "cartao_credito" | "pix" | "boleto" | "whatsapp";
 
 interface CheckoutFormData {
