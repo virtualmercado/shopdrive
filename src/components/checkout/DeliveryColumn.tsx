@@ -72,6 +72,8 @@ export const DeliveryColumn = ({
   motoboyFee = null,
   motoboyAvailable = false,
   miniEnviosAvailable = true,
+  genericDeliveryAvailable = false,
+  genericDeliveryFee = 0,
 }: DeliveryColumnProps) => {
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
