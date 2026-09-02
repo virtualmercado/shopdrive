@@ -441,7 +441,7 @@ const CheckoutContent = () => {
         return;
       }
       // Fallback to pickup if available
-      if (deliveryOption === "pickup_only") {
+      if (pickupEnabled) {
         setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
       }
     }
