@@ -435,8 +435,13 @@ const CheckoutContent = () => {
           return;
         }
       }
+      // Entrega genérica (taxa fixa) antes de cair para retirada
+      if (genericDeliveryAvailable) {
+        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+        return;
+      }
       // Fallback to pickup if available
-      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+      if (deliveryOption === "pickup_only") {
         setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
       }
     }
