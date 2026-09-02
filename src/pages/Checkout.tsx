@@ -1326,6 +1326,8 @@ const CheckoutContent = () => {
             motoboyFee={motoboyFee}
             motoboyAvailable={motoboyAvailable}
             miniEnviosAvailable={miniEnviosAvailable}
+            genericDeliveryAvailable={genericDeliveryAvailable}
+            genericDeliveryFee={checkFreeShippingEligibility() ? 0 : (storeData?.shipping_fixed_fee ?? 10)}
           />
 
           {/* Column 3 - Payment */}
