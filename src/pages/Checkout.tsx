@@ -18,7 +18,7 @@ import { CustomerColumn } from "@/components/checkout/CustomerColumn";
 import { DeliveryColumn } from "@/components/checkout/DeliveryColumn";
 import { PaymentColumn, CardTokenData } from "@/components/checkout/PaymentColumn";
 
-type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
+type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
 type PaymentMethod = "cartao_credito" | "pix" | "boleto" | "whatsapp";
 
 interface CheckoutFormData {
@@ -61,7 +61,7 @@ const checkoutSchema = z.object({
   customer_name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
   customer_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   customer_address: z.string().trim().max(500).optional(),
-  delivery_method: z.enum(["retirada", "motoboy", "sedex", "pac", "mini_envios"]),
+  delivery_method: z.enum(["retirada", "entrega", "motoboy", "sedex", "pac", "mini_envios"]),
   payment_method: z.enum(["cartao_credito", "pix", "boleto", "whatsapp"]),
   notes: z.string().max(1000).optional(),
 });
@@ -110,6 +110,14 @@ const CheckoutContent = () => {
   const [melhorEnvioQuotes, setMelhorEnvioQuotes] = useState<MelhorEnvioQuote[]>([]);
   const [melhorEnvioLoading, setMelhorEnvioLoading] = useState(false);
   const [melhorEnvioEnabled, setMelhorEnvioEnabled] = useState(false);
+
+  // Capacidades de recebimento independentes (entrega / retirada)
+  const deliveryEnabled = deliveryOption !== "pickup_only";
+  const pickupEnabled = deliveryOption !== "delivery_only";
+  // Quando a loja não possui transportadora/regras configuradas, a entrega
+  // continua disponível usando a taxa fixa da loja (mesmo mecanismo já existente).
+  const hasCarrierOptions = shippingRules.length > 0 || melhorEnvioEnabled;
+  const genericDeliveryAvailable = deliveryEnabled && !hasCarrierOptions;
 
   const {
     couponCode,
@@ -427,8 +435,13 @@ const CheckoutContent = () => {
           return;
         }
       }
+      // Entrega genérica (taxa fixa) antes de cair para retirada
+      if (genericDeliveryAvailable) {
+        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+        return;
+      }
       // Fallback to pickup if available
-      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+      if (pickupEnabled) {
         setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
       }
     }
@@ -520,12 +533,36 @@ const CheckoutContent = () => {
         setFormData(prev => ({ ...prev, delivery_method: "motoboy" }));
         return;
       }
+      // Entrega genérica antes de cair para retirada
+      if (genericDeliveryAvailable) {
+        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+        return;
+      }
       // Fallback to pickup if available
-      if (deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup") {
+      if (pickupEnabled) {
         setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
       }
     }
   }, [cart, formData.delivery_method, melhorEnvioEnabled, melhorEnvioQuotes, motoboyAvailable, deliveryOption]);
+
+  // Define uma modalidade inicial coerente com as capacidades da loja,
+  // sem nunca esconder a opção de entrega no modo combinado.
+  useEffect(() => {
+    if (!storeData) return;
+    if (deliveryOption === "pickup_only") {
+      if (formData.delivery_method !== "retirada") {
+        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
+      }
+      return;
+    }
+    if (
+      genericDeliveryAvailable &&
+      formData.delivery_method !== "retirada" &&
+      formData.delivery_method !== "entrega"
+    ) {
+      setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
+    }
+  }, [storeData, deliveryOption, genericDeliveryAvailable, formData.delivery_method]);
 
   const calculateDeliveryFee = () => {
     if (formData.delivery_method === "retirada") {
@@ -1289,6 +1326,8 @@ const CheckoutContent = () => {
             motoboyFee={motoboyFee}
             motoboyAvailable={motoboyAvailable}
             miniEnviosAvailable={miniEnviosAvailable}
+            genericDeliveryAvailable={genericDeliveryAvailable}
+            genericDeliveryFee={checkFreeShippingEligibility() ? 0 : (storeData?.shipping_fixed_fee ?? 10)}
           />
 
           {/* Column 3 - Payment */}

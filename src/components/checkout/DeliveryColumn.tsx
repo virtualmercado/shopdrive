@@ -3,7 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Truck, Store, Package, Loader2 } from "lucide-react";
 
-type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
+type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
 
 interface MelhorEnvioQuote {
   id: number;
@@ -51,6 +51,8 @@ interface DeliveryColumnProps {
   motoboyFee?: number | null;
   motoboyAvailable?: boolean;
   miniEnviosAvailable?: boolean;
+  genericDeliveryAvailable?: boolean;
+  genericDeliveryFee?: number;
 }
 
 export const DeliveryColumn = ({
@@ -70,6 +72,8 @@ export const DeliveryColumn = ({
   motoboyFee = null,
   motoboyAvailable = false,
   miniEnviosAvailable = true,
+  genericDeliveryAvailable = false,
+  genericDeliveryFee = 0,
 }: DeliveryColumnProps) => {
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
@@ -140,10 +144,12 @@ export const DeliveryColumn = ({
       <div>
         <h3 className="font-semibold flex items-center gap-2 mb-1">
           <Truck className="h-5 w-5" style={{ color: primaryColor }} />
-          Entrega
+          {showDeliveryOptions && showPickupOption ? "Como você deseja receber seu pedido?" : "Entrega"}
         </h3>
         <p className="text-xs text-muted-foreground">
-          Cálculo baseado no endereço de entrega informado
+          {showDeliveryOptions && showPickupOption
+            ? "Escolha entre entrega no seu endereço ou retirada no local"
+            : "Cálculo baseado no endereço de entrega informado"}
         </p>
       </div>
 
@@ -153,6 +159,32 @@ export const DeliveryColumn = ({
           onValueChange={(value) => onDeliveryMethodChange(value as DeliveryMethod)}
           className="space-y-3"
         >
+          {/* Entrega padrão (taxa fixa da loja) — quando não há transportadora/regras configuradas */}
+          {showDeliveryOptions && genericDeliveryAvailable && (
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
+                deliveryMethod === "entrega" ? "border-2" : "border-border"
+              }`}
+              style={deliveryMethod === "entrega" ? { borderColor: primaryColor } : {}}
+              onClick={() => onDeliveryMethodChange("entrega")}
+            >
+              <div className="flex items-center gap-3">
+                <RadioGroupItem value="entrega" id="entrega" />
+                <div>
+                  <Label htmlFor="entrega" className="font-medium cursor-pointer">
+                    🚚 Entrega
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Entrega no endereço informado
+                  </p>
+                </div>
+              </div>
+              <span className={`font-semibold text-sm ${genericDeliveryFee === 0 ? "text-green-600" : ""}`}>
+                {genericDeliveryFee === 0 ? "Grátis" : `R$ ${genericDeliveryFee.toFixed(2)}`}
+              </span>
+            </div>
+          )}
+
           {/* Motoboy Option - Only available in same city with custom shipping rules */}
           {showDeliveryOptions && shippingRules.length > 0 && (
             <div 
