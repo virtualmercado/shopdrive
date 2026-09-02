@@ -61,7 +61,7 @@ const checkoutSchema = z.object({
   customer_name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
   customer_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   customer_address: z.string().trim().max(500).optional(),
-  delivery_method: z.enum(["retirada", "motoboy", "sedex", "pac", "mini_envios"]),
+  delivery_method: z.enum(["retirada", "entrega", "motoboy", "sedex", "pac", "mini_envios"]),
   payment_method: z.enum(["cartao_credito", "pix", "boleto", "whatsapp"]),
   notes: z.string().max(1000).optional(),
 });
