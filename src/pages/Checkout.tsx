@@ -111,6 +111,14 @@ const CheckoutContent = () => {
   const [melhorEnvioLoading, setMelhorEnvioLoading] = useState(false);
   const [melhorEnvioEnabled, setMelhorEnvioEnabled] = useState(false);
 
+  // Capacidades de recebimento independentes (entrega / retirada)
+  const deliveryEnabled = deliveryOption !== "pickup_only";
+  const pickupEnabled = deliveryOption !== "delivery_only";
+  // Quando a loja não possui transportadora/regras configuradas, a entrega
+  // continua disponível usando a taxa fixa da loja (mesmo mecanismo já existente).
+  const hasCarrierOptions = shippingRules.length > 0 || melhorEnvioEnabled;
+  const genericDeliveryAvailable = deliveryEnabled && !hasCarrierOptions;
+
   const {
     couponCode,
     setCouponCode,
