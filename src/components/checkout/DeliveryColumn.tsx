@@ -51,6 +51,8 @@ interface DeliveryColumnProps {
   motoboyFee?: number | null;
   motoboyAvailable?: boolean;
   miniEnviosAvailable?: boolean;
+  genericDeliveryAvailable?: boolean;
+  genericDeliveryFee?: number;
 }
 
 export const DeliveryColumn = ({
