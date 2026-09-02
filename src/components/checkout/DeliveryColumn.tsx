@@ -3,7 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Truck, Store, Package, Loader2 } from "lucide-react";
 
-type DeliveryMethod = "retirada" | "motoboy" | "sedex" | "pac" | "mini_envios";
+type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
 
 interface MelhorEnvioQuote {
   id: number;
