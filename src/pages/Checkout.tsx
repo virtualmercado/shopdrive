@@ -1208,9 +1208,12 @@ const CheckoutContent = () => {
   const pixDiscountAmount = (subtotal - couponDiscount) * (pixDiscountPercent / 100);
   const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
   
-  const isFormValid = !!(formData.customer_name && formData.customer_phone && 
-    (formData.delivery_method === "retirada" || 
-     (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state)));
+  // Fonte única de validação: define o estado do botão E orienta a interface.
+  const pendingRequirements = getCheckoutPendingRequirements(formData);
+  const pendingMessage = getCheckoutPendingMessage(pendingRequirements);
+  const pendingFieldKeys = pendingRequirements.map((p) => p.key);
+  const isFormValid = pendingRequirements.length === 0;
+
 
   // PIX Payment Modal
   if (showPixPayment && createdOrderId && pixGateway && pixGateway !== "infinitepay" && storeData) {
