@@ -53,7 +53,7 @@ serve(async (req) => {
 
     // Multitenancy: a cotação só é permitida para lojas públicas/ativas
     const { data: isPublic, error: publicError } = await supabase.rpc("is_public_store", {
-      _user_id: store_user_id,
+      store_user_id,
     });
 
     if (publicError || isPublic !== true) {
