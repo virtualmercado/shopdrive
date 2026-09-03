@@ -53,7 +53,10 @@ interface DeliveryColumnProps {
   miniEnviosAvailable?: boolean;
   genericDeliveryAvailable?: boolean;
   genericDeliveryFee?: number;
+  /** Requisitos obrigatórios pendentes (mesma fonte de validação do botão). */
+  pendingRequirements?: { key: string; label: string; message: string }[];
 }
+
 
 export const DeliveryColumn = ({
   deliveryMethod,
