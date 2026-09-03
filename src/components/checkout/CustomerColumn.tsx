@@ -510,21 +510,42 @@ export const CustomerColumn = ({
             </p>
             <div className="space-y-3">
               <div>
-                <Label className="text-sm">Nome completo *</Label>
+                <Label className="text-sm" htmlFor="checkout-customer-name">Nome completo *</Label>
                 <Input
+                  id="checkout-customer-name"
                   placeholder="Seu nome completo"
                   value={formData.customer_name}
                   onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  onBlur={() => markTouched("customer_name")}
+                  aria-invalid={isPending("customer_name") || undefined}
+                  aria-describedby={isPending("customer_name") ? "checkout-customer-name-error" : undefined}
+                  className={isPending("customer_name") ? "border-destructive" : ""}
                 />
+                {isPending("customer_name") && (
+                  <p id="checkout-customer-name-error" className="text-xs text-destructive mt-1">
+                    {pendingMessageFor("customer_name")}
+                  </p>
+                )}
               </div>
               <div>
-                <Label className="text-sm">Telefone/WhatsApp *</Label>
+                <Label className="text-sm" htmlFor="checkout-customer-phone">Telefone/WhatsApp *</Label>
                 <Input
+                  id="checkout-customer-phone"
                   placeholder="(00) 00000-0000"
                   value={formData.customer_phone}
                   onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                  onBlur={() => markTouched("customer_phone")}
+                  aria-invalid={isPending("customer_phone") || undefined}
+                  aria-describedby={isPending("customer_phone") ? "checkout-customer-phone-error" : undefined}
+                  className={isPending("customer_phone") ? "border-destructive" : ""}
                 />
+                {isPending("customer_phone") && (
+                  <p id="checkout-customer-phone-error" className="text-xs text-destructive mt-1">
+                    {pendingMessageFor("customer_phone")}
+                  </p>
+                )}
               </div>
+
             </div>
           </div>
         </>
