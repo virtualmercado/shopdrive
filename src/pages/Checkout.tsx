@@ -208,17 +208,11 @@ const CheckoutContent = () => {
           }
         }
 
-        // Check if Melhor Envio is enabled for this store
-        // Use the secure public view that doesn't expose API keys
-        const { data: melhorEnvioSettings } = await supabase
-          .from("melhor_envio_settings_public")
-          .select("is_active")
-          .eq("user_id", data.id)
-          .single();
-
-        if (melhorEnvioSettings) {
-          setMelhorEnvioEnabled(true);
-        }
+        // Check if Melhor Envio is enabled without exposing private credentials.
+        const { data: melhorEnvioSettings } = await supabase.rpc("get_melhor_envio_status", {
+          p_user_id: data.id,
+        });
+        setMelhorEnvioEnabled(Boolean(melhorEnvioSettings?.[0]?.is_active));
       }
     };
 
@@ -305,7 +299,7 @@ const CheckoutContent = () => {
         return;
       }
 
-      const originCep = storeData.merchant_cep || storeData.pickup_address?.match(/\d{5}-?\d{3}/)?.[0] || "";
+      const originCep = storeData.merchant_reference_cep || storeData.pickup_address?.match(/\d{5}-?\d{3}/)?.[0] || "";
       const originCepClean = originCep.replace(/\D/g, "");
       
       if (originCepClean.length !== 8) {
