@@ -77,9 +77,17 @@ export const DeliveryColumn = ({
   miniEnviosAvailable = true,
   genericDeliveryAvailable = false,
   genericDeliveryFee = 0,
+  pendingRequirements = [],
 }: DeliveryColumnProps) => {
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const markTouched = (key: string) => setTouchedFields((prev) => ({ ...prev, [key]: true }));
+  const isPending = (key: string) =>
+    !!touchedFields[key] && pendingRequirements.some((p) => p.key === key);
+  const pendingMessageFor = (key: string) =>
+    pendingRequirements.find((p) => p.key === key)?.message || "Campo obrigatório.";
   const showDeliveryOptions = deliveryOption === "delivery_only" || deliveryOption === "delivery_and_pickup";
   const showPickupOption = deliveryOption === "pickup_only" || deliveryOption === "delivery_and_pickup";
+
 
   const fetchAddressFromCep = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
