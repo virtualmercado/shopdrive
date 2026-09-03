@@ -11,6 +11,8 @@ import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { useCoupon } from "@/hooks/useCoupon";
+import { getCheckoutPendingRequirements, getCheckoutPendingMessage } from "@/lib/checkoutValidation";
+
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
 import { OrderSummaryHeader } from "@/components/checkout/OrderSummaryHeader";
