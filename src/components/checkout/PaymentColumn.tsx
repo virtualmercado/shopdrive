@@ -58,6 +58,9 @@ interface PaymentColumnProps {
   loading: boolean;
   onFinalize: (cardTokenData?: CardTokenData) => void;
   isFormValid: boolean;
+  /** Mensagem contextual (mesma fonte de validação do botão) sobre pendências. */
+  pendingMessage?: string | null;
+
   cardProcessingError?: string | null;
   customerCpf?: string;
 }
