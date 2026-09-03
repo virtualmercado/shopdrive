@@ -435,8 +435,9 @@ export const DeliveryColumn = ({
         <div className="border-t pt-4 space-y-3">
           <p className="text-sm font-medium">Endereço de entrega:</p>
           <div>
-            <Label className="text-xs">CEP *</Label>
+            <Label className="text-xs" htmlFor="checkout-cep">CEP *</Label>
             <Input
+              id="checkout-cep"
               placeholder="00000-000"
               value={formData.cep}
               onChange={(e) => {
@@ -444,24 +445,47 @@ export const DeliveryColumn = ({
                 setFormData({ ...formData, cep: value });
                 fetchAddressFromCep(value);
               }}
+              onBlur={() => markTouched("cep")}
+              aria-invalid={isPending("cep") || undefined}
+              aria-describedby={isPending("cep") ? "checkout-cep-error" : undefined}
+              className={isPending("cep") ? "border-destructive" : ""}
             />
+            {isPending("cep") && (
+              <p id="checkout-cep-error" className="text-xs text-destructive mt-1">{pendingMessageFor("cep")}</p>
+            )}
           </div>
           <div>
-            <Label className="text-xs">Endereço *</Label>
+            <Label className="text-xs" htmlFor="checkout-address">Endereço *</Label>
             <Input
+              id="checkout-address"
               placeholder="Rua, Avenida..."
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onBlur={() => markTouched("address")}
+              aria-invalid={isPending("address") || undefined}
+              aria-describedby={isPending("address") ? "checkout-address-error" : undefined}
+              className={isPending("address") ? "border-destructive" : ""}
             />
+            {isPending("address") && (
+              <p id="checkout-address-error" className="text-xs text-destructive mt-1">{pendingMessageFor("address")}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Número *</Label>
+              <Label className="text-xs" htmlFor="checkout-number">Número *</Label>
               <Input
+                id="checkout-number"
                 placeholder="123"
                 value={formData.number}
                 onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                onBlur={() => markTouched("number")}
+                aria-invalid={isPending("number") || undefined}
+                aria-describedby={isPending("number") ? "checkout-number-error" : undefined}
+                className={isPending("number") ? "border-destructive" : ""}
               />
+              {isPending("number") && (
+                <p id="checkout-number-error" className="text-xs text-destructive mt-1">{pendingMessageFor("number")}</p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Complemento</Label>
@@ -473,34 +497,59 @@ export const DeliveryColumn = ({
             </div>
           </div>
           <div>
-            <Label className="text-xs">Bairro *</Label>
+            <Label className="text-xs" htmlFor="checkout-neighborhood">Bairro *</Label>
             <Input
+              id="checkout-neighborhood"
               placeholder="Bairro"
               value={formData.neighborhood}
               onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+              onBlur={() => markTouched("neighborhood")}
+              aria-invalid={isPending("neighborhood") || undefined}
+              aria-describedby={isPending("neighborhood") ? "checkout-neighborhood-error" : undefined}
+              className={isPending("neighborhood") ? "border-destructive" : ""}
             />
+            {isPending("neighborhood") && (
+              <p id="checkout-neighborhood-error" className="text-xs text-destructive mt-1">{pendingMessageFor("neighborhood")}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Cidade *</Label>
+              <Label className="text-xs" htmlFor="checkout-city">Cidade *</Label>
               <Input
+                id="checkout-city"
                 placeholder="Cidade"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onBlur={() => markTouched("city")}
+                aria-invalid={isPending("city") || undefined}
+                aria-describedby={isPending("city") ? "checkout-city-error" : undefined}
+                className={isPending("city") ? "border-destructive" : ""}
               />
+              {isPending("city") && (
+                <p id="checkout-city-error" className="text-xs text-destructive mt-1">{pendingMessageFor("city")}</p>
+              )}
             </div>
             <div>
-              <Label className="text-xs">Estado *</Label>
+              <Label className="text-xs" htmlFor="checkout-state">Estado *</Label>
               <Input
+                id="checkout-state"
                 placeholder="UF"
                 maxLength={2}
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                onBlur={() => markTouched("state")}
+                aria-invalid={isPending("state") || undefined}
+                aria-describedby={isPending("state") ? "checkout-state-error" : undefined}
+                className={isPending("state") ? "border-destructive" : ""}
               />
+              {isPending("state") && (
+                <p id="checkout-state-error" className="text-xs text-destructive mt-1">{pendingMessageFor("state")}</p>
+              )}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
