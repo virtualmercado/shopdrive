@@ -53,6 +53,9 @@ interface CustomerColumnProps {
   setFormData: (data: any) => void;
   primaryColor: string;
   storeSlug: string;
+  /** Requisitos obrigatórios pendentes (mesma fonte de validação do botão). */
+  pendingRequirements?: { key: string; label: string; message: string }[];
+
 }
 
 interface RegisterData {
