@@ -1343,6 +1343,8 @@ const CheckoutContent = () => {
             loading={loading}
             onFinalize={handleFinalize}
             isFormValid={isFormValid}
+            pendingMessage={pendingMessage}
+
             cardProcessingError={cardProcessingError}
             customerCpf={customerProfile?.cpf || ""}
           />
