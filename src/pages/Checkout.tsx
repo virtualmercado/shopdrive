@@ -1305,6 +1305,8 @@ const CheckoutContent = () => {
             setFormData={setFormData}
             primaryColor={primaryColor}
             storeSlug={storeSlug || ""}
+            pendingRequirements={pendingRequirements}
+
           />
 
           {/* Column 2 - Delivery */}
