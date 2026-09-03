@@ -58,6 +58,9 @@ interface PaymentColumnProps {
   loading: boolean;
   onFinalize: (cardTokenData?: CardTokenData) => void;
   isFormValid: boolean;
+  /** Mensagem contextual (mesma fonte de validação do botão) sobre pendências. */
+  pendingMessage?: string | null;
+
   cardProcessingError?: string | null;
   customerCpf?: string;
 }
@@ -80,6 +83,8 @@ export const PaymentColumn = ({
   loading,
   onFinalize,
   isFormValid,
+  pendingMessage = null,
+
   cardProcessingError,
   customerCpf,
 }: PaymentColumnProps) => {
@@ -511,7 +516,20 @@ export const PaymentColumn = ({
           </div>
         </div>
 
+        {/* Aviso de pendências (mesma validação que controla o botão) */}
+        {!isFormValid && pendingMessage && (
+          <p
+            id="checkout-pending-message"
+            role="status"
+            aria-live="polite"
+            className="text-xs text-muted-foreground bg-muted/60 border border-border rounded-md px-3 py-2 break-words"
+          >
+            {pendingMessage}
+          </p>
+        )}
+
         {/* Finalize Button */}
+
         <Button
           type="button"
           className="w-full text-white font-semibold py-6"
@@ -660,7 +678,20 @@ export const PaymentColumn = ({
         </div>
       </div>
 
+      {/* Aviso de pendências (mesma validação que controla o botão) */}
+      {!isFormValid && pendingMessage && (
+        <p
+          id="checkout-pending-message"
+          role="status"
+          aria-live="polite"
+          className="text-xs text-muted-foreground bg-muted/60 border border-border rounded-md px-3 py-2 break-words"
+        >
+          {pendingMessage}
+        </p>
+      )}
+
       {/* Finalize Button */}
+
       <Button
         type="button"
         className="w-full text-white font-semibold py-6"

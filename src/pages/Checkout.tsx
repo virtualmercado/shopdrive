@@ -11,6 +11,8 @@ import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { useCoupon } from "@/hooks/useCoupon";
+import { getCheckoutPendingRequirements, getCheckoutPendingMessage } from "@/lib/checkoutValidation";
+
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
 import { OrderSummaryHeader } from "@/components/checkout/OrderSummaryHeader";
@@ -1208,9 +1210,12 @@ const CheckoutContent = () => {
   const pixDiscountAmount = (subtotal - couponDiscount) * (pixDiscountPercent / 100);
   const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
   
-  const isFormValid = !!(formData.customer_name && formData.customer_phone && 
-    (formData.delivery_method === "retirada" || 
-     (formData.cep && formData.address && formData.number && formData.neighborhood && formData.city && formData.state)));
+  // Fonte única de validação: define o estado do botão E orienta a interface.
+  const pendingRequirements = getCheckoutPendingRequirements(formData);
+  const pendingMessage = getCheckoutPendingMessage(pendingRequirements);
+  const pendingFieldKeys = pendingRequirements.map((p) => p.key);
+  const isFormValid = pendingRequirements.length === 0;
+
 
   // PIX Payment Modal
   if (showPixPayment && createdOrderId && pixGateway && pixGateway !== "infinitepay" && storeData) {
@@ -1300,6 +1305,8 @@ const CheckoutContent = () => {
             setFormData={setFormData}
             primaryColor={primaryColor}
             storeSlug={storeSlug || ""}
+            pendingRequirements={pendingRequirements}
+
           />
 
           {/* Column 2 - Delivery */}
@@ -1314,6 +1321,8 @@ const CheckoutContent = () => {
             setFormData={setFormData}
             primaryColor={primaryColor}
             hasSelectedAddress={!!selectedAddressId}
+            pendingRequirements={pendingRequirements}
+
             melhorEnvioQuotes={melhorEnvioQuotes}
             melhorEnvioLoading={melhorEnvioLoading}
             melhorEnvioEnabled={melhorEnvioEnabled}
@@ -1336,6 +1345,8 @@ const CheckoutContent = () => {
             loading={loading}
             onFinalize={handleFinalize}
             isFormValid={isFormValid}
+            pendingMessage={pendingMessage}
+
             cardProcessingError={cardProcessingError}
             customerCpf={customerProfile?.cpf || ""}
           />
