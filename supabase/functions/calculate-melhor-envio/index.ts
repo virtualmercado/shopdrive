@@ -31,45 +31,41 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Authentication check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.log("Missing or invalid authorization header");
-      return new Response(
-        JSON.stringify({ error: "Não autorizado", quotes: [] }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify the JWT token
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
-      console.log("Invalid token:", claimsError?.message);
-      return new Response(
-        JSON.stringify({ error: "Token inválido", quotes: [] }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Authenticated user:", claimsData.claims.sub);
-
-    // Use service role for database operations
+    // Cotação de frete é uma operação pública do checkout (guest e autenticado).
+    // Não exigimos sessão de usuário: validamos apenas que a loja de destino é
+    // pública/ativa. Credenciais da transportadora permanecem no backend.
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { store_user_id, from_postal_code, to_postal_code, products } = await req.json() as ShippingRequest;
 
+    const isUuid = typeof store_user_id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(store_user_id);
+    const cepOk = (v: unknown) => typeof v === "string" && v.replace(/\D/g, "").length === 8;
+
+    if (!isUuid || !cepOk(from_postal_code) || !cepOk(to_postal_code) || !Array.isArray(products) || products.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Parâmetros inválidos para cotação", quotes: [] }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Multitenancy: a cotação só é permitida para lojas públicas/ativas
+    const { data: isPublic, error: publicError } = await supabase.rpc("is_public_store", {
+      store_user_id,
+    });
+
+    if (publicError || isPublic !== true) {
+      console.log("Store not public or not found:", store_user_id, publicError?.message);
+      return new Response(
+        JSON.stringify({ error: "Loja não disponível para cotação", quotes: [] }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("Calculating shipping for store:", store_user_id);
     console.log("From:", from_postal_code, "To:", to_postal_code);
-    console.log("Products:", JSON.stringify(products));
 
     // Fetch Melhor Envio settings for this store
     const { data: settings, error: settingsError } = await supabase
