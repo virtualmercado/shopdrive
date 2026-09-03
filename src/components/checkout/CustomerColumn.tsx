@@ -91,9 +91,17 @@ export const CustomerColumn = ({
   setFormData,
   primaryColor,
   storeSlug,
+  pendingRequirements = [],
 }: CustomerColumnProps) => {
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const isPending = (key: string) =>
+    !!touchedFields[key] && pendingRequirements.some((p) => p.key === key);
+  const pendingMessageFor = (key: string) =>
+    pendingRequirements.find((p) => p.key === key)?.message || "Campo obrigatório.";
+  const markTouched = (key: string) => setTouchedFields((prev) => ({ ...prev, [key]: true }));
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
