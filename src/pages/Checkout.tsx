@@ -1321,6 +1321,8 @@ const CheckoutContent = () => {
             setFormData={setFormData}
             primaryColor={primaryColor}
             hasSelectedAddress={!!selectedAddressId}
+            pendingRequirements={pendingRequirements}
+
             melhorEnvioQuotes={melhorEnvioQuotes}
             melhorEnvioLoading={melhorEnvioLoading}
             melhorEnvioEnabled={melhorEnvioEnabled}
