@@ -83,6 +83,8 @@ export const PaymentColumn = ({
   loading,
   onFinalize,
   isFormValid,
+  pendingMessage = null,
+
   cardProcessingError,
   customerCpf,
 }: PaymentColumnProps) => {
