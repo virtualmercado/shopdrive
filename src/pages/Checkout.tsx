@@ -305,7 +305,7 @@ const CheckoutContent = () => {
         return;
       }
 
-      const originCep = storeData.merchant_cep || storeData.pickup_address?.match(/\d{5}-?\d{3}/)?.[0] || "";
+      const originCep = storeData.merchant_reference_cep || storeData.pickup_address?.match(/\d{5}-?\d{3}/)?.[0] || "";
       const originCepClean = originCep.replace(/\D/g, "");
       
       if (originCepClean.length !== 8) {
