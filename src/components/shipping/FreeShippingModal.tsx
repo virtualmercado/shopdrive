@@ -133,13 +133,15 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
         toast.error("Informe um valor mínimo válido");
         return;
       }
-      if (cep.replace(/\D/g, "").length !== 8) {
-        toast.error("Informe um CEP válido com 8 dígitos");
-        return;
-      }
-      if (cepError || !merchantCity || !merchantState) {
-        toast.error("CEP inválido. Verifique e tente novamente.");
-        return;
+      if (requiresCep) {
+        if (cep.replace(/\D/g, "").length !== 8) {
+          toast.error("Informe um CEP válido com 8 dígitos");
+          return;
+        }
+        if (cepError || !merchantCity || !merchantState) {
+          toast.error("CEP inválido. Verifique e tente novamente.");
+          return;
+        }
       }
       return;
     }
@@ -148,15 +150,25 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
     try {
       const value = parseFloat(minimumValue);
 
+      // No escopo nacional não gravamos dados geográficos de referência
+      // (nem CEP fictício); os valores existentes são preservados e o
+      // checkout ignora cidade/estado quando o escopo é "ALL".
+      const payload = requiresCep
+        ? {
+            free_shipping_minimum: value,
+            free_shipping_scope: scope,
+            merchant_reference_cep: cep.replace(/\D/g, ""),
+            merchant_city: merchantCity,
+            merchant_state: merchantState,
+          }
+        : {
+            free_shipping_minimum: value,
+            free_shipping_scope: scope,
+          };
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          free_shipping_minimum: value,
-          free_shipping_scope: scope,
-          merchant_reference_cep: cep.replace(/\D/g, ""),
-          merchant_city: merchantCity,
-          merchant_state: merchantState,
-        })
+        .update(payload)
         .eq("id", user.id);
 
       if (error) throw error;
