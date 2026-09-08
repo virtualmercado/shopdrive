@@ -33,7 +33,8 @@ interface CheckoutFormData {
   neighborhood: string;
   city: string;
   state: string;
-  delivery_method: DeliveryMethod;
+  // "" = nenhuma modalidade selecionada (nenhum frete aplicado)
+  delivery_method: DeliveryMethod | "";
   payment_method: PaymentMethod;
   notes: string;
 }
@@ -77,6 +78,8 @@ const CheckoutContent = () => {
   const [loading, setLoading] = useState(false);
   const [storeData, setStoreData] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  // Indica se o frete possui origem legítima (cotação, regra, retirada ou taxa configurada).
+  const [deliveryFeeDefined, setDeliveryFeeDefined] = useState(false);
   const [motoboyFee, setMotoboyFee] = useState<number | null>(null);
   const [motoboyAvailable, setMotoboyAvailable] = useState(false);
   const [miniEnviosAvailable, setMiniEnviosAvailable] = useState(true);
@@ -141,7 +144,7 @@ const CheckoutContent = () => {
     neighborhood: "",
     city: "",
     state: "",
-    delivery_method: "motoboy",
+    delivery_method: "",
     payment_method: "pix",
     notes: "",
   });
@@ -421,25 +424,10 @@ const CheckoutContent = () => {
     setMotoboyFee(fee);
     setMotoboyAvailable(available);
 
-    // If motoboy was selected but is no longer available, switch to another method
+    // Se o motoboy deixou de estar disponível, limpar a seleção e o frete
+    // (sem escolher outra modalidade automaticamente).
     if (formData.delivery_method === "motoboy" && !available) {
-      // Try to find an available delivery method
-      if (melhorEnvioEnabled && melhorEnvioQuotes.length > 0) {
-        const pacQuote = melhorEnvioQuotes.find(q => [2, 4].includes(q.id));
-        if (pacQuote) {
-          setFormData(prev => ({ ...prev, delivery_method: "pac" }));
-          return;
-        }
-      }
-      // Entrega genérica (taxa fixa) antes de cair para retirada
-      if (genericDeliveryAvailable) {
-        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
-        return;
-      }
-      // Fallback to pickup if available
-      if (pickupEnabled) {
-        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
-      }
+      setFormData(prev => ({ ...prev, delivery_method: "" }));
     }
   }, [formData.neighborhood, formData.city, formData.cep, shippingRules, storeData]);
 
@@ -514,60 +502,38 @@ const CheckoutContent = () => {
     const isValid = validateMiniEnvios();
     setMiniEnviosAvailable(isValid);
     
-    // If Mini Envios was selected but is no longer valid, switch to another method
+    // Se o Mini Envios deixou de ser válido, limpar a seleção (sem escolher outra
+    // modalidade automaticamente) para não herdar frete de uma opção inválida.
     if (formData.delivery_method === "mini_envios" && !isValid) {
-      // Try PAC first
-      if (melhorEnvioEnabled && melhorEnvioQuotes.length > 0) {
-        const pacQuote = melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
-        if (pacQuote) {
-          setFormData(prev => ({ ...prev, delivery_method: "pac" }));
-          return;
-        }
-      }
-      // Fallback to motoboy if available
-      if (motoboyAvailable) {
-        setFormData(prev => ({ ...prev, delivery_method: "motoboy" }));
-        return;
-      }
-      // Entrega genérica antes de cair para retirada
-      if (genericDeliveryAvailable) {
-        setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
-        return;
-      }
-      // Fallback to pickup if available
-      if (pickupEnabled) {
-        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
-      }
+      setFormData(prev => ({ ...prev, delivery_method: "" }));
     }
   }, [cart, formData.delivery_method, melhorEnvioEnabled, melhorEnvioQuotes, motoboyAvailable, deliveryOption]);
 
-  // Define uma modalidade inicial coerente com as capacidades da loja,
-  // sem nunca esconder a opção de entrega no modo combinado.
+  // Loja apenas com retirada: única situação em que a modalidade é definida
+  // automaticamente, pois não existe alternativa.
   useEffect(() => {
     if (!storeData) return;
-    if (deliveryOption === "pickup_only") {
-      if (formData.delivery_method !== "retirada") {
-        setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
-      }
-      return;
+    if (deliveryOption === "pickup_only" && formData.delivery_method !== "retirada") {
+      setFormData(prev => ({ ...prev, delivery_method: "retirada" }));
     }
-    if (
-      genericDeliveryAvailable &&
-      formData.delivery_method !== "retirada" &&
-      formData.delivery_method !== "entrega"
-    ) {
-      setFormData(prev => ({ ...prev, delivery_method: "entrega" }));
-    }
-  }, [storeData, deliveryOption, genericDeliveryAvailable, formData.delivery_method]);
+  }, [storeData, deliveryOption, formData.delivery_method]);
 
   const calculateDeliveryFee = () => {
+    // Nenhuma modalidade escolhida => nenhum frete aplicado (estado "a calcular").
+    if (!formData.delivery_method) {
+      setDeliveryFee(0);
+      setDeliveryFeeDefined(false);
+      return;
+    }
     if (formData.delivery_method === "retirada") {
       setDeliveryFee(0);
+      setDeliveryFeeDefined(true);
       return;
     }
     if (!storeData) return;
     if (checkFreeShippingEligibility()) {
       setDeliveryFee(0);
+      setDeliveryFeeDefined(true);
       return;
     }
 
@@ -575,8 +541,10 @@ const CheckoutContent = () => {
     if (formData.delivery_method === "motoboy") {
       if (motoboyFee !== null) {
         setDeliveryFee(motoboyFee);
+        setDeliveryFeeDefined(true);
       } else {
         setDeliveryFee(0);
+        setDeliveryFeeDefined(false);
       }
       return;
     }
@@ -597,12 +565,25 @@ const CheckoutContent = () => {
       
       if (quote) {
         setDeliveryFee(quote.custom_price || quote.price);
-        return;
+        setDeliveryFeeDefined(true);
+      } else {
+        // Sem cotação válida não existe frete legítimo: não aplicar valor algum.
+        setDeliveryFee(0);
+        setDeliveryFeeDefined(false);
       }
+      return;
     }
 
-    // Fallback to fixed fee for other cases
-    setDeliveryFee(storeData.shipping_fixed_fee || 10);
+    // Entrega padrão: usar exclusivamente a taxa fixa configurada pela loja.
+    const fixedFee = typeof storeData.shipping_fixed_fee === "number" ? storeData.shipping_fixed_fee : null;
+    if (formData.delivery_method === "entrega" && fixedFee !== null) {
+      setDeliveryFee(fixedFee);
+      setDeliveryFeeDefined(true);
+      return;
+    }
+
+    setDeliveryFee(0);
+    setDeliveryFeeDefined(false);
   };
 
   const handleLogin = async (email: string, password: string) => {
@@ -713,6 +694,11 @@ const CheckoutContent = () => {
 
     if (!formData.customer_name || !formData.customer_phone) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (!formData.delivery_method) {
+      toast.error("Escolha como deseja receber seu pedido");
       return;
     }
 
@@ -1285,7 +1271,7 @@ const CheckoutContent = () => {
           deliveryFee={deliveryFee}
           total={total}
           primaryColor={primaryColor}
-          deliveryDefined={formData.delivery_method === "retirada" || !!(formData.cep && formData.city)}
+          deliveryDefined={deliveryFeeDefined}
         />
 
         {/* 3 Column Layout */}
@@ -1330,7 +1316,7 @@ const CheckoutContent = () => {
             motoboyAvailable={motoboyAvailable}
             miniEnviosAvailable={miniEnviosAvailable}
             genericDeliveryAvailable={genericDeliveryAvailable}
-            genericDeliveryFee={checkFreeShippingEligibility() ? 0 : (storeData?.shipping_fixed_fee ?? 10)}
+            genericDeliveryFee={checkFreeShippingEligibility() ? 0 : (storeData?.shipping_fixed_fee ?? 0)}
           />
 
           {/* Column 3 - Payment */}
