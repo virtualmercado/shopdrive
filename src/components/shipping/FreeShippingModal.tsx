@@ -114,9 +114,14 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
     }
   };
 
+  // O CEP de referência só existe para determinar cidade/estado.
+  // No escopo nacional ("Todos") ele não participa da regra nem da validação.
+  const requiresCep = scope === "CITY" || scope === "STATE";
+
   const isFormValid = () => {
     const minValueValid = minimumValue.trim() !== "" && parseFloat(minimumValue) >= 0;
-    const cepValid = cep.replace(/\D/g, "").length === 8 && !cepError && merchantCity && merchantState;
+    if (!requiresCep) return minValueValid;
+    const cepValid = cep.replace(/\D/g, "").length === 8 && !cepError && !!merchantCity && !!merchantState;
     return minValueValid && cepValid;
   };
 
