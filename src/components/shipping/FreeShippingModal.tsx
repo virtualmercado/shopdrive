@@ -326,37 +326,46 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
             </RadioGroup>
           </div>
 
-          {/* CEP de Referência */}
-          <div className="space-y-2">
-            <Label htmlFor="cep" className="flex items-center gap-1">
-              Digite seu CEP
-              <span className="text-destructive">*</span>
-              <span className="text-xs text-muted-foreground ml-1">(Obrigatório)</span>
-            </Label>
-            <div className="relative">
-              <Input
-                id="cep"
-                type="text"
-                value={cep}
-                onChange={(e) => handleCepChange(e.target.value)}
-                placeholder="00000-000"
-                style={{ borderColor: cepError ? undefined : primaryColor }}
-                className={`merchant-input focus-visible:ring-0 focus-visible:ring-offset-0 pr-10 ${cepError ? "border-destructive" : ""}`}
-              />
-              {lookupLoading && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          {/* Texto auxiliar do escopo */}
+          <p className="text-xs text-muted-foreground">
+            {scope === "ALL" && "Frete grátis para todos os destinos atendidos pela sua loja."}
+            {scope === "CITY" && "Frete grátis apenas para entregas na cidade identificada pelo CEP informado."}
+            {scope === "STATE" && "Frete grátis apenas para entregas no estado identificado pelo CEP informado."}
+          </p>
+
+          {/* CEP de Referência (somente para cidade/estado) */}
+          {requiresCep && (
+            <div className="space-y-2">
+              <Label htmlFor="cep" className="flex items-center gap-1">
+                Digite seu CEP
+                <span className="text-destructive">*</span>
+                <span className="text-xs text-muted-foreground ml-1">(Obrigatório)</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="cep"
+                  type="text"
+                  value={cep}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                  placeholder="00000-000"
+                  style={{ borderColor: cepError ? undefined : primaryColor }}
+                  className={`merchant-input focus-visible:ring-0 focus-visible:ring-offset-0 pr-10 ${cepError ? "border-destructive" : ""}`}
+                />
+                {lookupLoading && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+              {cepError && (
+                <p className="text-xs text-destructive">{cepError}</p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Este CEP será usado para determinar sua cidade/estado nas regras de frete grátis
+              </p>
             </div>
-            {cepError && (
-              <p className="text-xs text-destructive">{cepError}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Este CEP será usado para determinar sua cidade/estado nas regras de frete grátis
-            </p>
-          </div>
+          )}
 
           {/* Cidade/Estado detectados */}
-          {(merchantCity || merchantState) && !cepError && (
+          {requiresCep && (merchantCity || merchantState) && !cepError && (
             <div 
               className="p-3 rounded-lg flex items-start gap-2"
               style={{ backgroundColor: `${primaryColor}15` }}
@@ -372,16 +381,17 @@ const FreeShippingModal = ({ open, onOpenChange, onSuccess }: FreeShippingModalP
           )}
 
           {/* Resumo da regra */}
-          {minimumValue && !cepError && merchantCity && (
+          {isFormValid() && (
             <div 
               className="p-3 rounded-lg"
               style={{ backgroundColor: `${primaryColor}10` }}
             >
               <p className="text-sm">
-                <strong>Regra configurada:</strong> Frete grátis para pedidos acima de R$ {parseFloat(minimumValue).toFixed(2)}
-                {scope === "ALL" && " para qualquer destino"}
+                <strong>Regra configurada:</strong> Frete grátis para pedidos acima de{" "}
+                {parseFloat(minimumValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {scope === "ALL" && " para todos os destinos atendidos pela loja"}
                 {scope === "CITY" && ` apenas para ${merchantCity}`}
-                {scope === "STATE" && ` apenas para ${merchantState}`}
+                {scope === "STATE" && ` apenas para o estado de ${merchantState}`}
               </p>
             </div>
           )}
