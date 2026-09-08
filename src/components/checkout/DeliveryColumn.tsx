@@ -21,7 +21,7 @@ interface MelhorEnvioQuote {
 }
 
 interface DeliveryColumnProps {
-  deliveryMethod: DeliveryMethod;
+  deliveryMethod: DeliveryMethod | "";
   onDeliveryMethodChange: (method: DeliveryMethod) => void;
   deliveryOption: string;
   deliveryFee: number;

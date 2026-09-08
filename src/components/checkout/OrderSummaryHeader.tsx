@@ -184,7 +184,7 @@ export const OrderSummaryHeader = ({
               <span>Frete</span>
               <span className={deliveryFee === 0 ? "text-green-600 font-medium" : ""}>
                 {!deliveryDefined ? (
-                  <span className="text-muted-foreground text-xs">Definido na entrega</span>
+                  <span className="text-muted-foreground text-xs">A calcular</span>
                 ) : deliveryFee === 0 ? (
                   "Grátis"
                 ) : (
