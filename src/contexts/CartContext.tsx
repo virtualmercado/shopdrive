@@ -173,17 +173,6 @@ export const CartProvider = ({
     setCart([]);
   };
 
-  const getTotal = () => {
-    return cart.reduce((total, item) => {
-      const price = item.promotional_price || item.price;
-      return total + price * item.quantity;
-    }, 0);
-  };
-
-  const getItemCount = () => {
-    return cart.reduce((count, item) => count + item.quantity, 0);
-  };
-
   // While the tenant is being resolved / switched, expose a neutral empty cart so
   // no other store's items can flash in the header or drawer.
   const visibleCart = storeKey && storeKey === hydratedFor ? cart : [];
