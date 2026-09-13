@@ -1476,33 +1476,76 @@ const CatalogPDF = () => {
 
 
 
-              {/* Campaign message card */}
-              {campaignMessage && (
-                <div className="mt-8 max-w-xl mx-auto">
-                  <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyCampaignMessage}
-                        className="gap-1.5"
-                        style={{ borderColor: primaryColor, color: primaryColor }}
-                      >
-                        {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
-                      </Button>
-                    </div>
+              {/* Campaign message card: editable commercial text + protected structural blocks */}
+              <div className="mt-8 max-w-xl mx-auto text-left">
+                <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyCampaignMessage}
+                      className="gap-1.5 shrink-0"
+                      style={{ borderColor: primaryColor, color: primaryColor }}
+                    >
+                      {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="campaign-text" className="text-xs font-medium">
+                      Seu texto de divulgação
+                    </Label>
                     <Textarea
-                      value={campaignMessage}
-                      onChange={(e) => setCampaignMessage(e.target.value)}
-                      rows={10}
+                      id="campaign-text"
+                      value={campaignText}
+                      onChange={(e) => setCampaignText(e.target.value)}
+                      rows={5}
                       className="text-sm bg-background"
                     />
-                    <p className="text-xs text-muted-foreground">Edite a mensagem acima antes de compartilhar, se desejar.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Personalize livremente este texto. Os links abaixo são incluídos automaticamente.
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border border-dashed border-border bg-background/60 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Informações incluídas automaticamente</p>
+
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-muted-foreground">📄 Catálogo:</p>
+                      <p className="text-xs font-medium break-all text-foreground">
+                        {canonicalCatalogUrl ?? 'Será gerado ao compartilhar'}
+                      </p>
+                    </div>
+
+                    {getStoreUrl() && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground">🛒 Loja:</p>
+                        <p className="text-xs font-medium break-all text-foreground">{getStoreUrl()}</p>
+                      </div>
+                    )}
+
+                    {getWhatsAppDisplay() && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground">📲 WhatsApp:</p>
+                        <p className="text-xs font-medium text-foreground">{getWhatsAppDisplay()}</p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Esses dados vêm das configurações da sua loja e não podem ser editados aqui.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-foreground">Prévia do que será enviado</p>
+                    <pre className="whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3 text-xs text-foreground">
+{buildCampaignMessage(canonicalCatalogUrl ?? `${'https://shopdrive.com.br/catalogo/…'}`)}
+                    </pre>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         )}
