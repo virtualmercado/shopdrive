@@ -50,7 +50,7 @@ const CatalogShareImageSection = ({
     if (!file || !userId) return;
 
     const validation = validateShareImageFile(file);
-    if (!validation.ok) {
+    if (validation.ok === false) {
       toast.error(validation.error);
       return;
     }
