@@ -1290,15 +1290,19 @@ const CatalogPDF = () => {
   };
 
   const handleShareWhatsApp = async () => {
-    if (!catalogUrl) {
+    let canonicalUrl: string | null = null;
+    try {
+      canonicalUrl = await resolveCanonicalUrl();
+    } catch {
+      canonicalUrl = null;
+    }
+
+    if (!canonicalUrl) {
       toast.error("Aguarde a geração do link do catálogo");
       return;
     }
 
-    const storeUrl = getStoreUrl();
-    let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
-    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
-    msg += `\n\nResponderemos com prazer!`;
+    const msg = buildCampaignMessage(canonicalUrl);
 
     // Dynamic resolution: custom image -> current store logo -> text only
     const effectiveImageUrl = resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url);
