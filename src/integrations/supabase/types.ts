@@ -3501,7 +3501,11 @@ export type Database = {
           button_bg_color: string | null
           button_border_style: string | null
           button_text_color: string | null
+          catalog_current_path: string | null
+          catalog_current_url: string | null
+          catalog_share_code: string | null
           catalog_share_image_url: string | null
+          catalog_updated_at: string | null
           checkout_require_address: boolean | null
           checkout_require_cpf: boolean | null
           checkout_require_email: boolean | null
@@ -3621,7 +3625,11 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          catalog_current_path?: string | null
+          catalog_current_url?: string | null
+          catalog_share_code?: string | null
           catalog_share_image_url?: string | null
+          catalog_updated_at?: string | null
           checkout_require_address?: boolean | null
           checkout_require_cpf?: boolean | null
           checkout_require_email?: boolean | null
@@ -3741,7 +3749,11 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          catalog_current_path?: string | null
+          catalog_current_url?: string | null
+          catalog_share_code?: string | null
           catalog_share_image_url?: string | null
+          catalog_updated_at?: string | null
           checkout_require_address?: boolean | null
           checkout_require_cpf?: boolean | null
           checkout_require_email?: boolean | null
@@ -5956,11 +5968,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      ensure_catalog_share_code: { Args: never; Returns: string }
       expire_stale_pix_payments: { Args: never; Returns: number }
       force_sync_brand_template: {
         Args: { p_template_id: string }
         Returns: Json
       }
+      generate_catalog_share_code: { Args: never; Returns: string }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       generate_quote_number: {
@@ -6091,6 +6105,15 @@ export type Database = {
         Returns: undefined
       }
       repair_incomplete_template_stores: { Args: never; Returns: Json }
+      resolve_catalog_share_code: {
+        Args: { _code: string }
+        Returns: {
+          catalog_updated_at: string
+          catalog_url: string
+          store_name: string
+          store_slug: string
+        }[]
+      }
       search_store_products: {
         Args: {
           p_category_id?: string
@@ -6123,6 +6146,10 @@ export type Database = {
           weight: number
           width: number
         }[]
+      }
+      set_current_catalog: {
+        Args: { _path: string; _url: string }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
