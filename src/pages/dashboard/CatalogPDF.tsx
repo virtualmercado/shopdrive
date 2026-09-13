@@ -1339,7 +1339,12 @@ const CatalogPDF = () => {
 
   const handleCopyCampaignMessage = async () => {
     try {
-      await navigator.clipboard.writeText(campaignMessage);
+      const canonicalUrl = await resolveCanonicalUrl();
+      if (!canonicalUrl) {
+        toast.error("Aguarde a geração do link do catálogo");
+        return;
+      }
+      await navigator.clipboard.writeText(buildCampaignMessage(canonicalUrl));
       setCampaignCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCampaignCopied(false), 2000);
@@ -1348,12 +1353,17 @@ const CatalogPDF = () => {
     }
   };
 
-  // Build campaign message when catalog URL becomes available
+  // Canonical short link shown to the merchant (platform-managed, not editable)
+  const canonicalCatalogUrl = shareCode ? buildCanonicalCatalogUrl(shareCode) : null;
+
+  // Ensure a permanent share code exists as soon as a catalog is available
   useEffect(() => {
-    if (catalogUrl && pdfGenerated) {
-      setCampaignMessage(buildCampaignMessage(catalogUrl));
+    if (pdfGenerated && catalogUrl && !shareCode) {
+      ensureCatalogShareCode().then((code) => {
+        if (code) setShareCode(code);
+      });
     }
-  }, [catalogUrl, pdfGenerated]);
+  }, [pdfGenerated, catalogUrl, shareCode]);
 
   const canGenerate = filterType === "all" || 
     filterType === "list" ||
