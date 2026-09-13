@@ -21,6 +21,15 @@ import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
 import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
 import CatalogShareImageSection from "@/components/catalog/CatalogShareImageSection";
 import { fetchImageAsFile, resolveEffectiveShareImage } from "@/lib/catalogShareImage";
+import {
+  DEFAULT_CAMPAIGN_TEXT,
+  buildCanonicalCatalogUrl,
+  buildStoreUrl,
+  composeCampaignMessage,
+  ensureCatalogShareCode,
+  isValidShareCode,
+  setCurrentCatalog,
+} from "@/lib/catalogShareLink";
 
 interface Product {
   id: string;
@@ -73,6 +82,7 @@ const CatalogPDF = () => {
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
+  const [shareCode, setShareCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
@@ -118,13 +128,16 @@ const CatalogPDF = () => {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("store_slug, store_logo_url, catalog_share_image_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
+      .select("store_slug, store_logo_url, catalog_share_image_url, catalog_share_code, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
       .eq("id", user.id)
       .single();
 
     if (profileData) {
       setStoreProfile(profileData);
       setShareImageUrl(profileData.catalog_share_image_url ?? null);
+      if (isValidShareCode(profileData.catalog_share_code)) {
+        setShareCode(profileData.catalog_share_code as string);
+      }
     }
   };
 
