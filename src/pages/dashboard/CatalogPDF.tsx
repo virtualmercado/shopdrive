@@ -1426,6 +1426,12 @@ const CatalogPDF = () => {
                 </Button>
               </div>
 
+              {resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url) && (
+                <p className="mt-3 text-xs text-muted-foreground">Imagem de divulgação incluída</p>
+              )}
+
+
+
               {/* Campaign message card */}
               {campaignMessage && (
                 <div className="mt-8 max-w-xl mx-auto">
