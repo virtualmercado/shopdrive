@@ -1243,17 +1243,64 @@ const CatalogPDF = () => {
     return msg;
   };
 
-  const handleShareWhatsApp = () => {
+  const openWhatsAppText = (msg: string) => {
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadShareImage = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShareWhatsApp = async () => {
     if (!catalogUrl) {
       toast.error("Aguarde a geração do link do catálogo");
       return;
     }
+
     const storeUrl = getStoreUrl();
     let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
     if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
     msg += `\n\nResponderemos com prazer!`;
-    const encoded = encodeURIComponent(msg);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+
+    // Dynamic resolution: custom image -> current store logo -> text only
+    const effectiveImageUrl = resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url);
+
+    if (!effectiveImageUrl) {
+      openWhatsAppText(msg);
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      const file = await fetchImageAsFile(effectiveImageUrl);
+
+      if (file && typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ text: msg, files: [file] });
+          return;
+        } catch (err) {
+          // User cancelled the native share sheet: do nothing else.
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+        }
+      }
+
+      // Fallback: keep the existing text flow and hand the image over for manual attachment.
+      openWhatsAppText(msg);
+      if (file) {
+        downloadShareImage(file);
+        toast.info("Seu navegador não permite anexar a imagem automaticamente. A imagem de divulgação foi baixada para você anexar no WhatsApp.");
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleCopyCampaignMessage = async () => {
