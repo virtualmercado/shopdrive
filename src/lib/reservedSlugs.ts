@@ -47,6 +47,8 @@ export const RESERVED_SLUGS = new Set<string>([
   "planos",
   "precos",
   "templates",
+  "catalogo",
+  "catalog",
 
   // Functional
   "buscar",

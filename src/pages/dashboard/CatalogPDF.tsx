@@ -21,6 +21,15 @@ import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
 import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
 import CatalogShareImageSection from "@/components/catalog/CatalogShareImageSection";
 import { fetchImageAsFile, resolveEffectiveShareImage } from "@/lib/catalogShareImage";
+import {
+  DEFAULT_CAMPAIGN_TEXT,
+  buildCanonicalCatalogUrl,
+  buildStoreUrl,
+  composeCampaignMessage,
+  ensureCatalogShareCode,
+  isValidShareCode,
+  setCurrentCatalog,
+} from "@/lib/catalogShareLink";
 
 interface Product {
   id: string;
@@ -42,6 +51,7 @@ interface StoreProfile {
   store_slug: string;
   store_logo_url: string | null;
   catalog_share_image_url: string | null;
+  catalog_share_code?: string | null;
   address: string | null;
   address_number: string | null;
   address_neighborhood: string | null;
@@ -73,13 +83,14 @@ const CatalogPDF = () => {
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [catalogUrl, setCatalogUrl] = useState<string | null>(null);
+  const [shareCode, setShareCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [catalogLayout, setCatalogLayout] = useState<CatalogLayoutType>('layout_01');
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
   const [showPrices, setShowPrices] = useState(true);
   const [coverMessage, setCoverMessage] = useState('');
-  const [campaignMessage, setCampaignMessage] = useState('');
+  const [campaignText, setCampaignText] = useState(DEFAULT_CAMPAIGN_TEXT);
   const [campaignCopied, setCampaignCopied] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -118,13 +129,16 @@ const CatalogPDF = () => {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("store_slug, store_logo_url, catalog_share_image_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
+      .select("store_slug, store_logo_url, catalog_share_image_url, catalog_share_code, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
       .eq("id", user.id)
       .single();
 
     if (profileData) {
       setStoreProfile(profileData);
       setShareImageUrl(profileData.catalog_share_image_url ?? null);
+      if (isValidShareCode(profileData.catalog_share_code)) {
+        setShareCode(profileData.catalog_share_code as string);
+      }
     }
   };
 
@@ -1133,6 +1147,11 @@ const CatalogPDF = () => {
 
           if (publicUrl) {
             setCatalogUrl(publicUrl);
+            // Register this as the store's current catalog: the permanent
+            // short link keeps working and now resolves to this file.
+            await setCurrentCatalog(uploadData.path, publicUrl);
+            const code = shareCode ?? (await ensureCatalogShareCode());
+            if (code) setShareCode(code);
           }
         }
       } catch (e) {
@@ -1162,29 +1181,44 @@ const CatalogPDF = () => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Ensures the physical catalog exists in storage and is registered as the
+   * store's current catalog, then returns the canonical ShopDrive short link.
+   */
+  const resolveCanonicalUrl = async (): Promise<string | null> => {
+    let physicalUrl = catalogUrl;
+
+    if (!physicalUrl && pdfBlob && user?.id) {
+      const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      physicalUrl = supabase.storage
+        .from("product-images")
+        .getPublicUrl(uploadData.path).data.publicUrl;
+
+      if (physicalUrl) {
+        setCatalogUrl(physicalUrl);
+        await setCurrentCatalog(uploadData.path, physicalUrl);
+      }
+    }
+
+    if (!physicalUrl) return null;
+
+    const code = shareCode ?? (await ensureCatalogShareCode());
+    if (!code) return null;
+    if (code !== shareCode) setShareCode(code);
+    return buildCanonicalCatalogUrl(code);
+  };
+
   const handleCopyUrl = async () => {
     try {
       setIsCopyingLink(true);
 
-      let url = catalogUrl;
-
-      if (!url && pdfBlob && user?.id) {
-        const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const publicUrl = supabase.storage
-          .from("product-images")
-          .getPublicUrl(uploadData.path).data.publicUrl;
-
-        if (publicUrl) {
-          url = publicUrl;
-          setCatalogUrl(publicUrl);
-        }
-      }
+      const url = await resolveCanonicalUrl();
 
       if (url) {
         await navigator.clipboard.writeText(url);
@@ -1214,14 +1248,11 @@ const CatalogPDF = () => {
     setCatalogLayout('layout_01');
     setShowPrices(true);
     setCoverMessage('');
-    setCampaignMessage('');
+    setCampaignText(DEFAULT_CAMPAIGN_TEXT);
     setCampaignCopied(false);
   };
 
-  const getStoreUrl = () => {
-    if (!storeProfile?.store_slug) return '';
-    return `${window.location.origin}/${storeProfile.store_slug}`;
-  };
+  const getStoreUrl = () => buildStoreUrl(storeProfile?.store_slug);
 
   const getWhatsAppDisplay = () => {
     if (!storeProfile?.whatsapp_number) return '';
@@ -1233,15 +1264,14 @@ const CatalogPDF = () => {
     return d;
   };
 
-  const buildCampaignMessage = (url: string) => {
-    const storeUrl = getStoreUrl();
-    const whatsappDisplay = getWhatsAppDisplay();
-    let msg = `Olá! 😊\n\nPreparamos nosso catálogo atualizado com vários produtos disponíveis.\n\n📄 Veja o catálogo completo:\n${url}`;
-    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
-    if (whatsappDisplay) msg += `\n\n📲 Fale conosco no WhatsApp:\n${whatsappDisplay}`;
-    msg += `\n\nEsperamos seu pedido!`;
-    return msg;
-  };
+  // Single source of truth: editable commercial text + platform-managed blocks.
+  const buildCampaignMessage = (canonicalUrl: string) =>
+    composeCampaignMessage({
+      editableText: campaignText,
+      catalogUrl: canonicalUrl,
+      storeUrl: getStoreUrl(),
+      whatsappDisplay: getWhatsAppDisplay(),
+    });
 
   const openWhatsAppText = (msg: string) => {
     const encoded = encodeURIComponent(msg);
@@ -1260,15 +1290,19 @@ const CatalogPDF = () => {
   };
 
   const handleShareWhatsApp = async () => {
-    if (!catalogUrl) {
+    let canonicalUrl: string | null = null;
+    try {
+      canonicalUrl = await resolveCanonicalUrl();
+    } catch {
+      canonicalUrl = null;
+    }
+
+    if (!canonicalUrl) {
       toast.error("Aguarde a geração do link do catálogo");
       return;
     }
 
-    const storeUrl = getStoreUrl();
-    let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
-    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
-    msg += `\n\nResponderemos com prazer!`;
+    const msg = buildCampaignMessage(canonicalUrl);
 
     // Dynamic resolution: custom image -> current store logo -> text only
     const effectiveImageUrl = resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url);
@@ -1305,7 +1339,12 @@ const CatalogPDF = () => {
 
   const handleCopyCampaignMessage = async () => {
     try {
-      await navigator.clipboard.writeText(campaignMessage);
+      const canonicalUrl = await resolveCanonicalUrl();
+      if (!canonicalUrl) {
+        toast.error("Aguarde a geração do link do catálogo");
+        return;
+      }
+      await navigator.clipboard.writeText(buildCampaignMessage(canonicalUrl));
       setCampaignCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCampaignCopied(false), 2000);
@@ -1314,12 +1353,17 @@ const CatalogPDF = () => {
     }
   };
 
-  // Build campaign message when catalog URL becomes available
+  // Canonical short link shown to the merchant (platform-managed, not editable)
+  const canonicalCatalogUrl = shareCode ? buildCanonicalCatalogUrl(shareCode) : null;
+
+  // Ensure a permanent share code exists as soon as a catalog is available
   useEffect(() => {
-    if (catalogUrl && pdfGenerated) {
-      setCampaignMessage(buildCampaignMessage(catalogUrl));
+    if (pdfGenerated && catalogUrl && !shareCode) {
+      ensureCatalogShareCode().then((code) => {
+        if (code) setShareCode(code);
+      });
     }
-  }, [catalogUrl, pdfGenerated]);
+  }, [pdfGenerated, catalogUrl, shareCode]);
 
   const canGenerate = filterType === "all" || 
     filterType === "list" ||
@@ -1432,33 +1476,76 @@ const CatalogPDF = () => {
 
 
 
-              {/* Campaign message card */}
-              {campaignMessage && (
-                <div className="mt-8 max-w-xl mx-auto">
-                  <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyCampaignMessage}
-                        className="gap-1.5"
-                        style={{ borderColor: primaryColor, color: primaryColor }}
-                      >
-                        {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
-                      </Button>
-                    </div>
+              {/* Campaign message card: editable commercial text + protected structural blocks */}
+              <div className="mt-8 max-w-xl mx-auto text-left">
+                <div className="bg-muted/50 border border-border rounded-lg p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-foreground">Mensagem pronta de divulgação</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyCampaignMessage}
+                      className="gap-1.5 shrink-0"
+                      style={{ borderColor: primaryColor, color: primaryColor }}
+                    >
+                      {campaignCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {campaignCopied ? 'Copiada!' : 'Copiar mensagem'}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="campaign-text" className="text-xs font-medium">
+                      Seu texto de divulgação
+                    </Label>
                     <Textarea
-                      value={campaignMessage}
-                      onChange={(e) => setCampaignMessage(e.target.value)}
-                      rows={10}
+                      id="campaign-text"
+                      value={campaignText}
+                      onChange={(e) => setCampaignText(e.target.value)}
+                      rows={5}
                       className="text-sm bg-background"
                     />
-                    <p className="text-xs text-muted-foreground">Edite a mensagem acima antes de compartilhar, se desejar.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Personalize livremente este texto. Os links abaixo são incluídos automaticamente.
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border border-dashed border-border bg-background/60 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Informações incluídas automaticamente</p>
+
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-muted-foreground">📄 Catálogo:</p>
+                      <p className="text-xs font-medium break-all text-foreground">
+                        {canonicalCatalogUrl ?? 'Será gerado ao compartilhar'}
+                      </p>
+                    </div>
+
+                    {getStoreUrl() && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground">🛒 Loja:</p>
+                        <p className="text-xs font-medium break-all text-foreground">{getStoreUrl()}</p>
+                      </div>
+                    )}
+
+                    {getWhatsAppDisplay() && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground">📲 WhatsApp:</p>
+                        <p className="text-xs font-medium text-foreground">{getWhatsAppDisplay()}</p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Esses dados vêm das configurações da sua loja e não podem ser editados aqui.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-foreground">Prévia do que será enviado</p>
+                    <pre className="whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3 text-xs text-foreground">
+{buildCampaignMessage(canonicalCatalogUrl ?? `${'https://shopdrive.com.br/catalogo/…'}`)}
+                    </pre>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         )}

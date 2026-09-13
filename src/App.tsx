@@ -51,6 +51,7 @@ import ComingSoon from "./pages/ComingSoon";
 import StoreSearchResults from "./pages/StoreSearchResults";
 import ResaleLanding from "./pages/ResaleLanding";
 import PublicQuote from "./pages/PublicQuote";
+import CatalogShareRedirect from "./pages/CatalogShareRedirect";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import { MerchantRoute } from "./components/MerchantRoute";
@@ -194,6 +195,9 @@ function App() {
 
               {/* Public Quote Route */}
               <Route path="/public/orcamento/:token" element={<PublicQuote />} />
+
+              {/* Canonical short catalog link */}
+              <Route path="/catalogo/:shareCode" element={<CatalogShareRedirect />} />
 
               {/* Short Store URLs — /:storeSlug/* (guarded against reserved slugs) */}
               <Route path="/:storeSlug" element={<StoreSlugGuard><OnlineStore /></StoreSlugGuard>} />
