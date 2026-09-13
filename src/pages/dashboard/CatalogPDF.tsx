@@ -19,6 +19,8 @@ import iconMapPin from "@/assets/icon-map-pin.jpg";
 import CatalogLayoutSelector, { type CatalogLayoutType } from "@/components/catalog/CatalogLayoutSelector";
 import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
 import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
+import CatalogShareImageSection from "@/components/catalog/CatalogShareImageSection";
+import { fetchImageAsFile, resolveEffectiveShareImage } from "@/lib/catalogShareImage";
 
 interface Product {
   id: string;
@@ -39,6 +41,7 @@ interface Category {
 interface StoreProfile {
   store_slug: string;
   store_logo_url: string | null;
+  catalog_share_image_url: string | null;
   address: string | null;
   address_number: string | null;
   address_neighborhood: string | null;
