@@ -81,6 +81,8 @@ const CatalogPDF = () => {
   const [coverMessage, setCoverMessage] = useState('');
   const [campaignMessage, setCampaignMessage] = useState('');
   const [campaignCopied, setCampaignCopied] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   useEffect(() => {
     if (user) {
       fetchData();
@@ -116,7 +118,7 @@ const CatalogPDF = () => {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("store_slug, store_logo_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
+      .select("store_slug, store_logo_url, catalog_share_image_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
       .eq("id", user.id)
       .single();
 
