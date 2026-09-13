@@ -19,6 +19,8 @@ import iconMapPin from "@/assets/icon-map-pin.jpg";
 import CatalogLayoutSelector, { type CatalogLayoutType } from "@/components/catalog/CatalogLayoutSelector";
 import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
 import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
+import CatalogShareImageSection from "@/components/catalog/CatalogShareImageSection";
+import { fetchImageAsFile, resolveEffectiveShareImage } from "@/lib/catalogShareImage";
 
 interface Product {
   id: string;
@@ -39,6 +41,7 @@ interface Category {
 interface StoreProfile {
   store_slug: string;
   store_logo_url: string | null;
+  catalog_share_image_url: string | null;
   address: string | null;
   address_number: string | null;
   address_neighborhood: string | null;
@@ -78,6 +81,8 @@ const CatalogPDF = () => {
   const [coverMessage, setCoverMessage] = useState('');
   const [campaignMessage, setCampaignMessage] = useState('');
   const [campaignCopied, setCampaignCopied] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   useEffect(() => {
     if (user) {
       fetchData();
@@ -113,12 +118,13 @@ const CatalogPDF = () => {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("store_slug, store_logo_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
+      .select("store_slug, store_logo_url, catalog_share_image_url, address, address_number, address_neighborhood, address_city, address_state, address_zip_code, email, whatsapp_number, primary_color")
       .eq("id", user.id)
       .single();
 
     if (profileData) {
       setStoreProfile(profileData);
+      setShareImageUrl(profileData.catalog_share_image_url ?? null);
     }
   };
 
@@ -1237,17 +1243,64 @@ const CatalogPDF = () => {
     return msg;
   };
 
-  const handleShareWhatsApp = () => {
+  const openWhatsAppText = (msg: string) => {
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadShareImage = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShareWhatsApp = async () => {
     if (!catalogUrl) {
       toast.error("Aguarde a geração do link do catálogo");
       return;
     }
+
     const storeUrl = getStoreUrl();
     let msg = `Olá! 😊\n\nConfira nosso catálogo atualizado de produtos.\n\n📄 Catálogo completo:\n${catalogUrl}`;
     if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
     msg += `\n\nResponderemos com prazer!`;
-    const encoded = encodeURIComponent(msg);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+
+    // Dynamic resolution: custom image -> current store logo -> text only
+    const effectiveImageUrl = resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url);
+
+    if (!effectiveImageUrl) {
+      openWhatsAppText(msg);
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      const file = await fetchImageAsFile(effectiveImageUrl);
+
+      if (file && typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ text: msg, files: [file] });
+          return;
+        } catch (err) {
+          // User cancelled the native share sheet: do nothing else.
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+        }
+      }
+
+      // Fallback: keep the existing text flow and hand the image over for manual attachment.
+      openWhatsAppText(msg);
+      if (file) {
+        downloadShareImage(file);
+        toast.info("Seu navegador não permite anexar a imagem automaticamente. A imagem de divulgação foi baixada para você anexar no WhatsApp.");
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleCopyCampaignMessage = async () => {
@@ -1356,10 +1409,10 @@ const CatalogPDF = () => {
                 </Button>
                 <Button 
                   onClick={handleShareWhatsApp}
-                  disabled={!catalogUrl}
+                  disabled={!catalogUrl || isSharing}
                   className="gap-2 bg-green-600 text-white hover:bg-green-700"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  {isSharing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
                   Enviar pelo WhatsApp
                 </Button>
                 <Button 
@@ -1372,6 +1425,12 @@ const CatalogPDF = () => {
                   Gerar Novo Catálogo
                 </Button>
               </div>
+
+              {resolveEffectiveShareImage(shareImageUrl, storeProfile?.store_logo_url) && (
+                <p className="mt-3 text-xs text-muted-foreground">Imagem de divulgação incluída</p>
+              )}
+
+
 
               {/* Campaign message card */}
               {campaignMessage && (
@@ -1511,6 +1570,15 @@ const CatalogPDF = () => {
                   />
                   <p className="text-xs text-muted-foreground">{coverMessage.length}/60 caracteres</p>
                 </div>
+
+                {/* WhatsApp share image (not part of the PDF) */}
+                <CatalogShareImageSection
+                  userId={user?.id}
+                  customImageUrl={shareImageUrl}
+                  storeLogoUrl={storeProfile?.store_logo_url ?? null}
+                  onChange={setShareImageUrl}
+                  primaryColor={buttonBgColor}
+                />
 
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">

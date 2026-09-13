@@ -3501,6 +3501,7 @@ export type Database = {
           button_bg_color: string | null
           button_border_style: string | null
           button_text_color: string | null
+          catalog_share_image_url: string | null
           checkout_require_address: boolean | null
           checkout_require_cpf: boolean | null
           checkout_require_email: boolean | null
@@ -3620,6 +3621,7 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          catalog_share_image_url?: string | null
           checkout_require_address?: boolean | null
           checkout_require_cpf?: boolean | null
           checkout_require_email?: boolean | null
@@ -3739,6 +3741,7 @@ export type Database = {
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          catalog_share_image_url?: string | null
           checkout_require_address?: boolean | null
           checkout_require_cpf?: boolean | null
           checkout_require_email?: boolean | null
