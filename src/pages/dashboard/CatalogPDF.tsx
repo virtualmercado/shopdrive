@@ -1252,10 +1252,7 @@ const CatalogPDF = () => {
     setCampaignCopied(false);
   };
 
-  const getStoreUrl = () => {
-    if (!storeProfile?.store_slug) return '';
-    return `${window.location.origin}/${storeProfile.store_slug}`;
-  };
+  const getStoreUrl = () => buildStoreUrl(storeProfile?.store_slug);
 
   const getWhatsAppDisplay = () => {
     if (!storeProfile?.whatsapp_number) return '';
@@ -1267,15 +1264,14 @@ const CatalogPDF = () => {
     return d;
   };
 
-  const buildCampaignMessage = (url: string) => {
-    const storeUrl = getStoreUrl();
-    const whatsappDisplay = getWhatsAppDisplay();
-    let msg = `Olá! 😊\n\nPreparamos nosso catálogo atualizado com vários produtos disponíveis.\n\n📄 Veja o catálogo completo:\n${url}`;
-    if (storeUrl) msg += `\n\n🛒 Visite nossa loja:\n${storeUrl}`;
-    if (whatsappDisplay) msg += `\n\n📲 Fale conosco no WhatsApp:\n${whatsappDisplay}`;
-    msg += `\n\nEsperamos seu pedido!`;
-    return msg;
-  };
+  // Single source of truth: editable commercial text + platform-managed blocks.
+  const buildCampaignMessage = (canonicalUrl: string) =>
+    composeCampaignMessage({
+      editableText: campaignText,
+      catalogUrl: canonicalUrl,
+      storeUrl: getStoreUrl(),
+      whatsappDisplay: getWhatsAppDisplay(),
+    });
 
   const openWhatsAppText = (msg: string) => {
     const encoded = encodeURIComponent(msg);
