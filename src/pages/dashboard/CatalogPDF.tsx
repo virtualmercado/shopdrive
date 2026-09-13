@@ -1409,10 +1409,10 @@ const CatalogPDF = () => {
                 </Button>
                 <Button 
                   onClick={handleShareWhatsApp}
-                  disabled={!catalogUrl}
+                  disabled={!catalogUrl || isSharing}
                   className="gap-2 bg-green-600 text-white hover:bg-green-700"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  {isSharing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
                   Enviar pelo WhatsApp
                 </Button>
                 <Button 
@@ -1564,6 +1564,15 @@ const CatalogPDF = () => {
                   />
                   <p className="text-xs text-muted-foreground">{coverMessage.length}/60 caracteres</p>
                 </div>
+
+                {/* WhatsApp share image (not part of the PDF) */}
+                <CatalogShareImageSection
+                  userId={user?.id}
+                  customImageUrl={shareImageUrl}
+                  storeLogoUrl={storeProfile?.store_logo_url ?? null}
+                  onChange={setShareImageUrl}
+                  primaryColor={buttonBgColor}
+                />
 
                 {showProductsPerPageSelector && (
                   <div className="space-y-3">
