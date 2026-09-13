@@ -124,6 +124,7 @@ const CatalogPDF = () => {
 
     if (profileData) {
       setStoreProfile(profileData);
+      setShareImageUrl(profileData.catalog_share_image_url ?? null);
     }
   };
 
