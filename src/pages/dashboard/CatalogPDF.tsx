@@ -51,6 +51,7 @@ interface StoreProfile {
   store_slug: string;
   store_logo_url: string | null;
   catalog_share_image_url: string | null;
+  catalog_share_code?: string | null;
   address: string | null;
   address_number: string | null;
   address_neighborhood: string | null;
@@ -89,7 +90,7 @@ const CatalogPDF = () => {
   const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
   const [showPrices, setShowPrices] = useState(true);
   const [coverMessage, setCoverMessage] = useState('');
-  const [campaignMessage, setCampaignMessage] = useState('');
+  const [campaignText, setCampaignText] = useState(DEFAULT_CAMPAIGN_TEXT);
   const [campaignCopied, setCampaignCopied] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -1146,6 +1147,11 @@ const CatalogPDF = () => {
 
           if (publicUrl) {
             setCatalogUrl(publicUrl);
+            // Register this as the store's current catalog: the permanent
+            // short link keeps working and now resolves to this file.
+            await setCurrentCatalog(uploadData.path, publicUrl);
+            const code = shareCode ?? (await ensureCatalogShareCode());
+            if (code) setShareCode(code);
           }
         }
       } catch (e) {
@@ -1175,29 +1181,44 @@ const CatalogPDF = () => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Ensures the physical catalog exists in storage and is registered as the
+   * store's current catalog, then returns the canonical ShopDrive short link.
+   */
+  const resolveCanonicalUrl = async (): Promise<string | null> => {
+    let physicalUrl = catalogUrl;
+
+    if (!physicalUrl && pdfBlob && user?.id) {
+      const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      physicalUrl = supabase.storage
+        .from("product-images")
+        .getPublicUrl(uploadData.path).data.publicUrl;
+
+      if (physicalUrl) {
+        setCatalogUrl(physicalUrl);
+        await setCurrentCatalog(uploadData.path, physicalUrl);
+      }
+    }
+
+    if (!physicalUrl) return null;
+
+    const code = shareCode ?? (await ensureCatalogShareCode());
+    if (!code) return null;
+    if (code !== shareCode) setShareCode(code);
+    return buildCanonicalCatalogUrl(code);
+  };
+
   const handleCopyUrl = async () => {
     try {
       setIsCopyingLink(true);
 
-      let url = catalogUrl;
-
-      if (!url && pdfBlob && user?.id) {
-        const fileName = `${user.id}/catalogs/${Date.now()}-catalogo.pdf`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const publicUrl = supabase.storage
-          .from("product-images")
-          .getPublicUrl(uploadData.path).data.publicUrl;
-
-        if (publicUrl) {
-          url = publicUrl;
-          setCatalogUrl(publicUrl);
-        }
-      }
+      const url = await resolveCanonicalUrl();
 
       if (url) {
         await navigator.clipboard.writeText(url);
@@ -1227,7 +1248,7 @@ const CatalogPDF = () => {
     setCatalogLayout('layout_01');
     setShowPrices(true);
     setCoverMessage('');
-    setCampaignMessage('');
+    setCampaignText(DEFAULT_CAMPAIGN_TEXT);
     setCampaignCopied(false);
   };
 
