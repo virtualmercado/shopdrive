@@ -516,6 +516,17 @@ const AdminSubscribers = () => {
                               <ArrowUpCircle className="h-4 w-4 mr-2" />
                               Alterar Plano
                             </DropdownMenuItem>
+                            {trialMap?.[subscriber.id]?.active ? (
+                              <DropdownMenuItem onClick={() => handleManageTrial(subscriber)}>
+                                <Gift className="h-4 w-4 mr-2" />
+                                Gerenciar degustação
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleGrantTrial(subscriber)}>
+                                <Gift className="h-4 w-4 mr-2" />
+                                Conceder degustação
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => handleFinancialHistory(subscriber)}>
                               <History className="h-4 w-4 mr-2" />
                               Histórico Financeiro
