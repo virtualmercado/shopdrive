@@ -240,6 +240,9 @@ const AdminSubscribers = () => {
   const safePage = Math.min(currentPage, totalPages);
   const subscribers = filteredSubscribers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  // Temporary plan trials (entitlements) for the visible page only
+  const { data: trialMap } = useAdminPlanTrials(subscribers.map((s) => s.id));
+
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
