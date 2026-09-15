@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveBanners } from "@/lib/defaultBanners";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { normalizeStoreLayout, type StoreLayoutType } from "@/lib/storeLayout";
+import { normalizeMainBannerContent, type MainBannerSlideContent } from "@/lib/mainBannerContent";
 
 type StoreModelType = "loja_virtual" | "catalogo_digital";
 
@@ -36,6 +37,7 @@ interface StoreData {
   banner_mobile_url: string;
   banner_desktop_urls?: string[];
   banner_mobile_urls?: string[];
+  main_banner_content?: MainBannerSlideContent[];
   banner_rect_1_url: string;
   banner_rect_2_url: string;
   // New minibanner fields for 2-image system
@@ -118,6 +120,7 @@ const OnlineStoreContent = () => {
         ...data,
         banner_desktop_urls: desktopUrls,
         banner_mobile_urls: mobileUrls,
+        main_banner_content: normalizeMainBannerContent(data.main_banner_content),
         topbar_link_type: (data.topbar_link_type as StoreData["topbar_link_type"]) || "none",
         // YouTube video fields
         home_video_enabled: (data as any).home_video_enabled || false,
@@ -262,6 +265,7 @@ const OnlineStoreContent = () => {
           <StoreBanner
             desktopBannerUrls={effectiveBanners.desktopBanners}
             mobileBannerUrls={effectiveBanners.mobileBanners}
+            slideContent={storeData.main_banner_content}
           />
         );
       })()}

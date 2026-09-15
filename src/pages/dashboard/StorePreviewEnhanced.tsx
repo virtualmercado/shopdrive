@@ -25,6 +25,14 @@ import { useAuth } from "@/hooks/useAuth";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
 import ContentBannerCard from "@/components/customize/ContentBannerCard";
+import MainBannerContentEditor from "@/components/customize/MainBannerContentEditor";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  EMPTY_MAIN_BANNER_CONTENT,
+  normalizeMainBannerContent,
+  removeMainBannerContentAt,
+  type MainBannerSlideContent,
+} from "@/lib/mainBannerContent";
 
 const StorePreviewEnhanced = () => {
   const { user } = useAuth();
@@ -79,6 +87,7 @@ const StorePreviewEnhanced = () => {
     address_zip_code: "",
     banner_desktop_urls: [] as string[],
     banner_mobile_urls: [] as string[],
+    main_banner_content: [] as MainBannerSlideContent[],
     is_maintenance_mode: false,
     // YouTube video fields
     home_video_enabled: false,
@@ -143,6 +152,7 @@ const StorePreviewEnhanced = () => {
           address_zip_code: data.address_zip_code || "",
           banner_desktop_urls: (data.banner_desktop_urls as string[]) || [],
           banner_mobile_urls: (data.banner_mobile_urls as string[]) || [],
+          main_banner_content: normalizeMainBannerContent(data.main_banner_content),
           is_maintenance_mode: data.is_maintenance_mode || false,
           // YouTube video fields
           home_video_enabled: (data as any).home_video_enabled || false,
@@ -338,7 +348,10 @@ const StorePreviewEnhanced = () => {
       ? ("banner_desktop_url" as const)
       : ("banner_mobile_url" as const);
 
-    setStoreData({ ...storeData, [arrayField]: newUrls, [legacyField]: "" });
+    const nextContent = arrayField === "banner_mobile_urls"
+      ? storeData.main_banner_content
+      : removeMainBannerContentAt(storeData.main_banner_content, index);
+    setStoreData({ ...storeData, [arrayField]: newUrls, [legacyField]: "", main_banner_content: nextContent });
 
     // Salvar automaticamente no banco
     try {
@@ -347,7 +360,11 @@ const StorePreviewEnhanced = () => {
 
       await supabase
         .from("profiles")
-        .update({ [arrayField]: newUrls, [legacyField]: null } as any)
+        .update({
+          [arrayField]: newUrls,
+          [legacyField]: null,
+          ...(arrayField === "banner_desktop_urls" ? { main_banner_content: nextContent } : {}),
+        } as any)
         .eq("id", user.id);
 
       toast({ title: "Imagem removida e alterações salvas" });
@@ -595,11 +612,13 @@ const StorePreviewEnhanced = () => {
     
     // Remove the URL at the specific slot index
     const newUrls = currentUrls.filter((_, i) => i !== slotIndex);
+    const nextContent = removeMainBannerContentAt(storeData.main_banner_content, slotIndex);
 
     setStoreData({ 
       ...storeData, 
       banner_desktop_urls: newUrls, 
       banner_desktop_url: "" 
+      ,main_banner_content: nextContent
     });
 
     try {
@@ -608,7 +627,7 @@ const StorePreviewEnhanced = () => {
 
       await supabase
         .from("profiles")
-        .update({ banner_desktop_urls: newUrls, banner_desktop_url: null })
+        .update({ banner_desktop_urls: newUrls, banner_desktop_url: null, main_banner_content: nextContent })
         .eq("id", user.id);
 
       toast({ title: "Banner removido e alterações salvas" });
@@ -636,6 +655,7 @@ const StorePreviewEnhanced = () => {
         .update({
           ...payload,
           content_banners: payload.content_banners as unknown as import("@/integrations/supabase/types").Json,
+           main_banner_content: payload.main_banner_content as unknown as import("@/integrations/supabase/types").Json,
           banner_desktop_url: null,
           banner_mobile_url: null,
           font_family: fontFamily,
@@ -1022,6 +1042,28 @@ const StorePreviewEnhanced = () => {
                             className="hidden"
                           />
                         </div>
+                      )}
+                      {hasImage && (
+                        <Accordion type="single" collapsible className="mt-2 rounded-md border px-3">
+                          <AccordionItem value={`banner-content-${slotIndex}`} className="border-0">
+                            <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                              Conteúdo do banner (opcional)
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <MainBannerContentEditor
+                                imageUrl={url}
+                                slideIndex={slotIndex}
+                                value={storeData.main_banner_content[slotIndex]}
+                                onChange={(content) => {
+                                  const nextContent = [...storeData.main_banner_content];
+                                  while (nextContent.length <= slotIndex) nextContent.push({ ...EMPTY_MAIN_BANNER_CONTENT });
+                                  nextContent[slotIndex] = content;
+                                  setStoreData({ ...storeData, main_banner_content: nextContent });
+                                }}
+                              />
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                       )}
                     </div>
                   );

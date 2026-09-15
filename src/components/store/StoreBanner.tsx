@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import HeroBannerSlide from "./HeroBannerSlide";
+import { isInternalBannerUrl, type MainBannerSlideContent } from "@/lib/mainBannerContent";
 
 interface StoreBannerProps {
   desktopBannerUrls?: string[];
   mobileBannerUrls?: string[];
+  slideContent?: MainBannerSlideContent[];
 }
 
-const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBannerProps) => {
+const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [], slideContent = [] }: StoreBannerProps) => {
+  const navigate = useNavigate();
   const [currentDesktopIndex, setCurrentDesktopIndex] = useState(0);
   const [currentMobileIndex, setCurrentMobileIndex] = useState(0);
   const [isDesktopTransitioning, setIsDesktopTransitioning] = useState(false);
@@ -60,6 +65,14 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
     goToMobileSlide((currentMobileIndex - 1 + mobileBannerUrls.length) % mobileBannerUrls.length);
   };
 
+  const handleCtaClick = (url: string) => {
+    if (isInternalBannerUrl(url)) {
+      navigate(url);
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   if (desktopBannerUrls.length === 0 && mobileBannerUrls.length === 0) {
     return null;
   }
@@ -92,11 +105,12 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                 style={{ width: `${100 / desktopBannerUrls.length}%` }}
               >
                 <div className="w-full" style={{ aspectRatio: '1920 / 680' }}>
-                  <img
-                    src={url}
-                    alt={`Banner ${index + 1}`}
-                    className="w-full h-full object-cover object-center transition-transform duration-[400ms] ease-out will-change-transform group-hover:scale-[1.03]"
+                  <HeroBannerSlide
+                    imageUrl={url}
+                    imageAlt={`Banner ${index + 1}`}
+                    content={slideContent[index]}
                     loading={index === 0 ? "eager" : "lazy"}
+                    onCtaClick={handleCtaClick}
                   />
                 </div>
               </div>
@@ -142,11 +156,13 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
               >
                 {/* Mobile banner - image displayed fully without cropping */}
                 <div className="w-full">
-                  <img
-                    src={url}
-                    alt={`Banner ${index + 1}`}
-                    className="w-full h-auto object-contain object-center"
+                  <HeroBannerSlide
+                    imageUrl={url}
+                    imageAlt={`Banner ${index + 1}`}
+                    content={slideContent[index]}
+                    mobile
                     loading={index === 0 ? "eager" : "lazy"}
+                    onCtaClick={handleCtaClick}
                   />
                 </div>
               </div>
@@ -191,11 +207,13 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [] }: StoreBan
                 >
                   {/* Mobile fallback banner - image displayed fully without cropping */}
                   <div className="w-full">
-                    <img
-                      src={url}
-                      alt={`Banner ${index + 1}`}
-                      className="w-full h-auto object-contain object-center"
+                    <HeroBannerSlide
+                      imageUrl={url}
+                      imageAlt={`Banner ${index + 1}`}
+                      content={slideContent[index]}
+                      mobile
                       loading={index === 0 ? "eager" : "lazy"}
+                      onCtaClick={handleCtaClick}
                     />
                   </div>
                 </div>
