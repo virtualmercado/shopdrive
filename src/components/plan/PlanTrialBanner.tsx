@@ -76,7 +76,7 @@ export const PlanTrialBanner = () => {
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate("/gestor/financeiro")}>
+          <Button variant="outline" onClick={() => navigate("/lojista/financeiro")}>
             Ver planos
           </Button>
         </div>
@@ -117,7 +117,7 @@ export const PlanTrialBanner = () => {
         <Button
           className="shrink-0"
           onClick={() =>
-            navigate(`/gestor/financeiro?highlight=${trial.trial_plan.toLowerCase()}`)
+            navigate(`/lojista/financeiro?highlight=${trial.trial_plan.toLowerCase()}`)
           }
         >
           {urgent ? `Continuar com ${trialName}` : `Assinar ${trialName}`}
