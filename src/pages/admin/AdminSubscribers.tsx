@@ -664,6 +664,20 @@ const AdminSubscribers = () => {
           open={cloneModalOpen}
           onOpenChange={setCloneModalOpen}
         />
+
+        <GrantTrialModal
+          subscriber={selectedSubscriber}
+          history={selectedSubscriber ? trialMap?.[selectedSubscriber.id]?.history ?? [] : []}
+          open={grantTrialModalOpen}
+          onOpenChange={setGrantTrialModalOpen}
+        />
+
+        <ManageTrialModal
+          subscriber={selectedSubscriber}
+          trial={selectedSubscriber ? trialMap?.[selectedSubscriber.id]?.active ?? null : null}
+          open={manageTrialModalOpen}
+          onOpenChange={setManageTrialModalOpen}
+        />
       </div>
     </AdminLayout>
   );
