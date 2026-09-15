@@ -48,6 +48,7 @@ import {
   FileWarning,
   UserX,
   Loader2,
+  Gift,
   Copy as CopyIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -65,6 +66,10 @@ import { SuspendAccountModal } from "@/components/admin/SuspendAccountModal";
 import { BlockAccountModal } from "@/components/admin/BlockAccountModal";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 import { CloneStoreModal } from "@/components/admin/CloneStoreModal";
+import { GrantTrialModal } from "@/components/admin/GrantTrialModal";
+import { ManageTrialModal } from "@/components/admin/ManageTrialModal";
+import { useAdminPlanTrials, trialDaysLeft } from "@/hooks/useAdminPlanTrials";
+import { PLAN_DISPLAY_NAMES, getPlanFromPlanId } from "@/lib/planLimits";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
