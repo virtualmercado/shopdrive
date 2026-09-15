@@ -569,6 +569,7 @@ export type Database = {
           link_clicks: number
           link_created_at: string | null
           logo_url: string | null
+          main_banner_content: Json | null
           max_products: number
           minibanner_1_img2_url: string | null
           minibanner_2_img2_url: string | null
@@ -638,6 +639,7 @@ export type Database = {
           link_clicks?: number
           link_created_at?: string | null
           logo_url?: string | null
+          main_banner_content?: Json | null
           max_products?: number
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
@@ -707,6 +709,7 @@ export type Database = {
           link_clicks?: number
           link_created_at?: string | null
           logo_url?: string | null
+          main_banner_content?: Json | null
           max_products?: number
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
