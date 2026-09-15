@@ -91,6 +91,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [grantTrialModalOpen, setGrantTrialModalOpen] = useState(false);
+  const [manageTrialModalOpen, setManageTrialModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
