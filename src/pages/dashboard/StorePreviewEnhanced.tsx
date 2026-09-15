@@ -617,8 +617,8 @@ const StorePreviewEnhanced = () => {
     setStoreData({ 
       ...storeData, 
       banner_desktop_urls: newUrls, 
-      banner_desktop_url: "" 
-      ,main_banner_content: nextContent
+      banner_desktop_url: "",
+      main_banner_content: nextContent,
     });
 
     try {
@@ -655,7 +655,7 @@ const StorePreviewEnhanced = () => {
         .update({
           ...payload,
           content_banners: payload.content_banners as unknown as import("@/integrations/supabase/types").Json,
-           main_banner_content: payload.main_banner_content as unknown as import("@/integrations/supabase/types").Json,
+          main_banner_content: payload.main_banner_content as unknown as import("@/integrations/supabase/types").Json,
           banner_desktop_url: null,
           banner_mobile_url: null,
           font_family: fontFamily,
@@ -956,7 +956,7 @@ const StorePreviewEnhanced = () => {
               </p>
               
               {/* 4 Fixed slots for desktop banners */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {[0, 1, 2, 3].map((slotIndex) => {
                   const url = storeData.banner_desktop_urls[slotIndex];
                   const hasImage = !!url;

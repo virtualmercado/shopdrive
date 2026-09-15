@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBannerSlide from "./HeroBannerSlide";
 import { isInternalBannerUrl, type MainBannerSlideContent } from "@/lib/mainBannerContent";
@@ -15,6 +15,7 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [], slideConte
   const [currentMobileIndex, setCurrentMobileIndex] = useState(0);
   const [isDesktopTransitioning, setIsDesktopTransitioning] = useState(false);
   const [isMobileTransitioning, setIsMobileTransitioning] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   const goToDesktopSlide = useCallback((index: number) => {
     if (isDesktopTransitioning) return;
@@ -63,6 +64,19 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [], slideConte
 
   const prevMobile = () => {
     goToMobileSlide((currentMobileIndex - 1 + mobileBannerUrls.length) % mobileBannerUrls.length);
+  };
+
+  const handleTouchStart = (clientX: number) => {
+    touchStartX.current = clientX;
+  };
+
+  const handleTouchEnd = (clientX: number) => {
+    if (touchStartX.current === null) return;
+    const distance = clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(distance) < 45) return;
+    if (distance < 0) nextMobile();
+    else prevMobile();
   };
 
   const handleCtaClick = (url: string) => {
@@ -140,7 +154,11 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [], slideConte
       
       {/* Mobile Banner Carousel with Horizontal Slide - Only dots, no arrows */}
       {mobileBannerUrls.length > 0 ? (
-        <div className="md:hidden relative overflow-hidden">
+        <div
+          className="md:hidden relative overflow-hidden touch-pan-y"
+          onTouchStart={(event) => handleTouchStart(event.touches[0].clientX)}
+          onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}
+        >
           <div 
             className="flex transition-transform duration-500 ease-in-out"
             style={{ 
@@ -191,7 +209,11 @@ const StoreBanner = ({ desktopBannerUrls = [], mobileBannerUrls = [], slideConte
       ) : (
         // Fallback: use desktop banner on mobile if no mobile banner
         desktopBannerUrls.length > 0 && (
-          <div className="md:hidden overflow-hidden">
+          <div
+            className="md:hidden overflow-hidden touch-pan-y"
+            onTouchStart={(event) => handleTouchStart(event.touches[0].clientX)}
+            onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}
+          >
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{ 
