@@ -569,6 +569,7 @@ export type Database = {
           link_clicks: number
           link_created_at: string | null
           logo_url: string | null
+          main_banner_content: Json | null
           max_products: number
           minibanner_1_img2_url: string | null
           minibanner_2_img2_url: string | null
@@ -638,6 +639,7 @@ export type Database = {
           link_clicks?: number
           link_created_at?: string | null
           logo_url?: string | null
+          main_banner_content?: Json | null
           max_products?: number
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
@@ -707,6 +709,7 @@ export type Database = {
           link_clicks?: number
           link_created_at?: string | null
           logo_url?: string | null
+          main_banner_content?: Json | null
           max_products?: number
           minibanner_1_img2_url?: string | null
           minibanner_2_img2_url?: string | null
@@ -3606,6 +3609,7 @@ export type Database = {
           is_maintenance_mode: boolean | null
           is_template_profile: boolean | null
           last_activity: string | null
+          main_banner_content: Json | null
           merchant_city: string | null
           merchant_reference_cep: string | null
           merchant_state: string | null
@@ -3730,6 +3734,7 @@ export type Database = {
           is_maintenance_mode?: boolean | null
           is_template_profile?: boolean | null
           last_activity?: string | null
+          main_banner_content?: Json | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
@@ -3854,6 +3859,7 @@ export type Database = {
           is_maintenance_mode?: boolean | null
           is_template_profile?: boolean | null
           last_activity?: string | null
+          main_banner_content?: Json | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
@@ -5724,6 +5730,7 @@ export type Database = {
           id: string | null
           instagram_url: string | null
           is_maintenance_mode: boolean | null
+          main_banner_content: Json | null
           merchant_city: string | null
           merchant_reference_cep: string | null
           merchant_state: string | null
@@ -5803,6 +5810,7 @@ export type Database = {
           id?: string | null
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
+          main_banner_content?: Json | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null
@@ -5882,6 +5890,7 @@ export type Database = {
           id?: string | null
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
+          main_banner_content?: Json | null
           merchant_city?: string | null
           merchant_reference_cep?: string | null
           merchant_state?: string | null

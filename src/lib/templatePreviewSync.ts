@@ -230,7 +230,7 @@ export const syncTemplatePreviewState = async (
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, store_slug, updated_at, banner_desktop_urls, banner_mobile_urls, banner_desktop_url, banner_mobile_url, banner_rect_1_url, banner_rect_2_url, selected_benefit_banners, content_banners, content_banner_enabled, content_banner_image_url, button_bg_color, button_text_color, primary_color, secondary_color, store_layout, store_model, about_us_text')
+    .select('id, store_slug, updated_at, banner_desktop_urls, banner_mobile_urls, main_banner_content, banner_desktop_url, banner_mobile_url, banner_rect_1_url, banner_rect_2_url, selected_benefit_banners, content_banners, content_banner_enabled, content_banner_image_url, button_bg_color, button_text_color, primary_color, secondary_color, store_layout, store_model, about_us_text')
     .eq('id', sourceProfileId)
     .maybeSingle();
 
