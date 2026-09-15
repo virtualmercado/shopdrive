@@ -478,7 +478,17 @@ const AdminSubscribers = () => {
                         {subscriber.email}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{subscriber.planName}</Badge>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge variant="outline">{subscriber.planName}</Badge>
+                          {trialMap?.[subscriber.id]?.active && (
+                            <Badge className="border border-dashed border-primary/50 bg-primary/10 text-primary hover:bg-primary/10">
+                              <Gift className="mr-1 h-3 w-3" />
+                              {PLAN_DISPLAY_NAMES[getPlanFromPlanId(trialMap[subscriber.id].active!.trial_plan)].toUpperCase()}
+                              {" • TESTE "}
+                              {trialDaysLeft(trialMap[subscriber.id].active!.ends_at)}d
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
