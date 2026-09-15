@@ -16,6 +16,9 @@
   --merchant-primary-light: #6a1b9a15;
   --merchant-primary-ring: #6a1b9a33;
   --merchant-button-hover: #6a1b9add;
+  --hero-banner-shadow: 0 1px 3px rgb(0 0 0 / 0.72), 0 3px 14px rgb(0 0 0 / 0.42);
+  --hero-banner-shade: rgb(0 0 0 / 0.34);
+  --hero-banner-clear: rgb(0 0 0 / 0);
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
@@ -159,6 +162,36 @@ All colors MUST be HSL.
    ============================================ */
 
 @layer components {
+  .hero-banner-readable-left,
+  .hero-banner-readable-center,
+  .hero-banner-readable-right {
+    position: relative;
+    isolation: isolate;
+    text-shadow: var(--hero-banner-shadow);
+  }
+
+  .hero-banner-readable-left::before,
+  .hero-banner-readable-center::before,
+  .hero-banner-readable-right::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -2rem -3rem;
+    pointer-events: none;
+  }
+
+  .hero-banner-readable-left::before {
+    background: linear-gradient(90deg, var(--hero-banner-shade), var(--hero-banner-clear));
+  }
+
+  .hero-banner-readable-center::before {
+    background: radial-gradient(ellipse at center, var(--hero-banner-shade), var(--hero-banner-clear) 72%);
+  }
+
+  .hero-banner-readable-right::before {
+    background: linear-gradient(270deg, var(--hero-banner-shade), var(--hero-banner-clear));
+  }
+
   /* ==========================================
      RADIO BUTTONS - Global Merchant Styling
      Pattern: White background, merchant color border/indicator
