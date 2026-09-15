@@ -3069,6 +3069,60 @@ export type Database = {
           },
         ]
       }
+      plan_trials: {
+        Row: {
+          base_plan: string
+          converted_plan: string | null
+          created_at: string
+          end_reason: string | null
+          ended_at: string | null
+          ended_by: string | null
+          ends_at: string
+          granted_by: string | null
+          id: string
+          reason: string | null
+          started_at: string
+          status: string
+          store_id: string
+          trial_plan: string
+          updated_at: string
+        }
+        Insert: {
+          base_plan: string
+          converted_plan?: string | null
+          created_at?: string
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ends_at: string
+          granted_by?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          status?: string
+          store_id: string
+          trial_plan: string
+          updated_at?: string
+        }
+        Update: {
+          base_plan?: string
+          converted_plan?: string | null
+          created_at?: string
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ends_at?: string
+          granted_by?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          status?: string
+          store_id?: string
+          trial_plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_email_settings: {
         Row: {
           allow_tenant_custom_smtp: boolean
@@ -5883,6 +5937,14 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_end_plan_trial: {
+        Args: { p_reason?: string; p_trial_id: string }
+        Returns: Json
+      }
+      admin_grant_plan_trial: {
+        Args: { p_reason?: string; p_store_id: string; p_trial_plan: string }
+        Returns: Json
+      }
       apply_confirmed_plan_downgrade: {
         Args: { p_new_plan: string; p_store_id: string }
         Returns: number
@@ -5969,6 +6031,7 @@ export type Database = {
         Returns: boolean
       }
       ensure_catalog_share_code: { Args: never; Returns: string }
+      expire_plan_trials: { Args: never; Returns: Json }
       expire_stale_pix_payments: { Args: never; Returns: number }
       force_sync_brand_template: {
         Args: { p_template_id: string }
@@ -6002,6 +6065,7 @@ export type Database = {
           impressions: number
         }[]
       }
+      get_base_store_plan: { Args: { p_store_id: string }; Returns: string }
       get_effective_store_plan: { Args: { p_store_id: string }; Returns: Json }
       get_master_gateway_public_config: {
         Args: never
@@ -6088,12 +6152,17 @@ export type Database = {
         Returns: string
       }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
+      plan_rank: { Args: { _plan: string }; Returns: number }
       propagate_content_banner_from_template: {
         Args: { p_user_id: string }
         Returns: Json
       }
       reactivate_products_after_upgrade: {
         Args: { p_max_products: number; p_user_id: string }
+        Returns: number
+      }
+      reapply_plan_limits_after_trial: {
+        Args: { p_plan: string; p_store_id: string }
         Returns: number
       }
       recompute_product_popularity: {
