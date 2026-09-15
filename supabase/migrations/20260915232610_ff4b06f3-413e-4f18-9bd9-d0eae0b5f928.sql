@@ -1,0 +1,2 @@
+COMMENT ON COLUMN public.profiles.banner_desktop_urls IS 'Array de até 4 URLs de banners para desktop/tablet';
+COMMENT ON COLUMN public.profiles.banner_mobile_urls IS 'Array de até 3 URLs de banners para mobile';
