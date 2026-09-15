@@ -12,6 +12,7 @@ import ConversionFunnelCard from "@/components/dashboard/ConversionFunnelCard";
 import CartAbandonmentCard from "@/components/dashboard/CartAbandonmentCard";
 import SalesOriginCard from "@/components/dashboard/SalesOriginCard";
 import ReferralCard from "@/components/dashboard/ReferralCard";
+import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
 
 const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478", "#4472C4"];
 
@@ -100,6 +101,9 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Temporary plan trial notice */}
+        <PlanTrialBanner />
+
         {/* News Carousel */}
         <DashboardNewsCarousel />
         

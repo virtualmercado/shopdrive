@@ -48,6 +48,7 @@ import {
   FileWarning,
   UserX,
   Loader2,
+  Gift,
   Copy as CopyIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -65,6 +66,10 @@ import { SuspendAccountModal } from "@/components/admin/SuspendAccountModal";
 import { BlockAccountModal } from "@/components/admin/BlockAccountModal";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 import { CloneStoreModal } from "@/components/admin/CloneStoreModal";
+import { GrantTrialModal } from "@/components/admin/GrantTrialModal";
+import { ManageTrialModal } from "@/components/admin/ManageTrialModal";
+import { useAdminPlanTrials, trialDaysLeft } from "@/hooks/useAdminPlanTrials";
+import { PLAN_DISPLAY_NAMES, getPlanFromPlanId } from "@/lib/planLimits";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,6 +91,8 @@ const AdminSubscribers = () => {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [grantTrialModalOpen, setGrantTrialModalOpen] = useState(false);
+  const [manageTrialModalOpen, setManageTrialModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -235,6 +242,9 @@ const AdminSubscribers = () => {
   const safePage = Math.min(currentPage, totalPages);
   const subscribers = filteredSubscribers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  // Temporary plan trials (entitlements) for the visible page only
+  const { data: trialMap } = useAdminPlanTrials(subscribers.map((s) => s.id));
+
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
@@ -352,6 +362,16 @@ const AdminSubscribers = () => {
   const handleOpenClone = (subscriber: any) => {
     setSelectedSubscriber(subscriber);
     setCloneModalOpen(true);
+  };
+
+  const handleGrantTrial = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setGrantTrialModalOpen(true);
+  };
+
+  const handleManageTrial = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setManageTrialModalOpen(true);
   };
 
   return (
@@ -473,7 +493,17 @@ const AdminSubscribers = () => {
                         {subscriber.email}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{subscriber.planName}</Badge>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge variant="outline">{subscriber.planName}</Badge>
+                          {trialMap?.[subscriber.id]?.active && (
+                            <Badge className="border border-dashed border-primary/50 bg-primary/10 text-primary hover:bg-primary/10">
+                              <Gift className="mr-1 h-3 w-3" />
+                              {PLAN_DISPLAY_NAMES[getPlanFromPlanId(trialMap[subscriber.id].active!.trial_plan)].toUpperCase()}
+                              {" • TESTE "}
+                              {trialDaysLeft(trialMap[subscriber.id].active!.ends_at)}d
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -511,6 +541,17 @@ const AdminSubscribers = () => {
                               <ArrowUpCircle className="h-4 w-4 mr-2" />
                               Alterar Plano
                             </DropdownMenuItem>
+                            {trialMap?.[subscriber.id]?.active ? (
+                              <DropdownMenuItem onClick={() => handleManageTrial(subscriber)}>
+                                <Gift className="h-4 w-4 mr-2" />
+                                Gerenciar degustação
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleGrantTrial(subscriber)}>
+                                <Gift className="h-4 w-4 mr-2" />
+                                Conceder degustação
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => handleFinancialHistory(subscriber)}>
                               <History className="h-4 w-4 mr-2" />
                               Histórico Financeiro
@@ -658,6 +699,20 @@ const AdminSubscribers = () => {
           subscriber={selectedSubscriber}
           open={cloneModalOpen}
           onOpenChange={setCloneModalOpen}
+        />
+
+        <GrantTrialModal
+          subscriber={selectedSubscriber}
+          history={selectedSubscriber ? trialMap?.[selectedSubscriber.id]?.history ?? [] : []}
+          open={grantTrialModalOpen}
+          onOpenChange={setGrantTrialModalOpen}
+        />
+
+        <ManageTrialModal
+          subscriber={selectedSubscriber}
+          trial={selectedSubscriber ? trialMap?.[selectedSubscriber.id]?.active ?? null : null}
+          open={manageTrialModalOpen}
+          onOpenChange={setManageTrialModalOpen}
         />
       </div>
     </AdminLayout>
