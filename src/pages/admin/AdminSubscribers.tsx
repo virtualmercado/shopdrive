@@ -364,6 +364,16 @@ const AdminSubscribers = () => {
     setCloneModalOpen(true);
   };
 
+  const handleGrantTrial = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setGrantTrialModalOpen(true);
+  };
+
+  const handleManageTrial = (subscriber: any) => {
+    setSelectedSubscriber(subscriber);
+    setManageTrialModalOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
