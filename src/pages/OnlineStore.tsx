@@ -91,6 +91,12 @@ const OnlineStoreContent = () => {
     const fetchStoreData = async () => {
       if (!storeSlug) return;
 
+      // Storefronts must resolve for anonymous visitors. The base `profiles`
+      // table stays private (owner + admin only); `public_store_profiles` is a
+      // column-allowlisted view that runs with the view owner's privileges
+      // (security_invoker = off). Never switch that view to invoker mode
+      // without adding an equivalent public read surface, or every store will
+      // show "Loja não encontrada" for visitors without a session.
       const { data, error } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
