@@ -57,7 +57,19 @@ const AdminStoreOnboarding = () => {
   const [filter, setFilter] = useState<OnboardingAdminFilter>("incomplete");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const { rows, loading, recompute, setExempt } = useAdminOnboardingStores(filter, search);
+  const { rows, loading, recompute, setExempt, setAiAccess } = useAdminOnboardingStores(filter, search);
+
+  const handleAiAccess = async (storeId: string, enabled: boolean) => {
+    setBusyId(storeId);
+    try {
+      await setAiAccess({ storeId, enabled });
+      toast.success(enabled ? "IA de imagens autorizada para esta loja." : "Autorização de IA removida.");
+    } catch {
+      toast.error("Não foi possível atualizar a autorização de IA.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleRecompute = async (storeId: string) => {
     setBusyId(storeId);
@@ -146,6 +158,8 @@ const AdminStoreOnboarding = () => {
                     <TableHead>Progresso</TableHead>
                     <TableHead>Situação</TableHead>
                     <TableHead>Etapa atual</TableHead>
+                    <TableHead>Operacional</TableHead>
+                    <TableHead>IA</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
