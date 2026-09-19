@@ -109,48 +109,81 @@ export type Database = {
       }
       ai_media_generation_logs: {
         Row: {
+          applied_at: string | null
           created_at: string
+          discarded_at: string | null
+          duration_ms: number | null
           error_message: string | null
           finished_at: string | null
+          generation_id: string | null
           id: string
+          image_count: number
+          kind: string | null
           model_name: string | null
+          normalized_sizes: Json | null
           origin: string
+          output_desktop_url: string | null
+          output_mobile_url: string | null
           output_url: string | null
           prompt_summary: string | null
           request_payload: Json
+          source_sizes: Json | null
           status: string
           store_id: string
           target_slot: string | null
+          usage_payload: Json | null
           user_id: string
         }
         Insert: {
+          applied_at?: string | null
           created_at?: string
+          discarded_at?: string | null
+          duration_ms?: number | null
           error_message?: string | null
           finished_at?: string | null
+          generation_id?: string | null
           id?: string
+          image_count?: number
+          kind?: string | null
           model_name?: string | null
+          normalized_sizes?: Json | null
           origin: string
+          output_desktop_url?: string | null
+          output_mobile_url?: string | null
           output_url?: string | null
           prompt_summary?: string | null
           request_payload?: Json
+          source_sizes?: Json | null
           status?: string
           store_id: string
           target_slot?: string | null
+          usage_payload?: Json | null
           user_id: string
         }
         Update: {
+          applied_at?: string | null
           created_at?: string
+          discarded_at?: string | null
+          duration_ms?: number | null
           error_message?: string | null
           finished_at?: string | null
+          generation_id?: string | null
           id?: string
+          image_count?: number
+          kind?: string | null
           model_name?: string | null
+          normalized_sizes?: Json | null
           origin?: string
+          output_desktop_url?: string | null
+          output_mobile_url?: string | null
           output_url?: string | null
           prompt_summary?: string | null
           request_payload?: Json
+          source_sizes?: Json | null
           status?: string
           store_id?: string
           target_slot?: string | null
+          usage_payload?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -4573,6 +4606,9 @@ export type Database = {
       }
       store_onboarding_state: {
         Row: {
+          ai_enabled_at: string | null
+          ai_enabled_by: string | null
+          ai_image_enabled: boolean
           blocking_enabled: boolean
           classification: string
           completed_at: string | null
@@ -4594,6 +4630,9 @@ export type Database = {
           version: number
         }
         Insert: {
+          ai_enabled_at?: string | null
+          ai_enabled_by?: string | null
+          ai_image_enabled?: boolean
           blocking_enabled?: boolean
           classification?: string
           completed_at?: string | null
@@ -4615,6 +4654,9 @@ export type Database = {
           version?: number
         }
         Update: {
+          ai_enabled_at?: string | null
+          ai_enabled_by?: string | null
+          ai_image_enabled?: boolean
           blocking_enabled?: boolean
           classification?: string
           completed_at?: string | null
@@ -6165,6 +6207,10 @@ export type Database = {
       }
       admin_set_onboarding_exempt: {
         Args: { p_exempt: boolean; p_store_id: string }
+        Returns: Json
+      }
+      admin_set_store_ai_access: {
+        Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
       }
       apply_confirmed_plan_downgrade: {
