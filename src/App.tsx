@@ -22,6 +22,8 @@ import Support from "./pages/dashboard/Support";
 import Marketing from "./pages/dashboard/Marketing";
 import MarketingTutorial from "./pages/dashboard/MarketingTutorial";
 import Reviews from "./pages/dashboard/Reviews";
+import StoreOnboarding from "./pages/dashboard/StoreOnboarding";
+import AdminStoreOnboarding from "./pages/admin/AdminStoreOnboarding";
 
 import Shipping from "./pages/dashboard/Shipping";
 import PaymentMethods from "./pages/dashboard/PaymentMethods";
@@ -121,6 +123,7 @@ function App() {
               <Route path="/gestor/comando-ia" element={<AdminRoute><AdminCommandCenter /></AdminRoute>} />
               <Route path="/gestor/inteligencia-artificial" element={<AdminRoute><AdminAI /></AdminRoute>} />
               <Route path="/gestor/assinantes" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
+              <Route path="/gestor/configuracao-lojas" element={<AdminRoute><AdminStoreOnboarding /></AdminRoute>} />
               <Route path="/gestor/faturas" element={<AdminRoute><AdminInvoices /></AdminRoute>} />
               <Route path="/gestor/automacoes" element={<AdminRoute><AdminAutomations /></AdminRoute>} />
               <Route path="/gestor/comunicacao" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
@@ -165,6 +168,7 @@ function App() {
               <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
               <Route path="/lojista/marketing" element={<MerchantRoute><Marketing /></MerchantRoute>} />
               <Route path="/lojista/reviews" element={<MerchantRoute><Reviews /></MerchantRoute>} />
+              <Route path="/lojista/configuracao-loja" element={<MerchantRoute><StoreOnboarding /></MerchantRoute>} />
               <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
             </Route>
 

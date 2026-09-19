@@ -107,6 +107,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_media_generation_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          model_name: string | null
+          origin: string
+          output_url: string | null
+          prompt_summary: string | null
+          request_payload: Json
+          status: string
+          store_id: string
+          target_slot: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          model_name?: string | null
+          origin: string
+          output_url?: string | null
+          prompt_summary?: string | null
+          request_payload?: Json
+          status?: string
+          store_id: string
+          target_slot?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          model_name?: string | null
+          origin?: string
+          output_url?: string | null
+          prompt_summary?: string | null
+          request_payload?: Json
+          status?: string
+          store_id?: string
+          target_slot?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_product_logs: {
         Row: {
           benefits: string | null
@@ -2605,6 +2653,27 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_feature_flags: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          flag_key: string
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          flag_key: string
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          flag_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -4450,6 +4519,146 @@ export type Database = {
         }
         Relationships: []
       }
+      store_onboarding_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          step: string | null
+          store_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          step?: string | null
+          store_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          step?: string | null
+          store_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_onboarding_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_onboarding_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_onboarding_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_onboarding_state: {
+        Row: {
+          blocking_enabled: boolean
+          classification: string
+          completed_at: string | null
+          completion_snapshot: Json
+          created_at: string
+          current_step: string | null
+          last_activity_at: string | null
+          last_completed_step: string | null
+          manual_exempt: boolean
+          onboarding_completed: boolean
+          onboarding_required: boolean
+          onboarding_source: string | null
+          progress_percent: number
+          started_at: string | null
+          steps_status: Json
+          store_id: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          blocking_enabled?: boolean
+          classification?: string
+          completed_at?: string | null
+          completion_snapshot?: Json
+          created_at?: string
+          current_step?: string | null
+          last_activity_at?: string | null
+          last_completed_step?: string | null
+          manual_exempt?: boolean
+          onboarding_completed?: boolean
+          onboarding_required?: boolean
+          onboarding_source?: string | null
+          progress_percent?: number
+          started_at?: string | null
+          steps_status?: Json
+          store_id: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          blocking_enabled?: boolean
+          classification?: string
+          completed_at?: string | null
+          completion_snapshot?: Json
+          created_at?: string
+          current_step?: string | null
+          last_activity_at?: string | null
+          last_completed_step?: string | null
+          manual_exempt?: boolean
+          onboarding_completed?: boolean
+          onboarding_required?: boolean
+          onboarding_source?: string | null
+          progress_percent?: number
+          started_at?: string | null
+          steps_status?: Json
+          store_id?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_onboarding_state_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_onboarding_state_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_onboarding_state_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_product_views: {
         Row: {
           created_at: string
@@ -5954,6 +6163,10 @@ export type Database = {
         Args: { p_reason?: string; p_store_id: string; p_trial_plan: string }
         Returns: Json
       }
+      admin_set_onboarding_exempt: {
+        Args: { p_exempt: boolean; p_store_id: string }
+        Returns: Json
+      }
       apply_confirmed_plan_downgrade: {
         Args: { p_new_plan: string; p_store_id: string }
         Returns: number
@@ -5973,6 +6186,10 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_limit?: number; p_store_id: string }
         Returns: Json
       }
+      backfill_store_onboarding_states: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       clone_template_to_store: {
@@ -5989,6 +6206,10 @@ export type Database = {
       }
       complement_template_data_impl: {
         Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      compute_store_completion_snapshot: {
+        Args: { p_store_id: string }
         Returns: Json
       }
       copy_template_products_to_store: {
@@ -6177,6 +6398,10 @@ export type Database = {
       recompute_product_popularity: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      recompute_store_onboarding_state: {
+        Args: { p_store_id: string }
+        Returns: Json
       }
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }

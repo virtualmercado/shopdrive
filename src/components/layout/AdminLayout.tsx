@@ -18,6 +18,7 @@ import {
   Globe,
   Megaphone,
   LayoutTemplate,
+  ClipboardCheck,
   Settings
 } from "lucide-react";
 import sdLogo from "@/assets/logo-header-menu-sd.png";
@@ -42,6 +43,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { icon: Cpu, label: "Centro de Comando IA", path: "/gestor/comando-ia" },
     { icon: Brain, label: "Inteligência Artificial", path: "/gestor/inteligencia-artificial" },
     { icon: Users, label: "Assinantes", path: "/gestor/assinantes" },
+    { icon: ClipboardCheck, label: "Configuração das Lojas", path: "/gestor/configuracao-lojas" },
     { icon: FileText, label: "Faturas e Pagamentos", path: "/gestor/faturas" },
     { icon: Zap, label: "Automações", path: "/gestor/automacoes" },
     { icon: LayoutTemplate, label: "Templates por Marca", path: "/gestor/templates-marca" },
