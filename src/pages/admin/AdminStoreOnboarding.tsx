@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2 } from "lucide-react";
+import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
