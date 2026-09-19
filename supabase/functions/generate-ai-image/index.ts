@@ -254,7 +254,11 @@ serve(async (req) => {
           mobile_url: finalUrls.mobile,
         },
       });
-      await admin.rpc("recompute_store_onboarding_state", { p_store_id: storeId }).catch(() => null);
+      try {
+        await admin.rpc("recompute_store_onboarding_state", { p_store_id: storeId });
+      } catch (_err) {
+        // recomputação é best-effort; o banner já foi aplicado
+      }
 
       return json({ ok: true, applied: true, urls: finalUrls, slide_index: desktopList.length });
     }
