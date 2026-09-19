@@ -161,11 +161,23 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
   });
 
+  const setAiAccess = useMutation({
+    mutationFn: async ({ storeId, enabled }: { storeId: string; enabled: boolean }) => {
+      const { error } = await supabase.rpc("admin_set_store_ai_access", {
+        p_store_id: storeId,
+        p_enabled: enabled,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
+  });
+
   return {
     rows: query.data ?? [],
     loading: query.isLoading,
     refetch: query.refetch,
     recompute: recompute.mutateAsync,
     setExempt: setExempt.mutateAsync,
+    setAiAccess: setAiAccess.mutateAsync,
   };
 };
