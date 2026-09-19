@@ -24,6 +24,11 @@ export interface AdminOnboardingRow {
   onboarding_completed: boolean;
   onboarding_source: string | null;
   manual_exempt: boolean;
+  activation_readiness: "READY" | "NOT_READY";
+  ai_image_enabled: boolean;
+  ai_generations_24h: number;
+  ai_last_generation_at: string | null;
+  ai_last_error: string | null;
   metrics: {
     active_products?: number;
     categories?: number;
