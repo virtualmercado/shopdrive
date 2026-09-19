@@ -98,7 +98,7 @@ const ReviewStep = ({ state, storeSlug, onCompleted }: ReviewStepProps) => {
       <div className="flex flex-wrap gap-2">
         {storeSlug && (
           <Button variant="outline" asChild>
-            <a href={`/loja/${storeSlug}`} target="_blank" rel="noopener noreferrer">
+            <a href={`/${storeSlug}`} target="_blank" rel="noopener noreferrer">
               Visualizar minha loja <ExternalLink className="ml-2 h-4 w-4" />
             </a>
           </Button>
