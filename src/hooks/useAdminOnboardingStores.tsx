@@ -98,6 +98,15 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
           onboarding_completed: !!s.onboarding_completed,
           onboarding_source: s.onboarding_source,
           manual_exempt: !!s.manual_exempt,
+          activation_readiness:
+            (s.completion_snapshot?.activation_readiness as "READY" | "NOT_READY") ??
+            (s.classification === "STORE_RECOVERY_REQUIRED" || s.classification === "STORE_NEW_REQUIRED"
+              ? "NOT_READY"
+              : "READY"),
+          ai_image_enabled: !!s.ai_image_enabled,
+          ai_generations_24h: ai?.count ?? 0,
+          ai_last_generation_at: ai?.last ?? null,
+          ai_last_error: ai?.error ?? null,
           metrics: (s.completion_snapshot?.metrics ?? {}) as AdminOnboardingRow["metrics"],
         };
       });
