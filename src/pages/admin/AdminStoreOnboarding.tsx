@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2 } from "lucide-react";
+import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -57,7 +57,19 @@ const AdminStoreOnboarding = () => {
   const [filter, setFilter] = useState<OnboardingAdminFilter>("incomplete");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const { rows, loading, recompute, setExempt } = useAdminOnboardingStores(filter, search);
+  const { rows, loading, recompute, setExempt, setAiAccess } = useAdminOnboardingStores(filter, search);
+
+  const handleAiAccess = async (storeId: string, enabled: boolean) => {
+    setBusyId(storeId);
+    try {
+      await setAiAccess({ storeId, enabled });
+      toast.success(enabled ? "IA de imagens autorizada para esta loja." : "Autorização de IA removida.");
+    } catch {
+      toast.error("Não foi possível atualizar a autorização de IA.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleRecompute = async (storeId: string) => {
     setBusyId(storeId);
@@ -146,6 +158,8 @@ const AdminStoreOnboarding = () => {
                     <TableHead>Progresso</TableHead>
                     <TableHead>Situação</TableHead>
                     <TableHead>Etapa atual</TableHead>
+                    <TableHead>Operacional</TableHead>
+                    <TableHead>IA</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -185,6 +199,27 @@ const AdminStoreOnboarding = () => {
                         <TableCell className="text-sm">
                           {r.current_step ? STEP_LABELS[r.current_step] ?? r.current_step : "concluída"}
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={r.activation_readiness === "READY" ? "default" : "outline"}>
+                            {r.activation_readiness === "READY" ? "Pronta p/ vender" : "Estrutura mínima pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <Badge variant={r.ai_image_enabled ? "default" : "outline"}>
+                            {r.ai_image_enabled ? "Autorizada" : "Não autorizada"}
+                          </Badge>
+                          <div className="text-muted-foreground mt-1">
+                            {r.ai_generations_24h} em 24h
+                            {r.ai_last_generation_at
+                              ? ` · ${format(new Date(r.ai_last_generation_at), "dd/MM HH:mm")}`
+                              : ""}
+                          </div>
+                          {r.ai_last_error && (
+                            <div className="text-destructive mt-1 max-w-[160px] truncate" title={r.ai_last_error}>
+                              erro: {r.ai_last_error}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs">{r.onboarding_source ?? "—"}</TableCell>
                         <TableCell>
                           {busyId === r.store_id ? (
@@ -219,6 +254,10 @@ const AdminStoreOnboarding = () => {
                                 <DropdownMenuItem onClick={() => handleExempt(r.store_id, !r.manual_exempt)}>
                                   <ShieldCheck className="mr-2 h-4 w-4" />
                                   {r.manual_exempt ? "Remover isenção" : "Marcar como isenta"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleAiAccess(r.store_id, !r.ai_image_enabled)}>
+                                  <Sparkles className="mr-2 h-4 w-4" />
+                                  {r.ai_image_enabled ? "Remover autorização de IA" : "Autorizar IA para teste"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

@@ -24,6 +24,11 @@ export interface AdminOnboardingRow {
   onboarding_completed: boolean;
   onboarding_source: string | null;
   manual_exempt: boolean;
+  activation_readiness: "READY" | "NOT_READY";
+  ai_image_enabled: boolean;
+  ai_generations_24h: number;
+  ai_last_generation_at: string | null;
+  ai_last_error: string | null;
   metrics: {
     active_products?: number;
     categories?: number;
@@ -56,8 +61,28 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
         (profiles ?? []).forEach((p) => profileMap.set(p.id, p));
       }
 
+      // Métricas reais de IA nas últimas 24h (logs, nunca estimativas)
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const aiMap = new Map<string, { count: number; last: string | null; error: string | null }>();
+      if (ids.length) {
+        const { data: logs } = await supabase
+          .from("ai_media_generation_logs")
+          .select("store_id, status, error_message, created_at")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        (logs ?? []).forEach((l: any) => {
+          const entry = aiMap.get(l.store_id) ?? { count: 0, last: null, error: null };
+          entry.count += 1;
+          if (!entry.last) entry.last = l.created_at;
+          if (!entry.error && l.status === "error") entry.error = l.error_message ?? "erro";
+          aiMap.set(l.store_id, entry);
+        });
+      }
+
       let rows: AdminOnboardingRow[] = (states ?? []).map((s: any) => {
         const p = profileMap.get(s.store_id) ?? {};
+        const ai = aiMap.get(s.store_id);
         return {
           store_id: s.store_id,
           store_name: p.store_name ?? null,
@@ -73,6 +98,15 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
           onboarding_completed: !!s.onboarding_completed,
           onboarding_source: s.onboarding_source,
           manual_exempt: !!s.manual_exempt,
+          activation_readiness:
+            (s.completion_snapshot?.activation_readiness as "READY" | "NOT_READY") ??
+            (s.classification === "STORE_RECOVERY_REQUIRED" || s.classification === "STORE_NEW_REQUIRED"
+              ? "NOT_READY"
+              : "READY"),
+          ai_image_enabled: !!s.ai_image_enabled,
+          ai_generations_24h: ai?.count ?? 0,
+          ai_last_generation_at: ai?.last ?? null,
+          ai_last_error: ai?.error ?? null,
           metrics: (s.completion_snapshot?.metrics ?? {}) as AdminOnboardingRow["metrics"],
         };
       });
@@ -127,11 +161,23 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
   });
 
+  const setAiAccess = useMutation({
+    mutationFn: async ({ storeId, enabled }: { storeId: string; enabled: boolean }) => {
+      const { error } = await supabase.rpc("admin_set_store_ai_access", {
+        p_store_id: storeId,
+        p_enabled: enabled,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
+  });
+
   return {
     rows: query.data ?? [],
     loading: query.isLoading,
     refetch: query.refetch,
     recompute: recompute.mutateAsync,
     setExempt: setExempt.mutateAsync,
+    setAiAccess: setAiAccess.mutateAsync,
   };
 };
