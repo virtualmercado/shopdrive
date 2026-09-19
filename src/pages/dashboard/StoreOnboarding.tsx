@@ -84,7 +84,10 @@ const StoreOnboarding = () => {
     Object.entries(patch).forEach(([k, v]) => {
       payload[k] = v.trim() === "" ? null : v;
     });
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update(payload as never)
+      .eq("id", user.id);
     setSaving(false);
     if (error) {
       toast.error("Não foi possível salvar agora. Tente novamente.");
