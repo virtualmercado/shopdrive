@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.generate-ai-image]
 verify_jwt = false
+
+[functions.analyze-store-brand-profile]
+verify_jwt = false
