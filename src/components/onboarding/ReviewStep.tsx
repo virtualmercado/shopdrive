@@ -51,7 +51,7 @@ const ReviewStep = ({ state, storeSlug, onCompleted }: ReviewStepProps) => {
       event_type: "ONBOARDING_COMPLETED",
       step: "review",
     });
-    toast.success("Configuração concluída! Sua loja está pronta para vender.");
+    toast.success("Configuração mínima concluída! Sua loja pública está configurada.");
     await onCompleted();
   };
 
