@@ -158,8 +158,9 @@ const AdminStoreOnboarding = () => {
                     <TableHead>Progresso</TableHead>
                     <TableHead>Situação</TableHead>
                     <TableHead>Etapa atual</TableHead>
-                    <TableHead>Operacional</TableHead>
+                    <TableHead>Configuração mínima</TableHead>
                     <TableHead>IA</TableHead>
+                    <TableHead>Identidade IA</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -201,7 +202,7 @@ const AdminStoreOnboarding = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant={r.activation_readiness === "READY" ? "default" : "outline"}>
-                            {r.activation_readiness === "READY" ? "Pronta p/ vender" : "Estrutura mínima pendente"}
+                            {r.activation_readiness === "READY" ? "Configuração mínima concluída" : "Configuração mínima pendente"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
@@ -217,6 +218,42 @@ const AdminStoreOnboarding = () => {
                           {r.ai_last_error && (
                             <div className="text-destructive mt-1 max-w-[160px] truncate" title={r.ai_last_error}>
                               erro: {r.ai_last_error}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <Badge
+                            variant={
+                              r.applied_palette_id
+                                ? "default"
+                                : r.brand_status === "error"
+                                  ? "destructive"
+                                  : r.recommended_palette_id
+                                    ? "secondary"
+                                    : "outline"
+                            }
+                          >
+                            {r.applied_palette_id
+                              ? "Aplicada"
+                              : r.brand_status === "error"
+                                ? "Falha"
+                                : r.recommended_palette_id
+                                  ? "Recomendada"
+                                  : "Não analisada"}
+                          </Badge>
+                          <div className="text-muted-foreground mt-1 max-w-[180px]">
+                            {r.recommended_palette_id
+                              ? `sugerida: ${r.recommended_palette_id} · ${r.recommended_layout_id ?? "—"}`
+                              : "sem sugestão"}
+                          </div>
+                          {r.applied_palette_id && (
+                            <div className="text-muted-foreground max-w-[180px]">
+                              aplicada: {r.applied_palette_id} · {r.applied_layout_id ?? "—"}
+                            </div>
+                          )}
+                          {r.brand_analyzed_at && (
+                            <div className="text-muted-foreground">
+                              análise {format(new Date(r.brand_analyzed_at), "dd/MM HH:mm")}
                             </div>
                           )}
                         </TableCell>

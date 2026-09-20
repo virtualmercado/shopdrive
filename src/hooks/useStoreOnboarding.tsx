@@ -22,6 +22,15 @@ export interface StoreOnboardingState {
   onboarding_source: string | null;
   steps_status: Record<string, { done?: boolean; weight?: number; score?: number }> | null;
   completion_snapshot: Record<string, unknown> | null;
+  business_context?: string | null;
+  brand_profile?: Record<string, unknown> | null;
+  context_hash?: string | null;
+  brand_status?: string | null;
+  recommended_palette_id?: string | null;
+  recommended_layout_id?: string | null;
+  applied_palette_id?: string | null;
+  applied_layout_id?: string | null;
+  identity_applications_count?: number | null;
 }
 
 /** Estado de onboarding da loja do usuário logado (isolado por auth.uid via RLS). */

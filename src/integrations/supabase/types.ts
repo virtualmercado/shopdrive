@@ -4609,12 +4609,24 @@ export type Database = {
           ai_enabled_at: string | null
           ai_enabled_by: string | null
           ai_image_enabled: boolean
+          applied_layout_id: string | null
+          applied_palette_id: string | null
           blocking_enabled: boolean
+          brand_analyzed_at: string | null
+          brand_confidence: number | null
+          brand_model: string | null
+          brand_profile: Json | null
+          brand_provider: string | null
+          brand_status: string
+          business_context: string | null
           classification: string
           completed_at: string | null
           completion_snapshot: Json
+          context_hash: string | null
           created_at: string
           current_step: string | null
+          identity_applications_count: number
+          identity_applied_at: string | null
           last_activity_at: string | null
           last_completed_step: string | null
           manual_exempt: boolean
@@ -4622,6 +4634,8 @@ export type Database = {
           onboarding_required: boolean
           onboarding_source: string | null
           progress_percent: number
+          recommended_layout_id: string | null
+          recommended_palette_id: string | null
           started_at: string | null
           steps_status: Json
           store_id: string
@@ -4633,12 +4647,24 @@ export type Database = {
           ai_enabled_at?: string | null
           ai_enabled_by?: string | null
           ai_image_enabled?: boolean
+          applied_layout_id?: string | null
+          applied_palette_id?: string | null
           blocking_enabled?: boolean
+          brand_analyzed_at?: string | null
+          brand_confidence?: number | null
+          brand_model?: string | null
+          brand_profile?: Json | null
+          brand_provider?: string | null
+          brand_status?: string
+          business_context?: string | null
           classification?: string
           completed_at?: string | null
           completion_snapshot?: Json
+          context_hash?: string | null
           created_at?: string
           current_step?: string | null
+          identity_applications_count?: number
+          identity_applied_at?: string | null
           last_activity_at?: string | null
           last_completed_step?: string | null
           manual_exempt?: boolean
@@ -4646,6 +4672,8 @@ export type Database = {
           onboarding_required?: boolean
           onboarding_source?: string | null
           progress_percent?: number
+          recommended_layout_id?: string | null
+          recommended_palette_id?: string | null
           started_at?: string | null
           steps_status?: Json
           store_id: string
@@ -4657,12 +4685,24 @@ export type Database = {
           ai_enabled_at?: string | null
           ai_enabled_by?: string | null
           ai_image_enabled?: boolean
+          applied_layout_id?: string | null
+          applied_palette_id?: string | null
           blocking_enabled?: boolean
+          brand_analyzed_at?: string | null
+          brand_confidence?: number | null
+          brand_model?: string | null
+          brand_profile?: Json | null
+          brand_provider?: string | null
+          brand_status?: string
+          business_context?: string | null
           classification?: string
           completed_at?: string | null
           completion_snapshot?: Json
+          context_hash?: string | null
           created_at?: string
           current_step?: string | null
+          identity_applications_count?: number
+          identity_applied_at?: string | null
           last_activity_at?: string | null
           last_completed_step?: string | null
           manual_exempt?: boolean
@@ -4670,6 +4710,8 @@ export type Database = {
           onboarding_required?: boolean
           onboarding_source?: string | null
           progress_percent?: number
+          recommended_layout_id?: string | null
+          recommended_palette_id?: string | null
           started_at?: string | null
           steps_status?: Json
           store_id?: string
@@ -6226,6 +6268,15 @@ export type Database = {
         Returns: Json
       }
       assert_caller_is_admin: { Args: never; Returns: undefined }
+      authorize_onboarding_identity_application: {
+        Args: {
+          p_context_hash?: string
+          p_layout_id: string
+          p_palette_id: string
+          p_store_id: string
+        }
+        Returns: Json
+      }
       backfill_partner_templates: { Args: never; Returns: Json }
       backfill_partner_templates_impl: { Args: never; Returns: Json }
       backfill_store_customers: {
@@ -6498,6 +6549,10 @@ export type Database = {
       }
       set_current_catalog: {
         Args: { _path: string; _url: string }
+        Returns: undefined
+      }
+      set_onboarding_business_context: {
+        Args: { p_business_context: string; p_store_id: string }
         Returns: undefined
       }
       show_limit: { Args: never; Returns: number }

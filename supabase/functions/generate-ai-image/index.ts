@@ -66,18 +66,28 @@ function buildPrompt(
   objective: string,
   guidance: string,
   variant: "desktop" | "mobile",
+  brand: Record<string, unknown> | null = null,
+  identity: { palette_id?: string | null; layout_id?: string | null } = {},
 ) {
   const objectiveText = OBJECTIVES[objective] ?? OBJECTIVES.outro;
   const composition = variant === "desktop"
     ? "Composição horizontal panorâmica: elemento focal preferencialmente à direita, mantendo cerca de 40% da área esquerda visualmente limpa e uniforme para sobreposição de texto pela plataforma."
     : "Composição vertical própria (não é um recorte da versão horizontal): elemento focal na metade inferior, com a parte superior mais limpa e uniforme para sobreposição de texto pela plataforma.";
+  const s = (v: unknown, max = 300) =>
+    typeof v === "string" && v.trim() ? v.trim().slice(0, max) : "";
   return [
     "Arte de fundo puramente visual para banner de loja virtual, estilo fotográfico/editorial limpo e profissional.",
     composition,
     "PROIBIDO ABSOLUTAMENTE: qualquer texto, palavra, letra, número, porcentagem, preço, selo, etiqueta, logotipo, marca, ícone de rede social, telefone, endereço, site ou botão na imagem.",
     "Não representar promoções, descontos, frete grátis, formas de pagamento, certificações, avaliações ou qualquer afirmação comercial.",
+    "Nunca desenhar na imagem o texto descritivo abaixo: ele serve apenas para orientar o clima visual.",
     profile?.store_category ? `Segmento da loja: ${profile.store_category}.` : "",
-    profile?.store_description ? `Contexto da loja: ${String(profile.store_description).slice(0, 300)}.` : "",
+    s(brand?.business_summary) ? `Resumo do negócio: ${s(brand?.business_summary)}.` : "",
+    s(brand?.target_audience_summary) ? `Público: ${s(brand?.target_audience_summary, 200)}.` : "",
+    s(brand?.positioning) ? `Posicionamento: ${s(brand?.positioning, 200)}.` : "",
+    s(brand?.visual_style) ? `Estilo visual desejado: ${s(brand?.visual_style, 200)}.` : "",
+    identity.palette_id ? `Paleta oficial da loja: ${identity.palette_id}.` : "",
+    identity.layout_id ? `Layout da loja: ${identity.layout_id}.` : "",
     profile?.primary_color
       ? `Paleta harmonizada com ${profile.primary_color} e ${profile.secondary_color ?? "#ffffff"}.`
       : "",
@@ -125,7 +135,7 @@ serve(async (req) => {
 
     const { data: state } = await admin
       .from("store_onboarding_state")
-      .select("ai_image_enabled")
+      .select("ai_image_enabled, brand_profile, applied_palette_id, applied_layout_id")
       .eq("store_id", storeId)
       .maybeSingle();
 
@@ -273,6 +283,24 @@ serve(async (req) => {
       }, 429);
     }
 
+    // Concorrência / duplo clique: uma geração pendente recente bloqueia nova chamada paga.
+    const pendingSince = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    const { data: pendingRows } = await admin
+      .from("ai_media_generation_logs")
+      .select("generation_id")
+      .eq("store_id", storeId)
+      .eq("kind", KIND)
+      .eq("status", "pending")
+      .gte("created_at", pendingSince)
+      .limit(1);
+    if (pendingRows && pendingRows.length > 0) {
+      return json({
+        error: "Já existe uma criação de imagem em andamento para esta loja. Aguarde a conclusão.",
+        in_progress: true,
+        generation_id: pendingRows[0].generation_id,
+      }, 409);
+    }
+
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
       return json({ error: "Geração de imagem indisponível: chave não configurada." }, 500);
@@ -282,6 +310,13 @@ serve(async (req) => {
     const guidance = String(body?.additional_guidance ?? "").slice(0, 400);
     const generationId = crypto.randomUUID();
     const startedAt = Date.now();
+
+    // Perfil estruturado da marca (interno) — nunca desenhado na arte.
+    const brand = (state?.brand_profile ?? null) as Record<string, unknown> | null;
+    const identity = {
+      palette_id: state?.applied_palette_id ?? null,
+      layout_id: state?.applied_layout_id ?? null,
+    };
 
     // Apenas contexto público da loja — nunca pedidos, clientes ou dados financeiros.
     const { data: profile } = await admin
@@ -301,7 +336,7 @@ serve(async (req) => {
         generation_id: generationId,
         model_name: MODEL,
         request_payload: { objective, additional_guidance: guidance },
-        prompt_summary: buildPrompt(profile, objective, guidance, "desktop").slice(0, 500),
+        prompt_summary: buildPrompt(profile, objective, guidance, "desktop", brand, identity).slice(0, 500),
         status: "pending",
       })
       .select("id")
@@ -323,7 +358,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: MODEL,
-          prompt: buildPrompt(profile, objective, guidance, variant),
+          prompt: buildPrompt(profile, objective, guidance, variant, brand, identity),
           size: target.source,
           n: 1,
         }),

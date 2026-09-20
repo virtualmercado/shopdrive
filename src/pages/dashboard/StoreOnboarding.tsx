@@ -15,11 +15,11 @@ import {
   CheckCircle2,
   Store,
   Palette,
-  Upload,
   Image as ImageIcon,
   FolderTree,
   Package,
   ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,9 @@ import ShowcaseStep from "@/components/onboarding/ShowcaseStep";
 import CategoriesStep from "@/components/onboarding/CategoriesStep";
 import ProductsStep from "@/components/onboarding/ProductsStep";
 import ReviewStep from "@/components/onboarding/ReviewStep";
+import IdentityRecommendationStep, {
+  type BrandRecommendation,
+} from "@/components/onboarding/IdentityRecommendationStep";
 import { toast } from "sonner";
 
 type StepKey = "company" | "visual" | "showcase" | "categories" | "products" | "review";
@@ -42,19 +45,18 @@ const UI_STEPS: { key: StepKey; label: string; icon: typeof Store }[] = [
   { key: "review", label: "Revisão", icon: ClipboardCheck },
 ];
 
+// Campos públicos do perfil editados no Passo 1.
+// store_description NÃO é editado aqui: é o slogan público do rodapé,
+// gerenciado apenas no menu Personalizar.
 const COMPANY_FIELDS = [
   "store_name",
   "store_category",
-  "store_description",
   "city",
   "whatsapp_number",
   "instagram_url",
   "phone",
 ] as const;
 
-const VISUAL_FIELDS = ["store_logo_url", "primary_color", "secondary_color"] as const;
-
-// Passo salvo no estado -> passo da interface (retomada do ponto salvo)
 const RESUME_MAP: Record<string, StepKey> = {
   company: "company",
   contacts: "company",
@@ -66,11 +68,30 @@ const RESUME_MAP: Record<string, StepKey> = {
   institutional: "review",
 };
 
+const CONTEXT_HINTS = [
+  "o que você vende",
+  "quem são seus clientes",
+  "estilo dos produtos",
+  "faixa de preço/posicionamento",
+  "seus diferenciais",
+  "região de atuação",
+  "ocasiões de compra",
+  "a imagem que quer transmitir",
+];
+
+function contextQuality(text: string) {
+  const clean = text.trim();
+  const words = clean ? clean.split(/\s+/).length : 0;
+  if (clean.length < 80 || words < 15) return { label: "Pouco detalhado", tone: "outline" as const };
+  if (clean.length < 200) return { label: "Bom nível de detalhes", tone: "secondary" as const };
+  return { label: "Ótimo contexto para personalização", tone: "default" as const };
+}
+
 const StoreOnboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { flags, loading: flagsLoading } = useOnboardingFlags();
-  const { state, loading: stateLoading, recompute, logEvent } = useStoreOnboarding();
+  const { state, loading: stateLoading, recompute, refetch, logEvent } = useStoreOnboarding();
 
   const [step, setStep] = useState<StepKey>("company");
   const [loaded, setLoaded] = useState(false);
@@ -78,18 +99,23 @@ const StoreOnboarding = () => {
   const [uploading, setUploading] = useState(false);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [businessContext, setBusinessContext] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [recommendation, setRecommendation] = useState<BrandRecommendation | null>(null);
+  const [contextHash, setContextHash] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contextTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resumed = useRef(false);
   const recomputedOnMount = useRef(false);
+  const contextLoaded = useRef(false);
 
-  // Carrega dados reais já existentes no perfil da loja
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "store_slug, store_name, store_category, store_description, city, whatsapp_number, instagram_url, phone, store_logo_url, primary_color, secondary_color"
+          "store_slug, store_name, store_category, city, whatsapp_number, instagram_url, phone, store_logo_url"
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -97,20 +123,16 @@ const StoreOnboarding = () => {
       setForm({
         store_name: data?.store_name ?? "",
         store_category: data?.store_category ?? "",
-        store_description: data?.store_description ?? "",
         city: data?.city ?? "",
         whatsapp_number: data?.whatsapp_number ?? "",
         instagram_url: data?.instagram_url ?? "",
         phone: data?.phone ?? "",
         store_logo_url: data?.store_logo_url ?? "",
-        primary_color: data?.primary_color ?? "#000000",
-        secondary_color: data?.secondary_color ?? "#ffffff",
       });
       setLoaded(true);
     })();
   }, [user?.id]);
 
-  // Recalcula o progresso ao abrir (pega alterações feitas em Produtos/Categorias)
   useEffect(() => {
     if (!user?.id || recomputedOnMount.current) return;
     recomputedOnMount.current = true;
@@ -118,7 +140,15 @@ const StoreOnboarding = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Retoma do ponto salvo
+  // Carrega o contexto do negócio e a recomendação já salvos
+  useEffect(() => {
+    if (!state || contextLoaded.current) return;
+    contextLoaded.current = true;
+    setBusinessContext(state.business_context ?? "");
+    setContextHash(state.context_hash ?? null);
+    if (state.brand_profile) setRecommendation(state.brand_profile as BrandRecommendation);
+  }, [state]);
+
   useEffect(() => {
     if (resumed.current || !state) return;
     resumed.current = true;
@@ -157,12 +187,57 @@ const StoreOnboarding = () => {
     }, 900);
   };
 
+  // Contexto do negócio: uso interno (IA). Nunca vai para a loja pública.
+  const saveBusinessContext = async (value: string) => {
+    if (!user?.id) return;
+    setSaving(true);
+    const { error } = await supabase.rpc("set_onboarding_business_context", {
+      p_store_id: user.id,
+      p_business_context: value,
+    });
+    setSaving(false);
+    if (error) toast.error("Não foi possível salvar o contexto do negócio agora.");
+  };
+
+  const setContext = (value: string) => {
+    setBusinessContext(value);
+    if (contextTimer.current) clearTimeout(contextTimer.current);
+    contextTimer.current = setTimeout(() => void saveBusinessContext(value), 900);
+  };
+
+  const analyze = async (force = false) => {
+    if (!user?.id) return;
+    setAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-store-brand-profile", {
+        body: { store_id: user.id, force },
+      });
+      if (error) throw error;
+      if (data?.brand_profile) {
+        setRecommendation(data.brand_profile as BrandRecommendation);
+        setContextHash(data.context_hash ?? null);
+      }
+      await refetch();
+    } catch {
+      // A configuração continua utilizável mesmo sem a análise.
+      toast.error("Não conseguimos gerar a sugestão agora. Você pode escolher manualmente no Passo 2.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const goTo = async (next: StepKey) => {
-    if (step === "company" || step === "visual") {
-      const keys = step === "company" ? COMPANY_FIELDS : VISUAL_FIELDS;
+    if (step === "company") {
       const patch: Record<string, string> = {};
-      keys.forEach((k) => (patch[k] = form[k] ?? ""));
+      COMPANY_FIELDS.forEach((k) => (patch[k] = form[k] ?? ""));
       await persist(patch);
+      if (contextTimer.current) clearTimeout(contextTimer.current);
+      await saveBusinessContext(businessContext);
+      await logEvent("step_completed", step);
+      setStep(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      void analyze(false);
+      return;
     }
     await logEvent("step_completed", step);
     setStep(next);
@@ -199,6 +274,7 @@ const StoreOnboarding = () => {
     [stepsStatus]
   );
 
+  const quality = contextQuality(businessContext);
   const stepIndex = UI_STEPS.findIndex((s) => s.key === step);
 
   if (flagsLoading || stateLoading || !loaded) {
@@ -234,7 +310,8 @@ const StoreOnboarding = () => {
         <div>
           <h1 className="text-2xl font-bold">Configuração guiada da loja</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Passos curtos para deixar sua loja pública pronta para vender. Tudo é salvo automaticamente.
+            Passos simples para deixar sua loja pública completa, organizada e com uma identidade
+            profissional. Tudo é salvo automaticamente.
           </p>
         </div>
 
@@ -311,16 +388,37 @@ const StoreOnboarding = () => {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="store_description">Descrição da loja e diferenciais</Label>
+
+                <div className="space-y-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <Label htmlFor="business_context" className="text-base">
+                      Conte para a ShopDrive sobre o seu negócio
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Quanto mais detalhes você informar, melhor a ShopDrive poderá escolher as cores, o
+                    estilo visual, o layout e criar imagens adequadas ao seu negócio. Este texto é de
+                    uso interno: ele não aparece na sua loja pública.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Se fizer sentido, fale sobre: {CONTEXT_HINTS.join(", ")}.
+                  </p>
                   <Textarea
-                    id="store_description"
-                    rows={4}
-                    placeholder="Conte o que você vende, para quem vende e o que torna sua loja diferente."
-                    value={form.store_description ?? ""}
-                    onChange={(e) => setField("store_description", e.target.value)}
+                    id="business_context"
+                    rows={6}
+                    placeholder="Ex: Vendo tênis esportivos masculinos e femininos para quem treina e busca conforto no dia a dia. Atendo Manaus e região, com preços acessíveis e atendimento pelo WhatsApp."
+                    value={businessContext}
+                    onChange={(e) => setContext(e.target.value)}
                   />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant={quality.tone}>{quality.label}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {businessContext.trim().length} caracteres — recomendamos de 150 a 300 ou mais.
+                    </span>
+                  </div>
                 </div>
+
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp_number">WhatsApp</Label>
@@ -351,84 +449,23 @@ const StoreOnboarding = () => {
               </>
             )}
 
-            {step === "visual" && (
-              <>
-                <div className="space-y-2">
-                  <Label>Logo da loja</Label>
-                  <div className="flex items-center gap-4">
-                    {form.store_logo_url ? (
-                      <img
-                        src={form.store_logo_url}
-                        alt="Logo da loja"
-                        className="h-16 w-16 rounded border object-contain bg-muted"
-                      />
-                    ) : (
-                      <div className="h-16 w-16 rounded border flex items-center justify-center text-muted-foreground text-xs">
-                        sem logo
-                      </div>
-                    )}
-                    <div>
-                      <input
-                        id="logo-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleLogoUpload(file);
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => document.getElementById("logo-input")?.click()}
-                        disabled={uploading}
-                      >
-                        {uploading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="mr-2 h-4 w-4" />
-                        )}
-                        {form.store_logo_url ? "Substituir logo" : "Enviar logo"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="primary_color">Cor principal</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        className="w-14 p-1"
-                        value={form.primary_color || "#000000"}
-                        onChange={(e) => setField("primary_color", e.target.value)}
-                      />
-                      <Input
-                        id="primary_color"
-                        value={form.primary_color ?? ""}
-                        onChange={(e) => setField("primary_color", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="secondary_color">Cor secundária</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        className="w-14 p-1"
-                        value={form.secondary_color || "#ffffff"}
-                        onChange={(e) => setField("secondary_color", e.target.value)}
-                      />
-                      <Input
-                        id="secondary_color"
-                        value={form.secondary_color ?? ""}
-                        onChange={(e) => setField("secondary_color", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
+            {step === "visual" && user?.id && (
+              <IdentityRecommendationStep
+                storeId={user.id}
+                logoUrl={form.store_logo_url ?? ""}
+                uploading={uploading}
+                onLogoUpload={handleLogoUpload}
+                recommendation={recommendation}
+                analyzing={analyzing}
+                contextHash={contextHash}
+                appliedPaletteId={state?.applied_palette_id ?? null}
+                appliedLayoutId={state?.applied_layout_id ?? null}
+                onReanalyze={() => void analyze(true)}
+                onApplied={async () => {
+                  await recompute();
+                  await refetch();
+                }}
+              />
             )}
 
             {step === "showcase" && user?.id && (

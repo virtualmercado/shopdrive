@@ -29,6 +29,12 @@ export interface AdminOnboardingRow {
   ai_generations_24h: number;
   ai_last_generation_at: string | null;
   ai_last_error: string | null;
+  brand_status: string | null;
+  recommended_palette_id: string | null;
+  recommended_layout_id: string | null;
+  applied_palette_id: string | null;
+  applied_layout_id: string | null;
+  brand_analyzed_at: string | null;
   metrics: {
     active_products?: number;
     categories?: number;
@@ -107,6 +113,12 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
           ai_generations_24h: ai?.count ?? 0,
           ai_last_generation_at: ai?.last ?? null,
           ai_last_error: ai?.error ?? null,
+          brand_status: s.brand_status ?? null,
+          recommended_palette_id: s.recommended_palette_id ?? null,
+          recommended_layout_id: s.recommended_layout_id ?? null,
+          applied_palette_id: s.applied_palette_id ?? null,
+          applied_layout_id: s.applied_layout_id ?? null,
+          brand_analyzed_at: s.brand_analyzed_at ?? null,
           metrics: (s.completion_snapshot?.metrics ?? {}) as AdminOnboardingRow["metrics"],
         };
       });

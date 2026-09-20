@@ -15,6 +15,13 @@
       "when": 1789786173486,
       "tag": "0001_onboarding_stage2_ai_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789943756197,
+      "tag": "0002_onboarding_business_context_identity",
+      "breakpoints": true
     }
   ]
 }
