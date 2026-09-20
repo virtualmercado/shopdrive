@@ -274,15 +274,6 @@ serve(async (req) => {
     }
 
     // ---------- GERAR ----------
-    if (used >= QUOTA_PER_24H) {
-      return json({
-        error: `Você já usou as ${QUOTA_PER_24H} criações de imagem disponíveis nas últimas 24 horas. Tente novamente amanhã ou envie sua própria imagem.`,
-        quota_exceeded: true,
-        used_24h: used,
-        quota_24h: QUOTA_PER_24H,
-      }, 429);
-    }
-
     // Concorrência / duplo clique: uma geração pendente recente bloqueia nova chamada paga.
     const pendingSince = new Date(Date.now() - 3 * 60 * 1000).toISOString();
     const { data: pendingRows } = await admin
@@ -299,6 +290,15 @@ serve(async (req) => {
         in_progress: true,
         generation_id: pendingRows[0].generation_id,
       }, 409);
+    }
+
+    if (used >= QUOTA_PER_24H) {
+      return json({
+        error: `Você já usou as ${QUOTA_PER_24H} criações de imagem disponíveis nas últimas 24 horas. Tente novamente amanhã ou envie sua própria imagem.`,
+        quota_exceeded: true,
+        used_24h: used,
+        quota_24h: QUOTA_PER_24H,
+      }, 429);
     }
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
