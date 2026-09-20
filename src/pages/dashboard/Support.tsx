@@ -327,15 +327,23 @@ const Support = () => {
             {/* WhatsApp Support Block */}
             {whatsappChannel && whatsappChannel.is_active && (
               <div className="border-t pt-4 mt-4">
-                <div className="relative p-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden box-border">
+                <div
+                  className={`relative p-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden box-border ${
+                    whatsAppBlocked && !planLoading ? "min-h-[20rem] sm:min-h-[19rem]" : ""
+                  }`}
+                >
                   {/* WhatsApp overlay for non-PREMIUM */}
                   {whatsAppBlocked && !planLoading && (
                     <PlanGateOverlay
-                      message={"Suporte dedicado via WhatsApp disponível apenas no Plano PREMIUM.\nFaça upgrade para ter atendimento prioritário."}
+                      message={"Suporte dedicado via WhatsApp — Disponível\nexclusivamente no Plano PREMIUM.\nFaça upgrade e tenha atendimento prioritário."}
                       buttonLabel="Upgrade para PREMIUM"
+                      navigateTo="/lojista/financeiro?highlight=premium"
                     />
                   )}
-                  <div className="flex flex-col sm:flex-row items-start gap-3">
+                  <div
+                    className="flex flex-col sm:flex-row items-start gap-3"
+                    aria-hidden={whatsAppBlocked && !planLoading}
+                  >
                     <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
                       <MessageCircle className="h-5 w-5 text-white" />
                     </div>
@@ -351,6 +359,8 @@ const Support = () => {
                       )}
                       <Button
                         onClick={handleWhatsAppClick}
+                        disabled={whatsAppBlocked && !planLoading}
+                        aria-disabled={whatsAppBlocked && !planLoading}
                         className="mt-3 bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto max-w-full whitespace-normal text-center h-auto py-2"
                       >
                         <MessageCircle className="h-4 w-4 flex-shrink-0" />
