@@ -13,6 +13,8 @@ interface PlanGateOverlayProps {
   fixed?: boolean;
   /** Additional class for the wrapper */
   className?: string;
+  /** Keeps only the upgrade message visible while its overlay is in view */
+  stickyContent?: boolean;
 }
 
 export const PlanGateOverlay = ({
@@ -21,6 +23,7 @@ export const PlanGateOverlay = ({
   navigateTo,
   fixed = false,
   className = "",
+  stickyContent = false,
 }: PlanGateOverlayProps) => {
   const navigate = useNavigate();
 
@@ -39,14 +42,17 @@ export const PlanGateOverlay = ({
 
   return (
     <div
-      className={`${fixed ? 'fixed' : 'absolute'} inset-0 z-40 flex items-center justify-center ${className}`}
-      style={{ pointerEvents: 'auto' }}
+      className={`${fixed ? 'fixed' : 'absolute'} inset-0 z-40 ${stickyContent ? '' : 'flex items-center justify-center'} ${className}`}
     >
       {/* Translucent white overlay */}
       <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px]" />
       
       {/* Content */}
-      <div className="relative z-10 max-w-md mx-auto text-center p-8 space-y-4">
+      <div
+        className={`relative z-10 max-w-md mx-auto text-center p-8 space-y-4 ${
+          stickyContent ? 'sticky top-24 md:top-28' : ''
+        }`}
+      >
         <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
           <Lock className="h-6 w-6 text-primary" />
         </div>
