@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +39,14 @@ const Customize = () => {
   const [buttonBgColor, setButtonBgColor] = useState("#6a1b9a");
   const [buttonTextColor, setButtonTextColor] = useState("#FFFFFF");
   const [headerLogoPosition, setHeaderLogoPosition] = useState<"left" | "center" | "right">("left");
+  const blockedContentRef = useRef<HTMLDivElement>(null);
 
   const { plan, limits, loading: planLoading } = useMerchantPlan();
   const isBlocked = plan === 'free';
+
+  useEffect(() => {
+    blockedContentRef.current?.toggleAttribute("inert", isBlocked);
+  }, [isBlocked]);
 
   useEffect(() => {
     fetchUserData();
@@ -225,6 +230,11 @@ const Customize = () => {
           />
         )}
 
+        <div
+          ref={blockedContentRef}
+          className={`space-y-6 ${isBlocked ? "pointer-events-none select-none" : ""}`}
+          aria-hidden={isBlocked}
+        >
         {/* Colors */}
         <Card className="p-6">
           <div className="space-y-1 mb-6">
@@ -513,6 +523,7 @@ const Customize = () => {
           >
             Salvar Alterações
           </Button>
+        </div>
         </div>
       </div>
     </DashboardLayout>

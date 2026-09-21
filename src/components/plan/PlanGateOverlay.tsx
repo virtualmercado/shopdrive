@@ -50,7 +50,7 @@ export const PlanGateOverlay = ({
       {/* Content */}
       <div
         className={`relative z-10 max-w-md mx-auto text-center p-8 space-y-4 ${
-          stickyContent ? 'sticky top-24 md:top-28' : ''
+          stickyContent ? 'sticky top-56 sm:top-24 md:top-28' : ''
         }`}
       >
         <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
