@@ -218,9 +218,10 @@ const Customize = () => {
         {/* Plan gate overlay for FREE plan */}
         {isBlocked && !planLoading && (
           <PlanGateOverlay
-            message={"Personalização completa disponível apenas nos planos PRO e PREMIUM.\nFaça upgrade para liberar logo, cores e identidade visual personalizada."}
+            message={"Personalização completa disponível\nnos planos PRO e PREMIUM.\nLibere layout, cores e identidade visual\npara criar uma loja com a sua marca."}
             buttonLabel="Ver Planos"
-            fixed
+            navigateTo="/lojista/financeiro?highlight=pro"
+            stickyContent
           />
         )}
 
