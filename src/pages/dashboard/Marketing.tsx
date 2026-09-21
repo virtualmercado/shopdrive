@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
@@ -74,6 +74,7 @@ const Marketing = () => {
   
   const [showHtmlCodeModal, setShowHtmlCodeModal] = useState(false);
   const [htmlCodeInput, setHtmlCodeInput] = useState('');
+  const blockedContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -278,8 +279,12 @@ const Marketing = () => {
   const validateGoogleAdsId = (id: string) => /^AW-\d{9,11}$/.test(id);
   const validateGtmId = (id: string) => /^GTM-[A-Z0-9]{6,8}$/i.test(id);
 
-  const { plan, limits, loading: planLoading } = useMerchantPlan();
+  const { limits, loading: planLoading } = useMerchantPlan();
   const isMarketingBlocked = !limits.canUseMarketing;
+
+  useEffect(() => {
+    blockedContentRef.current?.toggleAttribute("inert", isMarketingBlocked && !planLoading);
+  }, [isMarketingBlocked, planLoading]);
 
   if (loading) {
     return (
@@ -298,12 +303,18 @@ const Marketing = () => {
           {/* Plan gate overlay for FREE plan */}
           {isMarketingBlocked && !planLoading && (
             <PlanGateOverlay
-              message={"Recursos de Marketing disponíveis apenas nos planos PRO e PREMIUM.\nFaça upgrade para desbloquear campanhas e ferramentas avançadas."}
+              message={"Recursos de Marketing disponíveis\nnos planos PRO e PREMIUM.\nDesbloqueie campanhas, integrações\ne ferramentas avançadas de conversão."}
               buttonLabel="Fazer Upgrade"
-              fixed
+              navigateTo="/lojista/financeiro?highlight=pro"
+              stickyContent
             />
           )}
 
+          <div
+            ref={blockedContentRef}
+            className={`space-y-6 ${isMarketingBlocked && !planLoading ? "pointer-events-none select-none" : ""}`}
+            aria-hidden={isMarketingBlocked && !planLoading}
+          >
           {/* Header */}
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -321,13 +332,7 @@ const Marketing = () => {
           <CouponsSection />
 
           {/* Reviews Section Card */}
-          <Card className="relative overflow-hidden">
-            {!limits.canUseReviews && !planLoading && (
-              <PlanGateOverlay
-                message="Disponível apenas nos planos PRO e PREMIUM."
-                buttonLabel="Fazer Upgrade"
-              />
-            )}
+          <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
@@ -717,6 +722,7 @@ const Marketing = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </TooltipProvider>
     </DashboardLayout>
