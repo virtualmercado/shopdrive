@@ -313,9 +313,6 @@ const Marketing = () => {
             </div>
           </div>
 
-          {/* Coupons Section */}
-          <CouponsSection />
-
           <div className="relative">
             {/* Plan gate overlay for paid marketing resources */}
             {isMarketingBlocked && !planLoading && (
@@ -332,6 +329,9 @@ const Marketing = () => {
               className={`space-y-6 ${isMarketingBlocked && !planLoading ? "pointer-events-none select-none" : ""}`}
               aria-hidden={isMarketingBlocked && !planLoading}
             >
+          {/* Coupons Section */}
+          <CouponsSection canUseCoupons={limits.canUseCoupons} />
+
           {/* Reviews Section Card */}
           <Card>
             <CardHeader>

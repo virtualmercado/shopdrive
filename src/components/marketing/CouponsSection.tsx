@@ -35,7 +35,11 @@ interface Coupon {
   created_at: string;
 }
 
-const CouponsSection = () => {
+interface CouponsSectionProps {
+  canUseCoupons: boolean;
+}
+
+const CouponsSection = ({ canUseCoupons }: CouponsSectionProps) => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,6 +71,8 @@ const CouponsSection = () => {
   }, [user]);
 
   const handleToggleStatus = async (couponId: string, currentStatus: boolean) => {
+    if (!canUseCoupons) return;
+
     const { error } = await supabase
       .from("coupons")
       .update({ is_active: !currentStatus })
@@ -81,6 +87,7 @@ const CouponsSection = () => {
   };
 
   const handleDeleteCoupon = async (couponId: string) => {
+    if (!canUseCoupons) return;
     if (!confirm("Tem certeza que deseja excluir este cupom?")) return;
 
     const { error } = await supabase
@@ -103,11 +110,13 @@ const CouponsSection = () => {
   };
 
   const handleEditCoupon = (coupon: Coupon) => {
+    if (!canUseCoupons) return;
     setEditingCoupon(coupon);
     setDialogOpen(true);
   };
 
   const handleDialogClose = (open: boolean) => {
+    if (open && !canUseCoupons) return;
     setDialogOpen(open);
     if (!open) {
       setEditingCoupon(null);
@@ -168,6 +177,7 @@ const CouponsSection = () => {
               <Button
                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
                 className="gap-2"
+                disabled={!canUseCoupons}
               >
                 <Plus className="h-4 w-4" />
                 Adicionar Cupom
