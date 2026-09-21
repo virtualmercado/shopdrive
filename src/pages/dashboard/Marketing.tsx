@@ -300,21 +300,6 @@ const Marketing = () => {
     <DashboardLayout>
       <TooltipProvider>
         <div className="space-y-6 relative">
-          {/* Plan gate overlay for FREE plan */}
-          {isMarketingBlocked && !planLoading && (
-            <PlanGateOverlay
-              message={"Recursos de Marketing disponíveis\nnos planos PRO e PREMIUM.\nDesbloqueie campanhas, integrações\ne ferramentas avançadas de conversão."}
-              buttonLabel="Fazer Upgrade"
-              navigateTo="/lojista/financeiro?highlight=pro"
-              stickyContent
-            />
-          )}
-
-          <div
-            ref={blockedContentRef}
-            className={`space-y-6 ${isMarketingBlocked && !planLoading ? "pointer-events-none select-none" : ""}`}
-            aria-hidden={isMarketingBlocked && !planLoading}
-          >
           {/* Header */}
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -331,6 +316,22 @@ const Marketing = () => {
           {/* Coupons Section */}
           <CouponsSection />
 
+          <div className="relative">
+            {/* Plan gate overlay for paid marketing resources */}
+            {isMarketingBlocked && !planLoading && (
+              <PlanGateOverlay
+                message={"Recursos de Marketing disponíveis\nnos planos PRO e PREMIUM.\nDesbloqueie campanhas, integrações\ne ferramentas avançadas de conversão."}
+                buttonLabel="Fazer Upgrade"
+                navigateTo="/lojista/financeiro?highlight=pro"
+                stickyContent
+              />
+            )}
+
+            <div
+              ref={blockedContentRef}
+              className={`space-y-6 ${isMarketingBlocked && !planLoading ? "pointer-events-none select-none" : ""}`}
+              aria-hidden={isMarketingBlocked && !planLoading}
+            >
           {/* Reviews Section Card */}
           <Card>
             <CardHeader>
@@ -722,6 +723,7 @@ const Marketing = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+            </div>
           </div>
         </div>
       </TooltipProvider>
