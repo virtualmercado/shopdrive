@@ -37,6 +37,19 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { SortableImageItem } from "@/components/products/SortableImageItem";
+import { VariantMatrixEditor, type VariantCellState } from "@/components/products/VariantMatrixEditor";
+import { Switch } from "@/components/ui/switch";
+import {
+  cartesian,
+  comboKey,
+  DEFAULT_VARIANT_LIMITS,
+  fetchVariantLimits,
+  loadVariantMatrix,
+  newId,
+  reconcileValueIds,
+  type VariantLimits,
+  type VariantOptionGroup,
+} from "@/lib/productVariants";
 
 /** Strip HTML tags to get visible text length (same logic as RichTextEditor counter) */
 const stripHtmlForCount = (html: string): string => html.replace(/<[^>]*>/g, "");
@@ -62,7 +75,24 @@ const productSchema = z.object({
 interface ProductVariation {
   name: string;
   values: string[];
+  /** Stable ids (only meaningful for per-combination inventory). */
+  id?: string;
+  valueIds?: string[];
 }
+
+const withIds = (vs: ProductVariation[]): ProductVariation[] =>
+  vs.map((v) => ({
+    ...v,
+    id: v.id || newId(),
+    valueIds: v.values.map((_, i) => v.valueIds?.[i] || newId()),
+  }));
+
+const toGroups = (vs: ProductVariation[]): VariantOptionGroup[] =>
+  withIds(vs).map((v) => ({
+    id: v.id!,
+    name: v.name,
+    values: v.values.map((val, i) => ({ id: v.valueIds![i], value: val })),
+  }));
 
 /**
  * Safely parse variations from a DB Json value into ProductVariation[].
