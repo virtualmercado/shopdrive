@@ -139,6 +139,10 @@ const BuyTogetherSection = ({
     e.preventDefault();
     e.stopPropagation();
     if (p.stock <= 0) return;
+    if ((p as any).inventory_mode === "variant") {
+      window.location.assign(`/${storeSlug}/produto/${p.id}`);
+      return;
+    }
 
     const item = {
       id: p.id,
