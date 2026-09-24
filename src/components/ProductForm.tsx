@@ -201,6 +201,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
   const [editVariationName, setEditVariationName] = useState("");
   const [editVariationValues, setEditVariationValues] = useState("");
+  // Per-combination inventory
+  const [variantMode, setVariantMode] = useState(false);
+  const [wasVariantMode, setWasVariantMode] = useState(false);
+  const [variantState, setVariantState] = useState<Record<string, VariantCellState>>({});
+  const [variantLimits, setVariantLimits] = useState<VariantLimits>(DEFAULT_VARIANT_LIMITS);
+  useEffect(() => {
+    fetchVariantLimits().then(setVariantLimits).catch(() => {});
+  }, []);
   
   // Weight and dimensions state
   const [weight, setWeight] = useState("");
@@ -280,6 +288,29 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(parseVariations(product.variations));
+      setVariantState({});
+      const isVariant = (product as any).inventory_mode === "variant";
+      setVariantMode(isVariant);
+      setWasVariantMode(isVariant);
+      if (isVariant) {
+        loadVariantMatrix(product.id).then(({ groups, variants }) => {
+          if (groups.length > 0) {
+            setVariations(
+              groups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                values: g.values.map((v) => v.value),
+                valueIds: g.values.map((v) => v.id),
+              })),
+            );
+          }
+          const st: Record<string, VariantCellState> = {};
+          variants.forEach((v) => {
+            st[comboKey(v.option_value_ids)] = { stock: v.stock_quantity, active: v.active, sku: v.sku };
+          });
+          setVariantState(st);
+        });
+      }
       if (product.weight != null && product.weight > 0) {
         setWeight((product.weight * 1000).toString());
         setWeightUnit("g");
@@ -640,7 +671,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       return;
     }
 
-    setVariations([...variations, { name: newVariationName.trim(), values }]);
+    setVariations([...variations, { name: newVariationName.trim(), values, id: newId(), valueIds: values.map(() => newId()) }]);
     setNewVariationName("");
     setNewVariationValues("");
     
@@ -671,7 +702,17 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
     const values = editVariationValues.split(',').map(v => v.trim()).filter(v => v);
     const updatedVariations = [...variations];
-    updatedVariations[editingVariationIndex] = { name: editVariationName.trim(), values };
+    const prevVar = withIds([variations[editingVariationIndex]])[0];
+    const reconciled = reconcileValueIds(
+      prevVar.values.map((v, i) => ({ id: prevVar.valueIds![i], value: v })),
+      values,
+    );
+    updatedVariations[editingVariationIndex] = {
+      name: editVariationName.trim(),
+      values,
+      id: prevVar.id,
+      valueIds: reconciled.map((r) => r.id),
+    };
     
     setVariations(updatedVariations);
     setEditingVariationIndex(null);
@@ -888,7 +929,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       }
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao salvar o produto",
+        description: (error as any)?.userMessage || "Ocorreu um erro ao salvar o produto",
         variant: "destructive",
       });
     } finally {
@@ -913,6 +954,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setIsFeatured(false);
     setIsNew(false);
     setVariations([]);
+    setVariantMode(false);
+    setWasVariantMode(false);
+    setVariantState({});
     setNewVariationName("");
     setNewVariationValues("");
     setEditingVariationIndex(null);
