@@ -36,7 +36,7 @@ interface BuyTogetherSectionProps {
 }
 
 const BASE_SELECT =
-  "id, name, price, promotional_price, image_url, images, stock, weight, height, width, length, category_id, popularity_score, created_at";
+  "id, name, price, promotional_price, image_url, images, stock, weight, height, width, length, category_id, popularity_score, created_at, inventory_mode";
 
 const BuyTogetherSection = ({
   storeOwnerId,
