@@ -359,8 +359,8 @@ export const CreateOrderModal = ({
   );
 
   const filteredCustomers = customers.filter(c =>
-    c.full_name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.email.toLowerCase().includes(customerSearch.toLowerCase())
+    (c.full_name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.email || "").toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
