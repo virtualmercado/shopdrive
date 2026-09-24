@@ -10,6 +10,7 @@ import { Search, Plus, Trash2, Save, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { loadVariantMatrix, comboKey, type VariantOptionGroup, type ProductVariantRow } from "@/lib/productVariants";
 
 interface Product {
   id: string;
@@ -18,6 +19,7 @@ interface Product {
   promotional_price: number | null;
   stock: number;
   image_url: string | null;
+  inventory_mode?: string | null;
 }
 
 interface Customer {
@@ -47,6 +49,10 @@ interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  variant_id?: string | null;
+  variant_sku?: string | null;
+  variations?: Record<string, string> | null;
+  max_stock?: number | null;
 }
 
 interface PaymentSettings {
@@ -100,6 +106,13 @@ export const CreateOrderModal = ({
   const [shippingFee, setShippingFee] = useState(0);
   const [notes, setNotes] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  // Pending selection for products with per-combination inventory
+  const [pending, setPending] = useState<{
+    product: Product;
+    groups: VariantOptionGroup[];
+    variants: ProductVariantRow[];
+    selected: Record<string, string>;
+  } | null>(null);
   
   useEffect(() => {
     if (open && user) {
@@ -124,6 +137,9 @@ export const CreateOrderModal = ({
           quantity: item.quantity,
           unit_price: item.product_price,
           subtotal: item.subtotal,
+          variant_id: item.variant_id ?? null,
+          variant_sku: item.variant_sku ?? null,
+          variations: item.variations && typeof item.variations === "object" ? item.variations : null,
         })));
       }
     } else if (!editOrder && open) {
@@ -138,7 +154,7 @@ export const CreateOrderModal = ({
       // Fetch products
       const { data: productsData } = await supabase
         .from("products")
-        .select("id, name, price, promotional_price, stock, image_url")
+        .select("id, name, price, promotional_price, stock, image_url, inventory_mode")
         .eq("user_id", user!.id)
         .order("name");
       
@@ -203,10 +219,17 @@ export const CreateOrderModal = ({
     setShippingFee(0);
     setNotes("");
     setCustomerAddress("");
+    setPending(null);
   };
 
-  const handleAddProduct = (product: Product) => {
-    const existingIndex = orderItems.findIndex(item => item.product_id === product.id);
+  const handleAddProduct = async (product: Product) => {
+    if (product.inventory_mode === "variant") {
+      setProductSearch("");
+      const { groups, variants } = await loadVariantMatrix(product.id);
+      setPending({ product, groups, variants, selected: {} });
+      return;
+    }
+    const existingIndex = orderItems.findIndex(item => item.product_id === product.id && !item.variant_id);
     const effectivePrice = product.promotional_price || product.price;
     
     if (existingIndex >= 0) {
@@ -226,8 +249,59 @@ export const CreateOrderModal = ({
     setProductSearch("");
   };
 
+  const pendingVariant = (() => {
+    if (!pending || pending.groups.length === 0) return null;
+    if (pending.groups.some((g) => !pending.selected[g.id])) return null;
+    const key = comboKey(pending.groups.map((g) => pending.selected[g.id]));
+    return pending.variants.find((v) => comboKey(v.option_value_ids) === key) || null;
+  })();
+
+  const handleAddPendingVariant = () => {
+    if (!pending) return;
+    const v = pendingVariant;
+    if (!v || !v.active || v.stock_quantity <= 0) {
+      toast({ title: "Combinação indisponível", description: "Selecione uma combinação com estoque.", variant: "destructive" });
+      return;
+    }
+    const variations: Record<string, string> = {};
+    pending.groups.forEach((g) => {
+      const val = g.values.find((x) => x.id === pending.selected[g.id]);
+      if (val) variations[g.name] = val.value;
+    });
+    const price = pending.product.promotional_price || pending.product.price;
+    const idx = orderItems.findIndex((i) => i.variant_id === v.id);
+    if (idx >= 0) {
+      const updated = [...orderItems];
+      const q = updated[idx].quantity + 1;
+      if (q > v.stock_quantity) {
+        toast({ title: "Estoque insuficiente", description: `Existem apenas ${v.stock_quantity} unidades disponíveis desta combinação.`, variant: "destructive" });
+        return;
+      }
+      updated[idx] = { ...updated[idx], quantity: q, subtotal: q * updated[idx].unit_price, max_stock: v.stock_quantity };
+      setOrderItems(updated);
+    } else {
+      setOrderItems([...orderItems, {
+        product_id: pending.product.id,
+        product_name: pending.product.name,
+        quantity: 1,
+        unit_price: price,
+        subtotal: price,
+        variant_id: v.id,
+        variant_sku: v.sku,
+        variations,
+        max_stock: v.stock_quantity,
+      }]);
+    }
+    setPending(null);
+  };
+
   const handleQuantityChange = (index: number, newQuantity: number) => {
     if (newQuantity < 1) return;
+    const max = orderItems[index].max_stock;
+    if (max != null && newQuantity > max) {
+      toast({ title: "Estoque insuficiente", description: `Existem apenas ${max} unidades disponíveis desta combinação.`, variant: "destructive" });
+      newQuantity = max;
+    }
     const updated = [...orderItems];
     updated[index].quantity = newQuantity;
     updated[index].subtotal = newQuantity * updated[index].unit_price;
@@ -285,8 +359,8 @@ export const CreateOrderModal = ({
   );
 
   const filteredCustomers = customers.filter(c =>
-    c.full_name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.email.toLowerCase().includes(customerSearch.toLowerCase())
+    (c.full_name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.email || "").toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -309,6 +383,17 @@ export const CreateOrderModal = ({
     
     return parts.join(", ");
   };
+
+  const buildItemsPayload = () =>
+    orderItems.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      product_price: item.unit_price,
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+      variant_id: item.variant_id ?? null,
+      variations: item.variations ?? null,
+    }));
 
   const handleSubmit = async () => {
     if (!selectedCustomerId) {
@@ -354,19 +439,12 @@ export const CreateOrderModal = ({
 
         if (orderError) throw orderError;
 
-        // Delete old items and insert new ones
-        await supabase.from("order_items").delete().eq("order_id", editOrder.id);
-
-        const orderItemsData = orderItems.map(item => ({
-          order_id: editOrder.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          product_price: item.unit_price,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-        }));
-
-        const { error: itemsError } = await supabase.from("order_items").insert(orderItemsData);
+        // Replace items server-side: previous combination stock is returned once and
+        // the new items are reserved atomically (per variant_id).
+        const { error: itemsError } = await supabase.rpc("replace_manual_order_items", {
+          p_order_id: editOrder.id,
+          p_items: buildItemsPayload() as any,
+        });
         if (itemsError) throw itemsError;
 
         toast({ title: "Sucesso", description: "Pedido atualizado com sucesso!" });
@@ -395,17 +473,14 @@ export const CreateOrderModal = ({
 
         if (orderError) throw orderError;
 
-        const orderItemsData = orderItems.map(item => ({
-          order_id: orderData.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          product_price: item.unit_price,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-        }));
-
-        const { error: itemsError } = await supabase.from("order_items").insert(orderItemsData);
-        if (itemsError) throw itemsError;
+        const { error: itemsError } = await supabase.rpc("replace_manual_order_items", {
+          p_order_id: orderData.id,
+          p_items: buildItemsPayload() as any,
+        });
+        if (itemsError) {
+          await supabase.from("orders").delete().eq("id", orderData.id);
+          throw itemsError;
+        }
 
         toast({ title: "Sucesso", description: "Pedido criado com sucesso!" });
       }
@@ -415,7 +490,14 @@ export const CreateOrderModal = ({
       resetForm();
     } catch (error) {
       console.error("Error saving order:", error);
-      toast({ title: "Erro", description: "Erro ao salvar pedido.", variant: "destructive" });
+      const msg = String((error as any)?.message || "");
+      toast({
+        title: "Erro",
+        description: msg.includes("Combinação indisponível") || msg.includes("Selecione as opções")
+          ? msg
+          : "Erro ao salvar pedido.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -510,6 +592,48 @@ export const CreateOrderModal = ({
                 </div>
               )}
 
+              {pending && (
+                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                  <p className="text-sm font-medium">{pending.product.name} — escolha a combinação</p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {pending.groups.map((g) => (
+                      <div key={g.id} className="space-y-1">
+                        <Label className="text-xs">{g.name}</Label>
+                        <Select
+                          value={pending.selected[g.id] || ""}
+                          onValueChange={(val) => setPending({ ...pending, selected: { ...pending.selected, [g.id]: val } })}
+                        >
+                          <SelectTrigger aria-label={g.name}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            {g.values.map((v) => (
+                              <SelectItem key={v.id} value={v.id}>{v.value}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingVariant
+                      ? pendingVariant.active && pendingVariant.stock_quantity > 0
+                        ? `SKU ${pendingVariant.sku} • ${pendingVariant.stock_quantity} un. disponíveis`
+                        : "Combinação indisponível no momento."
+                      : "Selecione todas as opções."}
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setPending(null)}>Cancelar</Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAddPendingVariant}
+                      disabled={!pendingVariant || !pendingVariant.active || pendingVariant.stock_quantity <= 0}
+                    >
+                      Adicionar combinação
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Order Items */}
               {orderItems.length > 0 && (
                 <div className="space-y-2 mt-4">
@@ -522,11 +646,20 @@ export const CreateOrderModal = ({
                   </div>
                   {orderItems.map((item, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 bg-muted/30 rounded-lg">
-                      <div className="col-span-5 font-medium truncate">{item.product_name}</div>
+                      <div className="col-span-5 min-w-0">
+                        <p className="font-medium truncate">{item.product_name}</p>
+                        {item.variations && Object.keys(item.variations).length > 0 && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {Object.entries(item.variations).map(([k, v]) => `${k}: ${v}`).join(" • ")}
+                            {item.variant_sku ? ` • SKU ${item.variant_sku}` : ""}
+                          </p>
+                        )}
+                      </div>
                       <div className="col-span-2">
                         <Input
                           type="number"
                           min={1}
+                          max={item.max_stock ?? undefined}
                           value={item.quantity}
                           onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
                           className="text-center h-8"
