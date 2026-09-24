@@ -1552,7 +1552,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 }}
                 placeholder="0"
                 required
+                disabled={variantMode}
               />
+              {variantMode && (
+                <p className="text-xs text-muted-foreground">Calculado pela soma das combinações ativas.</p>
+              )}
             </div>
           </div>
 
