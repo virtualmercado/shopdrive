@@ -79,7 +79,7 @@ interface StoreData {
 const ProductDetailContent = () => {
   const { storeSlug, productId } = useParams();
   const navigate = useNavigate();
-  const { addToCart, getItemCount } = useCart();
+  const { addToCart, getItemCount, cart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const { user } = useCustomerAuth();
   const { toast } = useToast();
