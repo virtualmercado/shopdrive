@@ -6797,6 +6797,10 @@ export type Database = {
         Returns: undefined
       }
       repair_incomplete_template_stores: { Args: never; Returns: Json }
+      replace_manual_order_items: {
+        Args: { p_items: Json; p_order_id: string }
+        Returns: undefined
+      }
       reserve_order_item_variant: {
         Args: {
           p_order_id: string

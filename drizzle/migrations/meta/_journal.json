@@ -29,6 +29,13 @@
       "when": 1790224444818,
       "tag": "0003_product_variant_matrix",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790260788199,
+      "tag": "0004_variant_manual_orders_and_template_copy",
+      "breakpoints": true
     }
   ]
 }
