@@ -758,6 +758,7 @@ const CheckoutContent = () => {
         quantity: item.quantity,
         subtotal: (item.promotional_price || item.price) * item.quantity,
         variations: item.variations || null,
+        variant_id: item.variantId || null,
       }));
       const orderSource = sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store';
       const getPaymentStatus = (method: PaymentMethod, gatewayStatus?: string) => {
