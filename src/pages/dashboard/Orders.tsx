@@ -116,7 +116,7 @@ const Orders = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(order => 
         order.customer_name.toLowerCase().includes(term) ||
-        order.customer_email.toLowerCase().includes(term)
+        (order.customer_email || "").toLowerCase().includes(term)
       );
     }
     

@@ -2871,7 +2871,7 @@ export type Database = {
           checkout_origin: string | null
           created_at: string
           customer_address: string | null
-          customer_email: string
+          customer_email: string | null
           customer_id: string | null
           customer_name: string
           customer_phone: string | null
@@ -2905,7 +2905,7 @@ export type Database = {
           checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
-          customer_email: string
+          customer_email?: string | null
           customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
@@ -2939,7 +2939,7 @@ export type Database = {
           checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
-          customer_email?: string
+          customer_email?: string | null
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
