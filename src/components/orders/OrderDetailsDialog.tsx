@@ -58,11 +58,14 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
                       <div className="flex-1">
                         <p className="font-medium">{item.product_name}</p>
                         {variations && Object.keys(variations).length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {Object.entries(variations)
-                              .map(([k, v]) => `${k}: ${v}`)
-                              .join(" • ")}
-                          </p>
+                          <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                            {Object.entries(variations).map(([k, v]) => (
+                              <p key={k}>{k}: {String(v)}</p>
+                            ))}
+                          </div>
+                        )}
+                        {item.variant_sku && (
+                          <p className="text-xs text-muted-foreground">SKU: {item.variant_sku}</p>
                         )}
                         <p className="text-sm text-muted-foreground">
                           Quantidade: {item.quantity} × R$ {item.product_price.toFixed(2)}
