@@ -43,6 +43,13 @@
       "when": 1790262705004,
       "tag": "0005_atomic_order_number_and_optional_email",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790268497579,
+      "tag": "0006_cancel_account_deletion_request",
+      "breakpoints": true
     }
   ]
 }
