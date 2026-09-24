@@ -63,6 +63,29 @@ const PRODUCTS_PER_PAGE = 30;
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  // Products whose combination SKU matches the search (owner-scoped by RLS).
+  const [variantSkuMatches, setVariantSkuMatches] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const term = searchTerm.trim();
+    if (term.length < 4 || !/^sd-/i.test(term)) {
+      setVariantSkuMatches(new Set());
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("product_variants" as any)
+        .select("product_id")
+        .ilike("sku", `%${term.replace(/[%_]/g, "")}%`)
+        .is("archived_at", null)
+        .limit(50);
+      if (!cancelled) setVariantSkuMatches(new Set(((data as any[]) || []).map((r) => r.product_id)));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searchTerm]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -322,7 +345,9 @@ const Products = () => {
 
   const filteredProducts = getSortedProducts(
     products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        variantSkuMatches.has(product.id);
       const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
       return matchesSearch && matchesCategory;
     })
