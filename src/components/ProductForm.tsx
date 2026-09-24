@@ -206,6 +206,10 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [wasVariantMode, setWasVariantMode] = useState(false);
   const [variantState, setVariantState] = useState<Record<string, VariantCellState>>({});
   const [variantLimits, setVariantLimits] = useState<VariantLimits>(DEFAULT_VARIANT_LIMITS);
+  const variantTotalStock = Object.values(variantState).reduce(
+    (sum, s) => (s.active ? sum + (s.stock || 0) : sum),
+    0,
+  );
   useEffect(() => {
     fetchVariantLimits().then(setVariantLimits).catch(() => {});
   }, []);
@@ -1585,7 +1589,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 type="number"
                 min="0"
                 step="1"
-                value={stock}
+                value={variantMode ? String(variantTotalStock) : stock}
                 onChange={(e) => {
                   const raw = e.target.value;
                   if (raw === "") { setStock(""); return; }
