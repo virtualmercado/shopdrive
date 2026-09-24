@@ -232,7 +232,6 @@ export const AccountClosureSection = () => {
         </Button>
       ) : null}
       {accountStatus === "exclusao_solicitada" || hasPendingRequest ? null : (
-      ) : (
         <>
           <p className="text-sm text-muted-foreground mb-4">
             Se você deseja encerrar sua conta e remover seus dados da plataforma, 
