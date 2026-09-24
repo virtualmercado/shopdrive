@@ -190,6 +190,7 @@ export const AccountClosureSection = () => {
       setIsModalOpen(false);
       setAccountStatus("exclusao_solicitada");
       setHasPendingRequest(true);
+      setPendingRequestId(deletionRequest.id);
       setReason("");
       setDetails("");
       setConsent(false);
@@ -224,6 +225,13 @@ export const AccountClosureSection = () => {
             Sua solicitação de exclusão está em análise. Acompanhe pelo menu <strong>Suporte</strong>.
           </AlertDescription>
         </Alert>
+      ) : null}
+      {(accountStatus === "exclusao_solicitada" || hasPendingRequest) && pendingRequestId ? (
+        <Button variant="outline" className="mt-4" onClick={() => setIsCancelOpen(true)}>
+          Cancelar solicitação de exclusão
+        </Button>
+      ) : null}
+      {accountStatus === "exclusao_solicitada" || hasPendingRequest ? null : (
       ) : (
         <>
           <p className="text-sm text-muted-foreground mb-4">
@@ -242,6 +250,25 @@ export const AccountClosureSection = () => {
         </>
       )}
       
+      <Dialog open={isCancelOpen} onOpenChange={(o) => !isCancelling && setIsCancelOpen(o)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar solicitação de exclusão?</DialogTitle>
+            <DialogDescription className="text-left pt-2">
+              Sua conta continuará ativa normalmente. Você poderá solicitar a exclusão novamente no futuro, se desejar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCancelOpen(false)} disabled={isCancelling}>
+              Manter solicitação
+            </Button>
+            <Button onClick={handleCancelRequest} disabled={isCancelling}>
+              {isCancelling ? "Cancelando..." : "Cancelar solicitação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
