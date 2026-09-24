@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Filter, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X, UserPlus } from 'lucide-react';
+import { Search, Filter, ArrowDownAZ, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X, UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,6 +30,30 @@ interface Customer {
   customer_code?: string | null;
   origin?: string; // 'manual' | 'online_store'
 }
+
+type CustomerSort = 'newest' | 'oldest' | 'name-asc' | 'name-desc';
+
+const byCreatedDesc = (a: Customer, b: Customer) => {
+  const diff = new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  return diff !== 0 ? diff : b.id.localeCompare(a.id);
+};
+
+const sortCustomers = (list: Customer[], sort: CustomerSort): Customer[] => {
+  const copy = [...list];
+  if (sort === 'newest') return copy.sort(byCreatedDesc);
+  if (sort === 'oldest') return copy.sort((a, b) => -byCreatedDesc(a, b));
+  const dir = sort === 'name-desc' ? -1 : 1;
+  return copy.sort((a, b) => {
+    const na = (a.full_name || '').trim();
+    const nb = (b.full_name || '').trim();
+    // Customers without a name always go after named customers
+    if (!na && !nb) return byCreatedDesc(a, b);
+    if (!na) return 1;
+    if (!nb) return -1;
+    const cmp = na.localeCompare(nb, 'pt-BR', { sensitivity: 'base', numeric: true });
+    return cmp !== 0 ? dir * cmp : byCreatedDesc(a, b);
+  });
+};
 
 interface CustomerGroup {
   id: string;
@@ -156,6 +180,7 @@ const Customers = () => {
     }
   };
   const [isFilterActive, setIsFilterActive] = useState(false);
+  const [sortBy, setSortBy] = useState<CustomerSort>('newest');
 
   useEffect(() => {
     if (user) {
@@ -164,7 +189,12 @@ const Customers = () => {
       fetchCustomerGroupAssignments();
       fetchCustomerAddresses();
     }
-  }, [user, currentPage]);
+  }, [user, currentPage, sortBy]);
+
+  // Keep an active filtered list in the chosen order (used by listing, print and export)
+  useEffect(() => {
+    setFilteredCustomersList(prev => sortCustomers(prev, sortBy));
+  }, [sortBy]);
 
 
   const fetchCustomers = async () => {
@@ -208,24 +238,12 @@ const Customers = () => {
         ...cp,
         is_active: activeMap.get(cp.id) ?? true
       }));
-      setAllCustomers(allCustomersWithStatus);
 
-      // Fetch paginated customer profiles
-      const { data: customerProfiles, error: profileError, count } = await supabase
-        .from('customer_profiles')
-        .select('*', { count: 'exact' })
-        .in('id', customerIds)
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
-
-      if (profileError) throw profileError;
-
-      const customersWithStatus = (customerProfiles || []).map(cp => ({
-        ...cp,
-        is_active: activeMap.get(cp.id) ?? true
-      }));
-
-      setCustomers(customersWithStatus);
-      setTotalCustomers(count || 0);
+      // Sort the complete store list first, then paginate
+      const sortedCustomers = sortCustomers(allCustomersWithStatus, sortBy);
+      setAllCustomers(sortedCustomers);
+      setCustomers(sortedCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage));
+      setTotalCustomers(sortedCustomers.length);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching customers:', error);
       toast({
@@ -331,7 +349,7 @@ const Customers = () => {
     }
 
     const filtered = customers.filter(c => 
-      c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.full_name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
     setCustomers(filtered);
@@ -799,7 +817,7 @@ const Customers = () => {
     ? filteredCustomersList 
     : (searchTerm 
       ? customers.filter(c => 
-          c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.full_name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
         )
       : customers);
@@ -841,6 +859,21 @@ const Customers = () => {
                   Buscar
                 </Button>
               </div>
+              <Select
+                value={sortBy}
+                onValueChange={(v) => { setSortBy(v as CustomerSort); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="w-full sm:w-[200px] gap-2" aria-label="Ordenar clientes">
+                  <ArrowDownAZ className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                  <SelectItem value="oldest">Mais antigos</SelectItem>
+                  <SelectItem value="name-asc">Alfabética: A → Z</SelectItem>
+                  <SelectItem value="name-desc">Alfabética: Z → A</SelectItem>
+                </SelectContent>
+              </Select>
               <Button 
                 className="gap-2 text-white bg-primary hover:bg-primary/90"
                 onClick={() => {
