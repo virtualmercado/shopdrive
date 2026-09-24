@@ -1147,7 +1147,12 @@ const CheckoutContent = () => {
       if (whatsappWindow && !whatsappWindow.closed) {
         try { whatsappWindow.close(); } catch { /* noop */ }
       }
-      toast.error("Não foi possível registrar seu pedido. Tente novamente.");
+      const msg = String(error?.message || "");
+      toast.error(
+        msg.includes("Combinação indisponível") || msg.includes("Selecione as opções")
+          ? msg
+          : "Não foi possível registrar seu pedido. Tente novamente.",
+      );
     } finally {
       setLoading(false);
       finalizingRef.current = false;
