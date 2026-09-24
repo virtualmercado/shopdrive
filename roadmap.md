@@ -17,3 +17,11 @@
 - [x] Baixa atômica ao criar pedido (inclui WhatsApp/guest), estorno automático em cancelado/expirado/recusado/invalidado, idempotente, sem negativo; produtos simples mantêm regra atual
 - [x] WhatsApp/PDF com variações; clonagem de loja
 - [ ] Teste visual no navegador (editor mobile, loja pública, PDF multipágina) — pendente de validação manual
+
+## Variantes — fechamento de lacunas (em andamento)
+- [ ] Ver pedido: mostrar atributos + SKU da variante por item
+- [ ] PDF/recibo (1 página e multipágina) com variantes
+- [ ] Pedido manual (Incluir Pedido) exige combinação completa, usa variant_id/estoque da variante
+- [ ] Cópia de produtos de templates copia variantes com novos IDs/SKUs
+- [ ] Busca do painel por SKU da variante
+- [ ] Matriz PASS/FAIL A–X
