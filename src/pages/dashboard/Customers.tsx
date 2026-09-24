@@ -348,11 +348,8 @@ const Customers = () => {
       return;
     }
 
-    const filtered = customers.filter(c => 
-      (c.full_name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setCustomers(filtered);
+    // Search is applied over the complete (already sorted) store list
+    setCurrentPage(1);
   };
 
   const handleCreateGroup = async () => {
@@ -816,13 +813,15 @@ const Customers = () => {
   const displayedCustomers = isFilterActive 
     ? filteredCustomersList 
     : (searchTerm 
-      ? customers.filter(c => 
+      ? allCustomers.filter(c => 
           (c.full_name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
         )
       : customers);
 
-  const totalPages = Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
+  const totalPages = !isFilterActive && searchTerm.trim()
+    ? 1
+    : Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
 
   return (
     <DashboardLayout>
