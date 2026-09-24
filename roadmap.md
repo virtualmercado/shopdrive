@@ -10,9 +10,10 @@
 - [x] Validar bloqueio de Cupons no Grátis e acesso normal no PRO/PREMIUM.
 
 ## Matriz de variantes com estoque por combinação (2026-09-24)
-- [ ] Tabelas de atributos/valores/variantes + RLS + SKU estável (V001…)
-- [ ] Editor "Combinações e estoque" no ProductForm (opcional, não destrutivo)
-- [ ] Loja pública: seletores separados + indisponibilidade por combinação
-- [ ] Carrinho/checkout/pedido com variant_id, variant_sku e snapshot
-- [ ] Baixa atômica ao criar pedido (inclui WhatsApp/guest), estorno automático em cancelado/expirado/recusado/invalidado, idempotente, sem negativo; produtos simples mantêm regra atual
-- [ ] WhatsApp/PDF com variações; clonagem de loja
+- [x] Tabelas de atributos/valores/variantes + RLS + SKU estável (V001…)
+- [x] Editor "Combinações e estoque" no ProductForm (opcional, não destrutivo)
+- [x] Loja pública: seletores separados + indisponibilidade por combinação
+- [x] Carrinho/checkout/pedido com variant_id, variant_sku e snapshot
+- [x] Baixa atômica ao criar pedido (inclui WhatsApp/guest), estorno automático em cancelado/expirado/recusado/invalidado, idempotente, sem negativo; produtos simples mantêm regra atual
+- [x] WhatsApp/PDF com variações; clonagem de loja
+- [ ] Teste visual no navegador (editor mobile, loja pública, PDF multipágina) — pendente de validação manual
