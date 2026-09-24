@@ -819,7 +819,9 @@ const Customers = () => {
         )
       : customers);
 
-  const totalPages = Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
+  const totalPages = !isFilterActive && searchTerm.trim()
+    ? 1
+    : Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
 
   return (
     <DashboardLayout>
