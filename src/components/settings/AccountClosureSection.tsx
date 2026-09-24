@@ -44,6 +44,34 @@ export const AccountClosureSection = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountStatus, setAccountStatus] = useState<string>("active");
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelRequest = async () => {
+    if (!pendingRequestId || isCancelling) return;
+    setIsCancelling(true);
+    const { error } = await supabase.rpc("cancel_account_deletion_request", {
+      p_request_id: pendingRequestId,
+    });
+    setIsCancelling(false);
+    if (error) {
+      const processing = error.message?.includes("request_already_processing");
+      toast({
+        title: processing ? "Solicitação em processamento" : "Erro ao cancelar",
+        description: processing
+          ? "Esta solicitação já está sendo processada e não pode mais ser cancelada. Entre em contato com o suporte."
+          : "Não foi possível cancelar sua solicitação. Tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsCancelOpen(false);
+    setHasPendingRequest(false);
+    setPendingRequestId(null);
+    setAccountStatus("active");
+    toast({ title: "Solicitação de exclusão cancelada." });
+  };
   
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
@@ -71,10 +99,12 @@ export const AccountClosureSection = () => {
           .select("id, status")
           .eq("merchant_id", user.id)
           .in("status", ["pending", "in_review"])
+          .order("requested_at", { ascending: false })
           .limit(1);
         
         if (requests && requests.length > 0) {
           setHasPendingRequest(true);
+          setPendingRequestId(requests[0].id);
         }
       } catch (error) {
         console.error("Error fetching account status:", error);
@@ -160,6 +190,7 @@ export const AccountClosureSection = () => {
       setIsModalOpen(false);
       setAccountStatus("exclusao_solicitada");
       setHasPendingRequest(true);
+      setPendingRequestId(deletionRequest.id);
       setReason("");
       setDetails("");
       setConsent(false);
@@ -194,7 +225,13 @@ export const AccountClosureSection = () => {
             Sua solicitação de exclusão está em análise. Acompanhe pelo menu <strong>Suporte</strong>.
           </AlertDescription>
         </Alert>
-      ) : (
+      ) : null}
+      {(accountStatus === "exclusao_solicitada" || hasPendingRequest) && pendingRequestId ? (
+        <Button variant="outline" className="mt-4" onClick={() => setIsCancelOpen(true)}>
+          Cancelar solicitação de exclusão
+        </Button>
+      ) : null}
+      {accountStatus === "exclusao_solicitada" || hasPendingRequest ? null : (
         <>
           <p className="text-sm text-muted-foreground mb-4">
             Se você deseja encerrar sua conta e remover seus dados da plataforma, 
@@ -212,6 +249,25 @@ export const AccountClosureSection = () => {
         </>
       )}
       
+      <Dialog open={isCancelOpen} onOpenChange={(o) => !isCancelling && setIsCancelOpen(o)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar solicitação de exclusão?</DialogTitle>
+            <DialogDescription className="text-left pt-2">
+              Sua conta continuará ativa normalmente. Você poderá solicitar a exclusão novamente no futuro, se desejar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCancelOpen(false)} disabled={isCancelling}>
+              Manter solicitação
+            </Button>
+            <Button onClick={handleCancelRequest} disabled={isCancelling}>
+              {isCancelling ? "Cancelando..." : "Cancelar solicitação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>

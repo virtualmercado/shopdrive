@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       account_deletion_requests: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -34,6 +36,8 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -52,6 +56,8 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -6568,6 +6574,10 @@ export type Database = {
       }
       backfill_store_onboarding_states: {
         Args: { p_limit?: number }
+        Returns: Json
+      }
+      cancel_account_deletion_request: {
+        Args: { p_request_id: string }
         Returns: Json
       }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
