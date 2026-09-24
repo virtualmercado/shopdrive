@@ -738,6 +738,12 @@ Deno.serve(async (req) => {
                 if (!keepActive && wasActive) productsDeactivatedByPlan++;
               }
 
+              {
+                const { error: varErr } = await admin.rpc("clone_product_variants", {
+                  p_source_product_id: oldProductId, p_target_product_id: clonedProductId,
+                });
+                if (varErr) console.error("[clone-store] variant clone failed", { requestId, oldProductId, message: varErr.message });
+              }
               productsCopied++;
               productMap.push({
                 sourceProductId: oldProductId,
@@ -847,6 +853,12 @@ Deno.serve(async (req) => {
             continue;
           }
           productsCopied++;
+          {
+            const { error: varErr } = await admin.rpc("clone_product_variants", {
+              p_source_product_id: oldProductId, p_target_product_id: insProd.id,
+            });
+            if (varErr) console.error("[clone-store] variant clone failed", oldProductId, varErr.message);
+          }
 
           // Images for this product (URL-reference copy)
           if (options.copyImages) {

@@ -37,6 +37,19 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { SortableImageItem } from "@/components/products/SortableImageItem";
+import { VariantMatrixEditor, type VariantCellState } from "@/components/products/VariantMatrixEditor";
+import { Switch } from "@/components/ui/switch";
+import {
+  cartesian,
+  comboKey,
+  DEFAULT_VARIANT_LIMITS,
+  fetchVariantLimits,
+  loadVariantMatrix,
+  newId,
+  reconcileValueIds,
+  type VariantLimits,
+  type VariantOptionGroup,
+} from "@/lib/productVariants";
 
 /** Strip HTML tags to get visible text length (same logic as RichTextEditor counter) */
 const stripHtmlForCount = (html: string): string => html.replace(/<[^>]*>/g, "");
@@ -62,7 +75,24 @@ const productSchema = z.object({
 interface ProductVariation {
   name: string;
   values: string[];
+  /** Stable ids (only meaningful for per-combination inventory). */
+  id?: string;
+  valueIds?: string[];
 }
+
+const withIds = (vs: ProductVariation[]): ProductVariation[] =>
+  vs.map((v) => ({
+    ...v,
+    id: v.id || newId(),
+    valueIds: v.values.map((_, i) => v.valueIds?.[i] || newId()),
+  }));
+
+const toGroups = (vs: ProductVariation[]): VariantOptionGroup[] =>
+  withIds(vs).map((v) => ({
+    id: v.id!,
+    name: v.name,
+    values: v.values.map((val, i) => ({ id: v.valueIds![i], value: val })),
+  }));
 
 /**
  * Safely parse variations from a DB Json value into ProductVariation[].
@@ -171,6 +201,14 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
   const [editVariationName, setEditVariationName] = useState("");
   const [editVariationValues, setEditVariationValues] = useState("");
+  // Per-combination inventory
+  const [variantMode, setVariantMode] = useState(false);
+  const [wasVariantMode, setWasVariantMode] = useState(false);
+  const [variantState, setVariantState] = useState<Record<string, VariantCellState>>({});
+  const [variantLimits, setVariantLimits] = useState<VariantLimits>(DEFAULT_VARIANT_LIMITS);
+  useEffect(() => {
+    fetchVariantLimits().then(setVariantLimits).catch(() => {});
+  }, []);
   
   // Weight and dimensions state
   const [weight, setWeight] = useState("");
@@ -250,6 +288,29 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setIsFeatured(product.is_featured || false);
       setIsNew(product.is_new || false);
       setVariations(parseVariations(product.variations));
+      setVariantState({});
+      const isVariant = (product as any).inventory_mode === "variant";
+      setVariantMode(isVariant);
+      setWasVariantMode(isVariant);
+      if (isVariant) {
+        loadVariantMatrix(product.id).then(({ groups, variants }) => {
+          if (groups.length > 0) {
+            setVariations(
+              groups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                values: g.values.map((v) => v.value),
+                valueIds: g.values.map((v) => v.id),
+              })),
+            );
+          }
+          const st: Record<string, VariantCellState> = {};
+          variants.forEach((v) => {
+            st[comboKey(v.option_value_ids)] = { stock: v.stock_quantity, active: v.active, sku: v.sku };
+          });
+          setVariantState(st);
+        });
+      }
       if (product.weight != null && product.weight > 0) {
         setWeight((product.weight * 1000).toString());
         setWeightUnit("g");
@@ -610,7 +671,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       return;
     }
 
-    setVariations([...variations, { name: newVariationName.trim(), values }]);
+    setVariations([...variations, { name: newVariationName.trim(), values, id: newId(), valueIds: values.map(() => newId()) }]);
     setNewVariationName("");
     setNewVariationValues("");
     
@@ -641,7 +702,17 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
     const values = editVariationValues.split(',').map(v => v.trim()).filter(v => v);
     const updatedVariations = [...variations];
-    updatedVariations[editingVariationIndex] = { name: editVariationName.trim(), values };
+    const prevVar = withIds([variations[editingVariationIndex]])[0];
+    const reconciled = reconcileValueIds(
+      prevVar.values.map((v, i) => ({ id: prevVar.valueIds![i], value: v })),
+      values,
+    );
+    updatedVariations[editingVariationIndex] = {
+      name: editVariationName.trim(),
+      values,
+      id: prevVar.id,
+      valueIds: reconciled.map((r) => r.id),
+    };
     
     setVariations(updatedVariations);
     setEditingVariationIndex(null);
@@ -777,6 +848,33 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           : {}),
       };
 
+      const syncMatrix = async (productId: string) => {
+        if (!variantMode && !wasVariantMode) return;
+        const groups = toGroups(variations);
+        const payloadVariants = variantMode
+          ? cartesian(groups).map((c) => {
+              const ids = c.map((x) => x.id);
+              const s = variantState[comboKey(ids)] ?? { stock: 0, active: true };
+              return { value_ids: ids, stock: s.stock || 0, active: s.active };
+            })
+          : [];
+        const { data: res, error: rpcError } = await supabase.rpc("save_product_variant_matrix" as any, {
+          p_product_id: productId,
+          p_enabled: variantMode,
+          p_groups: variantMode
+            ? groups.map((g) => ({ id: g.id, name: g.name, values: g.values.map((v) => ({ id: v.id, value: v.value })) }))
+            : [],
+          p_variants: payloadVariants,
+          p_simple_stock: parsedStock,
+        });
+        if (rpcError) {
+          const err = new Error(rpcError.message);
+          (err as any).userMessage = `Combinações não salvas: ${rpcError.message}`;
+          throw err;
+        }
+        if (import.meta.env.DEV) console.info("[variants] matrix saved", { productId, ...(res as any) });
+      };
+
       if (product) {
         const { error } = await supabase
           .from('products')
@@ -784,6 +882,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           .eq('id', product.id);
 
         if (error) throw error;
+        await syncMatrix(product.id);
 
         logAuditEvent({
           action: "product_updated",
@@ -804,6 +903,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           .maybeSingle();
 
         if (error) throw error;
+        if (insertedData?.id) await syncMatrix(insertedData.id);
 
         logAuditEvent({
           action: "product_created",
@@ -829,7 +929,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       }
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao salvar o produto",
+        description: (error as any)?.userMessage || "Ocorreu um erro ao salvar o produto",
         variant: "destructive",
       });
     } finally {
@@ -854,6 +954,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setIsFeatured(false);
     setIsNew(false);
     setVariations([]);
+    setVariantMode(false);
+    setWasVariantMode(false);
+    setVariantState({});
     setNewVariationName("");
     setNewVariationValues("");
     setEditingVariationIndex(null);
@@ -1493,7 +1596,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 }}
                 placeholder="0"
                 required
+                disabled={variantMode}
               />
+              {variantMode && (
+                <p className="text-xs text-muted-foreground">Calculado pela soma das combinações ativas.</p>
+              )}
             </div>
           </div>
 
@@ -1666,6 +1773,40 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 Adicionar Variação
               </Button>
             </div>
+
+            {variations.length > 0 && (
+              <div className="space-y-3 p-3 border rounded-lg">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-sm">
+                    <span className="font-medium">Controlar estoque por combinação</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Cada combinação terá estoque e SKU próprios. O estoque total será a soma das combinações ativas.
+                    </span>
+                  </span>
+                  <Switch
+                    checked={variantMode}
+                    onCheckedChange={(checked) => {
+                      if (!checked && wasVariantMode) {
+                        const ok = window.confirm(
+                          "Desativar o estoque por combinação? As combinações serão inativadas (não apagadas) e o produto voltará a usar o estoque geral.",
+                        );
+                        if (!ok) return;
+                      }
+                      if (checked) setVariations((vs) => withIds(vs));
+                      setVariantMode(checked);
+                    }}
+                  />
+                </label>
+                {variantMode && (
+                  <VariantMatrixEditor
+                    groups={toGroups(variations)}
+                    state={variantState}
+                    onChange={setVariantState}
+                    limits={variantLimits}
+                  />
+                )}
+              </div>
+            )}
           </div>
 
            {/* Weight and Dimensions Section */}

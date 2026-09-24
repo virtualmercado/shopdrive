@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import useEmblaCarousel from "embla-carousel-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import BuyTogetherSection from "@/components/store/BuyTogetherSection";
+import { loadVariantMatrix, type ProductVariantRow, type VariantOptionGroup } from "@/lib/productVariants";
 
 interface Product {
   id: string;
@@ -78,7 +79,7 @@ interface StoreData {
 const ProductDetailContent = () => {
   const { storeSlug, productId } = useParams();
   const navigate = useNavigate();
-  const { addToCart, getItemCount } = useCart();
+  const { addToCart, getItemCount, cart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const { user } = useCustomerAuth();
   const { toast } = useToast();
@@ -89,6 +90,9 @@ const ProductDetailContent = () => {
   const [loading, setLoading] = useState(true);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
+  // Per-combination inventory (only for inventory_mode = 'variant')
+  const [matrixGroups, setMatrixGroups] = useState<VariantOptionGroup[] | null>(null);
+  const [matrixVariants, setMatrixVariants] = useState<ProductVariantRow[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -207,6 +211,15 @@ const ProductDetailContent = () => {
             images: parsedImages,
             variations: parsedVariations
           });
+
+          if ((productData as any).inventory_mode === "variant") {
+            const m = await loadVariantMatrix(productData.id);
+            setMatrixGroups(m.groups);
+            setMatrixVariants(m.variants.filter((v) => v.active));
+          } else {
+            setMatrixGroups(null);
+            setMatrixVariants([]);
+          }
 
           // Fetch category if exists
           if (productData.category_id) {
@@ -372,8 +385,72 @@ const ProductDetailContent = () => {
     }
   };
 
-  const handleAddToCart = () => {
+  const isVariantProduct = !!matrixGroups && matrixGroups.length > 0;
+  const valueIdFor = (groupName: string, value: string | undefined) =>
+    value == null ? undefined : matrixGroups?.find((g) => g.name === groupName)?.values.find((v) => v.value === value)?.id;
+  const selectedValueIds = (except?: string) =>
+    (matrixGroups || [])
+      .filter((g) => g.name !== except)
+      .map((g) => valueIdFor(g.name, selectedVariations[g.name]))
+      .filter(Boolean) as string[];
+  const isValueAvailable = (groupName: string, value: string) => {
+    const id = valueIdFor(groupName, value);
+    if (!id) return false;
+    const others = selectedValueIds(groupName);
+    return matrixVariants.some(
+      (v) => v.stock_quantity > 0 && v.option_value_ids.includes(id) && others.every((o) => v.option_value_ids.includes(o)),
+    );
+  };
+  const allSelected = isVariantProduct && (matrixGroups || []).every((g) => !!selectedVariations[g.name]);
+  const resolvedVariant: ProductVariantRow | null = (() => {
+    if (!allSelected) return null;
+    const ids = selectedValueIds();
+    return matrixVariants.find((v) => v.option_value_ids.length === ids.length && ids.every((i) => v.option_value_ids.includes(i))) || null;
+  })();
+  const variantUnavailable = allSelected && (!resolvedVariant || resolvedVariant.stock_quantity <= 0);
+  const effectiveStock = isVariantProduct
+    ? resolvedVariant ? resolvedVariant.stock_quantity : product?.stock ?? 0
+    : product?.stock ?? 0;
+
+  const handleAddToCart = async () => {
     if (!product || product.stock <= 0) return;
+
+    let variantInfo: { variantId: string; variantSku: string; maxStock: number } | null = null;
+    if (isVariantProduct) {
+      const missingGroups = (matrixGroups || []).filter((g) => !selectedVariations[g.name]).map((g) => g.name);
+      if (missingGroups.length > 0) {
+        toast({ title: "Selecione as opções", description: `Escolha: ${missingGroups.join(", ")}`, variant: "destructive" });
+        return;
+      }
+      if (!resolvedVariant) {
+        toast({ title: "Combinação indisponível no momento.", variant: "destructive" });
+        return;
+      }
+      // Re-validate against the server (active, stock, product and store ownership)
+      const { data: fresh } = await supabase
+        .from("product_variants" as any)
+        .select("id, sku, stock_quantity, active, product_id, store_id")
+        .eq("id", resolvedVariant.id)
+        .eq("product_id", product.id)
+        .eq("store_id", storeData?.id || "")
+        .is("archived_at", null)
+        .maybeSingle();
+      const f = fresh as any;
+      const inCart = cart.find((c) => c.variantId === resolvedVariant.id)?.quantity || 0;
+      if (!f || !f.active || f.stock_quantity <= 0) {
+        toast({ title: "Combinação indisponível no momento.", variant: "destructive" });
+        return;
+      }
+      if (inCart + quantity > f.stock_quantity) {
+        toast({
+          title: "Estoque insuficiente",
+          description: `Existem apenas ${f.stock_quantity} unidades disponíveis desta combinação.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      variantInfo = { variantId: f.id, variantSku: f.sku, maxStock: f.stock_quantity };
+    }
 
     // Require selection for each variation group defined on the product
     const variationGroups = Array.isArray(product.variations) ? product.variations : [];
@@ -409,6 +486,7 @@ const ProductDetailContent = () => {
       width: product.width,
       length: product.length,
       variations: variationsObj,
+      ...(variantInfo || {}),
     };
 
     for (let i = 0; i < quantity; i++) {
@@ -840,9 +918,12 @@ const ProductDetailContent = () => {
             )}
 
             {/* Variations */}
-            {product.variations && product.variations.length > 0 && (
+            {(isVariantProduct || (product.variations && product.variations.length > 0)) && (
               <div className="space-y-4">
-                {product.variations.map((variation: any, index: number) => (
+                {(isVariantProduct
+                  ? matrixGroups!.map((g) => ({ name: g.name, values: g.values.map((v) => v.value) }))
+                  : product.variations!
+                ).map((variation: any, index: number) => (
                   <div key={index}>
                     <label className="block text-sm font-medium text-foreground mb-2">
                       {variation.name || variation.group}
@@ -851,11 +932,14 @@ const ProductDetailContent = () => {
                       {(variation.values || variation.options || []).map((value: string, vIndex: number) => {
                         const groupName = variation.name || variation.group;
                         const isSelected = selectedVariations[groupName] === value;
+                        const unavailable = isVariantProduct && !isValueAvailable(groupName, value);
                         return (
                           <button
                             key={vIndex}
                             onClick={() => handleVariationSelect(groupName, value)}
-                            className={`px-4 py-2 text-sm border transition-all ${buttonRadius}`}
+                            aria-disabled={unavailable}
+                            title={unavailable ? "Indisponível" : undefined}
+                            className={`px-4 py-2 text-sm border transition-all ${buttonRadius} ${unavailable && !isSelected ? "opacity-40 line-through" : ""}`}
                             style={{
                               backgroundColor: isSelected ? buttonBgColor : 'transparent',
                               color: isSelected ? buttonTextColor : 'inherit',
@@ -886,13 +970,17 @@ const ProductDetailContent = () => {
                 </button>
                 <span className="w-12 text-center font-medium">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  onClick={() => setQuantity(Math.max(1, Math.min(effectiveStock, quantity + 1)))}
                   className={`w-10 h-10 flex items-center justify-center border ${buttonRadius} hover:bg-muted transition-colors`}
                 >
                   +
                 </button>
                 <span className="text-sm text-foreground/90">
-                  {product.stock} disponíveis
+                  {variantUnavailable
+                    ? "Combinação indisponível no momento."
+                    : isVariantProduct && !resolvedVariant
+                      ? "Selecione as opções"
+                      : `${effectiveStock} disponíveis`}
                 </span>
               </div>
             </div>
@@ -900,12 +988,12 @@ const ProductDetailContent = () => {
             {/* Add to Cart Button */}
             <Button
               onClick={handleAddToCart}
-              disabled={product.stock <= 0}
+              disabled={product.stock <= 0 || variantUnavailable}
               className={`w-full h-14 text-lg ${buttonRadius} transition-all hover:opacity-90`}
               style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
-              {product.stock <= 0 ? "Produto Indisponível" : "Adicionar ao Carrinho"}
+              {product.stock <= 0 ? "Produto Indisponível" : variantUnavailable ? "Combinação indisponível" : "Adicionar ao Carrinho"}
             </Button>
 
           </div>

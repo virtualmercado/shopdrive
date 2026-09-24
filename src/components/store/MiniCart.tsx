@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface MiniCartProps {
   storeSlug: string;
@@ -22,6 +23,7 @@ const MiniCart = ({
   const { cart, updateQuantity, removeFromCart, getTotal } = useCart();
   const { isOpen, closeMiniCart } = useMiniCart();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const buttonRadius = buttonBorderStyle === "straight" ? "rounded-none" : "rounded-lg";
 
@@ -104,7 +106,17 @@ const MiniCart = ({
                       </button>
                       <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
+                        onClick={() => {
+                          if (item.maxStock != null && item.quantity >= item.maxStock) {
+                            toast({
+                              title: "Estoque insuficiente",
+                              description: `Existem apenas ${item.maxStock} unidades disponíveis desta combinação.`,
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          updateQuantity(item.cartKey, item.quantity + 1);
+                        }}
                         className="p-1 hover:bg-muted rounded transition-colors"
                         style={{ color: primaryColor }}
                       >

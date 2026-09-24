@@ -758,6 +758,7 @@ const CheckoutContent = () => {
         quantity: item.quantity,
         subtotal: (item.promotional_price || item.price) * item.quantity,
         variations: item.variations || null,
+        variant_id: item.variantId || null,
       }));
       const orderSource = sessionStorage.getItem('order_origin_catalog') ? 'catalog' : 'store';
       const getPaymentStatus = (method: PaymentMethod, gatewayStatus?: string) => {
@@ -816,6 +817,10 @@ const CheckoutContent = () => {
 
         if (createOrderError || !createdOrder) {
           console.error("[Checkout] create_checkout_order error:", createOrderError);
+          const rawMsg = String((createOrderError as any)?.message || "");
+          if (rawMsg.includes("Combinação indisponível") || rawMsg.includes("Selecione as opções")) {
+            throw new Error(`${rawMsg} Revise o carrinho e tente novamente.`);
+          }
           throw new Error("Não foi possível registrar seu pedido. Tente novamente.");
         }
 
@@ -1142,7 +1147,12 @@ const CheckoutContent = () => {
       if (whatsappWindow && !whatsappWindow.closed) {
         try { whatsappWindow.close(); } catch { /* noop */ }
       }
-      toast.error("Não foi possível registrar seu pedido. Tente novamente.");
+      const msg = String(error?.message || "");
+      toast.error(
+        msg.includes("Combinação indisponível") || msg.includes("Selecione as opções")
+          ? msg
+          : "Não foi possível registrar seu pedido. Tente novamente.",
+      );
     } finally {
       setLoading(false);
       finalizingRef.current = false;

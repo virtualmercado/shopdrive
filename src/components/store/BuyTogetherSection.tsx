@@ -36,7 +36,7 @@ interface BuyTogetherSectionProps {
 }
 
 const BASE_SELECT =
-  "id, name, price, promotional_price, image_url, images, stock, weight, height, width, length, category_id, popularity_score, created_at";
+  "id, name, price, promotional_price, image_url, images, stock, weight, height, width, length, category_id, popularity_score, created_at, inventory_mode";
 
 const BuyTogetherSection = ({
   storeOwnerId,
@@ -139,6 +139,10 @@ const BuyTogetherSection = ({
     e.preventDefault();
     e.stopPropagation();
     if (p.stock <= 0) return;
+    if ((p as any).inventory_mode === "variant") {
+      window.location.assign(`/${storeSlug}/produto/${p.id}`);
+      return;
+    }
 
     const item = {
       id: p.id,

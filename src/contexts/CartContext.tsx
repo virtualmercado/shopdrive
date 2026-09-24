@@ -18,6 +18,11 @@ export interface CartItem {
   height?: number | null;
   width?: number | null;
   length?: number | null;
+  /** Per-combination inventory (optional; legacy/simple products omit these). */
+  variantId?: string | null;
+  variantSku?: string | null;
+  /** Stock known when added; server re-validates at order creation. */
+  maxStock?: number | null;
 }
 
 interface CartContextType {
@@ -55,7 +60,12 @@ interface PersistedCart {
 
 const storageKeyFor = (storeKey: string) => `${CART_KEY_PREFIX}${storeKey}`;
 
-const buildCartKey = (productId: string, variations?: Record<string, string> | null): string => {
+const buildCartKey = (
+  productId: string,
+  variations?: Record<string, string> | null,
+  variantId?: string | null,
+): string => {
+  if (variantId) return `${productId}::v:${variantId}`;
   if (!variations || Object.keys(variations).length === 0) return productId;
   // Stable, sorted serialization so {A:1,B:2} === {B:2,A:1}
   const sorted = Object.keys(variations)
@@ -73,7 +83,7 @@ const sanitizeItems = (items: unknown): CartItem[] => {
     .filter((it): it is CartItem => !!it && typeof (it as CartItem).id === "string")
     .map((it) => ({
       ...it,
-      cartKey: it.cartKey || buildCartKey(it.id, it.variations || null),
+      cartKey: it.cartKey || buildCartKey(it.id, it.variations || null, it.variantId || null),
     }));
 };
 
@@ -141,12 +151,14 @@ export const CartProvider = ({
   }, [cart, storeKey, hydratedFor]);
 
   const addToCart = (item: Omit<CartItem, "quantity" | "cartKey">) => {
-    const cartKey = buildCartKey(item.id, item.variations || null);
+    const cartKey = buildCartKey(item.id, item.variations || null, item.variantId || null);
     setCart((prevCart) => {
       const existingItem = prevCart.find((i) => i.cartKey === cartKey);
       if (existingItem) {
+        const max = item.maxStock ?? existingItem.maxStock;
+        if (max != null && existingItem.quantity + 1 > max) return prevCart;
         return prevCart.map((i) =>
-          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i
+          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1, maxStock: max } : i
         );
       }
       return [...prevCart, { ...item, cartKey, quantity: 1 }];
@@ -164,7 +176,9 @@ export const CartProvider = ({
     }
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.cartKey === cartKey ? { ...item, quantity } : item
+        item.cartKey === cartKey
+          ? { ...item, quantity: item.maxStock != null ? Math.min(quantity, item.maxStock) : quantity }
+          : item
       )
     );
   };
