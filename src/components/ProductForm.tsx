@@ -1725,6 +1725,40 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 Adicionar Variação
               </Button>
             </div>
+
+            {variations.length > 0 && (
+              <div className="space-y-3 p-3 border rounded-lg">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-sm">
+                    <span className="font-medium">Controlar estoque por combinação</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Cada combinação terá estoque e SKU próprios. O estoque total será a soma das combinações ativas.
+                    </span>
+                  </span>
+                  <Switch
+                    checked={variantMode}
+                    onCheckedChange={(checked) => {
+                      if (!checked && wasVariantMode) {
+                        const ok = window.confirm(
+                          "Desativar o estoque por combinação? As combinações serão inativadas (não apagadas) e o produto voltará a usar o estoque geral.",
+                        );
+                        if (!ok) return;
+                      }
+                      if (checked) setVariations((vs) => withIds(vs));
+                      setVariantMode(checked);
+                    }}
+                  />
+                </label>
+                {variantMode && (
+                  <VariantMatrixEditor
+                    groups={toGroups(variations)}
+                    state={variantState}
+                    onChange={setVariantState}
+                    limits={variantLimits}
+                  />
+                )}
+              </div>
+            )}
           </div>
 
            {/* Weight and Dimensions Section */}
