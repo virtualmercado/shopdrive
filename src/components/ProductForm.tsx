@@ -807,6 +807,33 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           : {}),
       };
 
+      const syncMatrix = async (productId: string) => {
+        if (!variantMode && !wasVariantMode) return;
+        const groups = toGroups(variations);
+        const payloadVariants = variantMode
+          ? cartesian(groups).map((c) => {
+              const ids = c.map((x) => x.id);
+              const s = variantState[comboKey(ids)] ?? { stock: 0, active: true };
+              return { value_ids: ids, stock: s.stock || 0, active: s.active };
+            })
+          : [];
+        const { data: res, error: rpcError } = await supabase.rpc("save_product_variant_matrix" as any, {
+          p_product_id: productId,
+          p_enabled: variantMode,
+          p_groups: variantMode
+            ? groups.map((g) => ({ id: g.id, name: g.name, values: g.values.map((v) => ({ id: v.id, value: v.value })) }))
+            : [],
+          p_variants: payloadVariants,
+          p_simple_stock: parsedStock,
+        });
+        if (rpcError) {
+          const err = new Error(rpcError.message);
+          (err as any).userMessage = `Combinações não salvas: ${rpcError.message}`;
+          throw err;
+        }
+        if (import.meta.env.DEV) console.info("[variants] matrix saved", { productId, ...(res as any) });
+      };
+
       if (product) {
         const { error } = await supabase
           .from('products')
@@ -814,6 +841,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           .eq('id', product.id);
 
         if (error) throw error;
+        await syncMatrix(product.id);
 
         logAuditEvent({
           action: "product_updated",
@@ -834,6 +862,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           .maybeSingle();
 
         if (error) throw error;
+        if (insertedData?.id) await syncMatrix(insertedData.id);
 
         logAuditEvent({
           action: "product_created",
