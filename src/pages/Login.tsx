@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
+import logoShopDrive from "@/assets/logo-shopdrive-oficial.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -219,7 +219,7 @@ const Login = () => {
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <Link to="/" className="flex justify-center mb-6">
-            <img src={logoVirtualMercado} alt="VirtualMercado" className="h-12 w-auto" />
+            <img src={logoShopDrive} alt="ShopDrive - Sua loja no digital" className="h-auto w-auto max-w-[220px] sm:max-w-[260px] max-h-16 object-contain" />
           </Link>
           <h1 className="text-3xl font-bold mb-2">
             {isSetNewPasswordMode ? "Redefinir senha" : "Bem-vindo de volta"}
