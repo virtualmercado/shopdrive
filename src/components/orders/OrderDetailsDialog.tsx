@@ -35,7 +35,7 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
               <h3 className="font-semibold mb-3">Informações do Cliente</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="text-muted-foreground">Nome:</span> {order.customer_name}</p>
-                <p><span className="text-muted-foreground">Email:</span> {order.customer_email}</p>
+                {order.customer_email && <p><span className="text-muted-foreground">Email:</span> {order.customer_email}</p>}
                 {order.customer_phone && (
                   <p><span className="text-muted-foreground">Telefone:</span> {order.customer_phone}</p>
                 )}
