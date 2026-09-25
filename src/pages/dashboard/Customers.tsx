@@ -1,3 +1,5 @@
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -104,7 +106,8 @@ const Customers = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = ADMIN_PAGE_SIZE;
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, sortBy]);
 
   // New customer registration states
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -189,7 +192,7 @@ const Customers = () => {
       fetchCustomerGroupAssignments();
       fetchCustomerAddresses();
     }
-  }, [user, currentPage, sortBy]);
+  }, [user, sortBy]);
 
   // Keep an active filtered list in the chosen order (used by listing, print and export)
   useEffect(() => {
@@ -202,12 +205,14 @@ const Customers = () => {
     
     setLoading(true);
     try {
-      const { data: storeCustomers, error: storeError } = await supabase
-        .from('store_customers')
-        .select('customer_id, is_active, customer_code, origin')
-        .eq('store_owner_id', user.id);
-
-      if (storeError) throw storeError;
+      // Todos os vínculos da loja, em blocos (sem teto silencioso de 1000 linhas)
+      const storeCustomers = await fetchAllRows<any>(() =>
+        supabase
+          .from('store_customers')
+          .select('id, customer_id, is_active, customer_code, origin')
+          .eq('store_owner_id', user.id)
+          .order('id', { ascending: true }),
+      );
 
       if (!storeCustomers || storeCustomers.length === 0) {
         setCustomers([]);
@@ -227,12 +232,15 @@ const Customers = () => {
       setCustomerOrigins(originsMap);
 
       // Fetch all customer profiles for filtering purposes
-      const { data: allCustomerProfiles, error: allError } = await supabase
-        .from('customer_profiles')
-        .select('*')
-        .in('id', customerIds);
-
-      if (allError) throw allError;
+      const allCustomerProfiles: any[] = [];
+      for (let i = 0; i < customerIds.length; i += 200) {
+        const { data: chunk, error: allError } = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .in('id', customerIds.slice(i, i + 200));
+        if (allError) throw allError;
+        allCustomerProfiles.push(...(chunk || []));
+      }
 
       const allCustomersWithStatus = (allCustomerProfiles || []).map(cp => ({
         ...cp,
@@ -242,7 +250,7 @@ const Customers = () => {
       // Sort the complete store list first, then paginate
       const sortedCustomers = sortCustomers(allCustomersWithStatus, sortBy);
       setAllCustomers(sortedCustomers);
-      setCustomers(sortedCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage));
+      setCustomers(sortedCustomers);
       setTotalCustomers(sortedCustomers.length);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching customers:', error);
@@ -810,18 +818,18 @@ const Customers = () => {
     link.click();
   };
 
-  const displayedCustomers = isFilterActive 
-    ? filteredCustomersList 
-    : (searchTerm 
-      ? allCustomers.filter(c => 
+  const fullCustomerList = isFilterActive
+    ? filteredCustomersList
+    : (searchTerm.trim()
+      ? allCustomers.filter(c =>
           (c.full_name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (c.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
         )
-      : customers);
-
-  const totalPages = !isFilterActive && searchTerm.trim()
-    ? 1
-    : Math.ceil((isFilterActive ? filteredCustomersList.length : totalCustomers) / itemsPerPage);
+      : allCustomers);
+  const listTotal = fullCustomerList.length;
+  const totalPages = Math.max(1, Math.ceil(listTotal / itemsPerPage));
+  const safeCustomerPage = Math.min(currentPage, totalPages);
+  const displayedCustomers = fullCustomerList.slice((safeCustomerPage - 1) * itemsPerPage, safeCustomerPage * itemsPerPage);
 
   return (
     <DashboardLayout>
@@ -991,73 +999,13 @@ const Customers = () => {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  Anterior
-                </Button>
-                
-                <div className="flex items-center gap-1">
-                  {(() => {
-                    const pages: (number | string)[] = [];
-                    const maxVisiblePages = 5;
-                    
-                    if (totalPages <= maxVisiblePages) {
-                      for (let i = 1; i <= totalPages; i++) {
-                        pages.push(i);
-                      }
-                    } else {
-                      if (currentPage <= 3) {
-                        for (let i = 1; i <= 4; i++) pages.push(i);
-                        pages.push('...');
-                        pages.push(totalPages);
-                      } else if (currentPage >= totalPages - 2) {
-                        pages.push(1);
-                        pages.push('...');
-                        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-                      } else {
-                        pages.push(1);
-                        pages.push('...');
-                        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-                        pages.push('...');
-                        pages.push(totalPages);
-                      }
-                    }
-                    return pages;
-                  })().map((page, index) => (
-                    typeof page === 'number' ? (
-                      <Button
-                        key={index}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        className={`min-w-[36px] ${currentPage === page ? 'bg-primary text-white' : 'border-primary text-primary hover:bg-primary hover:text-white'}`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </Button>
-                    ) : (
-                      <span key={index} className="px-2 text-muted-foreground">...</span>
-                    )
-                  ))}
-                </div>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  Próxima
-                </Button>
-              </div>
-            )}
+            <AdminPagination
+              page={safeCustomerPage}
+              totalItems={listTotal}
+              onPageChange={setCurrentPage}
+              pageSize={itemsPerPage}
+              itemLabel="clientes"
+            />
           </TabsContent>
 
           <TabsContent value="groups" className="space-y-4">
