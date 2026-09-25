@@ -1,3 +1,5 @@
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,7 +61,7 @@ interface Category {
   name: string;
 }
 
-const PRODUCTS_PER_PAGE = 30;
+const PRODUCTS_PER_PAGE = ADMIN_PAGE_SIZE;
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -155,13 +157,15 @@ const Products = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // Todos os produtos da loja, em blocos (sem teto silencioso de 1000 linhas)
+      const data = await fetchAllRows(() =>
+        supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true }),
+      );
       setProducts((data ?? []) as unknown as Product[]);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -353,7 +357,8 @@ const Products = () => {
     })
   );
 
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
   const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
   const visibleProducts = filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
 
@@ -738,45 +743,13 @@ const Products = () => {
 
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                {getPaginationPages().map((page, idx) =>
-                  page === "ellipsis" ? (
-                    <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
-                  ) : (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      className={`min-w-[36px] rounded-lg ${currentPage === page ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </Button>
-                  )
-                )}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+            <AdminPagination
+              page={currentPage}
+              totalItems={filteredProducts.length}
+              onPageChange={handlePageChange}
+              pageSize={PRODUCTS_PER_PAGE}
+              itemLabel="produtos"
+            />
           </div>
         ) : (
           <Card className="p-12 text-center">

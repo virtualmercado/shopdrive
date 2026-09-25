@@ -1,3 +1,5 @@
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE } from "@/lib/adminPagination";
 import { useState, useEffect } from "react";
 import { Receipt, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +49,7 @@ interface UpcomingInvoice {
 
 type Row = (Invoice & { isVirtual?: false }) | UpcomingInvoice;
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = ADMIN_PAGE_SIZE;
 
 const GRACE_DAYS = 37;
 
@@ -266,7 +268,7 @@ export const InvoiceHistorySection = () => {
     return db - da;
   });
 
-  const totalPages = Math.ceil(composedRows.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(composedRows.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentInvoices = composedRows.slice(startIndex, endIndex);
@@ -387,29 +389,13 @@ export const InvoiceHistorySection = () => {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={`cursor-pointer ${currentPage === 1 ? "pointer-events-none opacity-50" : ""}`}
-                />
-              </PaginationItem>
-
-              {renderPaginationItems()}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={`cursor-pointer ${currentPage === totalPages ? "pointer-events-none opacity-50" : ""}`}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+      <AdminPagination
+        page={Math.min(currentPage, totalPages)}
+        totalItems={composedRows.length}
+        onPageChange={handlePageChange}
+        pageSize={ITEMS_PER_PAGE}
+        itemLabel="faturas"
+      />
     </div>
   );
 };
