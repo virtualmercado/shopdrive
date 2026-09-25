@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { PlanGateOverlay } from "@/components/plan";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
 
 interface SupportTicket {
   id: string;
@@ -68,6 +69,8 @@ const Support = () => {
     }
   };
 
+  const { page: ticketPage, setPage: setTicketPage, totalItems: ticketTotal, pageItems: ticketPageItems } = useClientPagination(tickets, null);
+
   const fetchTickets = async () => {
     if (!user) return;
 
@@ -76,7 +79,8 @@ const Support = () => {
       .select("*")
       .eq("merchant_id", user.id)
       .eq("deleted_by_merchant", false)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
 
     if (error) {
       console.error("Error fetching tickets:", error);
@@ -244,7 +248,7 @@ const Support = () => {
                   Histórico de mensagens
                 </h3>
                 <div className="space-y-2">
-                {tickets.map((ticket) => (
+                {ticketPageItems.map((ticket) => (
                     <div 
                       key={ticket.id} 
                       className="border rounded-lg overflow-hidden"
@@ -313,6 +317,7 @@ const Support = () => {
                     </div>
                   ))}
                 </div>
+                <AdminPagination page={ticketPage} totalItems={ticketTotal} onPageChange={setTicketPage} itemLabel="mensagens" />
               </div>
             )}
 

@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -19,6 +21,7 @@ interface Message {
 const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const { page, setPage, totalItems, pageItems } = useClientPagination(messages, null);
 
   useEffect(() => {
     fetchMessages();
@@ -32,13 +35,14 @@ const Messages = () => {
 
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("whatsapp_messages")
-        .select("*")
-        .eq("store_owner_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows<Message>(() =>
+        supabase
+          .from("whatsapp_messages")
+          .select("*")
+          .eq("store_owner_id", user.id)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true }),
+      );
 
       setMessages(data || []);
     } catch (error) {
@@ -99,7 +103,7 @@ const Messages = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {messages.map((message) => (
+            {pageItems.map((message) => (
               <Card key={message.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -129,6 +133,7 @@ const Messages = () => {
                 </CardContent>
               </Card>
             ))}
+            <AdminPagination page={page} totalItems={totalItems} onPageChange={setPage} itemLabel="mensagens" />
           </div>
         )}
       </div>
