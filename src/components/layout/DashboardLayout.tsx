@@ -330,7 +330,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: ShoppingCart, label: "Pedidos", path: "/lojista/orders" },
     { icon: Users, label: "Clientes", path: "/lojista/customers" },
     { icon: Truck, label: "Editar Frete", path: "/lojista/shipping" },
-    { icon: CreditCard, label: "Formas de Pagamento", path: "/lojista/payment-methods" },
+    { icon: CreditCard, label: "Gateway de Pagamento", path: "/lojista/payment-methods" },
     { icon: FileText, label: "Catálogo PDF", path: "/lojista/catalog-pdf" },
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
