@@ -74,6 +74,8 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
 
 interface LandingTicket {
   id: string;
@@ -284,6 +286,7 @@ const AdminLandingSupport = () => {
       ticket.mensagem?.toLowerCase().includes(search)
     );
   });
+  const ticketsPager = useClientPagination(filteredTickets, [statusFilter, categoryFilter, prioridadeFilter, searchTerm]);
 
   const openTicketSheet = (ticket: LandingTicket) => {
     setSelectedTicket(ticket);

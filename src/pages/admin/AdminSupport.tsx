@@ -47,6 +47,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
 
 interface MerchantTicket {
   id: string;
@@ -296,6 +298,7 @@ const AdminSupport = () => {
       ticket.profiles?.email?.toLowerCase().includes(search)
     );
   });
+  const ticketsPager = useClientPagination(filteredTickets, [statusFilter, searchTerm]);
 
   const formatLastInteraction = (ticket: MerchantTicket) => {
     if (!ticket.last_interaction_at) return null;
