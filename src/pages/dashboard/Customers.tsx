@@ -107,7 +107,6 @@ const Customers = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = ADMIN_PAGE_SIZE;
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, sortBy]);
 
   // New customer registration states
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -184,6 +183,7 @@ const Customers = () => {
   };
   const [isFilterActive, setIsFilterActive] = useState(false);
   const [sortBy, setSortBy] = useState<CustomerSort>('newest');
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, sortBy]);
 
   useEffect(() => {
     if (user) {
