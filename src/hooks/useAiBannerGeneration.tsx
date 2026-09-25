@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AiBannerStatus {
   ai_image_enabled: boolean;
+  global_enabled?: boolean;
+  store_enabled?: boolean;
   used_24h: number;
   quota_24h: number;
   remaining: number;
