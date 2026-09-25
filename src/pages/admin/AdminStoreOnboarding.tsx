@@ -342,6 +342,28 @@ const AdminStoreOnboarding = () => {
           </CardContent>
         </Card>
       </div>
+      <AlertDialog open={!!suspendTarget} onOpenChange={(o) => !o && setSuspendTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspender geração de imagens por IA desta loja?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A loja continuará utilizando normalmente os demais recursos da ShopDrive. Apenas a geração automática de imagens ficará indisponível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = suspendTarget;
+                setSuspendTarget(null);
+                if (id) void handleAiAccess(id, false);
+              }}
+            >
+              Suspender IA de imagens
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
