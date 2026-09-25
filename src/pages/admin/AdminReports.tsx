@@ -24,6 +24,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchAllRows } from "@/lib/adminPagination";
 import { useState } from "react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -134,24 +135,40 @@ const AdminReports = () => {
         ? ((prevOverdueCount || 0) / prevTotalInvoices) * 100
         : 0;
 
-      // === Current period totals ===
-      const { data: activeSubscriptions } = await supabase
-        .from('master_subscriptions')
-        .select('plan_id')
-        .eq('status', 'active');
-
-      const planCounts: Record<string, number> = {};
-      activeSubscriptions?.forEach((sub) => {
-        const planName = sub.plan_id === 'premium' ? 'Premium' 
-          : sub.plan_id === 'pro' ? 'Pro' 
-          : 'Grátis';
-        planCounts[planName] = (planCounts[planName] || 0) + 1;
+      // === Distribuição por Plano: todas as lojas, pelo plano vigente ===
+      // Mesma regra do servidor (get_base_store_plan): assinatura mais recente
+      // com status active/past_due define o plano; sem ela, a loja é Grátis.
+      const stores = await fetchAllRows<{ id: string }>(() =>
+        supabase.from('profiles').select('id').not('store_slug', 'is', null).order('id')
+      );
+      const liveSubs = await fetchAllRows<{ user_id: string; plan_id: string | null }>(() =>
+        supabase
+          .from('master_subscriptions')
+          .select('user_id, plan_id, created_at, updated_at, id')
+          .in('status', ['active', 'past_due'])
+          .order('created_at', { ascending: false, nullsFirst: false })
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: false })
+      );
+      const planByUser = new Map<string, string>();
+      liveSubs.forEach((s) => {
+        if (!planByUser.has(s.user_id)) planByUser.set(s.user_id, (s.plan_id || '').toLowerCase().trim());
       });
+      const planCounts: Record<string, number> = { 'Grátis': 0, 'Pro': 0, 'Premium': 0 };
+      stores.forEach((st) => {
+        const pid = planByUser.get(st.id);
+        const planName = pid === 'premium' ? 'Premium' : pid === 'pro' ? 'Pro' : 'Grátis';
+        planCounts[planName] += 1;
+      });
+      const totalStores = stores.length;
 
-      const planDistribution = Object.entries(planCounts).map(([name, value]) => ({
-        name,
-        value
-      }));
+      const planDistribution = Object.entries(planCounts)
+        .filter(([, value]) => value > 0)
+        .map(([name, value]) => ({
+          name,
+          value,
+          pct: totalStores > 0 ? (value / totalStores) * 100 : 0,
+        }));
 
       const totalRevenue = monthlyData.reduce((sum, m) => sum + m.receita, 0);
       const totalNewSubscribers = monthlyData.reduce((sum, m) => sum + m.assinantes, 0);
@@ -369,7 +386,7 @@ const AdminReports = () => {
                 <PieChart className="h-5 w-5" />
                 Distribuição por Plano
               </CardTitle>
-              <CardDescription>Assinantes ativos por plano</CardDescription>
+              <CardDescription>Lojas por plano atual</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -384,13 +401,18 @@ const AdminReports = () => {
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, pct }) => `${name} ${Number(pct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}
                     >
                       {data.planDistribution.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value: number, name: string, item: any) => [
+                        `${value} ${value === 1 ? 'loja' : 'lojas'} (${Number(item?.payload?.pct ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)`,
+                        name,
+                      ]}
+                    />
                   </RechartsPie>
                 </ResponsiveContainer>
               ) : (
