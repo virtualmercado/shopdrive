@@ -220,10 +220,14 @@ const PaymentMethodsContent = () => {
       setSettings(updatedSettings);
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error saving payment settings:", error);
-      }
-      toast.error("Erro ao salvar configurações");
+      const e = error as { code?: string; message?: string; details?: string; hint?: string };
+      console.error("[PaymentMethods] save failed", {
+        code: e?.code,
+        message: e?.message,
+        details: e?.details,
+        hint: e?.hint,
+      });
+      toast.error("Não foi possível salvar as configurações de pagamento. Tente novamente ou entre em contato com o suporte.");
     } finally {
       setSaving(false);
     }
