@@ -57,6 +57,13 @@
       "when": 1790364861379,
       "tag": "0007_allow_infinitepay_pix_card_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790367906935,
+      "tag": "0008_ai_image_default_opt_out",
+      "breakpoints": true
     }
   ]
 }
