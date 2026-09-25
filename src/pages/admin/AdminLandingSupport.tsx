@@ -175,8 +175,7 @@ const AdminLandingSupport = () => {
         query = query.eq('prioridade', prioridadeFilter);
       }
 
-      const { data, error } = await query.limit(100);
-      if (error) throw error;
+      const data = await fetchAllRows(() => query);
       return data as unknown as LandingTicket[];
     }
   });
@@ -581,7 +580,7 @@ const AdminLandingSupport = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredTickets?.map((ticket) => (
+                      ticketsPager.pageItems.map((ticket) => (
                         <TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openTicketSheet(ticket)}>
                           <TableCell>
                             <span className="font-mono text-sm font-medium">{ticket.protocolo}</span>
@@ -609,6 +608,7 @@ const AdminLandingSupport = () => {
                     )}
                   </TableBody>
                 </Table>
+                <AdminPagination page={ticketsPager.page} totalItems={ticketsPager.totalItems} onPageChange={ticketsPager.setPage} itemLabel="tickets" />
               </CardContent>
             </Card>
           </TabsContent>

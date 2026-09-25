@@ -31,12 +31,14 @@ import {
   Wallet,
   Loader2
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { getPageRange } from "@/lib/adminPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 const AdminInvoices = () => {

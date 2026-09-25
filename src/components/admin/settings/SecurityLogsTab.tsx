@@ -21,6 +21,9 @@ import { ptBR } from "date-fns/locale";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import LogDetailModal from "./LogDetailModal";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
+
 
 const SecurityLogsTab = () => {
   const [typeFilter, setTypeFilter] = useState("all");
@@ -43,9 +46,7 @@ const SecurityLogsTab = () => {
         query = query.eq('entity_type', typeFilter);
       }
 
-      const { data, error } = await query.limit(200);
-      if (error) throw error;
-      return data;
+      return fetchAllRows(() => query);
     }
   });
 
@@ -67,6 +68,8 @@ const SecurityLogsTab = () => {
       );
     });
   }, [logs, searchTerm]);
+
+  const logsPager = useClientPagination(filteredLogs, [typeFilter, searchTerm]);
 
   const { data: securityAlerts } = useQuery({
     queryKey: ['admin-security-alerts-tab'],
@@ -303,7 +306,7 @@ const SecurityLogsTab = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredLogs.map((log: any) => {
+                logsPager.pageItems.map((log: any) => {
                   const meta = log.metadata || {};
                   return (
                     <TableRow key={log.id}>
@@ -347,6 +350,7 @@ const SecurityLogsTab = () => {
               )}
             </TableBody>
           </Table>
+          <AdminPagination page={logsPager.page} totalItems={logsPager.totalItems} onPageChange={logsPager.setPage} itemLabel="registros" />
         </CardContent>
       </Card>
 
