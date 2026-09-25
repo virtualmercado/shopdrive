@@ -69,22 +69,16 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
         (profiles ?? []).forEach((p) => profileMap.set(p.id, p));
       }
 
-      // Métricas reais de IA nas últimas 24h (logs, nunca estimativas)
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Métricas reais de IA de imagens nas últimas 24h (agregadas no banco, sem teto de linhas)
       const aiMap = new Map<string, { count: number; last: string | null; error: string | null }>();
       if (ids.length) {
-        const { data: logs } = await supabase
-          .from("ai_media_generation_logs")
-          .select("store_id, status, error_message, created_at")
-          .gte("created_at", since)
-          .order("created_at", { ascending: false })
-          .limit(1000);
-        (logs ?? []).forEach((l: any) => {
-          const entry = aiMap.get(l.store_id) ?? { count: 0, last: null, error: null };
-          entry.count += 1;
-          if (!entry.last) entry.last = l.created_at;
-          if (!entry.error && l.status === "error") entry.error = l.error_message ?? "erro";
-          aiMap.set(l.store_id, entry);
+        const { data: usage } = await (supabase.rpc as any)("admin_ai_image_usage_24h");
+        ((usage ?? []) as any[]).forEach((u) => {
+          aiMap.set(u.store_id, {
+            count: Number(u.used_24h) || 0,
+            last: u.last_generation_at ?? null,
+            error: u.last_error ?? null,
+          });
         });
       }
 

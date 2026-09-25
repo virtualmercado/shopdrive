@@ -35,6 +35,20 @@ import {
   useAdminOnboardingStores,
   type OnboardingAdminFilter,
 } from "@/hooks/useAdminOnboardingStores";
+import { useOnboardingFlags } from "@/hooks/useOnboardingFlags";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+/** Espelha QUOTA_PER_24H da função generate-ai-image (somente exibição). */
+const AI_IMAGE_QUOTA_24H = 3;
 
 const CLASS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   STORE_READY: { label: "Pronta", variant: "default" },
@@ -58,6 +72,8 @@ const AdminStoreOnboarding = () => {
   const [filter, setFilter] = useState<OnboardingAdminFilter>("incomplete");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
+  const { flags } = useOnboardingFlags();
   const { rows, loading, recompute, setExempt, setAiAccess } = useAdminOnboardingStores(filter, search);
   const pager = useClientPagination(rows, [filter, search]);
 
@@ -65,9 +81,9 @@ const AdminStoreOnboarding = () => {
     setBusyId(storeId);
     try {
       await setAiAccess({ storeId, enabled });
-      toast.success(enabled ? "IA de imagens autorizada para esta loja." : "Autorização de IA removida.");
+      toast.success(enabled ? "IA de imagens reativada para esta loja." : "IA de imagens suspensa para esta loja.");
     } catch {
-      toast.error("Não foi possível atualizar a autorização de IA.");
+      toast.error("Não foi possível atualizar a IA de imagens desta loja.");
     } finally {
       setBusyId(null);
     }
@@ -161,7 +177,7 @@ const AdminStoreOnboarding = () => {
                     <TableHead>Situação</TableHead>
                     <TableHead>Etapa atual</TableHead>
                     <TableHead>Configuração mínima</TableHead>
-                    <TableHead>IA</TableHead>
+                    <TableHead className="whitespace-nowrap">IA de imagens</TableHead>
                     <TableHead>Identidade IA</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead className="w-10"></TableHead>
@@ -208,11 +224,15 @@ const AdminStoreOnboarding = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          <Badge variant={r.ai_image_enabled ? "default" : "outline"}>
-                            {r.ai_image_enabled ? "Autorizada" : "Não autorizada"}
+                          <Badge variant={!flags.ENABLE_AI_IMAGE_GENERATION ? "secondary" : r.ai_image_enabled ? "default" : "destructive"}>
+                            {!flags.ENABLE_AI_IMAGE_GENERATION
+                              ? "Indisponível globalmente"
+                              : r.ai_image_enabled
+                                ? "Ativa"
+                                : "Suspensa"}
                           </Badge>
                           <div className="text-muted-foreground mt-1">
-                            {r.ai_generations_24h} em 24h
+                            {r.ai_generations_24h}/{AI_IMAGE_QUOTA_24H} em 24h
                             {r.ai_last_generation_at
                               ? ` · ${format(new Date(r.ai_last_generation_at), "dd/MM HH:mm")}`
                               : ""}
@@ -294,9 +314,15 @@ const AdminStoreOnboarding = () => {
                                   <ShieldCheck className="mr-2 h-4 w-4" />
                                   {r.manual_exempt ? "Remover isenção" : "Marcar como isenta"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleAiAccess(r.store_id, !r.ai_image_enabled)}>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    r.ai_image_enabled
+                                      ? setSuspendTarget(r.store_id)
+                                      : handleAiAccess(r.store_id, true)
+                                  }
+                                >
                                   <Sparkles className="mr-2 h-4 w-4" />
-                                  {r.ai_image_enabled ? "Remover autorização de IA" : "Autorizar IA para teste"}
+                                  {r.ai_image_enabled ? "Suspender IA de imagens" : "Reativar IA de imagens"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
