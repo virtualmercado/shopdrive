@@ -1,3 +1,5 @@
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE } from "@/lib/adminPagination";
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CreateQuoteModal } from "@/components/quotes/CreateQuoteModal";
 import { QuoteList } from "@/components/quotes/QuoteList";
 
-const ITEMS_PER_PAGE = 50;
+const ITEMS_PER_PAGE = ADMIN_PAGE_SIZE;
 
 const Orders = () => {
   const [activeTab, setActiveTab] = useState("orders");
@@ -157,12 +159,13 @@ const Orders = () => {
   }, [orders, searchTerm, filterType, selectedDate, selectedMonth, selectedYear, startDate, endDate]);
 
   // Reset page when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterType, selectedDate, selectedMonth, selectedYear, startDate, endDate]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [currentPage, totalPages]);
   const paginatedOrders = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -700,47 +703,15 @@ const Orders = () => {
               </div>
 
               {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="p-4 border-t flex justify-center items-center gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    className="border-primary text-primary"
-                  >
-                    Anterior
-                  </Button>
-                  
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers().map((page, index) => (
-                      typeof page === 'number' ? (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          className={`min-w-[36px] ${currentPage === page ? 'bg-primary text-primary-foreground' : 'border-primary text-primary'}`}
-                          onClick={() => setCurrentPage(page)}
-                        >
-                          {page}
-                        </Button>
-                      ) : (
-                        <span key={index} className="px-2 text-muted-foreground">...</span>
-                      )
-                    ))}
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className="border-primary text-primary"
-                  >
-                    Próxima
-                  </Button>
-                </div>
-              )}
+              <div className="px-4 pb-4 border-t">
+                <AdminPagination
+                  page={currentPage}
+                  totalItems={filteredOrders.length}
+                  onPageChange={setCurrentPage}
+                  pageSize={ITEMS_PER_PAGE}
+                  itemLabel="pedidos"
+                />
+              </div>
             </>
           ) : (
             <div className="p-12 text-center">

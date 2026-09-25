@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/adminPagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -40,7 +41,7 @@ export const useOrders = () => {
       
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { data, error } = await supabase
+      const data = await fetchAllRows(() => supabase
         .from("orders")
         .select(`
           id,
@@ -62,9 +63,8 @@ export const useOrders = () => {
           order_source
         `)
         .eq("store_owner_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true }));
       return data as Order[];
     },
   });
