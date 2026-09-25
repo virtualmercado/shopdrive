@@ -139,16 +139,14 @@ serve(async (req) => {
       .eq("store_id", storeId)
       .maybeSingle();
 
-    if (!isAdmin) {
-      const { data: flag } = await admin
-        .from("onboarding_feature_flags")
-        .select("enabled")
-        .eq("flag_key", "ENABLE_AI_IMAGE_GENERATION")
-        .maybeSingle();
-      if (!flag?.enabled || !state?.ai_image_enabled) {
-        return json({ error: "Geração de imagem por IA ainda não está liberada para sua loja." }, 403);
-      }
-    }
+    // Regra efetiva: chave global AND loja não suspensa (sem linha de estado = padrão ativo).
+    const { data: flag } = await admin
+      .from("onboarding_feature_flags")
+      .select("enabled")
+      .eq("flag_key", "ENABLE_AI_IMAGE_GENERATION")
+      .maybeSingle();
+    const globalEnabled = !!flag?.enabled;
+    const storeEnabled = state ? state.ai_image_enabled !== false : true;
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count: usedCount } = await admin
@@ -161,12 +159,23 @@ serve(async (req) => {
 
     if (action === "status") {
       return json({
-        ai_image_enabled: !!state?.ai_image_enabled || !!isAdmin,
+        ai_image_enabled: globalEnabled && storeEnabled,
+        global_enabled: globalEnabled,
+        store_enabled: storeEnabled,
         used_24h: used,
         quota_24h: QUOTA_PER_24H,
         remaining: Math.max(0, QUOTA_PER_24H - used),
         model: MODEL,
       });
+    }
+
+    if (action === "generate") {
+      if (!globalEnabled) {
+        return json({ error: "A geração automática de imagens está temporariamente indisponível." }, 403);
+      }
+      if (!storeEnabled) {
+        return json({ error: "A geração automática de imagens não está disponível para esta loja no momento." }, 403);
+      }
     }
 
     // ---------- APLICAR / DESCARTAR ----------

@@ -6528,6 +6528,15 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_ai_image_usage_24h: {
+        Args: never
+        Returns: {
+          last_error: string
+          last_generation_at: string
+          store_id: string
+          used_24h: number
+        }[]
+      }
       admin_end_plan_trial: {
         Args: { p_reason?: string; p_trial_id: string }
         Returns: Json

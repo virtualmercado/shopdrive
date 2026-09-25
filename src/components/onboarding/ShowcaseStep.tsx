@@ -264,7 +264,10 @@ const ShowcaseStep = ({ storeId, onChanged }: ShowcaseStepProps) => {
             {!aiEnabled ? (
               <p className="text-xs text-muted-foreground flex gap-2">
                 <Info className="h-4 w-4 shrink-0" />
-                A criação automática de imagens está em teste e ainda não foi liberada para a sua loja. Você pode enviar sua própria imagem acima.
+                {ai.status?.global_enabled === false
+                  ? "A geração automática de imagens está temporariamente indisponível."
+                  : "A geração automática de imagens não está disponível para esta loja no momento."}{" "}
+                Você pode enviar sua própria imagem acima.
               </p>
             ) : (
               <>
