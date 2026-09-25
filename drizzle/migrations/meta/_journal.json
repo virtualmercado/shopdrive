@@ -50,6 +50,13 @@
       "when": 1790268497579,
       "tag": "0006_cancel_account_deletion_request",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790364861379,
+      "tag": "0007_allow_infinitepay_pix_card_providers",
+      "breakpoints": true
     }
   ]
 }
