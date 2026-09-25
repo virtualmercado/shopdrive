@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/adminPagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -50,12 +51,13 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
   const query = useQuery({
     queryKey: ["admin-onboarding-stores", filter, search],
     queryFn: async (): Promise<AdminOnboardingRow[]> => {
-      const { data: states, error } = await supabase
-        .from("store_onboarding_state")
-        .select("*")
-        .order("progress_percent", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
+      const states = await fetchAllRows<any>(() =>
+        supabase
+          .from("store_onboarding_state")
+          .select("*")
+          .order("progress_percent", { ascending: true })
+          .order("store_id", { ascending: true })
+      );
 
       const ids = (states ?? []).map((s) => s.store_id);
       const profileMap = new Map<string, any>();

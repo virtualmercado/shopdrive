@@ -31,12 +31,14 @@ import {
   Wallet,
   Loader2
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { getPageRange } from "@/lib/adminPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 const AdminInvoices = () => {
@@ -44,9 +46,12 @@ const AdminInvoices = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, searchTerm]);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['admin-invoices', statusFilter, searchTerm],
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['admin-invoices', statusFilter, searchTerm, currentPage],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const today = new Date();
       const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
@@ -58,15 +63,16 @@ const AdminInvoices = () => {
         .select(`
           *,
           profiles:subscriber_id (store_name, email)
-        `)
+        `, { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(100);
+        .order('id', { ascending: false });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
 
-      const { data: invoices, error } = await query;
+      const { from, to } = getPageRange(currentPage);
+      const { data: invoices, error, count: totalInvoices } = await query.range(from, to);
       if (error) throw error;
 
       // Calculate totals — use paid_at for "received this month" and due_date for MRR
@@ -108,6 +114,7 @@ const AdminInvoices = () => {
 
       return {
         invoices: invoices || [],
+        totalInvoices: totalInvoices || 0,
         totalMRR,
         totalReceived,
         paidCount: paidCount || 0,
@@ -324,6 +331,13 @@ const AdminInvoices = () => {
                 )}
               </TableBody>
             </Table>
+            <AdminPagination
+              page={currentPage}
+              totalItems={data?.totalInvoices ?? 0}
+              onPageChange={setCurrentPage}
+              itemLabel="faturas"
+              disabled={isFetching}
+            />
           </CardContent>
         </Card>
 

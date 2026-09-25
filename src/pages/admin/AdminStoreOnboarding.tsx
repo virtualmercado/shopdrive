@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const AdminStoreOnboarding = () => {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const { rows, loading, recompute, setExempt, setAiAccess } = useAdminOnboardingStores(filter, search);
+  const pager = useClientPagination(rows, [filter, search]);
 
   const handleAiAccess = async (storeId: string, enabled: boolean) => {
     setBusyId(storeId);
@@ -166,7 +168,7 @@ const AdminStoreOnboarding = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => {
+                  {pager.pageItems.map((r) => {
                     const cls = CLASS_LABELS[r.classification] ?? { label: r.classification, variant: "outline" as const };
                     return (
                       <TableRow key={r.store_id}>
@@ -305,6 +307,11 @@ const AdminStoreOnboarding = () => {
                   })}
                 </TableBody>
               </Table>
+            )}
+            {!loading && rows.length > 0 && (
+              <div className="px-4 pb-4">
+                <AdminPagination page={pager.page} totalItems={pager.totalItems} onPageChange={pager.setPage} itemLabel="lojas" />
+              </div>
             )}
           </CardContent>
         </Card>

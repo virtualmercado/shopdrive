@@ -47,6 +47,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
 
 interface MerchantTicket {
   id: string;
@@ -119,8 +121,7 @@ const AdminSupport = () => {
         query = query.eq('status', statusFilter);
       }
 
-      const { data: ticketsData, error } = await query.limit(200);
-      if (error) throw error;
+      const ticketsData = await fetchAllRows<any>(() => query);
 
       // Fetch profiles for each unique merchant_id
       const merchantIds = [...new Set(ticketsData?.map(t => t.merchant_id) || [])];
@@ -287,7 +288,7 @@ const AdminSupport = () => {
     invalidateAll();
   };
 
-  const filteredTickets = tickets?.filter(ticket => {
+  const filteredTickets: any[] | undefined = tickets?.filter(ticket => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -297,6 +298,7 @@ const AdminSupport = () => {
       ticket.profiles?.email?.toLowerCase().includes(search)
     );
   });
+  const ticketsPager = useClientPagination(filteredTickets, [statusFilter, searchTerm]);
 
   const formatLastInteraction = (ticket: MerchantTicket) => {
     if (!ticket.last_interaction_at) return null;
@@ -413,7 +415,7 @@ const AdminSupport = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTickets?.map((ticket) => (
+                  ticketsPager.pageItems.map((ticket: any) => (
                     <TableRow key={ticket.id}>
                       <TableCell>
                         <div className="max-w-md">
@@ -473,6 +475,7 @@ const AdminSupport = () => {
                 )}
               </TableBody>
             </Table>
+            <AdminPagination page={ticketsPager.page} totalItems={ticketsPager.totalItems} onPageChange={ticketsPager.setPage} itemLabel="tickets" />
           </CardContent>
         </Card>
 

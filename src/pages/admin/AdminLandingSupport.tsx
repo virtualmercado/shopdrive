@@ -74,6 +74,8 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { fetchAllRows } from "@/lib/adminPagination";
 
 interface LandingTicket {
   id: string;
@@ -175,8 +177,7 @@ const AdminLandingSupport = () => {
         query = query.eq('prioridade', prioridadeFilter);
       }
 
-      const { data, error } = await query.limit(100);
-      if (error) throw error;
+      const data = await fetchAllRows(() => query);
       return data as unknown as LandingTicket[];
     }
   });
@@ -285,6 +286,7 @@ const AdminLandingSupport = () => {
       ticket.mensagem?.toLowerCase().includes(search)
     );
   });
+  const ticketsPager = useClientPagination(filteredTickets, [statusFilter, categoryFilter, prioridadeFilter, searchTerm]);
 
   const openTicketSheet = (ticket: LandingTicket) => {
     setSelectedTicket(ticket);
@@ -581,7 +583,7 @@ const AdminLandingSupport = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredTickets?.map((ticket) => (
+                      ticketsPager.pageItems.map((ticket) => (
                         <TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openTicketSheet(ticket)}>
                           <TableCell>
                             <span className="font-mono text-sm font-medium">{ticket.protocolo}</span>
@@ -609,6 +611,7 @@ const AdminLandingSupport = () => {
                     )}
                   </TableBody>
                 </Table>
+                <AdminPagination page={ticketsPager.page} totalItems={ticketsPager.totalItems} onPageChange={ticketsPager.setPage} itemLabel="tickets" />
               </CardContent>
             </Card>
           </TabsContent>

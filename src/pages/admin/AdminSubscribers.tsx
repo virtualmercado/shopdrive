@@ -1,3 +1,5 @@
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,7 +97,7 @@ const AdminSubscribers = () => {
   const [manageTrialModalOpen, setManageTrialModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = ADMIN_PAGE_SIZE;
 
   const { data: allSubscribers, isLoading, refetch } = useQuery({
     queryKey: ['admin-subscribers', searchTerm],
@@ -111,15 +113,14 @@ const AdminSubscribers = () => {
           account_status
         `)
         .not('store_slug', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
       if (searchTerm) {
         query = query.or(`store_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      const { data: profiles, error } = await query.limit(200);
-
-      if (error) throw error;
+      const profiles = await fetchAllRows<any>(() => query);
 
       const profileIds = (profiles || []).map(p => p.id);
       
@@ -151,11 +152,6 @@ const AdminSubscribers = () => {
 
       const subscriberData = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { count: productCount } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', profile.id);
-
           const masterSub = masterSubMap.get(profile.id);
           const latestInvoice = invoiceMap.get(profile.id);
 
@@ -203,7 +199,6 @@ const AdminSubscribers = () => {
             ...profile,
             planName,
             subscriptionStatus,
-            productCount: productCount || 0
           };
         })
       );
@@ -244,6 +239,23 @@ const AdminSubscribers = () => {
 
   // Temporary plan trials (entitlements) for the visible page only
   const { data: trialMap } = useAdminPlanTrials(subscribers.map((s) => s.id));
+
+  // Product counts only for the visible page (avoids one count query per subscriber)
+  const visibleIds = subscribers.map((s) => s.id);
+  const { data: productCounts } = useQuery({
+    queryKey: ['admin-subscribers-product-counts', visibleIds.join(',')],
+    enabled: visibleIds.length > 0,
+    queryFn: async () => {
+      const entries = await Promise.all(visibleIds.map(async (id) => {
+        const { count } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', id);
+        return [id, count || 0] as const;
+      }));
+      return Object.fromEntries(entries) as Record<string, number>;
+    },
+  });
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -508,7 +520,7 @@ const AdminSubscribers = () => {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Package className="h-4 w-4 text-muted-foreground" />
-                          {subscriber.productCount}
+                          {productCounts?.[subscriber.id] ?? '…'}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -602,54 +614,13 @@ const AdminSubscribers = () => {
         </Card>
 
         {/* Pagination */}
-        {filteredSubscribers.length > PAGE_SIZE && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {(safePage - 1) * PAGE_SIZE + 1} a{" "}
-              {Math.min(safePage * PAGE_SIZE, filteredSubscribers.length)} de{" "}
-              {filteredSubscribers.length} assinantes
-            </p>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-              >
-                Anterior
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
-                .reduce((acc, p, idx, arr) => {
-                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push(-arr[idx - 1]);
-                  acc.push(p);
-                  return acc;
-                }, [] as number[])
-                .map((p, idx) =>
-                  p < 0 ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">…</span>
-                  ) : (
-                    <Button
-                      key={p}
-                      variant={p === safePage ? "default" : "outline"}
-                      size="sm"
-                      className="min-w-[36px]"
-                      onClick={() => setCurrentPage(p)}
-                    >
-                      {p}
-                    </Button>
-                  )
-                )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-              >
-                Próximo
-              </Button>
-            </div>
-          </div>
+        {filteredSubscribers.length > 0 && (
+          <AdminPagination
+            page={safePage}
+            totalItems={filteredSubscribers.length}
+            onPageChange={setCurrentPage}
+            itemLabel="assinantes"
+          />
         )}
 
         {/* Modals */}
