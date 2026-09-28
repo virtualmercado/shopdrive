@@ -47,8 +47,6 @@ interface BrandReportPreviewModalProps {
   periodLabel?: string;
 }
 
-const FALLBACK_EMAIL = 'suporte@shopdrive.com.br';
-
 const BrandReportPreviewModal = ({
   template,
   open,
@@ -69,43 +67,27 @@ const BrandReportPreviewModal = ({
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const subject = `[TESTE] Relatório mensal da marca ${template.name} — ${monthKey}`;
 
-  // We don't have the profile email on the client, so indicate fallback may be used
-  const recipientNote = 'Email da marca (ou suporte@shopdrive.com.br se não configurado)';
+  const recipientNote = 'Seu e-mail de administrador (somente teste)';
 
   const handleSend = async () => {
     setIsSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-brand-reports', {
-        body: { template_id: template.id, report_type: 'manual_test' },
+      const { data, error } = await supabase.functions.invoke('send-brand-report-test', {
+        body: { template_id: template.id },
       });
-
-      if (error) {
-        const errorBody = typeof error === 'object' && 'message' in error ? error.message : String(error);
-        toast.error(`Erro ao enviar relatório: ${errorBody}`);
+      if (error || data?.status !== 'queued') {
+        const code = data?.error;
+        toast.error(code === 'admin_email_missing'
+          ? 'Sua conta não tem um e-mail válido para receber o teste.'
+          : 'Não foi possível enviar o relatório de teste.');
+        if (error) console.error('send-brand-report-test', error);
         return;
       }
-
-      if (data?.error) {
-        toast.error(`Erro: ${data.error}`);
-        return;
-      }
-
-      const result = data?.results?.[0];
-      if (result?.status === 'sent') {
-        if (result?.used_fallback) {
-          toast.warning('Marca sem email. Relatório enviado para suporte@shopdrive.com.br.');
-        } else {
-          toast.success('Relatório enviado com sucesso!');
-        }
-        onOpenChange(false);
-      } else if (result?.status === 'skipped') {
-        toast.info(`Relatório já enviado este mês: ${result?.detail || ''}`);
-      } else {
-        toast.error(`Falha: ${result?.detail || 'erro desconhecido'}`);
-      }
+      toast.success('Relatório de teste enviado para seu e-mail.');
+      onOpenChange(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Falha ao enviar: ${msg}`);
+      console.error('send-brand-report-test', err);
+      toast.error('Não foi possível enviar o relatório de teste.');
     } finally {
       setIsSending(false);
     }
@@ -138,10 +120,6 @@ const BrandReportPreviewModal = ({
             <div className="flex gap-2">
               <span className="font-medium text-muted-foreground w-20">Para:</span>
               <span className="text-foreground">{recipientNote}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-medium text-muted-foreground w-20">Cópia:</span>
-              <span className="text-foreground">{FALLBACK_EMAIL}</span>
             </div>
             {periodLabel && (
               <div className="flex gap-2">
