@@ -407,6 +407,52 @@ export type Database = {
           },
         ]
       }
+      brand_accounts: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          owner_profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          owner_profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          owner_profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_accounts_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_accounts_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_accounts_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_report_logs: {
         Row: {
           accounts_snapshot: number | null
@@ -627,6 +673,7 @@ export type Database = {
           banner_mobile_urls: Json | null
           banner_rect_1_url: string | null
           banner_rect_2_url: string | null
+          brand_account_id: string | null
           button_bg_color: string | null
           button_text_color: string | null
           content_banner_enabled: boolean | null
@@ -697,6 +744,7 @@ export type Database = {
           banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
+          brand_account_id?: string | null
           button_bg_color?: string | null
           button_text_color?: string | null
           content_banner_enabled?: boolean | null
@@ -767,6 +815,7 @@ export type Database = {
           banner_mobile_urls?: Json | null
           banner_rect_1_url?: string | null
           banner_rect_2_url?: string | null
+          brand_account_id?: string | null
           button_bg_color?: string | null
           button_text_color?: string | null
           content_banner_enabled?: boolean | null
@@ -831,6 +880,13 @@ export type Database = {
           youtube_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "brand_templates_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brand_templates_source_profile_id_fkey"
             columns: ["source_profile_id"]
@@ -6537,6 +6593,14 @@ export type Database = {
           used_24h: number
         }[]
       }
+      admin_assign_brand_template: {
+        Args: { p_brand_account_id: string; p_template_id: string }
+        Returns: undefined
+      }
+      admin_create_brand_account: {
+        Args: { p_display_name: string; p_owner_profile_id?: string }
+        Returns: string
+      }
       admin_end_plan_trial: {
         Args: { p_reason?: string; p_trial_id: string }
         Returns: Json
@@ -6552,6 +6616,10 @@ export type Database = {
       admin_set_store_ai_access: {
         Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
+      }
+      admin_unassign_brand_template: {
+        Args: { p_template_id: string }
+        Returns: undefined
       }
       apply_confirmed_plan_downgrade: {
         Args: { p_new_plan: string; p_store_id: string }
@@ -6584,6 +6652,10 @@ export type Database = {
       backfill_store_onboarding_states: {
         Args: { p_limit?: number }
         Returns: Json
+      }
+      brand_template_has_history: {
+        Args: { p_template_id: string }
+        Returns: boolean
       }
       cancel_account_deletion_request: {
         Args: { p_request_id: string }
