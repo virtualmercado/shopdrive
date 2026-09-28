@@ -515,6 +515,86 @@ export type Database = {
           },
         ]
       }
+      brand_network_report_runs: {
+        Row: {
+          brand_account_id: string
+          brand_display_name_snapshot: string | null
+          created_at: string
+          email_queue_id: string | null
+          failure_reason: string | null
+          generated_at: string | null
+          id: string
+          metrics_snapshot: Json | null
+          period_end: string
+          period_start: string
+          provider_message_id: string | null
+          recipient_email_snapshot: string | null
+          recipient_profile_id: string | null
+          send_attempts: number
+          sent_at: string | null
+          skip_reason: string | null
+          status: string
+          subject_snapshot: string | null
+          templates_snapshot: Json | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          brand_account_id: string
+          brand_display_name_snapshot?: string | null
+          created_at?: string
+          email_queue_id?: string | null
+          failure_reason?: string | null
+          generated_at?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          period_end: string
+          period_start: string
+          provider_message_id?: string | null
+          recipient_email_snapshot?: string | null
+          recipient_profile_id?: string | null
+          send_attempts?: number
+          sent_at?: string | null
+          skip_reason?: string | null
+          status: string
+          subject_snapshot?: string | null
+          templates_snapshot?: Json | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_account_id?: string
+          brand_display_name_snapshot?: string | null
+          created_at?: string
+          email_queue_id?: string | null
+          failure_reason?: string | null
+          generated_at?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          period_end?: string
+          period_start?: string
+          provider_message_id?: string | null
+          recipient_email_snapshot?: string | null
+          recipient_profile_id?: string | null
+          send_attempts?: number
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          subject_snapshot?: string | null
+          templates_snapshot?: Json | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_network_report_runs_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_report_logs: {
         Row: {
           accounts_snapshot: number | null
@@ -6987,6 +7067,7 @@ export type Database = {
           template_id: string
         }[]
       }
+      _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
       activate_product_with_plan_validation: {
         Args: { p_active: boolean; p_product_id: string }
         Returns: Json
@@ -7229,6 +7310,10 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: Json
       }
+      generate_brand_network_monthly_report: {
+        Args: { p_brand_account_id: string; p_period_start: string }
+        Returns: Json
+      }
       generate_catalog_share_code: { Args: never; Returns: string }
       generate_customer_code: { Args: { merchant_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
@@ -7393,6 +7478,10 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: string
       }
+      mark_brand_network_report_queued: {
+        Args: { p_email_queue_id: string; p_run_id: string }
+        Returns: undefined
+      }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       plan_rank: { Args: { _plan: string }; Returns: number }
       propagate_brand_plan_to_secondaries: {
@@ -7520,6 +7609,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_brand_network_report_status: { Args: never; Returns: Json }
       sync_customer_from_order: { Args: { p_order_id: string }; Returns: Json }
       sync_invoice_for_payment: {
         Args: { p_payment_id: string }
