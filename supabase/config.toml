@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.analyze-store-brand-profile]
 verify_jwt = false
+
+[functions.accept-plan-contract]
+verify_jwt = false
