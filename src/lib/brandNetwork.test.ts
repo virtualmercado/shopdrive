@@ -5,6 +5,8 @@ import {
 } from './brandNetwork';
 import { getRangeLabel } from './adminPagination';
 
+(globalThis as any).window ??= { location: { origin: 'https://shopdrive.com.br' } };
+
 const base = { flagLoading: false, flagEnabled: true, planLoading: false, plan: 'marca', planSource: 'direct', ownedStoreRole: 'primary' };
 
 describe('Minha Rede — apresentação', () => {

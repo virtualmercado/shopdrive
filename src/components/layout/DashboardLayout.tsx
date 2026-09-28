@@ -23,7 +23,7 @@ import {
   Globe,
   Save,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
   Network,
 } from "lucide-react";
 import { useMinhaRedeMenuVisible } from "@/hooks/useBrandNetwork";
