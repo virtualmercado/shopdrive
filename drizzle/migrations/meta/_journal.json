@@ -134,6 +134,13 @@
       "when": 1790623250079,
       "tag": "0018_plan_marca_monthly_network_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790623322220,
+      "tag": "0019_plan_marca_report_queue_status_sync",
+      "breakpoints": true
     }
   ]
 }
