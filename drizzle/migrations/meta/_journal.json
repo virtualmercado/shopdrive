@@ -120,6 +120,13 @@
       "when": 1790611579439,
       "tag": "0016_plan_marca_brand_network_backend",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790611600850,
+      "tag": "0017_plan_marca_brand_network_volatile_fix",
+      "breakpoints": true
     }
   ]
 }
