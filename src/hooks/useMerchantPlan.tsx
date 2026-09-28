@@ -18,6 +18,10 @@ const TEMPLATE_OVERRIDE_LIMITS: PlanLimits = {
   canUseCoupons: true,
   canUseWhatsAppSupport: true,
   canUseReviews: true,
+  brandNetworkAccess: false,
+  brandReports: false,
+  brandTemplatesLimit: 0,
+  ownedStoreLimit: 1,
 };
 
 /** Detect template-editor mode from URL + localStorage (same logic as useTemplateEditorMode) */
