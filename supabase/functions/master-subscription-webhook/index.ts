@@ -434,6 +434,57 @@ serve(async (req) => {
         break;
     }
 
+    // ── MARCA: validações extras antes de qualquer transição (termos congelados, nunca preço atual) ──
+    const subPlan = payment.master_subscriptions?.plan_id;
+    const isMarcaSub = subPlan === "marca" || (payment.master_subscriptions as any)?.pending_plan_id === "marca";
+    if (isMarcaSub) {
+      // Evento antigo/fora de ordem nunca rebaixa pagamento já confirmado.
+      if (previousStatus === "paid" && newPaymentStatus === "pending") {
+        newPaymentStatus = "paid";
+        newSubscriptionStatus = payment.master_subscriptions?.status;
+      }
+      if (mpPayment.status === "approved" && previousStatus !== "paid") {
+        let reason: string | null = null;
+        const sub: any = payment.master_subscriptions;
+        if (!sub?.contract_acceptance_id || !sub?.brand_account_id) reason = "missing_acceptance";
+        else if ((mpPayment.currency_id || "BRL") !== "BRL") reason = "currency_mismatch";
+        else {
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("id, invoice_id, amount, contract_acceptance_id, brand_account_id")
+            .eq("subscription_id", payment.subscription_id)
+            .in("status", ["pending", "paid"])
+            .order("created_at", { ascending: false });
+          const ext = mpPayment.external_reference ? String(mpPayment.external_reference) : null;
+          const paid = Math.round(Number(mpPayment.transaction_amount) * 100);
+          const match = (inv || []).find((i: any) =>
+            i.contract_acceptance_id === sub.contract_acceptance_id &&
+            i.brand_account_id === sub.brand_account_id &&
+            Math.round(Number(i.amount) * 100) === paid &&
+            (!ext || i.invoice_id === ext));
+          if (!match) reason = ext && !(inv || []).some((i: any) => i.invoice_id === ext) ? "external_reference_mismatch" : "invoice_amount_mismatch";
+          else if (Math.round(Number(payment.amount) * 100) !== paid) reason = "payment_amount_mismatch";
+        }
+        if (reason) {
+          console.error("[MARCA] payment validation failed:", reason);
+          newPaymentStatus = "in_review"; // não marca paga, não ativa
+          newSubscriptionStatus = payment.master_subscriptions?.status;
+          await supabase.from("master_subscription_logs").insert({
+            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
+            event_type: "MARCA_PAYMENT_REJECTED",
+            event_description: "Pagamento MARCA não confere com a fatura/aceite; ativação bloqueada",
+            metadata: { reason, mpPaymentId: paymentId },
+          });
+        } else {
+          await supabase.from("master_subscription_logs").insert({
+            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
+            event_type: "MARCA_PAYMENT_CONFIRMED", event_description: "Pagamento MARCA validado",
+            metadata: { mpPaymentId: paymentId },
+          });
+        }
+      }
+    }
+
     console.log("Status update:", { previousStatus, newPaymentStatus, newSubscriptionStatus, hardDecline });
 
     // Update payment record with detailed info
@@ -551,6 +602,7 @@ serve(async (req) => {
           free: 20,
           pro: 150,
           premium: null, // unlimited
+          marca: null, // herda Premium (ilimitado)
         };
         const maxProducts =
           effectivePlanId in planLimitsMap ? planLimitsMap[effectivePlanId] : 20;
@@ -606,6 +658,18 @@ serve(async (req) => {
         .from("master_subscriptions")
         .update(subscriptionUpdate)
         .eq("id", payment.subscription_id);
+
+      if (isMarcaSub && newSubscriptionStatus === "active") {
+        // Guarda do banco pode ter bloqueado; registrar só a ativação real.
+        const { data: after } = await supabase.from("master_subscriptions")
+          .select("status, plan_id").eq("id", payment.subscription_id).maybeSingle();
+        if (after?.status === "active" && after?.plan_id === "marca") {
+          await supabase.from("master_subscription_logs").insert({
+            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
+            event_type: "MARCA_SUBSCRIPTION_ACTIVATED", event_description: "Plano MARCA ativado após pagamento confirmado",
+          });
+        }
+      }
 
       // Log the status change
       await supabase.from("master_subscription_logs").insert({
