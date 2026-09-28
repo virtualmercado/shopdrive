@@ -524,6 +524,7 @@ export type Database = {
           failure_reason: string | null
           generated_at: string | null
           id: string
+          idempotency_key: string | null
           metrics_snapshot: Json | null
           period_end: string
           period_start: string
@@ -547,6 +548,7 @@ export type Database = {
           failure_reason?: string | null
           generated_at?: string | null
           id?: string
+          idempotency_key?: string | null
           metrics_snapshot?: Json | null
           period_end: string
           period_start: string
@@ -570,6 +572,7 @@ export type Database = {
           failure_reason?: string | null
           generated_at?: string | null
           id?: string
+          idempotency_key?: string | null
           metrics_snapshot?: Json | null
           period_end?: string
           period_start?: string
@@ -2076,6 +2079,24 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      internal_job_tokens: {
+        Row: {
+          created_at: string
+          job_name: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          job_name: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          job_name?: string
+          token?: string
         }
         Relationships: []
       }
@@ -7222,6 +7243,10 @@ export type Database = {
       }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
+      claim_brand_network_report_send: {
+        Args: { p_queue_id: string }
+        Returns: Json
+      }
       clone_product_variants: {
         Args: { p_source_product_id: string; p_target_product_id: string }
         Returns: number
@@ -7302,6 +7327,10 @@ export type Database = {
           p_template_id?: string
         }
         Returns: boolean
+      }
+      enqueue_brand_network_report: {
+        Args: { p_html: string; p_max_attempts?: number; p_run_id: string }
+        Returns: Json
       }
       ensure_catalog_share_code: { Args: never; Returns: string }
       expire_plan_trials: { Args: never; Returns: Json }
@@ -7478,6 +7507,10 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: string
       }
+      mark_brand_network_report_delivery_unknown: {
+        Args: { p_queue_id: string; p_reason: string }
+        Returns: undefined
+      }
       mark_brand_network_report_queued: {
         Args: { p_email_queue_id: string; p_run_id: string }
         Returns: undefined
@@ -7511,6 +7544,10 @@ export type Database = {
       recompute_store_onboarding_state: {
         Args: { p_store_id: string }
         Returns: Json
+      }
+      record_brand_network_report_provider_id: {
+        Args: { p_provider_id: string; p_queue_id: string }
+        Returns: undefined
       }
       record_plan_contract_acceptance: {
         Args: {
@@ -7654,6 +7691,10 @@ export type Database = {
           single_use: boolean
           user_id: string
         }[]
+      }
+      verify_internal_job_token: {
+        Args: { p_job: string; p_token: string }
+        Returns: boolean
       }
     }
     Enums: {
