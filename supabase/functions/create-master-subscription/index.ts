@@ -150,6 +150,24 @@ serve(async (req) => {
       );
     }
 
+    // Loja adicional (secondary) de um Plano MARCA usa a assinatura da empresa: nunca contrata plano próprio.
+    {
+      const { data: ownedRow, error: ownedErr } = await supabase
+        .from("brand_account_owned_stores")
+        .select("id")
+        .eq("store_profile_id", authenticatedUserId)
+        .eq("store_role", "secondary")
+        .maybeSingle();
+      if (ownedErr || ownedRow) {
+        return new Response(
+          JSON.stringify({ error: ownedErr
+            ? "Não foi possível validar a contratação."
+            : "Esta loja está vinculada a uma empresa do Plano MARCA e utiliza a assinatura principal da empresa." }),
+          { status: ownedErr ? 500 : 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // For monthly, only credit card is allowed
     if (billingCycle === "monthly" && !["credit_card", "pix"].includes(paymentMethod)) {
       return new Response(
