@@ -22,6 +22,7 @@ import Support from "./pages/dashboard/Support";
 import Marketing from "./pages/dashboard/Marketing";
 import MarketingTutorial from "./pages/dashboard/MarketingTutorial";
 import Reviews from "./pages/dashboard/Reviews";
+import MinhaRede from "./pages/dashboard/MinhaRede";
 import StoreOnboarding from "./pages/dashboard/StoreOnboarding";
 import AdminStoreOnboarding from "./pages/admin/AdminStoreOnboarding";
 
@@ -167,6 +168,7 @@ function App() {
               <Route path="/lojista/financeiro" element={<MerchantRoute><Financeiro /></MerchantRoute>} />
               <Route path="/lojista/support" element={<MerchantRoute><Support /></MerchantRoute>} />
               <Route path="/lojista/marketing" element={<MerchantRoute><Marketing /></MerchantRoute>} />
+              <Route path="/lojista/minha-rede" element={<MerchantRoute><MinhaRede /></MerchantRoute>} />
               <Route path="/lojista/reviews" element={<MerchantRoute><Reviews /></MerchantRoute>} />
               <Route path="/lojista/configuracao-loja" element={<MerchantRoute><StoreOnboarding /></MerchantRoute>} />
               <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
