@@ -21,8 +21,9 @@ interface SmtpConfig {
 
 async function sendViaSMTP(
   config: SmtpConfig,
-  from: string, replyTo: string, to: string, subject: string, html: string
-): Promise<{ success: boolean; error?: string }> {
+  from: string, replyTo: string, to: string, subject: string, html: string, messageId?: string
+): Promise<{ success: boolean; error?: string; dataSent?: boolean; providerResponse?: string }> {
+  let dataSent = false;
   try {
     const conn = config.security === "ssl"
       ? await Deno.connectTls({ hostname: config.host, port: config.port })
@@ -75,17 +76,18 @@ async function sendViaSMTP(
       `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
       `Bcc: ${BCC_EMAIL}`,
       `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
-      `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`, "", html, ".",
+      `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`,
+      ...(messageId ? [`Message-ID: <${messageId}@shopdrive.com.br>`] : []), "", html, ".",
     ].join("\r\n");
 
+    dataSent = true; // a partir daqui o provedor pode ter aceitado a mensagem
     const dataResp = await sendCommand(emailData);
     if (!dataResp.startsWith("250")) { conn.close(); return { success: false, error: `DATA failed: ${dataResp.trim()}` }; }
 
-    await sendCommand("QUIT");
-    conn.close();
-    return { success: true };
+    try { await sendCommand("QUIT"); conn.close(); } catch { /* aceito; QUIT não é crítico */ }
+    return { success: true, providerResponse: dataResp.trim() };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown SMTP error" };
+    return { success: false, dataSent, error: err instanceof Error ? err.message : "Unknown SMTP error" };
   }
 }
 
@@ -184,7 +186,14 @@ Deno.serve(async (req) => {
     let sent = 0, failed = 0, blocked = 0, retried = 0;
 
     for (const email of emails) {
-      await supabase.from("email_queue").update({ status: "processing" }).eq("id", email.id);
+      // Relatório MARCA: claim atômico no banco antes do SMTP (só um worker obtém).
+      const bnrRunId = email.payload?.brand_network_report_run_id as string | undefined;
+      if (bnrRunId) {
+        const { data: claim, error: claimErr } = await supabase.rpc("claim_brand_network_report_send", { p_queue_id: email.id });
+        if (claimErr || claim?.claimed !== true) continue;
+      } else {
+        await supabase.from("email_queue").update({ status: "processing" }).eq("id", email.id);
+      }
 
       // Check reputation shield
       if (email.tenant_id) {
@@ -238,7 +247,15 @@ Deno.serve(async (req) => {
       }
 
       // Send via SMTP (always — no more Resend)
-      const result = await sendViaSMTP(config, finalFrom, replyTo, email.to_email, email.subject, email.html || "");
+      const result = await sendViaSMTP(config, finalFrom, replyTo, email.to_email, email.subject, email.html || "",
+        bnrRunId ? `bnr-${bnrRunId}` : undefined);
+
+      // Resposta perdida após DATA: talvez enviado. Nunca reenviar automaticamente.
+      if (bnrRunId && !result.success && result.dataSent) {
+        await supabase.rpc("mark_brand_network_report_delivery_unknown", { p_queue_id: email.id, p_reason: "smtp_response_lost" });
+        failed++;
+        continue;
+      }
 
       const now = new Date().toISOString();
 
@@ -247,6 +264,9 @@ Deno.serve(async (req) => {
           status: "sent",
           sent_at: now,
         }).eq("id", email.id);
+        if (bnrRunId && result.providerResponse) {
+          await supabase.rpc("record_brand_network_report_provider_id", { p_queue_id: email.id, p_provider_id: result.providerResponse });
+        }
 
         await supabase.from("email_logs").insert({
           tenant_id: email.tenant_id,

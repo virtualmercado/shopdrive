@@ -11,7 +11,12 @@ export interface ReportMetricsSnap {
 
 const APP_ORIGIN = "https://shopdrive.com.br";
 export const MINHA_REDE_URL = `${APP_ORIGIN}/lojista/minha-rede`;
-export const templateLink = (slug: string) => `${APP_ORIGIN}/criar-conta?template=${slug}`;
+// Mesma rota canônica do Painel Master/Minha Rede; query montada com URLSearchParams (sem dupla codificação).
+export const templateLink = (slug: string) => {
+  const u = new URL("/criar-conta", APP_ORIGIN);
+  u.searchParams.set("template", slug);
+  return u.toString();
+};
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));

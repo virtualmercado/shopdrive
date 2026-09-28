@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.accept-plan-contract]
 verify_jwt = false
+
+[functions.send-brand-network-reports]
+verify_jwt = false
