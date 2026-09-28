@@ -28,8 +28,8 @@
 
 ## Prompt 11 — Fluxo comercial MARCA (MARCA segue desligado)
 - Decisão comercial: PRO/PREMIUM → MARCA "começa no vencimento" (MARCA só vale e cobra ao fim do período já pago; sem crédito/prorrata; recorrência antiga só é encerrada após pagamento MARCA confirmado)
-- [ ] Backend: prepare_marca_brand_account (server-side, lock, reutiliza, primary slot 1)
-- [ ] Backend: get-current-marca-contract (só versão publicada)
-- [ ] Backend: agendamento do upgrade pago no vencimento + encerramento seguro da recorrência antiga
+- [x] Backend: prepare_my_marca_brand_account (testado, desfeito)
+- [x] Backend: get_current_marca_contract + leitor seguro (testado, desfeito)
+- [ ] Etapa 3 (bloqueada): auditoria da recorrência Mercado Pago antes de agendar troca paga
 - [ ] Financeiro: card MARCA (flag), ciclo, empresa, contrato, aceite, checkout, estados
 - [ ] Testes com mocks/transações revertidas

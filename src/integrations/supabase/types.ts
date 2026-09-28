@@ -7089,6 +7089,10 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _marca_assert_owner_eligible: {
+        Args: { p_uid: string }
+        Returns: undefined
+      }
       activate_product_with_plan_validation: {
         Args: { p_active: boolean; p_product_id: string }
         Returns: Json
@@ -7388,6 +7392,10 @@ export type Database = {
           store_slug: string
         }[]
       }
+      get_current_marca_contract: {
+        Args: { p_brand_account_id?: string }
+        Returns: Json
+      }
       get_effective_store_plan: { Args: { p_store_id: string }; Returns: Json }
       get_master_gateway_public_config: {
         Args: never
@@ -7517,6 +7525,10 @@ export type Database = {
       }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       plan_rank: { Args: { _plan: string }; Returns: number }
+      prepare_my_marca_brand_account: {
+        Args: { p_display_name?: string }
+        Returns: Json
+      }
       propagate_brand_plan_to_secondaries: {
         Args: { p_owner_id: string }
         Returns: number
