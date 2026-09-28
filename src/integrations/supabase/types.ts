@@ -6938,6 +6938,55 @@ export type Database = {
       }
     }
     Functions: {
+      _bn_activation_detail: {
+        Args: {
+          p_key_salt: string
+          p_store_key: string
+          p_template_ids: string[]
+        }
+        Returns: Json
+      }
+      _bn_admin_templates: {
+        Args: { p_brand_account_id: string; p_template_id: string }
+        Returns: string[]
+      }
+      _bn_list_activations: {
+        Args: {
+          p_key_salt: string
+          p_page: number
+          p_page_size: number
+          p_plan: string
+          p_search: string
+          p_status: string
+          p_template_ids: string[]
+        }
+        Returns: Json
+      }
+      _bn_resolve_caller_account: {
+        Args: { p_brand_account_id: string }
+        Returns: string
+      }
+      _bn_store_facts: {
+        Args: { p_store_ids: string[] }
+        Returns: {
+          active_products: number
+          minimum_ready: boolean
+          progress_percent: number
+          store_id: string
+        }[]
+      }
+      _bn_template_filter: {
+        Args: { p_account: string; p_template_id: string }
+        Returns: string[]
+      }
+      _bn_valid_activations: {
+        Args: { p_template_ids: string[] }
+        Returns: {
+          activated_at: string
+          store_id: string
+          template_id: string
+        }[]
+      }
       activate_product_with_plan_validation: {
         Args: { p_active: boolean; p_product_id: string }
         Returns: Json
@@ -6984,6 +7033,28 @@ export type Database = {
       }
       admin_end_plan_trial: {
         Args: { p_reason?: string; p_trial_id: string }
+        Returns: Json
+      }
+      admin_get_brand_network_activations: {
+        Args: {
+          p_brand_account_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_plan?: string
+          p_search?: string
+          p_status?: string
+          p_template_id?: string
+        }
+        Returns: Json
+      }
+      admin_get_brand_network_metrics: {
+        Args: {
+          p_brand_account_id?: string
+          p_bucket?: string
+          p_from: string
+          p_template_id?: string
+          p_to: string
+        }
         Returns: Json
       }
       admin_grant_plan_trial: {
@@ -7088,6 +7159,15 @@ export type Database = {
       }
       complement_template_data_impl: {
         Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      compute_brand_network_metrics: {
+        Args: {
+          p_bucket?: string
+          p_from: string
+          p_template_ids: string[]
+          p_to: string
+        }
         Returns: Json
       }
       compute_store_completion_snapshot: {
@@ -7211,6 +7291,32 @@ export type Database = {
           is_active: boolean
           user_id: string
         }[]
+      }
+      get_my_brand_network_activation_detail: {
+        Args: { p_brand_account_id?: string; p_store_key: string }
+        Returns: Json
+      }
+      get_my_brand_network_activations: {
+        Args: {
+          p_brand_account_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_plan?: string
+          p_search?: string
+          p_status?: string
+          p_template_id?: string
+        }
+        Returns: Json
+      }
+      get_my_brand_network_dashboard: {
+        Args: {
+          p_brand_account_id?: string
+          p_bucket?: string
+          p_from: string
+          p_template_id?: string
+          p_to: string
+        }
+        Returns: Json
       }
       get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
       get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
