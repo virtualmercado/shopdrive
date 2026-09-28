@@ -1,4 +1,4 @@
-export type MerchantPlan = 'unknown' | 'free' | 'pro' | 'premium';
+export type MerchantPlan = 'unknown' | 'free' | 'pro' | 'premium' | 'marca';
 
 export interface PlanLimits {
   maxProducts: number | null; // null = unlimited
@@ -11,7 +11,33 @@ export interface PlanLimits {
   canUseCoupons: boolean;
   canUseWhatsAppSupport: boolean;
   canUseReviews: boolean;
+  /** MARCA-only capabilities (declarative in this phase — nothing consumes them yet). */
+  brandNetworkAccess: boolean;
+  brandReports: boolean;
+  brandTemplatesLimit: number; // 0 = none
+  ownedStoreLimit: number; // stores owned by the account (1 = current behavior)
 }
+
+const NO_BRAND = {
+  brandNetworkAccess: false,
+  brandReports: false,
+  brandTemplatesLimit: 0,
+  ownedStoreLimit: 1,
+} as const;
+
+const PREMIUM_LIMITS: PlanLimits = {
+  maxProducts: null,
+  maxCustomers: null,
+  canCustomizeLogo: true,
+  canCustomizeColors: true,
+  canUseCustomDomain: true,
+  canUseImageEditor: true,
+  canUseMarketing: true,
+  canUseCoupons: true,
+  canUseWhatsAppSupport: true,
+  canUseReviews: true,
+  ...NO_BRAND,
+};
 
 export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
   unknown: {
@@ -25,6 +51,7 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseCoupons: false,
     canUseWhatsAppSupport: false,
     canUseReviews: false,
+    ...NO_BRAND,
   },
   free: {
     maxProducts: 20,
@@ -37,6 +64,7 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseCoupons: false,
     canUseWhatsAppSupport: false,
     canUseReviews: false,
+    ...NO_BRAND,
   },
   pro: {
     maxProducts: 150,
@@ -49,18 +77,16 @@ export const PLAN_LIMITS: Record<MerchantPlan, PlanLimits> = {
     canUseCoupons: true,
     canUseWhatsAppSupport: false,
     canUseReviews: true,
+    ...NO_BRAND,
   },
-  premium: {
-    maxProducts: null,
-    maxCustomers: null,
-    canCustomizeLogo: true,
-    canCustomizeColors: true,
-    canUseCustomDomain: true,
-    canUseImageEditor: true,
-    canUseMarketing: true,
-    canUseCoupons: true,
-    canUseWhatsAppSupport: true,
-    canUseReviews: true,
+  premium: PREMIUM_LIMITS,
+  // MARCA = everything Premium has + brand capabilities.
+  marca: {
+    ...PREMIUM_LIMITS,
+    brandNetworkAccess: true,
+    brandReports: true,
+    brandTemplatesLimit: 2,
+    ownedStoreLimit: 2,
   },
 };
 
@@ -69,13 +95,21 @@ export const PLAN_DISPLAY_NAMES: Record<MerchantPlan, string> = {
   free: 'Grátis',
   pro: 'Pro',
   premium: 'Premium',
+  marca: 'MARCA',
 };
+
+const KNOWN_FREE_ALIASES = new Set(['free', 'gratis', 'grátis']);
 
 export function getPlanFromPlanId(planId: string | null | undefined): MerchantPlan {
   if (!planId) return 'unknown';
   const normalized = planId.toLowerCase().trim();
+  if (normalized === 'marca') return 'marca';
   if (normalized === 'premium') return 'premium';
   if (normalized === 'pro') return 'pro';
+  if (!KNOWN_FREE_ALIASES.has(normalized)) {
+    // Legacy-compatible fallback to free, but never silently.
+    console.warn('UNKNOWN_PLAN_CODE', { value: planId, at: new Date().toISOString() });
+  }
   return 'free';
 }
 

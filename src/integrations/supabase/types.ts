@@ -6761,6 +6761,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
+      is_plan_marca_enabled: { Args: never; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
       is_quote_owner: { Args: { p_quote_id: string }; Returns: boolean }
       is_quote_publicly_accessible: {

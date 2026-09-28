@@ -1,0 +1,1 @@
+- Plan codes: free|pro|premium|marca; MARCA = Premium + brand capabilities in `PLAN_LIMITS` (planLimits.ts) and `get_effective_store_plan`; sale gated by flag ENABLE_PLAN_MARCA via `is_plan_marca_enabled()` (fail-safe false). Why: prevents MARCA from ever resolving to Free.

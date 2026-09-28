@@ -154,6 +154,21 @@ serve(async (req) => {
       );
     }
 
+    // MARCA is technically recognized but not for sale until ENABLE_PLAN_MARCA is on (fail-safe: off).
+    if (String(planId).toLowerCase().trim() === "marca") {
+      let marcaEnabled = false;
+      try {
+        const { data: flagOn } = await supabase.rpc("is_plan_marca_enabled");
+        marcaEnabled = flagOn === true;
+      } catch { marcaEnabled = false; }
+      if (!marcaEnabled) {
+        return new Response(
+          JSON.stringify({ error: "Este plano ainda não está disponível para contratação." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Get plan details
     const { data: plan, error: planError } = await supabase
       .from("master_plans")
@@ -592,7 +607,7 @@ serve(async (req) => {
       }
 
       if (isAuthorized && planId && planId !== "gratis" && planId !== "free") {
-        const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+        const planLimits: Record<string, number | null> = { pro: 150, premium: null, marca: null };
         const max = planId in planLimits ? planLimits[planId] : 20;
         const { error: re } = await supabase.rpc(
           "reactivate_products_after_upgrade",
@@ -734,7 +749,7 @@ serve(async (req) => {
 
         // Reactivate products disabled by plan limit (annual paid plan)
         if (planId && planId !== "gratis" && planId !== "free") {
-          const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+          const planLimits: Record<string, number | null> = { pro: 150, premium: null, marca: null };
           const max = planId in planLimits ? planLimits[planId] : 20;
           const { data: rc, error: re } = await supabase.rpc(
             "reactivate_products_after_upgrade",

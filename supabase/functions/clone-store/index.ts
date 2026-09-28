@@ -146,7 +146,7 @@ async function isFullCloneV2Enabled(admin: DbClient): Promise<boolean> {
 
 function getPlanActiveLimit(planId: string | null | undefined): number | null {
   const normalized = String(planId || "gratis").trim().toLowerCase();
-  if (normalized === "premium") return null;
+  if (normalized === "premium" || normalized === "marca") return null;
   if (normalized === "pro") return 150;
   return 20;
 }
