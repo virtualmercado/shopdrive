@@ -113,6 +113,20 @@
       "when": 1790609662240,
       "tag": "0015_plan_marca_owned_stores_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790611579439,
+      "tag": "0016_plan_marca_brand_network_backend",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790611600850,
+      "tag": "0017_plan_marca_brand_network_volatile_fix",
+      "breakpoints": true
     }
   ]
 }
