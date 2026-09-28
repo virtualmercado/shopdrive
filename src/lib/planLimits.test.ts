@@ -61,3 +61,19 @@ describe('PLAN_LIMITS', () => {
     expect(PLAN_LIMITS.marca.ownedStoreLimit).toBe(2);
   });
 });
+
+import { resolveStoreEntitlements as rse } from './planLimits';
+describe('resolveStoreEntitlements', () => {
+  it('primary MARCA keeps brand authority', () => {
+    const l = rse('marca', 'direct', 'primary');
+    expect([l.brandNetworkAccess, l.brandReports, l.brandTemplatesLimit, l.ownedStoreLimit]).toEqual([true, true, 2, 2]);
+  });
+  it('secondary inherits operations but no brand authority', () => {
+    const l = rse('marca', 'brand_inherited', 'secondary');
+    expect(l.maxProducts).toBeNull(); expect(l.maxCustomers).toBeNull(); expect(l.canCustomizeColors).toBe(true);
+    expect([l.brandNetworkAccess, l.brandReports, l.brandTemplatesLimit, l.ownedStoreLimit]).toEqual([false, false, 0, 0]);
+  });
+  it('common stores unchanged', () => {
+    expect(rse('pro', 'direct', null)).toEqual(rse('pro'));
+  });
+});

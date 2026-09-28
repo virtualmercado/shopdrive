@@ -117,6 +117,27 @@ export function getPlanLimits(plan: MerchantPlan): PlanLimits {
   return PLAN_LIMITS[plan];
 }
 
+export type PlanSource = 'direct' | 'brand_inherited' | 'free_fallback';
+export type OwnedStoreRole = 'primary' | 'secondary' | null;
+
+/**
+ * Entitlements por contexto. A loja adicional (secondary) herda os recursos
+ * operacionais do MARCA, mas nunca a autoridade empresarial (Minha Rede,
+ * templates, relatórios, gestão das lojas próprias). O backend futuro de
+ * Minha Rede deve validar auth.uid() = brand_accounts.owner_profile_id.
+ */
+export function resolveStoreEntitlements(
+  plan: MerchantPlan,
+  planSource?: PlanSource | string | null,
+  ownedStoreRole?: OwnedStoreRole | string | null,
+): PlanLimits {
+  const base = PLAN_LIMITS[plan];
+  if (planSource === 'brand_inherited' || ownedStoreRole === 'secondary') {
+    return { ...base, ...NO_BRAND, ownedStoreLimit: 0 };
+  }
+  return base;
+}
+
 export function isWithinLimit(current: number, limit: number | null): boolean {
   if (limit === null) return true;
   return current < limit;

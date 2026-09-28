@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { MerchantPlan, getPlanFromPlanId, getPlanLimits, PlanLimits, isWithinLimit } from '@/lib/planLimits';
+import { MerchantPlan, getPlanFromPlanId, resolveStoreEntitlements, PlanLimits, isWithinLimit } from '@/lib/planLimits';
 
 /** 
  * Template editor mode: all features unlocked but product/customer limits
@@ -57,6 +57,8 @@ interface ProductPlanUsageResponse {
   activeProducts?: number;
   remainingActivations?: number | null;
   canActivateMore?: boolean;
+  planSource?: string | null;
+  ownedStoreRole?: string | null;
 }
 
 export const useMerchantPlan = (): UseMerchantPlanReturn => {
@@ -65,6 +67,8 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
   const [loading, setLoading] = useState(true);
   const [productCount, setProductCount] = useState(0);
   const [customerCount, setCustomerCount] = useState(0);
+  const [planSource, setPlanSource] = useState<string | null>(null);
+  const [ownedStoreRole, setOwnedStoreRole] = useState<string | null>(null);
 
   const templateMode = isInTemplateEditorMode();
 
@@ -92,6 +96,8 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
       if (usage?.plan) {
         setPlan(getPlanFromPlanId(usage.plan));
         setProductCount(Number(usage.activeProducts ?? 0));
+        setPlanSource(usage.planSource ?? null);
+        setOwnedStoreRole(usage.ownedStoreRole ?? null);
       } else {
         setPlan('unknown');
         setProductCount(0);
@@ -112,7 +118,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
   }, [user, authLoading]);
 
   // In template editor mode, override ALL limits to fully unlocked
-  const limits = templateMode ? TEMPLATE_OVERRIDE_LIMITS : getPlanLimits(plan);
+  const limits = templateMode ? TEMPLATE_OVERRIDE_LIMITS : resolveStoreEntitlements(plan, planSource, ownedStoreRole);
 
   return {
     plan: templateMode ? 'free' : plan,
