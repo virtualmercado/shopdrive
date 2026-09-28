@@ -138,7 +138,7 @@ serve(async (req) => {
       });
 
       const planLimitsMap: Record<string, number | null> = {
-        gratis: 20, free: 20, pro: 150, premium: null,
+        gratis: 20, free: 20, pro: 150, premium: null, marca: null,
       };
       const planId = subscription.plan_id;
       if (planId && planId !== "gratis" && planId !== "free") {

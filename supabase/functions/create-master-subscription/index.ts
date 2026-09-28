@@ -607,7 +607,7 @@ serve(async (req) => {
       }
 
       if (isAuthorized && planId && planId !== "gratis" && planId !== "free") {
-        const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+        const planLimits: Record<string, number | null> = { pro: 150, premium: null, marca: null };
         const max = planId in planLimits ? planLimits[planId] : 20;
         const { error: re } = await supabase.rpc(
           "reactivate_products_after_upgrade",
@@ -749,7 +749,7 @@ serve(async (req) => {
 
         // Reactivate products disabled by plan limit (annual paid plan)
         if (planId && planId !== "gratis" && planId !== "free") {
-          const planLimits: Record<string, number | null> = { pro: 150, premium: null };
+          const planLimits: Record<string, number | null> = { pro: 150, premium: null, marca: null };
           const max = planId in planLimits ? planLimits[planId] : 20;
           const { data: rc, error: re } = await supabase.rpc(
             "reactivate_products_after_upgrade",
