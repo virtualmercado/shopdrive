@@ -78,6 +78,13 @@
       "when": 1790602076261,
       "tag": "0010_brand_accounts_and_template_ownership",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790605147273,
+      "tag": "0011_plan_marca_contract_infrastructure",
+      "breakpoints": true
     }
   ]
 }

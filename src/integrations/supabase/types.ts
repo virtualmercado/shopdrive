@@ -3307,6 +3307,269 @@ export type Database = {
           },
         ]
       }
+      plan_contract_acceptances: {
+        Row: {
+          acceptance_statement_snapshot: string
+          accepted_at: string
+          accepted_by_profile_id: string | null
+          accepted_by_profile_id_snapshot: string
+          annual_discount_percent_snapshot: number
+          billing_cycle: string
+          brand_account_id: string
+          brand_display_name_snapshot: string
+          commercial_terms_hash: string
+          contract_hash_snapshot: string
+          contract_version_id: string
+          created_at: string
+          evidence_snapshot: Json
+          id: string
+          ip_address: string | null
+          monthly_price_snapshot: number
+          plan_id_snapshot: string
+          request_id: string | null
+          user_agent: string | null
+          version_label_snapshot: string
+        }
+        Insert: {
+          acceptance_statement_snapshot: string
+          accepted_at?: string
+          accepted_by_profile_id?: string | null
+          accepted_by_profile_id_snapshot: string
+          annual_discount_percent_snapshot: number
+          billing_cycle: string
+          brand_account_id: string
+          brand_display_name_snapshot: string
+          commercial_terms_hash: string
+          contract_hash_snapshot: string
+          contract_version_id: string
+          created_at?: string
+          evidence_snapshot?: Json
+          id?: string
+          ip_address?: string | null
+          monthly_price_snapshot: number
+          plan_id_snapshot: string
+          request_id?: string | null
+          user_agent?: string | null
+          version_label_snapshot: string
+        }
+        Update: {
+          acceptance_statement_snapshot?: string
+          accepted_at?: string
+          accepted_by_profile_id?: string | null
+          accepted_by_profile_id_snapshot?: string
+          annual_discount_percent_snapshot?: number
+          billing_cycle?: string
+          brand_account_id?: string
+          brand_display_name_snapshot?: string
+          commercial_terms_hash?: string
+          contract_hash_snapshot?: string
+          contract_version_id?: string
+          created_at?: string
+          evidence_snapshot?: Json
+          id?: string
+          ip_address?: string | null
+          monthly_price_snapshot?: number
+          plan_id_snapshot?: string
+          request_id?: string | null
+          user_agent?: string | null
+          version_label_snapshot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_contract_acceptances_accepted_by_profile_id_fkey"
+            columns: ["accepted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_acceptances_accepted_by_profile_id_fkey"
+            columns: ["accepted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_acceptances_accepted_by_profile_id_fkey"
+            columns: ["accepted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_acceptances_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_acceptances_contract_version_id_fkey"
+            columns: ["contract_version_id"]
+            isOneToOne: false
+            referencedRelation: "plan_contract_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_contract_settings: {
+        Row: {
+          current_version_id: string | null
+          plan_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          current_version_id?: string | null
+          plan_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          current_version_id?: string | null
+          plan_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_contract_settings_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "plan_contract_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_settings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: true
+            referencedRelation: "master_plans"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "plan_contract_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_contract_versions: {
+        Row: {
+          acceptance_statement: string
+          content_hash_sha256: string | null
+          content_markdown: string
+          created_at: string
+          created_by: string | null
+          id: string
+          plan_id: string
+          published_at: string | null
+          published_by: string | null
+          requires_reacceptance: boolean
+          status: string
+          title: string
+          updated_at: string
+          version_label: string
+        }
+        Insert: {
+          acceptance_statement?: string
+          content_hash_sha256?: string | null
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_id: string
+          published_at?: string | null
+          published_by?: string | null
+          requires_reacceptance?: boolean
+          status?: string
+          title: string
+          updated_at?: string
+          version_label: string
+        }
+        Update: {
+          acceptance_statement?: string
+          content_hash_sha256?: string | null
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          plan_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          requires_reacceptance?: boolean
+          status?: string
+          title?: string
+          updated_at?: string
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_contract_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "master_plans"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_trials: {
         Row: {
           base_plan: string
@@ -6601,6 +6864,21 @@ export type Database = {
         Args: { p_display_name: string; p_owner_profile_id?: string }
         Returns: string
       }
+      admin_create_contract_draft: {
+        Args: {
+          p_acceptance_statement: string
+          p_content_markdown: string
+          p_plan_id: string
+          p_requires_reacceptance?: boolean
+          p_title: string
+          p_version_label: string
+        }
+        Returns: string
+      }
+      admin_delete_contract_draft: {
+        Args: { p_version_id: string }
+        Returns: undefined
+      }
       admin_end_plan_trial: {
         Args: { p_reason?: string; p_trial_id: string }
         Returns: Json
@@ -6608,6 +6886,14 @@ export type Database = {
       admin_grant_plan_trial: {
         Args: { p_reason?: string; p_store_id: string; p_trial_plan: string }
         Returns: Json
+      }
+      admin_publish_contract_version: {
+        Args: { p_set_current?: boolean; p_version_id: string }
+        Returns: string
+      }
+      admin_set_current_contract_version: {
+        Args: { p_version_id: string }
+        Returns: undefined
       }
       admin_set_onboarding_exempt: {
         Args: { p_exempt: boolean; p_store_id: string }
@@ -6619,6 +6905,16 @@ export type Database = {
       }
       admin_unassign_brand_template: {
         Args: { p_template_id: string }
+        Returns: undefined
+      }
+      admin_update_contract_draft: {
+        Args: {
+          p_acceptance_statement: string
+          p_content_markdown: string
+          p_requires_reacceptance: boolean
+          p_title: string
+          p_version_id: string
+        }
         Returns: undefined
       }
       apply_confirmed_plan_downgrade: {
@@ -6833,6 +7129,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
+      is_plan_contract_ready: { Args: { p_plan_id: string }; Returns: boolean }
       is_plan_marca_enabled: { Args: never; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
       is_quote_owner: { Args: { p_quote_id: string }; Returns: boolean }
@@ -6882,6 +7179,18 @@ export type Database = {
       }
       recompute_store_onboarding_state: {
         Args: { p_store_id: string }
+        Returns: Json
+      }
+      record_plan_contract_acceptance: {
+        Args: {
+          p_billing_cycle: string
+          p_brand_account_id: string
+          p_ip_address?: string
+          p_plan_id: string
+          p_request_id?: string
+          p_user_agent?: string
+          p_user_id: string
+        }
         Returns: Json
       }
       reorder_product_images: {
