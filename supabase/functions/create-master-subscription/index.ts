@@ -459,6 +459,13 @@ serve(async (req) => {
 
     console.log("Subscription intent ready:", subscription.id, reusableSubscription ? "(reused)" : "(new)");
 
+    if (isMarca) {
+      await supabase.from("audit_logs").insert({
+        user_id: userId, action: "MARCA_CHECKOUT_CREATED", entity_type: "master_subscription", entity_id: subscription.id,
+        metadata: { brand_account_id: marcaBrandAccountId, contract_acceptance_id: marcaAcceptanceId, billing_cycle: billingCycle, reused: !!reusableSubscription },
+      });
+    }
+
 
     // Log subscription creation
     await supabase.from("master_subscription_logs").insert({
