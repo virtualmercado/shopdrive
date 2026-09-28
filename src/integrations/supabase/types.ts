@@ -1940,6 +1940,8 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          brand_account_id: string | null
+          contract_acceptance_id: string | null
           created_at: string
           due_date: string
           id: string
@@ -1959,6 +1961,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          brand_account_id?: string | null
+          contract_acceptance_id?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -1978,6 +1982,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          brand_account_id?: string | null
+          contract_acceptance_id?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -1996,6 +2002,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_contract_acceptance_id_fkey"
+            columns: ["contract_acceptance_id"]
+            isOneToOne: false
+            referencedRelation: "plan_contract_acceptances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_subscriber_id_fkey"
             columns: ["subscriber_id"]
@@ -2405,10 +2425,12 @@ export type Database = {
       master_subscriptions: {
         Row: {
           billing_cycle: string
+          brand_account_id: string | null
           cancelled_at: string | null
           card_brand: string | null
           card_last_four: string | null
           card_token: string | null
+          contract_acceptance_id: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
@@ -2447,10 +2469,12 @@ export type Database = {
         }
         Insert: {
           billing_cycle: string
+          brand_account_id?: string | null
           cancelled_at?: string | null
           card_brand?: string | null
           card_last_four?: string | null
           card_token?: string | null
+          contract_acceptance_id?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -2489,10 +2513,12 @@ export type Database = {
         }
         Update: {
           billing_cycle?: string
+          brand_account_id?: string | null
           cancelled_at?: string | null
           card_brand?: string | null
           card_last_four?: string | null
           card_token?: string | null
+          contract_acceptance_id?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -2529,7 +2555,22 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "master_subscriptions_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscriptions_contract_acceptance_id_fkey"
+            columns: ["contract_acceptance_id"]
+            isOneToOne: false
+            referencedRelation: "plan_contract_acceptances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       media_files: {
         Row: {
@@ -7155,6 +7196,10 @@ export type Database = {
         }
         Returns: string
       }
+      marca_activation_block_reason: {
+        Args: { p_subscription_id: string }
+        Returns: string
+      }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       plan_rank: { Args: { _plan: string }; Returns: number }
       propagate_content_banner_from_template: {
@@ -7302,6 +7347,15 @@ export type Database = {
         Returns: boolean
       }
       unaccent: { Args: { "": string }; Returns: string }
+      validate_marca_checkout: {
+        Args: {
+          p_acceptance_id: string
+          p_billing_cycle: string
+          p_brand_account_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       validate_store_coupon: {
         Args: { p_code: string; p_store_user_id: string }
         Returns: {
