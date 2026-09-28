@@ -676,7 +676,7 @@ serve(async (req) => {
         subscription_id: subscription.id,
         user_id: userId,
         payment_id: payment?.id,
-        event_type: isAuthorized ? "subscription_activated" : "preapproval_created",
+        event_type: activateNow ? "subscription_activated" : "preapproval_created",
         event_description: isAuthorized
           ? "Assinatura recorrente autorizada pelo emissor e ativada"
           : `Assinatura recorrente criada no gateway (status ${preapprovalStatus})`,
@@ -684,10 +684,10 @@ serve(async (req) => {
       });
 
       paymentResult = {
-        success: isAuthorized,
-        status: isAuthorized ? "approved" : "in_review",
-        normalizedStatus: isAuthorized ? "approved" : "in_review",
-        requiresPolling: !isAuthorized,
+        success: activateNow,
+        status: activateNow ? "approved" : "in_review",
+        normalizedStatus: activateNow ? "approved" : "in_review",
+        requiresPolling: !activateNow,
         preapprovalId: mpData.id,
         preapprovalStatus,
         subscriptionId: subscription.id,

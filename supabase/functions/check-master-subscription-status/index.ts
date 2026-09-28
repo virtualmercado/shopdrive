@@ -218,7 +218,8 @@ serve(async (req) => {
         if (preResp.ok) {
           const pre = await preResp.json();
           console.log("Preapproval status:", pre?.status);
-          if (pre?.status === "authorized") {
+          if (pre?.status === "authorized" && subscription.plan_id !== "marca") {
+            // MARCA só ativa com cobrança aprovada (não basta cartão autorizado).
             await activateSubscription(openCardPayment?.id || null, { id: pre.id, status: "authorized" });
           } else if (pre?.status === "cancelled") {
             await supabase
