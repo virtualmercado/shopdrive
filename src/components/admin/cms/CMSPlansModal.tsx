@@ -96,6 +96,13 @@ interface PlansContent {
   guarantees: Guarantee[];
   annual_discount_text: string;
   annual_savings_text: string;
+  /**
+   * MARCA plan commercial copy. Stored in a separate key (not in `plans`) so the
+   * public consumers (PlansSection: Financeiro/landing), which render every item
+   * of `plans`, never show MARCA before launch. CMS copy only — it never drives
+   * billing (master_plans) nor entitlements (planLimits).
+   */
+  marca_plan: Plan;
 }
 
 interface CMSPlansModalProps {
@@ -190,6 +197,34 @@ const DEFAULT_PLANS: Plan[] = [
   },
 ];
 
+const DEFAULT_MARCA_PLAN: Plan = {
+  id: "marca",
+  name: "MARCA",
+  display_name: "Plano MARCA",
+  subtitle: "Expanda sua marca com lojas prontas para sua rede.",
+  monthly_price: 199.97,
+  button_text: "Escolher MARCA",
+  badge_text: "",
+  badge_active: false,
+  badge_color: "#f97316",
+  previous_plan: {
+    name: "Plano PREMIUM",
+    label: "PREMIUM",
+    description: "Tudo o que o plano PREMIUM oferece, e mais:",
+  },
+  features: [
+    { icon: "Check", text: "Até 2 lojas próprias" },
+    { icon: "Check", text: "Até 2 Templates por Marca" },
+    { icon: "Check", text: "Templates personalizados preparados pela ShopDrive" },
+    { icon: "Check", text: "Links personalizados de ativação" },
+    { icon: "Check", text: "Painel Minha Rede" },
+    { icon: "Check", text: "Métricas de cliques, ativações e conversão" },
+    { icon: "Check", text: "Acompanhamento das lojas ativadas" },
+    { icon: "Check", text: "Relatório mensal da sua rede" },
+    { icon: "Check", text: "QR Code e compartilhamento dos links" },
+  ],
+};
+
 const defaultContent: PlansContent = {
   modal_title: "Escolha o plano ideal para você",
   modal_subtitle: "Comece grátis e faça upgrade quando quiser",
@@ -200,7 +235,10 @@ const defaultContent: PlansContent = {
   guarantees: DEFAULT_GUARANTEES,
   annual_discount_text: "- 30% de desconto no plano anual",
   annual_savings_text: "Economize 30%",
+  marca_plan: DEFAULT_MARCA_PLAN,
 };
+
+type PlanKey = number | "marca";
 
 export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSPlansModalProps) {
   const [formData, setFormData] = useState<PlansContent>(defaultContent);
@@ -221,6 +259,7 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
         // Use defaults if arrays are empty or undefined
         plans: (content.plans && content.plans.length > 0) ? content.plans : DEFAULT_PLANS,
         guarantees: (content.guarantees && content.guarantees.length > 0) ? content.guarantees : DEFAULT_GUARANTEES,
+        marca_plan: content.marca_plan ? { ...content.marca_plan, id: "marca" } : DEFAULT_MARCA_PLAN,
       };
       setFormData(mergedContent);
     } else {
@@ -241,39 +280,41 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
     }
   };
 
-  const updatePlan = (planIndex: number, field: keyof Plan, value: any) => {
-    const newPlans = [...formData.plans];
-    newPlans[planIndex] = { ...newPlans[planIndex], [field]: value };
-    setFormData({ ...formData, plans: newPlans });
+  // Each helper touches only the targeted plan (index into `plans` or the MARCA key).
+  const withPlan = (key: PlanKey, fn: (plan: Plan) => Plan) => {
+    setFormData((prev) => {
+      if (key === "marca") return { ...prev, marca_plan: fn(prev.marca_plan) };
+      const newPlans = [...prev.plans];
+      newPlans[key] = fn(newPlans[key]);
+      return { ...prev, plans: newPlans };
+    });
   };
 
-  const updatePlanFeature = (planIndex: number, featureIndex: number, field: keyof PlanFeature, value: string) => {
-    const newPlans = [...formData.plans];
-    const newFeatures = [...newPlans[planIndex].features];
-    newFeatures[featureIndex] = { ...newFeatures[featureIndex], [field]: value };
-    newPlans[planIndex] = { ...newPlans[planIndex], features: newFeatures };
-    setFormData({ ...formData, plans: newPlans });
+  const updatePlan = (key: PlanKey, field: keyof Plan, value: any) => {
+    withPlan(key, (plan) => ({ ...plan, [field]: value }));
   };
 
-  const addPlanFeature = (planIndex: number) => {
-    const newPlans = [...formData.plans];
-    newPlans[planIndex].features.push({ icon: "Check", text: "" });
-    setFormData({ ...formData, plans: newPlans });
+  const updatePlanFeature = (key: PlanKey, featureIndex: number, field: keyof PlanFeature, value: string) => {
+    withPlan(key, (plan) => {
+      const features = [...plan.features];
+      features[featureIndex] = { ...features[featureIndex], [field]: value };
+      return { ...plan, features };
+    });
   };
 
-  const removePlanFeature = (planIndex: number, featureIndex: number) => {
-    const newPlans = [...formData.plans];
-    newPlans[planIndex].features = newPlans[planIndex].features.filter((_, i) => i !== featureIndex);
-    setFormData({ ...formData, plans: newPlans });
+  const addPlanFeature = (key: PlanKey) => {
+    withPlan(key, (plan) => ({ ...plan, features: [...plan.features, { icon: "Check", text: "" }] }));
   };
 
-  const updatePreviousPlan = (planIndex: number, field: keyof PreviousPlan, value: string) => {
-    const newPlans = [...formData.plans];
-    if (!newPlans[planIndex].previous_plan) {
-      newPlans[planIndex].previous_plan = { name: "", label: "", description: "" };
-    }
-    newPlans[planIndex].previous_plan = { ...newPlans[planIndex].previous_plan!, [field]: value };
-    setFormData({ ...formData, plans: newPlans });
+  const removePlanFeature = (key: PlanKey, featureIndex: number) => {
+    withPlan(key, (plan) => ({ ...plan, features: plan.features.filter((_, i) => i !== featureIndex) }));
+  };
+
+  const updatePreviousPlan = (key: PlanKey, field: keyof PreviousPlan, value: string) => {
+    withPlan(key, (plan) => ({
+      ...plan,
+      previous_plan: { ...(plan.previous_plan ?? { name: "", label: "", description: "" }), [field]: value },
+    }));
   };
 
   const updateGuarantee = (index: number, field: keyof Guarantee, value: string) => {
@@ -313,11 +354,12 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
           <div className="px-6">
-            <TabsList className="grid grid-cols-4 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               <TabsTrigger value="general">Geral</TabsTrigger>
               <TabsTrigger value="gratis">Plano Grátis</TabsTrigger>
               <TabsTrigger value="pro">Plano PRO</TabsTrigger>
               <TabsTrigger value="premium">Plano Premium</TabsTrigger>
+              <TabsTrigger value="marca">Plano MARCA</TabsTrigger>
             </TabsList>
           </div>
 
@@ -458,7 +500,10 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
             </TabsContent>
 
             {/* Plan Tabs */}
-            {formData.plans.map((plan, planIndex) => (
+            {[
+              ...formData.plans.map((plan, i) => ({ plan, planIndex: i as PlanKey })),
+              { plan: formData.marca_plan, planIndex: "marca" as PlanKey },
+            ].map(({ plan, planIndex }) => (
               <TabsContent key={plan.id} value={plan.id} className="mt-0 space-y-6">
                 <Card>
                   <CardHeader>
