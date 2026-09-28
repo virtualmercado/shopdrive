@@ -677,7 +677,7 @@ serve(async (req) => {
         user_id: userId,
         payment_id: payment?.id,
         event_type: activateNow ? "subscription_activated" : "preapproval_created",
-        event_description: isAuthorized
+        event_description: activateNow
           ? "Assinatura recorrente autorizada pelo emissor e ativada"
           : `Assinatura recorrente criada no gateway (status ${preapprovalStatus})`,
         metadata: { preapprovalId: mpData.id, preapprovalStatus, idempotencyKey }
@@ -691,7 +691,7 @@ serve(async (req) => {
         preapprovalId: mpData.id,
         preapprovalStatus,
         subscriptionId: subscription.id,
-        message: isAuthorized
+        message: activateNow
           ? "Assinatura autorizada e ativada com sucesso!"
           : "Pagamento em análise pelo emissor. Você será notificado assim que for confirmado — não repita a tentativa.",
       };
