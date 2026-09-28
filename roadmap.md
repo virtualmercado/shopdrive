@@ -25,3 +25,11 @@
 - [x] Cópia de produtos de templates copia variantes com novos IDs/SKUs
 - [x] Busca do painel por SKU da variante
 - [x] Matriz PASS/FAIL A–X
+
+## Prompt 11 — Fluxo comercial MARCA (MARCA segue desligado)
+- Decisão comercial: PRO/PREMIUM → MARCA "começa no vencimento" (MARCA só vale e cobra ao fim do período já pago; sem crédito/prorrata; recorrência antiga só é encerrada após pagamento MARCA confirmado)
+- [ ] Backend: prepare_marca_brand_account (server-side, lock, reutiliza, primary slot 1)
+- [ ] Backend: get-current-marca-contract (só versão publicada)
+- [ ] Backend: agendamento do upgrade pago no vencimento + encerramento seguro da recorrência antiga
+- [ ] Financeiro: card MARCA (flag), ciclo, empresa, contrato, aceite, checkout, estados
+- [ ] Testes com mocks/transações revertidas
