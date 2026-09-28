@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface CreateSubscriptionRequest {
   userId: string;
-  planId: "pro" | "premium";
+  planId: "pro" | "premium" | "marca";
   billingCycle: "monthly" | "annual";
   paymentMethod: "credit_card" | "pix" | "boleto";
   cardToken?: string;
@@ -18,6 +18,10 @@ interface CreateSubscriptionRequest {
   installments?: number;
   recurringConsent: boolean;
   origin?: string;
+  // Somente MARCA: aceite prévio via accept-plan-contract (nunca fabricado aqui).
+  brandAccountId?: string;
+  acceptanceId?: string;
+
 }
 
 interface MercadoPagoPreapproval {
@@ -155,7 +159,10 @@ serve(async (req) => {
     }
 
     // MARCA is technically recognized but not for sale until ENABLE_PLAN_MARCA is on (fail-safe: off).
-    if (String(planId).toLowerCase().trim() === "marca") {
+    const isMarca = String(planId).toLowerCase().trim() === "marca";
+    let marcaAcceptanceId: string | null = null;
+    let marcaBrandAccountId: string | null = null;
+    if (isMarca) {
       let marcaEnabled = false;
       try {
         const { data: flagOn } = await supabase.rpc("is_plan_marca_enabled");
@@ -167,6 +174,27 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      // Cadeia completa (plano ativo, empresa, responsável, aceite, versão vigente, ciclo,
+      // preço, desconto e commercial_terms_hash) validada no banco. Admin não contorna.
+      const { data: check, error: checkErr } = await supabase.rpc("validate_marca_checkout", {
+        p_user_id: authenticatedUserId,
+        p_brand_account_id: requestData.brandAccountId ?? null,
+        p_acceptance_id: requestData.acceptanceId ?? null,
+        p_billing_cycle: billingCycle,
+      });
+      if (checkErr || !check?.ok) {
+        const known = checkErr?.code === "P0001" || checkErr?.code === "42501";
+        await supabase.from("audit_logs").insert({
+          user_id: authenticatedUserId, action: "MARCA_CHECKOUT_REJECTED", entity_type: "master_subscription",
+          metadata: { billing_cycle: billingCycle, reason: known ? checkErr?.message : "internal" },
+        });
+        return new Response(
+          JSON.stringify({ error: known ? checkErr!.message : "Não foi possível validar os dados da contratação." }),
+          { status: checkErr?.code === "42501" ? 403 : 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      marcaAcceptanceId = check.acceptance_id;
+      marcaBrandAccountId = check.brand_account_id;
     }
 
     // Get plan details
@@ -280,7 +308,8 @@ serve(async (req) => {
 
       const sameIntent =
         pendingSubscription.plan_id === planId &&
-        pendingSubscription.billing_cycle === billingCycle;
+        pendingSubscription.billing_cycle === billingCycle &&
+        (!isMarca || pendingSubscription.contract_acceptance_id === marcaAcceptanceId);
 
       if (sameIntent) {
         // Todas as tentativas anteriores são terminais: reutilizamos a MESMA assinatura
@@ -382,6 +411,8 @@ serve(async (req) => {
       card_brand: cardBrand || null,
       card_last_four: cardLastFour || null,
       payment_method: paymentMethod,
+      contract_acceptance_id: isMarca ? marcaAcceptanceId : null,
+      brand_account_id: isMarca ? marcaBrandAccountId : null,
     };
 
     let subscription: any = null;
@@ -412,9 +443,16 @@ serve(async (req) => {
     }
 
     if (subscriptionError || !subscription) {
-      console.error("Subscription upsert error:", subscriptionError);
+      console.error("Subscription upsert error:", subscriptionError?.code);
+      if (isMarca && subscriptionError?.code === "23505") {
+        // Requisição concorrente (duplo clique): já existe uma contratação MARCA em andamento.
+        return new Response(
+          JSON.stringify({ error: "Já existe uma contratação em andamento. Aguarde a conclusão." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
-        JSON.stringify({ error: "Erro ao criar assinatura" }),
+        JSON.stringify({ error: isMarca ? "Não foi possível validar os dados da contratação." : "Erro ao criar assinatura" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -454,12 +492,21 @@ serve(async (req) => {
         reference_period_end: periodEnd,
         payment_method: paymentMethod,
         plan: planId,
+        ...(isMarca ? { contract_acceptance_id: marcaAcceptanceId, brand_account_id: marcaBrandAccountId } : {}),
       })
       .select("invoice_id, id")
       .single();
 
     if (invoiceError) {
       console.error("Invoice pre-creation error:", invoiceError);
+      if (isMarca) {
+        // MARCA nunca cobra sem fatura rastreável até o aceite.
+        await supabase.from("master_subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
+        return new Response(
+          JSON.stringify({ error: "Não foi possível validar os dados da contratação." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const invoiceRef = invoice?.invoice_id || subscription.id;
@@ -585,11 +632,13 @@ serve(async (req) => {
         console.error("Payment insert error:", paymentError);
       }
 
+      // MARCA: cartão autorizado não é pagamento confirmado — ativa só após cobrança aprovada (webhook).
+      const activateNow = isAuthorized && !isMarca;
       await supabase
         .from("master_subscriptions")
         .update({
-          status: isAuthorized ? "active" : "pending",
-          started_at: isAuthorized ? new Date().toISOString() : null,
+          status: activateNow ? "active" : "pending",
+          started_at: activateNow ? new Date().toISOString() : null,
           gateway_subscription_id: mpData.id?.toString(),
           gateway_customer_id: mpData.payer_id?.toString() || null,
           requires_card_update: false,
@@ -606,7 +655,7 @@ serve(async (req) => {
         await supabase.from("invoices").update({ status: "pending" }).eq("id", invoice.id);
       }
 
-      if (isAuthorized && planId && planId !== "gratis" && planId !== "free") {
+      if (activateNow && planId && planId !== "gratis" && planId !== "free") {
         const planLimits: Record<string, number | null> = { pro: 150, premium: null, marca: null };
         const max = planId in planLimits ? planLimits[planId] : 20;
         const { error: re } = await supabase.rpc(
