@@ -407,6 +407,68 @@ export type Database = {
           },
         ]
       }
+      brand_account_owned_stores: {
+        Row: {
+          brand_account_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          link_origin: string | null
+          slot: number
+          store_profile_id: string
+          store_role: string
+        }
+        Insert: {
+          brand_account_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_origin?: string | null
+          slot: number
+          store_profile_id: string
+          store_role: string
+        }
+        Update: {
+          brand_account_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_origin?: string | null
+          slot?: number
+          store_profile_id?: string
+          store_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_account_owned_stores_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_account_owned_stores_store_profile_id_fkey"
+            columns: ["store_profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_account_owned_stores_store_profile_id_fkey"
+            columns: ["store_profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_account_owned_stores_store_profile_id_fkey"
+            columns: ["store_profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_accounts: {
         Row: {
           created_at: string
@@ -6928,6 +6990,10 @@ export type Database = {
         Args: { p_reason?: string; p_store_id: string; p_trial_plan: string }
         Returns: Json
       }
+      admin_link_brand_owned_store: {
+        Args: { p_brand_account_id: string; p_store_profile_id: string }
+        Returns: string
+      }
       admin_publish_contract_version: {
         Args: { p_set_current?: boolean; p_version_id: string }
         Returns: string
@@ -6947,6 +7013,10 @@ export type Database = {
       admin_unassign_brand_template: {
         Args: { p_template_id: string }
         Returns: undefined
+      }
+      admin_unlink_brand_owned_store: {
+        Args: { p_brand_account_id: string; p_store_profile_id: string }
+        Returns: boolean
       }
       admin_update_contract_draft: {
         Args: {
@@ -7108,6 +7178,22 @@ export type Database = {
         }[]
       }
       get_base_store_plan: { Args: { p_store_id: string }; Returns: string }
+      get_brand_inherited_plan: {
+        Args: { p_store_id: string }
+        Returns: string
+      }
+      get_brand_owned_stores: {
+        Args: { p_brand_account_id: string }
+        Returns: {
+          created_at: string
+          link_origin: string
+          slot: number
+          store_name: string
+          store_profile_id: string
+          store_role: string
+          store_slug: string
+        }[]
+      }
       get_effective_store_plan: { Args: { p_store_id: string }; Returns: Json }
       get_master_gateway_public_config: {
         Args: never
@@ -7139,6 +7225,7 @@ export type Database = {
         Args: { p_store_id: string }
         Returns: number
       }
+      get_store_plan_context: { Args: { p_store_id: string }; Returns: Json }
       get_template_by_slug: {
         Args: { p_slug: string }
         Returns: {
@@ -7202,6 +7289,10 @@ export type Database = {
       }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       plan_rank: { Args: { _plan: string }; Returns: number }
+      propagate_brand_plan_to_secondaries: {
+        Args: { p_owner_id: string }
+        Returns: number
+      }
       propagate_content_banner_from_template: {
         Args: { p_user_id: string }
         Returns: Json
