@@ -38,7 +38,7 @@ export const NetworkChart = ({ series, bucket, loading }: Props) => {
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
                   <Bar yAxisId="left" dataKey="clicks" name="Cliques" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={24} />
                   <Bar yAxisId="left" dataKey="activations" name="Lojas criadas" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                  <Line yAxisId="right" type="monotone" dataKey="conversionPercent" name="Conversão" stroke="hsl(var(--foreground))" strokeWidth={2} dot={{ r: 2 }} />
+                  <Line yAxisId="right" type="linear" dataKey="conversionPercent" name="Conversão" stroke="hsl(var(--foreground))" strokeWidth={2} dot={{ r: 2 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
