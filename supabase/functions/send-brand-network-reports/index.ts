@@ -17,8 +17,16 @@ export function previousMonthStartUtc(now = new Date()): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const summary = { eligible: 0, generated: 0, queued: 0, sent: 0, failed: 0, skipped: 0, existing: 0, errors: 0 };
+
+  // Disparo exclusivamente interno (scheduler). Fail closed: sem token válido, nada roda.
+  const token = req.headers.get("x-internal-job-token") ?? "";
+  if (!/^[0-9a-f]{64}$/.test(token)) return json({ error: "unauthorized" }, 401);
+  const { data: ok, error: authErr } = await db.rpc("verify_internal_job_token",
+    { p_job: "send-brand-network-reports", p_token: token });
+  if (authErr || ok !== true) return json({ error: "unauthorized" }, 401);
 
   try {
     const { data: flag } = await db.rpc("is_plan_marca_enabled");
@@ -38,21 +46,16 @@ Deno.serve(async (req) => {
         if (error) throw error;
         if (g?.outcome === "skipped") { summary.skipped++; continue; }
         if (g?.outcome === "flag_off") break;
-        if (g?.outcome === "existing") summary.existing++; else { summary.generated++; summary.eligible++; }
+        if (g?.outcome === "existing") summary.existing++; else summary.generated++;
+        summary.eligible++;
 
         const { data: run } = await db.from("brand_network_report_runs").select("*").eq("id", g.runId).single();
-        if (!run || !["generated", "failed"].includes(run.status)) continue;          // sent/queued: nunca reenviar
-        if (run.status === "failed" && run.send_attempts >= MAX_SEND_ATTEMPTS) continue; // retry limitado
-
+        if (!run || !["generated", "failed"].includes(run.status)) continue;          // sent/queued/sending/unknown: nunca reenviar
         const html = renderBrandNetworkReportHtml(run.brand_display_name_snapshot, run.metrics_snapshot, run.templates_snapshot);
-        const { data: q, error: qErr } = await db.from("email_queue").insert({
-          tenant_id: null, template: "brand_network_monthly_report", template_name: "brand_network_monthly_report",
-          to_email: run.recipient_email_snapshot, subject: run.subject_snapshot, html,
-          payload: { brand_network_report_run_id: run.id }, status: "pending", scheduled_at: new Date().toISOString(),
-        }).select("id").single();
+        const { data: q, error: qErr } = await db.rpc("enqueue_brand_network_report",
+          { p_run_id: run.id, p_html: html, p_max_attempts: MAX_SEND_ATTEMPTS });
         if (qErr) throw qErr;
-        const { error: mErr } = await db.rpc("mark_brand_network_report_queued", { p_run_id: run.id, p_email_queue_id: q.id });
-        if (mErr) throw mErr;
+        if (q?.outcome !== "queued") continue;
         summary.queued++;
       } catch (e) {
         summary.errors++;
