@@ -47,6 +47,8 @@ interface UseMerchantPlanReturn {
   canAddProduct: boolean;
   canAddCustomer: boolean;
   refetch: () => Promise<void>;
+  planSource: string | null;
+  ownedStoreRole: string | null;
 }
 
 interface ProductPlanUsageResponse {
@@ -129,5 +131,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
     canAddProduct: (loading || authLoading) ? true : isWithinLimit(productCount, limits.maxProducts),
     canAddCustomer: isWithinLimit(customerCount, limits.maxCustomers),
     refetch: fetchPlanAndCounts,
+    planSource: templateMode ? null : planSource,
+    ownedStoreRole: templateMode ? null : ownedStoreRole,
   };
 };

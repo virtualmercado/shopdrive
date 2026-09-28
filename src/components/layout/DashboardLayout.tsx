@@ -23,8 +23,10 @@ import {
   Globe,
   Save,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Network,
 } from "lucide-react";
+import { useMinhaRedeMenuVisible } from "@/hooks/useBrandNetwork";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -324,6 +326,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   };
 
+  const showMinhaRede = useMinhaRedeMenuVisible();
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/lojista" },
     { icon: Package, label: "Produtos", path: "/lojista/products" },
@@ -335,6 +338,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
     { icon: Megaphone, label: "Marketing", path: "/lojista/marketing" },
+    ...(showMinhaRede ? [{ icon: Network, label: "Minha Rede", path: "/lojista/minha-rede" }] : []),
     { icon: MessageCircle, label: "Mensagens", path: "/lojista/messages" },
     { icon: Wallet, label: "Financeiro", path: "/lojista/financeiro" },
     { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/lojista/support" },
