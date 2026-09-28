@@ -148,6 +148,13 @@
       "when": 1790624468229,
       "tag": "0020_plan_marca_report_send_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790625696196,
+      "tag": "0021_legacy_brand_reports_internal_auth",
+      "breakpoints": true
     }
   ]
 }

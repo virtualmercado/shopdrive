@@ -89,33 +89,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // --- JWT Authentication ---
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // --- Autorização interna (Prompt 10.2): mesmo padrão do relatório MARCA. ---
+    // JWT de usuário (inclusive admin) NÃO autoriza. Fail closed.
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const authClient = createClient(SUPABASE_URL, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const jobToken = req.headers.get("x-internal-job-token") ?? "";
+    let authorized = false;
+    if (/^[0-9a-f]{64}$/.test(jobToken)) {
+      const { data: ok, error: authErr } = await supabase.rpc("verify_internal_job_token",
+        { p_job: "send-brand-reports", p_token: jobToken });
+      authorized = !authErr && ok === true;
+    }
+    if (!authorized) {
+      console.warn("send-brand-reports: internal authorization failed");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     // --- End Auth ---
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     let targetTemplateId: string | null = null;
     let reportType: string = "monthly";
