@@ -354,7 +354,7 @@ export default function CMSPlansModal({ isOpen, onClose, content, onSave }: CMSP
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
           <div className="px-6">
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className="flex w-full justify-start overflow-x-auto sm:grid sm:grid-cols-5">
               <TabsTrigger value="general">Geral</TabsTrigger>
               <TabsTrigger value="gratis">Plano Grátis</TabsTrigger>
               <TabsTrigger value="pro">Plano PRO</TabsTrigger>
