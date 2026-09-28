@@ -154,6 +154,21 @@ serve(async (req) => {
       );
     }
 
+    // MARCA is technically recognized but not for sale until ENABLE_PLAN_MARCA is on (fail-safe: off).
+    if (String(planId).toLowerCase().trim() === "marca") {
+      let marcaEnabled = false;
+      try {
+        const { data: flagOn } = await supabase.rpc("is_plan_marca_enabled");
+        marcaEnabled = flagOn === true;
+      } catch { marcaEnabled = false; }
+      if (!marcaEnabled) {
+        return new Response(
+          JSON.stringify({ error: "Este plano ainda não está disponível para contratação." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Get plan details
     const { data: plan, error: planError } = await supabase
       .from("master_plans")
