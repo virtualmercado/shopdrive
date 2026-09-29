@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.send-brand-network-reports]
 verify_jwt = false
+
+[functions.mp-test-harness]
+verify_jwt = false
