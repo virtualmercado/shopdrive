@@ -129,9 +129,14 @@ Deno.serve(async (req) => {
     const ctJ: any = await ct.json().catch(() => ({}));
     if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, card: cardKey, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
     const ref = `${TAG}${crypto.randomUUID()}`;
+    const autoRecurring: Record<string, unknown> = { frequency: 1, frequency_type: "months", transaction_amount: 5.0, currency_id: "BRL" };
+    const startDays = Number(body?.start_date_days ?? 0);
+    if (Number.isInteger(startDays) && startDays >= 1 && startDays <= 30) {
+      autoRecurring.start_date = new Date(Date.now() + startDays * 86400000).toISOString();
+    }
     const payload = {
       reason: `${TAG}Assinatura PRO ficticia`, external_reference: ref, payer_email: buyer, card_token_id: ctJ.id,
-      auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: 5.0, currency_id: "BRL" },
+      auto_recurring: autoRecurring,
       back_url: "https://shopdrive.com.br/dashboard/financeiro", status: "authorized",
     };
     const c = await fetch("https://api.mercadopago.com/preapproval", { method: "POST", headers: { ...h, "X-Idempotency-Key": ref }, body: JSON.stringify(payload) });
@@ -161,6 +166,42 @@ Deno.serve(async (req) => {
       fields_returned: Object.keys(u ?? {}),
       error: r.ok ? null : (u?.message ?? null),
     });
+  }
+  // ---------- Homologation mutations: only on harness-created resources ----------
+  if (phase === "preapproval_update" || phase === "preapproval_invoices") {
+    const id = String(body?.id ?? "");
+    const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const g = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, { headers: { Authorization: h.Authorization } });
+    const gJ: any = await g.json().catch(() => ({}));
+    if (!String(gJ?.external_reference ?? "").startsWith(TAG)) return json({ stopped: true, reason: "not_harness_resource", http: g.status });
+    const before = { status: gJ?.status ?? null, next_payment_date: gJ?.next_payment_date ?? null, auto_recurring: gJ?.auto_recurring ?? null, summarized: gJ?.summarized ?? null };
+    if (phase === "preapproval_invoices") {
+      const r = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}/invoices`, { headers: h });
+      const j: any = await r.json().catch(() => ({}));
+      const results: any[] = Array.isArray(j?.results) ? j.results : [];
+      return json({
+        http: r.status, total: j?.paging?.total ?? null,
+        invoices: results.map((iv) => ({ id: iv?.id, status: iv?.status, type: iv?.type, date_created: iv?.date_created,
+          next_payment_date: iv?.next_payment_date, debit_date: iv?.debit_date, scheduled_date: iv?.scheduled_date,
+          transaction_amount: iv?.transaction_amount, currency_id: iv?.currency_id, payment: iv?.payment ? { id: iv.payment.id, status: iv.payment.status } : null })),
+        before,
+      });
+    }
+    const action = String(body?.action ?? "");
+    const statusBodies: Record<string, unknown> = { pause: { status: "paused" }, reactivate: { status: "authorized" }, cancel: { status: "cancelled" } };
+    let putBody: unknown;
+    if (action in statusBodies) putBody = statusBodies[action];
+    else if (action === "change_amount") {
+      const a: any = { ...(gJ?.auto_recurring ?? {}) };
+      a.transaction_amount = Number(body?.amount ?? 7);
+      delete a.start_date;
+      putBody = { auto_recurring: a };
+    } else return json({ error: "invalid_action" }, 400);
+    const r = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, { method: "PUT", headers: h, body: JSON.stringify(putBody) });
+    const j: any = await r.json().catch(() => ({}));
+    if (!r.ok) return json({ http: r.status, ok: false, action, error: j?.message ?? null, cause: j?.cause ?? j?.error ?? null, before });
+    const after = { status: j?.status ?? null, next_payment_date: j?.next_payment_date ?? null, auto_recurring: j?.auto_recurring ?? null, summarized: j?.summarized ?? null, last_modified: j?.last_modified ?? null };
+    return json({ http: r.status, ok: true, action, before, after });
   }
   return json({ error: "unknown_phase" }, 400);
 });
