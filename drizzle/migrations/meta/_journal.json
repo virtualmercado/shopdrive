@@ -169,6 +169,13 @@
       "when": 1790648430867,
       "tag": "0023_plan_marca_scheduled_upgrade_pix_annual",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790648454350,
+      "tag": "0024_plan_marca_scheduled_upgrade_paid_status",
+      "breakpoints": true
     }
   ]
 }
