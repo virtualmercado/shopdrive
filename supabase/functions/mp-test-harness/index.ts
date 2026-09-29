@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
         cardholder: { name: "APRO", identification: { type: "CPF", number: "12345678909" } } }),
     });
     const ctJ: any = await ct.json().catch(() => ({}));
-    if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
+    if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, card: cardKey, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
     const ref = `${TAG}${crypto.randomUUID()}`;
     const payload = {
       reason: `${TAG}Assinatura PRO ficticia`, external_reference: ref, payer_email: buyer, card_token_id: ctJ.id,
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     };
     const c = await fetch("https://api.mercadopago.com/preapproval", { method: "POST", headers: { ...h, "X-Idempotency-Key": ref }, body: JSON.stringify(payload) });
     const cJ: any = await c.json().catch(() => ({}));
-    if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
+    if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, card: cardKey, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
     const r = await fetch(`https://api.mercadopago.com/preapproval/${cJ.id}`, { headers: h });
     const rJ: any = await r.json().catch(() => ({}));
     return json({ step: "create+read", buyer_guards: buyerGuards, create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
