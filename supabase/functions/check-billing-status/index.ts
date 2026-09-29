@@ -124,7 +124,18 @@ serve(async (req) => {
       .neq("no_charge", true);
     for (const sub of pastDueNoGrace || []) {
       if (!sub.current_period_end) {
-        console.error("PAST_DUE_WITHOUT_PAID_UNTIL", { subscriptionId: sub.id });
+        // Sem data confiável: não inventa vencimento; o resolver já não concede plano pago. Revisão manual (1 alerta por assinatura).
+        console.error("PAUSED_WITHOUT_RELIABLE_PERIOD_END", { subscriptionId: sub.id });
+        const { count } = await supabase.from("master_subscription_logs").select("id", { count: "exact", head: true })
+          .eq("subscription_id", sub.id).eq("event_type", "PAUSED_WITHOUT_RELIABLE_PERIOD_END");
+        if (!count) {
+          await supabase.from("master_subscription_logs").insert({
+            subscription_id: sub.id, user_id: sub.user_id, event_type: "PAUSED_WITHOUT_RELIABLE_PERIOD_END",
+            event_description: "Revisão manual: assinatura pausada/inadimplente sem data financeira confiável; sem direito a plano pago.",
+            metadata: { manual_review: true, store_id: sub.user_id, subscription_id: sub.id, reason: "PAUSED_WITHOUT_RELIABLE_PERIOD_END" },
+          });
+        }
+        results.push({ subscriptionId: sub.id, action: "manual_review", reason: "PAUSED_WITHOUT_RELIABLE_PERIOD_END" });
         continue;
       }
       const graceDays = sub.billing_cycle === "annual" ? GRACE_PERIOD_DAYS_ANNUAL : GRACE_PERIOD_DAYS_MONTHLY;
