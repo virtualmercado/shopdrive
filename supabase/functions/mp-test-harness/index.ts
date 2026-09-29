@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, card: cardKey, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
     const r = await fetch(`https://api.mercadopago.com/preapproval/${cJ.id}`, { headers: h });
     const rJ: any = await r.json().catch(() => ({}));
-    return json({ step: "create+read", buyer_guards: buyerGuards, create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
+    return json({ step: "create+read", card: cardKey, buyer_guards: buyerGuards, create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
   }
   // ---------- Read-only: resolve buyer test user identity ----------
   if (phase === "buyer_lookup") {
