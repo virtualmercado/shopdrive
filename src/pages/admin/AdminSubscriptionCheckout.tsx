@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { MarcaUpgradeCheckout } from "@/components/financeiro/MarcaUpgradeCheckout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1536,4 +1537,12 @@ const AdminSubscriptionCheckout = () => {
   );
 };
 
-export default AdminSubscriptionCheckout;
+// MARCA nunca é opção livre desta página: qualquer link com plano=marca vai para a
+// página contextual da troca agendada, que só mostra pagamento quando o servidor confirma.
+const SubscriptionCheckoutRouter = () => {
+  const [searchParams] = useSearchParams();
+  if ((searchParams.get("plano") || "").toLowerCase() === "marca") return <MarcaUpgradeCheckout />;
+  return <AdminSubscriptionCheckout />;
+};
+
+export default SubscriptionCheckoutRouter;
