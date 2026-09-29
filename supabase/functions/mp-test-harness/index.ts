@@ -85,6 +85,17 @@ Deno.serve(async (req) => {
     const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     const me: any = await (await fetch("https://api.mercadopago.com/users/me", { headers: h })).json().catch(() => ({}));
     if (!(Array.isArray(me?.tags) && me.tags.includes("test_user"))) return json({ stopped: true, reason: "not_test_user" });
+    // Buyer account guards (server-side only, values never returned)
+    const sellerEmail = typeof me?.email === "string" ? me.email.toLowerCase() : "";
+    const buyerEmail = buyer.toLowerCase();
+    const buyerLooksTestAccount = /@testuser\.com$/.test(buyerEmail);
+    const buyerDistinctFromSeller = buyerEmail.length > 0 && buyerEmail !== sellerEmail;
+    if (!buyerDistinctFromSeller) return json({ stopped: true, reason: "buyer_email_same_as_seller" });
+    const buyerGuards = {
+      distinct_from_seller: buyerDistinctFromSeller,
+      mp_managed_test_domain: buyerLooksTestAccount,
+      buyer_email_domain: buyerEmail.split("@")[1] ?? null,
+    };
     const sanitize = (p: any) => ({
       id: p?.id, status: p?.status, reason: p?.reason, external_reference: p?.external_reference,
       payer_id_present: !!p?.payer_id, date_created: p?.date_created, last_modified: p?.last_modified,
@@ -100,26 +111,40 @@ Deno.serve(async (req) => {
       if (!String(j?.external_reference ?? "").startsWith(TAG)) return json({ stopped: true, reason: "not_harness_resource", http: r.status });
       return json({ http: r.status, preapproval: sanitize(j) });
     }
+    // Official MP test cards (docs vigentes) — allowlist only
+    const TEST_CARDS: Record<string, string> = {
+      visa: "4509953566233704",
+      mastercard: "5031433215406351",
+      amex: "371180960111016",
+    };
+    const cardKey = String(body?.card ?? "visa").toLowerCase();
+    const cardNumber = TEST_CARDS[cardKey];
+    if (!cardNumber) return json({ stopped: true, reason: "card_not_allowed" });
     // card token with official MP test card (APRO)
     const ct = await fetch(`https://api.mercadopago.com/v1/card_tokens?public_key=${encodeURIComponent(pub)}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ card_number: "5031433215406351", security_code: "123", expiration_month: 11, expiration_year: 2030,
+      body: JSON.stringify({ card_number: cardNumber, security_code: cardKey === "amex" ? "1234" : "123", expiration_month: 11, expiration_year: 2030,
         cardholder: { name: "APRO", identification: { type: "CPF", number: "12345678909" } } }),
     });
     const ctJ: any = await ct.json().catch(() => ({}));
-    if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
+    if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, card: cardKey, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
     const ref = `${TAG}${crypto.randomUUID()}`;
+    const autoRecurring: Record<string, unknown> = { frequency: 1, frequency_type: "months", transaction_amount: 5.0, currency_id: "BRL" };
+    const startDays = Number(body?.start_date_days ?? 0);
+    if (Number.isInteger(startDays) && startDays >= 1 && startDays <= 30) {
+      autoRecurring.start_date = new Date(Date.now() + startDays * 86400000).toISOString();
+    }
     const payload = {
       reason: `${TAG}Assinatura PRO ficticia`, external_reference: ref, payer_email: buyer, card_token_id: ctJ.id,
-      auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: 5.0, currency_id: "BRL" },
+      auto_recurring: autoRecurring,
       back_url: "https://shopdrive.com.br/dashboard/financeiro", status: "authorized",
     };
     const c = await fetch("https://api.mercadopago.com/preapproval", { method: "POST", headers: { ...h, "X-Idempotency-Key": ref }, body: JSON.stringify(payload) });
     const cJ: any = await c.json().catch(() => ({}));
-    if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
+    if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, card: cardKey, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
     const r = await fetch(`https://api.mercadopago.com/preapproval/${cJ.id}`, { headers: h });
     const rJ: any = await r.json().catch(() => ({}));
-    return json({ step: "create+read", create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
+    return json({ step: "create+read", card: cardKey, buyer_guards: buyerGuards, create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
   }
   // ---------- Read-only: resolve buyer test user identity ----------
   if (phase === "buyer_lookup") {
@@ -141,6 +166,42 @@ Deno.serve(async (req) => {
       fields_returned: Object.keys(u ?? {}),
       error: r.ok ? null : (u?.message ?? null),
     });
+  }
+  // ---------- Homologation mutations: only on harness-created resources ----------
+  if (phase === "preapproval_update" || phase === "preapproval_invoices") {
+    const id = String(body?.id ?? "");
+    const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const g = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, { headers: { Authorization: h.Authorization } });
+    const gJ: any = await g.json().catch(() => ({}));
+    if (!String(gJ?.external_reference ?? "").startsWith(TAG)) return json({ stopped: true, reason: "not_harness_resource", http: g.status });
+    const before = { status: gJ?.status ?? null, next_payment_date: gJ?.next_payment_date ?? null, auto_recurring: gJ?.auto_recurring ?? null, summarized: gJ?.summarized ?? null };
+    if (phase === "preapproval_invoices") {
+      const r = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}/invoices`, { headers: h });
+      const j: any = await r.json().catch(() => ({}));
+      const results: any[] = Array.isArray(j?.results) ? j.results : [];
+      return json({
+        http: r.status, total: j?.paging?.total ?? null,
+        invoices: results.map((iv) => ({ id: iv?.id, status: iv?.status, type: iv?.type, date_created: iv?.date_created,
+          next_payment_date: iv?.next_payment_date, debit_date: iv?.debit_date, scheduled_date: iv?.scheduled_date,
+          transaction_amount: iv?.transaction_amount, currency_id: iv?.currency_id, payment: iv?.payment ? { id: iv.payment.id, status: iv.payment.status } : null })),
+        before,
+      });
+    }
+    const action = String(body?.action ?? "");
+    const statusBodies: Record<string, unknown> = { pause: { status: "paused" }, reactivate: { status: "authorized" }, cancel: { status: "cancelled" } };
+    let putBody: unknown;
+    if (action in statusBodies) putBody = statusBodies[action];
+    else if (action === "change_amount") {
+      const a: any = { ...(gJ?.auto_recurring ?? {}) };
+      a.transaction_amount = Number(body?.amount ?? 7);
+      delete a.start_date;
+      putBody = { auto_recurring: a };
+    } else return json({ error: "invalid_action" }, 400);
+    const r = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, { method: "PUT", headers: h, body: JSON.stringify(putBody) });
+    const j: any = await r.json().catch(() => ({}));
+    if (!r.ok) return json({ http: r.status, ok: false, action, error: j?.message ?? null, cause: j?.cause ?? j?.error ?? null, before });
+    const after = { status: j?.status ?? null, next_payment_date: j?.next_payment_date ?? null, auto_recurring: j?.auto_recurring ?? null, summarized: j?.summarized ?? null, last_modified: j?.last_modified ?? null };
+    return json({ http: r.status, ok: true, action, before, after });
   }
   return json({ error: "unknown_phase" }, 400);
 });
