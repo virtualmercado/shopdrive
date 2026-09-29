@@ -121,5 +121,26 @@ Deno.serve(async (req) => {
     const rJ: any = await r.json().catch(() => ({}));
     return json({ step: "create+read", create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
   }
+  // ---------- Read-only: resolve buyer test user identity ----------
+  if (phase === "buyer_lookup") {
+    const id = String(body?.user_id ?? "");
+    if (!/^\d{5,15}$/.test(id)) return json({ error: "invalid_user_id" }, 400);
+    const h = { Authorization: `Bearer ${token}` };
+    const me: any = await (await fetch("https://api.mercadopago.com/users/me", { headers: h })).json().catch(() => ({}));
+    const r = await fetch(`https://api.mercadopago.com/users/${id}`, { headers: h });
+    const u: any = await r.json().catch(() => ({}));
+    const tags: string[] = Array.isArray(u?.tags) ? u.tags : [];
+    const email = typeof u?.email === "string" ? u.email : null;
+    return json({
+      http: r.status,
+      seller_id: me?.id ?? null, seller_is_test_user: Array.isArray(me?.tags) && me.tags.includes("test_user"),
+      buyer_id: u?.id ?? null, distinct_accounts: !!u?.id && String(u.id) !== String(me?.id),
+      buyer_is_test_user: tags.includes("test_user"), buyer_site_id: u?.site_id ?? null,
+      buyer_country_id: u?.country_id ?? null, buyer_nickname: u?.nickname ?? null,
+      email_returned: !!email, email_domain: email ? email.split("@")[1] : null,
+      fields_returned: Object.keys(u ?? {}),
+      error: r.ok ? null : (u?.message ?? null),
+    });
+  }
   return json({ error: "unknown_phase" }, 400);
 });
