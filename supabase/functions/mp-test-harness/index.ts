@@ -85,6 +85,17 @@ Deno.serve(async (req) => {
     const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     const me: any = await (await fetch("https://api.mercadopago.com/users/me", { headers: h })).json().catch(() => ({}));
     if (!(Array.isArray(me?.tags) && me.tags.includes("test_user"))) return json({ stopped: true, reason: "not_test_user" });
+    // Buyer account guards (server-side only, values never returned)
+    const sellerEmail = typeof me?.email === "string" ? me.email.toLowerCase() : "";
+    const buyerEmail = buyer.toLowerCase();
+    const buyerLooksTestAccount = /@testuser\.com$/.test(buyerEmail);
+    const buyerDistinctFromSeller = buyerEmail.length > 0 && buyerEmail !== sellerEmail;
+    if (!buyerDistinctFromSeller) return json({ stopped: true, reason: "buyer_email_same_as_seller" });
+    const buyerGuards = {
+      distinct_from_seller: buyerDistinctFromSeller,
+      mp_managed_test_domain: buyerLooksTestAccount,
+      buyer_email_domain: buyerEmail.split("@")[1] ?? null,
+    };
     const sanitize = (p: any) => ({
       id: p?.id, status: p?.status, reason: p?.reason, external_reference: p?.external_reference,
       payer_id_present: !!p?.payer_id, date_created: p?.date_created, last_modified: p?.last_modified,
@@ -119,7 +130,7 @@ Deno.serve(async (req) => {
     if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
     const r = await fetch(`https://api.mercadopago.com/preapproval/${cJ.id}`, { headers: h });
     const rJ: any = await r.json().catch(() => ({}));
-    return json({ step: "create+read", create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
+    return json({ step: "create+read", buyer_guards: buyerGuards, create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
   }
   // ---------- Read-only: resolve buyer test user identity ----------
   if (phase === "buyer_lookup") {
