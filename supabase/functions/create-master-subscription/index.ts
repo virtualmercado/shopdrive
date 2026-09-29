@@ -193,6 +193,35 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      // Troca agendada PRO/PREMIUM → MARCA: resolvida só pelo servidor, a partir do login.
+      const { data: up, error: upErr } = await supabase.rpc("claim_marca_upgrade_checkout", { p_user_id: authenticatedUserId });
+      if (upErr) {
+        return new Response(JSON.stringify({ error: "Não foi possível validar os dados da contratação." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const upStatus = up?.status ?? "none";
+      if (upStatus === "scheduled") {
+        const d = new Date(up.effective_at).toLocaleDateString("pt-BR", { timeZone: "America/Manaus" });
+        return new Response(JSON.stringify({ error: `Sua troca para o Plano MARCA está agendada para ${d}. O pagamento fica disponível nessa data.` }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (upStatus === "expired") {
+        return new Response(JSON.stringify({ error: "O prazo para pagar a troca agendada terminou. Faça uma nova contratação." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (upStatus === "awaiting_payment") {
+        if (paymentMethod !== "pix") {
+          return new Response(JSON.stringify({ error: "O pagamento da troca agendada está disponível apenas por PIX." }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (billingCycle !== up.billing_cycle) {
+          return new Response(JSON.stringify({ error: "O ciclo escolhido não corresponde à troca agendada." }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        marcaUpgrade = up;
+        marcaAcceptanceId = up.acceptance_id;
+        marcaBrandAccountId = up.brand_account_id;
+      } else {
       // Cadeia completa (plano ativo, empresa, responsável, aceite, versão vigente, ciclo,
       // preço, desconto e commercial_terms_hash) validada no banco. Admin não contorna.
       const { data: check, error: checkErr } = await supabase.rpc("validate_marca_checkout", {
@@ -214,6 +243,7 @@ serve(async (req) => {
       }
       marcaAcceptanceId = check.acceptance_id;
       marcaBrandAccountId = check.brand_account_id;
+      }
     }
 
     // Get plan details
