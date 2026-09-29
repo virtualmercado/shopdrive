@@ -80,5 +80,46 @@ Deno.serve(async (req) => {
       },
     });
   }
+  // ---------- Phase 2: create ONE test preapproval + read it back ----------
+  if (phase === "phase2_create" || phase === "phase2_read") {
+    const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const me: any = await (await fetch("https://api.mercadopago.com/users/me", { headers: h })).json().catch(() => ({}));
+    if (!(Array.isArray(me?.tags) && me.tags.includes("test_user"))) return json({ stopped: true, reason: "not_test_user" });
+    const sanitize = (p: any) => ({
+      id: p?.id, status: p?.status, reason: p?.reason, external_reference: p?.external_reference,
+      payer_id_present: !!p?.payer_id, date_created: p?.date_created, last_modified: p?.last_modified,
+      next_payment_date: p?.next_payment_date, payment_method_id: p?.payment_method_id,
+      card_id_present: !!p?.card_id, first_invoice_offset: p?.first_invoice_offset ?? null,
+      auto_recurring: p?.auto_recurring, summarized: p?.summarized, application_id_present: !!p?.application_id,
+      init_point_present: !!p?.init_point,
+    });
+    if (phase === "phase2_read") {
+      const id = String(body?.id ?? "");
+      const r = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, { headers: h });
+      const j: any = await r.json().catch(() => ({}));
+      if (!String(j?.external_reference ?? "").startsWith(TAG)) return json({ stopped: true, reason: "not_harness_resource", http: r.status });
+      return json({ http: r.status, preapproval: sanitize(j) });
+    }
+    // card token with official MP test card (APRO)
+    const ct = await fetch(`https://api.mercadopago.com/v1/card_tokens?public_key=${encodeURIComponent(pub)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_number: "5031433215406351", security_code: "123", expiration_month: 11, expiration_year: 2030,
+        cardholder: { name: "APRO", identification: { type: "CPF", number: "12345678909" } } }),
+    });
+    const ctJ: any = await ct.json().catch(() => ({}));
+    if (!ct.ok || !ctJ?.id) return json({ step: "card_token", http: ct.status, ok: false, error: ctJ?.message ?? null, cause: ctJ?.cause ?? null });
+    const ref = `${TAG}${crypto.randomUUID()}`;
+    const payload = {
+      reason: `${TAG}Assinatura PRO ficticia`, external_reference: ref, payer_email: buyer, card_token_id: ctJ.id,
+      auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: 5.0, currency_id: "BRL" },
+      back_url: "https://shopdrive.com.br/dashboard/financeiro", status: "authorized",
+    };
+    const c = await fetch("https://api.mercadopago.com/preapproval", { method: "POST", headers: { ...h, "X-Idempotency-Key": ref }, body: JSON.stringify(payload) });
+    const cJ: any = await c.json().catch(() => ({}));
+    if (!c.ok || !cJ?.id) return json({ step: "create", http: c.status, ok: false, external_reference: ref, error: cJ?.message ?? null, cause: cJ?.cause ?? null, status: cJ?.status ?? null });
+    const r = await fetch(`https://api.mercadopago.com/preapproval/${cJ.id}`, { headers: h });
+    const rJ: any = await r.json().catch(() => ({}));
+    return json({ step: "create+read", create_http: c.status, created: sanitize(cJ), read_http: r.status, read: sanitize(rJ) });
+  }
   return json({ error: "unknown_phase" }, 400);
 });
