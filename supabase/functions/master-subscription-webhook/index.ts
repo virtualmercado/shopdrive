@@ -227,14 +227,22 @@ serve(async (req) => {
 
       if (sub) {
         const update: any = { updated_at: new Date().toISOString() };
+        if (preapproval.next_payment_date) {
+          update.current_period_end = new Date(preapproval.next_payment_date).toISOString();
+        }
         if (preapproval.status === "cancelled") {
           update.status = "cancelled";
           update.cancelled_at = new Date().toISOString();
         } else if (preapproval.status === "paused") {
           update.status = "past_due";
-        }
-        if (preapproval.next_payment_date) {
-          update.current_period_end = new Date(preapproval.next_payment_date).toISOString();
+          // Pausa não concede plano para sempre: tolerância canônica a partir do fim do período pago.
+          const paidUntil = update.current_period_end || sub.current_period_end;
+          if (!sub.grace_period_ends_at && paidUntil) {
+            const graceDays = sub.billing_cycle === "annual" ? 14 : 7;
+            update.grace_period_ends_at = new Date(new Date(paidUntil).getTime() + graceDays * 86400000).toISOString();
+          } else if (!paidUntil) {
+            console.error("PAUSED_WITHOUT_PAID_UNTIL", { subscriptionId: sub.id });
+          }
         }
         await supabase.from("master_subscriptions").update(update).eq("id", sub.id);
 
