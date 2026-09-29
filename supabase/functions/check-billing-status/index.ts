@@ -114,6 +114,31 @@ serve(async (req) => {
       });
     }
 
+    // PHASE 1b: past_due sem tolerância (ex.: pausada no gateway) — nunca plano pago para sempre.
+    // Usa o fim do período pago já gravado; sem data confiável, só alerta (não inventa data).
+    const { data: pastDueNoGrace } = await supabase
+      .from("master_subscriptions")
+      .select("id, user_id, billing_cycle, current_period_end")
+      .eq("status", "past_due")
+      .is("grace_period_ends_at", null)
+      .neq("no_charge", true);
+    for (const sub of pastDueNoGrace || []) {
+      if (!sub.current_period_end) {
+        console.error("PAST_DUE_WITHOUT_PAID_UNTIL", { subscriptionId: sub.id });
+        continue;
+      }
+      const graceDays = sub.billing_cycle === "annual" ? GRACE_PERIOD_DAYS_ANNUAL : GRACE_PERIOD_DAYS_MONTHLY;
+      const graceEnd = new Date(new Date(sub.current_period_end).getTime() + graceDays * 86400000).toISOString();
+      await supabase.from("master_subscriptions").update({ grace_period_ends_at: graceEnd, updated_at: now.toISOString() }).eq("id", sub.id);
+      results.push({ subscriptionId: sub.id, action: "grace_set_for_past_due", gracePeriodEnd: graceEnd });
+    }
+
+    // Transições MARCA agendadas (PIX/anual): vencimento e expiração.
+    const { data: marcaProc } = await supabase.rpc("process_marca_scheduled_upgrades" as any);
+    if (marcaProc) results.push({ action: "marca_scheduled_upgrades", ...marcaProc });
+
+
+
     // ─────────────────────────────────────────────────────
     // PHASE 2: Check past_due subscriptions whose grace period has expired
     // These need to be downgraded to FREE
