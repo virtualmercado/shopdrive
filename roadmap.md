@@ -43,5 +43,6 @@
 - [x] Fase A auditoria (/mnt/documents/Relatorio_Prompt11_3_FaseA.md)
 - [x] PIX mensal e anual: agendamento, vencimento, expiração, ativação só com pagamento pago (testado, desfeito)
 - [x] "Pausado" deixa de dar plano pago para sempre (tolerância 7/14 dias)
-- [ ] Ligar o checkout MARCA ao agendamento (create-master-subscription chama activate_marca_scheduled_upgrade)
+- [x] Checkout MARCA ligado à troca agendada (servidor + proteção única no banco; testado, desfeito)
+- [ ] Página de pagamento (/gestor/checkout-assinatura) ainda não oferece o plano MARCA
 - [ ] Cartão recorrente → MARCA (bloqueado: data confiável + assinatura real inadimplente)

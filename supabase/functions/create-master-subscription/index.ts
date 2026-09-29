@@ -180,6 +180,7 @@ serve(async (req) => {
     const isMarca = String(planId).toLowerCase().trim() === "marca";
     let marcaAcceptanceId: string | null = null;
     let marcaBrandAccountId: string | null = null;
+    let marcaUpgrade: any = null;
     if (isMarca) {
       let marcaEnabled = false;
       try {
@@ -192,6 +193,35 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      // Troca agendada PRO/PREMIUM → MARCA: resolvida só pelo servidor, a partir do login.
+      const { data: up, error: upErr } = await supabase.rpc("claim_marca_upgrade_checkout", { p_user_id: authenticatedUserId });
+      if (upErr) {
+        return new Response(JSON.stringify({ error: "Não foi possível validar os dados da contratação." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const upStatus = up?.status ?? "none";
+      if (upStatus === "scheduled") {
+        const d = new Date(up.effective_at).toLocaleDateString("pt-BR", { timeZone: "America/Manaus" });
+        return new Response(JSON.stringify({ error: `Sua troca para o Plano MARCA está agendada para ${d}. O pagamento fica disponível nessa data.` }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (upStatus === "expired") {
+        return new Response(JSON.stringify({ error: "O prazo para pagar a troca agendada terminou. Faça uma nova contratação." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (upStatus === "awaiting_payment") {
+        if (paymentMethod !== "pix") {
+          return new Response(JSON.stringify({ error: "O pagamento da troca agendada está disponível apenas por PIX." }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (billingCycle !== up.billing_cycle) {
+          return new Response(JSON.stringify({ error: "O ciclo escolhido não corresponde à troca agendada." }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        marcaUpgrade = up;
+        marcaAcceptanceId = up.acceptance_id;
+        marcaBrandAccountId = up.brand_account_id;
+      } else {
       // Cadeia completa (plano ativo, empresa, responsável, aceite, versão vigente, ciclo,
       // preço, desconto e commercial_terms_hash) validada no banco. Admin não contorna.
       const { data: check, error: checkErr } = await supabase.rpc("validate_marca_checkout", {
@@ -213,6 +243,7 @@ serve(async (req) => {
       }
       marcaAcceptanceId = check.acceptance_id;
       marcaBrandAccountId = check.brand_account_id;
+      }
     }
 
     // Get plan details
@@ -232,12 +263,19 @@ serve(async (req) => {
     }
 
     // Calculate prices
-    const monthlyPrice = Number(plan.monthly_price);
-    const annualDiscount = plan.annual_discount_percent || 30;
-    const annualMonthlyPrice = monthlyPrice * (1 - annualDiscount / 100);
-    const totalAmount = billingCycle === "monthly" 
+    let monthlyPrice = Number(plan.monthly_price);
+    let annualDiscount = plan.annual_discount_percent || 30;
+    let annualMonthlyPrice = monthlyPrice * (1 - annualDiscount / 100);
+    let totalAmount = billingCycle === "monthly" 
       ? monthlyPrice 
       : annualMonthlyPrice * 12;
+    if (marcaUpgrade) {
+      // Preço congelado no agendamento (nunca o preço atual nem o do navegador).
+      monthlyPrice = Number(marcaUpgrade.monthly_price);
+      annualDiscount = Number(marcaUpgrade.annual_discount_percent ?? 0);
+      annualMonthlyPrice = monthlyPrice * (1 - annualDiscount / 100);
+      totalAmount = Number(marcaUpgrade.amount);
+    }
 
     console.log("Calculated prices:", { monthlyPrice, annualMonthlyPrice, totalAmount, billingCycle });
 
@@ -251,7 +289,8 @@ serve(async (req) => {
       .in("status", ["active", "pending", "inadimplent", "past_due"])
       .order("created_at", { ascending: false });
 
-    const activePaidSubscription = (openSubscriptions || []).find(
+    // Troca agendada válida: a assinatura de origem continua ativa até o MARCA ser pago (única exceção, não é bypass geral).
+    const activePaidSubscription = marcaUpgrade ? undefined : (openSubscriptions || []).find(
       (s: any) => s.status === "active" && !["gratis", "free"].includes((s.plan_id || "").toLowerCase())
     );
 
@@ -478,9 +517,22 @@ serve(async (req) => {
     console.log("Subscription intent ready:", subscription.id, reusableSubscription ? "(reused)" : "(new)");
 
     if (isMarca) {
+      if (marcaUpgrade) {
+        // Vincula a cobrança à troca agendada; sem vínculo, nenhuma cobrança é gerada.
+        const { data: bound } = await supabase.rpc("bind_marca_upgrade_target", {
+          p_upgrade_id: marcaUpgrade.upgrade_id, p_subscription_id: subscription.id,
+        });
+        if (bound !== true) {
+          await supabase.from("master_subscriptions").update({ status: "cancelled" }).eq("id", subscription.id).eq("status", "pending");
+          return new Response(
+            JSON.stringify({ error: "Não foi possível iniciar o pagamento da troca agendada. Tente novamente." }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
       await supabase.from("audit_logs").insert({
         user_id: userId, action: "MARCA_CHECKOUT_CREATED", entity_type: "master_subscription", entity_id: subscription.id,
-        metadata: { brand_account_id: marcaBrandAccountId, contract_acceptance_id: marcaAcceptanceId, billing_cycle: billingCycle, reused: !!reusableSubscription },
+        metadata: { brand_account_id: marcaBrandAccountId, contract_acceptance_id: marcaAcceptanceId, billing_cycle: billingCycle, reused: !!reusableSubscription, scheduled_upgrade_id: marcaUpgrade?.upgrade_id ?? null },
       });
     }
 

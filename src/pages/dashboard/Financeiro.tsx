@@ -9,6 +9,7 @@ import { PaymentDataSection } from "@/components/financeiro/PaymentDataSection";
 import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySection";
 import { SubscriptionStatusAlert } from "@/components/financeiro/SubscriptionStatusAlert";
 import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
+import { MarcaScheduledUpgradeCard } from "@/components/financeiro/MarcaScheduledUpgradeCard";
 import { Crown } from "lucide-react";
 
 interface SubscriptionInfo {
@@ -179,6 +180,8 @@ const Financeiro = () => {
       <div className="space-y-6">
         {/* Temporary plan trial (no billing attached) */}
         <PlanTrialBanner />
+
+        <MarcaScheduledUpgradeCard />
 
         {/* Status Alert - Show at the top if there's an issue */}
         {subscription && (

@@ -7349,6 +7349,10 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      bind_marca_upgrade_target: {
+        Args: { p_subscription_id: string; p_upgrade_id: string }
+        Returns: boolean
+      }
       brand_template_has_history: {
         Args: { p_template_id: string }
         Returns: boolean
@@ -7361,6 +7365,10 @@ export type Database = {
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       claim_brand_network_report_send: {
         Args: { p_queue_id: string }
+        Returns: Json
+      }
+      claim_marca_upgrade_checkout: {
+        Args: { p_user_id: string }
         Returns: Json
       }
       clone_product_variants: {
