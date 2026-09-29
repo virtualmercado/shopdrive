@@ -183,6 +183,13 @@
       "when": 1790649101017,
       "tag": "0025_plan_marca_scheduled_upgrade_checkout",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790650305997,
+      "tag": "0026_plan_marca_upgrade_checkout_view",
+      "breakpoints": true
     }
   ]
 }
