@@ -33,3 +33,8 @@
 - [ ] Etapa 3 (bloqueada): auditoria da recorrência Mercado Pago antes de agendar troca paga
 - [ ] Financeiro: card MARCA (flag), ciclo, empresa, contrato, aceite, checkout, estados
 - [ ] Testes com mocks/transações revertidas
+
+## Prompt 11.2 — Homologação técnica MP TESTE (em andamento)
+- [x] Credenciais TESTE no cofre (MP_TEST_ACCESS_TOKEN/PUBLIC_KEY/BUYER_EMAIL); Fase 0 e Fase 1 OK
+- [ ] Fase 2: criar assinatura de teste (tentar Visa oficial; Mastercard recusou com Unsupported_credit_card_for_recurring_payment)
+- [ ] Responder às 10 perguntas da recorrência (cancelamento, troca, datas)

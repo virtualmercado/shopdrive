@@ -111,10 +111,19 @@ Deno.serve(async (req) => {
       if (!String(j?.external_reference ?? "").startsWith(TAG)) return json({ stopped: true, reason: "not_harness_resource", http: r.status });
       return json({ http: r.status, preapproval: sanitize(j) });
     }
+    // Official MP test cards (docs vigentes) — allowlist only
+    const TEST_CARDS: Record<string, string> = {
+      visa: "4509953566233704",
+      mastercard: "5031433215406351",
+      amex: "371180960111016",
+    };
+    const cardKey = String(body?.card ?? "visa").toLowerCase();
+    const cardNumber = TEST_CARDS[cardKey];
+    if (!cardNumber) return json({ stopped: true, reason: "card_not_allowed" });
     // card token with official MP test card (APRO)
     const ct = await fetch(`https://api.mercadopago.com/v1/card_tokens?public_key=${encodeURIComponent(pub)}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ card_number: "5031433215406351", security_code: "123", expiration_month: 11, expiration_year: 2030,
+      body: JSON.stringify({ card_number: cardNumber, security_code: cardKey === "amex" ? "1234" : "123", expiration_month: 11, expiration_year: 2030,
         cardholder: { name: "APRO", identification: { type: "CPF", number: "12345678909" } } }),
     });
     const ctJ: any = await ct.json().catch(() => ({}));
