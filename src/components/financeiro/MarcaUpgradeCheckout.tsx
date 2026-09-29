@@ -177,20 +177,21 @@ export function MarcaUpgradeCheckout() {
 
   if (immediateReady) {
     const amt = marcaPrice(Number(offer!.monthly_price), Number(offer!.annual_discount_percent ?? 0), immediate!.cycle);
-    view.target_cycle = immediate!.cycle;
-    view.amount = amt;
+    Object.assign(view!, { target_cycle: immediate!.cycle, amount: amt });
   }
   const cycleLabel = view!.target_cycle === "annual" ? "Anual" : "Mensal";
   const summary = (
     <section aria-labelledby="marca-resumo" className="rounded-lg border bg-card p-4 space-y-2 text-sm">
-      <h2 id="marca-resumo" className="font-semibold text-foreground">Troca para o Plano MARCA</h2>
+      <h2 id="marca-resumo" className="font-semibold text-foreground">{immediateReady ? "Contratação do Plano MARCA" : "Troca para o Plano MARCA"}</h2>
       <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5">
-        <dt className="text-muted-foreground">Plano atual</dt><dd className="text-right font-medium">{planName(view.source_plan)}</dd>
+        {!immediateReady && <><dt className="text-muted-foreground">Plano atual</dt><dd className="text-right font-medium">{planName(view.source_plan)}</dd></>}
         <dt className="text-muted-foreground">Novo plano</dt><dd className="text-right font-medium">MARCA</dd>
         <dt className="text-muted-foreground">Ciclo</dt><dd className="text-right font-medium">{cycleLabel}</dd>
         <dt className="text-muted-foreground">Valor</dt><dd className="text-right font-semibold">{fmtMoney(view.amount)}</dd>
-        <dt className="text-muted-foreground">Início</dt><dd className="text-right">{fmtDate(view.effective_at)}</dd>
-        <dt className="text-muted-foreground">Pagar até</dt><dd className="text-right">{fmtDate(view.grace_until)}</dd>
+        {!immediateReady && <>
+          <dt className="text-muted-foreground">Início</dt><dd className="text-right">{fmtDate(view.effective_at)}</dd>
+          <dt className="text-muted-foreground">Pagar até</dt><dd className="text-right">{fmtDate(view.grace_until)}</dd>
+        </>}
         <dt className="text-muted-foreground">Pagamento</dt><dd className="text-right">PIX</dd>
       </dl>
     </section>
