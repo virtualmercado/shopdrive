@@ -2298,6 +2298,110 @@ export type Database = {
         }
         Relationships: []
       }
+      marca_scheduled_upgrades: {
+        Row: {
+          activated_at: string | null
+          brand_account_id: string
+          cancelled_at: string | null
+          contract_acceptance_id: string
+          created_at: string
+          currency: string
+          effective_at: string
+          expired_at: string | null
+          frozen_amount: number
+          grace_until: string
+          id: string
+          source_billing_cycle: string
+          source_payment_method: string
+          source_plan_id: string
+          source_subscription_id: string
+          status: string
+          status_reason: string | null
+          store_profile_id: string
+          target_billing_cycle: string
+          target_subscription_id: string | null
+          transition_mode: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          brand_account_id: string
+          cancelled_at?: string | null
+          contract_acceptance_id: string
+          created_at?: string
+          currency?: string
+          effective_at: string
+          expired_at?: string | null
+          frozen_amount: number
+          grace_until: string
+          id?: string
+          source_billing_cycle: string
+          source_payment_method: string
+          source_plan_id: string
+          source_subscription_id: string
+          status?: string
+          status_reason?: string | null
+          store_profile_id: string
+          target_billing_cycle: string
+          target_subscription_id?: string | null
+          transition_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          brand_account_id?: string
+          cancelled_at?: string | null
+          contract_acceptance_id?: string
+          created_at?: string
+          currency?: string
+          effective_at?: string
+          expired_at?: string | null
+          frozen_amount?: number
+          grace_until?: string
+          id?: string
+          source_billing_cycle?: string
+          source_payment_method?: string
+          source_plan_id?: string
+          source_subscription_id?: string
+          status?: string
+          status_reason?: string | null
+          store_profile_id?: string
+          target_billing_cycle?: string
+          target_subscription_id?: string | null
+          transition_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marca_scheduled_upgrades_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marca_scheduled_upgrades_contract_acceptance_id_fkey"
+            columns: ["contract_acceptance_id"]
+            isOneToOne: false
+            referencedRelation: "plan_contract_acceptances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marca_scheduled_upgrades_source_subscription_id_fkey"
+            columns: ["source_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marca_scheduled_upgrades_target_subscription_id_fkey"
+            columns: ["target_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_settings: {
         Row: {
           created_at: string
@@ -7093,6 +7197,14 @@ export type Database = {
         Args: { p_uid: string }
         Returns: undefined
       }
+      activate_marca_scheduled_upgrade: {
+        Args: {
+          p_payment_id: string
+          p_target_subscription_id: string
+          p_upgrade_id: string
+        }
+        Returns: Json
+      }
       activate_product_with_plan_validation: {
         Args: { p_active: boolean; p_product_id: string }
         Returns: Json
@@ -7440,6 +7552,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_my_marca_upgrade: { Args: never; Returns: Json }
       get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
       get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
       get_referral_stats: {
@@ -7529,6 +7642,7 @@ export type Database = {
         Args: { p_display_name?: string }
         Returns: Json
       }
+      process_marca_scheduled_upgrades: { Args: never; Returns: Json }
       propagate_brand_plan_to_secondaries: {
         Args: { p_owner_id: string }
         Returns: number
@@ -7613,6 +7727,10 @@ export type Database = {
           p_simple_stock?: number
           p_variants?: Json
         }
+        Returns: Json
+      }
+      schedule_my_marca_upgrade: {
+        Args: { p_contract_acceptance_id: string; p_target_cycle: string }
         Returns: Json
       }
       search_store_products: {
