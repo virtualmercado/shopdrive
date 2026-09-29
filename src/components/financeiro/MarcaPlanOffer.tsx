@@ -174,7 +174,7 @@ function MarcaCommercialFlow({ offer, initialCycle, onClose }: { offer: MarcaOff
       setDone({ effectiveAt: s.effective_at, amount: s.amount ?? s.frozen_amount ?? amount });
       setStep("scheduled_done");
       qc.invalidateQueries({ queryKey: ["marca-offer"] });
-      qc.invalidateQueries({ queryKey: ["marca-upgrade"] });
+      qc.invalidateQueries({ queryKey: ["marca-scheduled-upgrade"] });
       return;
     }
     // Sem plano pago: contratação imediata. Aceite e empresa vão só em memória, nunca na URL.
