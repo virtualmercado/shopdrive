@@ -36,5 +36,5 @@
 
 ## Prompt 11.2 — Homologação técnica MP TESTE (em andamento)
 - [x] Credenciais TESTE no cofre (MP_TEST_ACCESS_TOKEN/PUBLIC_KEY/BUYER_EMAIL); Fase 0 e Fase 1 OK
-- [ ] Fase 2: criar assinatura de teste (tentar Visa oficial; Mastercard recusou com Unsupported_credit_card_for_recurring_payment)
-- [ ] Responder às 10 perguntas da recorrência (cancelamento, troca, datas)
+- [x] Fase 2: assinatura de teste criada com Visa oficial; start_date futuro provado (vira trial, sem cobrança antecipada); pausa/reativação/cancelamento/troca de valor validados; ambos os recursos de teste cancelados
+- [x] Perguntas da recorrência respondidas (relatório: /mnt/documents/Relatorio_Prompt11_2_Homologacao.md); única lacuna: retry do MP em falha de cartão no dia da cobrança
