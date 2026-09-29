@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useMarcaOffer, marcaPrice } from "@/components/financeiro/MarcaPlanOffer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,10 @@ export function MarcaUpgradeCheckout() {
   const [approved, setApproved] = useState(false);
   const [copied, setCopied] = useState(false);
   const busyRef = useRef(false);
+  const location = useLocation();
+  // Contratação imediata (sem plano pago): aceite vem só da etapa anterior, em memória. O servidor revalida tudo.
+  const immediate = (location.state as any)?.marcaImmediate as { acceptanceId: string; brandAccountId: string; cycle: "monthly" | "annual" } | undefined;
+  const { data: offer } = useMarcaOffer();
 
   const { data: view, isLoading, refetch } = useQuery({
     queryKey: ["marca-upgrade-checkout", user?.id],
@@ -60,14 +65,17 @@ export function MarcaUpgradeCheckout() {
   };
 
   const startPayment = useCallback(async () => {
-    if (busyRef.current || !user || view?.state !== "payable") return;
+    const isImmediate = !!immediate && view?.state === "none" && offer?.path === "immediate";
+    if (busyRef.current || !user || (view?.state !== "payable" && !isImmediate)) return;
     busyRef.current = true;
     setBusy(true);
     setMessage(null);
     try {
       // Sem valor: o servidor usa o preço travado da troca. Ciclo vem do próprio servidor.
       const { data, error } = await supabase.functions.invoke("create-master-subscription", {
-        body: { userId: user.id, planId: "marca", billingCycle: view.target_cycle, paymentMethod: "pix", origin: "troca_agendada" },
+        body: isImmediate
+          ? { userId: user.id, planId: "marca", billingCycle: immediate!.cycle, paymentMethod: "pix", origin: "painel_lojista", recurringConsent: false, acceptanceId: immediate!.acceptanceId, brandAccountId: immediate!.brandAccountId }
+          : { userId: user.id, planId: "marca", billingCycle: view!.target_cycle, paymentMethod: "pix", origin: "troca_agendada" },
       });
       let body: any = data;
       if (error) {
@@ -83,7 +91,7 @@ export function MarcaUpgradeCheckout() {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [user, view, refetch]);
+  }, [user, view, refetch, immediate, offer]);
 
   // Acompanhamento do pagamento pelo mecanismo já existente.
   useEffect(() => {
@@ -92,7 +100,7 @@ export function MarcaUpgradeCheckout() {
       const { data } = await supabase.functions.invoke("check-master-subscription-status", { body: { subscriptionId: pix.subscriptionId } });
       if (data?.subscription?.status === "active" || data?.normalizedStatus === "approved") {
         const { data: v } = await refetch();
-        if (v?.state === "activated") {
+        if (v?.state === "activated" || (immediate && data?.subscription?.status === "active")) {
           clearInterval(iv);
           setApproved(true);
           qc.invalidateQueries();
@@ -105,7 +113,7 @@ export function MarcaUpgradeCheckout() {
       }
     }, 5000);
     return () => clearInterval(iv);
-  }, [pix, approved, refetch, qc]);
+  }, [pix, approved, refetch, qc, immediate]);
 
   const copy = async () => {
     if (!pix) return;
@@ -147,7 +155,8 @@ export function MarcaUpgradeCheckout() {
     );
   }
 
-  if (!view || ["unavailable", "none", "cancelled"].includes(view.state)) {
+  const immediateReady = !!immediate && view?.state === "none" && offer?.status === "ok" && offer.path === "immediate";
+  if (!immediateReady && (!view || ["unavailable", "none", "cancelled"].includes(view.state))) {
     return shell(
       <div className="text-center space-y-2 py-4" role="status">
         <h1 className="text-lg font-semibold text-foreground">Pagamento indisponível</h1>
@@ -166,17 +175,23 @@ export function MarcaUpgradeCheckout() {
     );
   }
 
-  const cycleLabel = view.target_cycle === "annual" ? "Anual" : "Mensal";
+  if (immediateReady) {
+    const amt = marcaPrice(Number(offer!.monthly_price), Number(offer!.annual_discount_percent ?? 0), immediate!.cycle);
+    Object.assign(view!, { target_cycle: immediate!.cycle, amount: amt });
+  }
+  const cycleLabel = view!.target_cycle === "annual" ? "Anual" : "Mensal";
   const summary = (
     <section aria-labelledby="marca-resumo" className="rounded-lg border bg-card p-4 space-y-2 text-sm">
-      <h2 id="marca-resumo" className="font-semibold text-foreground">Troca para o Plano MARCA</h2>
+      <h2 id="marca-resumo" className="font-semibold text-foreground">{immediateReady ? "Contratação do Plano MARCA" : "Troca para o Plano MARCA"}</h2>
       <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5">
-        <dt className="text-muted-foreground">Plano atual</dt><dd className="text-right font-medium">{planName(view.source_plan)}</dd>
+        {!immediateReady && <><dt className="text-muted-foreground">Plano atual</dt><dd className="text-right font-medium">{planName(view.source_plan)}</dd></>}
         <dt className="text-muted-foreground">Novo plano</dt><dd className="text-right font-medium">MARCA</dd>
         <dt className="text-muted-foreground">Ciclo</dt><dd className="text-right font-medium">{cycleLabel}</dd>
         <dt className="text-muted-foreground">Valor</dt><dd className="text-right font-semibold">{fmtMoney(view.amount)}</dd>
-        <dt className="text-muted-foreground">Início</dt><dd className="text-right">{fmtDate(view.effective_at)}</dd>
-        <dt className="text-muted-foreground">Pagar até</dt><dd className="text-right">{fmtDate(view.grace_until)}</dd>
+        {!immediateReady && <>
+          <dt className="text-muted-foreground">Início</dt><dd className="text-right">{fmtDate(view.effective_at)}</dd>
+          <dt className="text-muted-foreground">Pagar até</dt><dd className="text-right">{fmtDate(view.grace_until)}</dd>
+        </>}
         <dt className="text-muted-foreground">Pagamento</dt><dd className="text-right">PIX</dd>
       </dl>
     </section>

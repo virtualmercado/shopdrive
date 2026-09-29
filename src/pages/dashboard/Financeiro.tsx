@@ -10,6 +10,7 @@ import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySec
 import { SubscriptionStatusAlert } from "@/components/financeiro/SubscriptionStatusAlert";
 import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
 import { MarcaScheduledUpgradeCard } from "@/components/financeiro/MarcaScheduledUpgradeCard";
+import { MarcaPlanOffer } from "@/components/financeiro/MarcaPlanOffer";
 import { Crown } from "lucide-react";
 
 interface SubscriptionInfo {
@@ -220,6 +221,7 @@ const Financeiro = () => {
             onPlanAction={handlePlanAction}
             highlightPlan={highlightPlan}
           />
+          <MarcaPlanOffer />
         </Card>
 
         {/* Payment Data Card Container - Only show if has subscription */}

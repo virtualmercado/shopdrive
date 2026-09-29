@@ -7560,6 +7560,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_my_marca_offer: { Args: never; Returns: Json }
       get_my_marca_upgrade: { Args: never; Returns: Json }
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
       get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
