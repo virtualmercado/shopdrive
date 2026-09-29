@@ -47,4 +47,5 @@
 - [ ] Página de pagamento (/gestor/checkout-assinatura) ainda não oferece o plano MARCA
 - [ ] Cartão recorrente → MARCA (bloqueado: data confiável + assinatura real inadimplente)
 
-- [ ] Prompt 11.5: testar a página MARCA no navegador (desktop/tablet/mobile) e as regras de cobrança diária com relógio simulado
+- [x] Prompt 11.5: testes de telas e cobrança
+- [ ] Decidir: assinatura pausada sem nenhuma data mantém plano pago sem prazo (hoje 0 casos)
