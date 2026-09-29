@@ -46,3 +46,5 @@
 - [x] Checkout MARCA ligado à troca agendada (servidor + proteção única no banco; testado, desfeito)
 - [ ] Página de pagamento (/gestor/checkout-assinatura) ainda não oferece o plano MARCA
 - [ ] Cartão recorrente → MARCA (bloqueado: data confiável + assinatura real inadimplente)
+
+- [ ] Prompt 11.5: testar a página MARCA no navegador (desktop/tablet/mobile) e as regras de cobrança diária com relógio simulado
