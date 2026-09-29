@@ -38,3 +38,10 @@
 - [x] Credenciais TESTE no cofre (MP_TEST_ACCESS_TOKEN/PUBLIC_KEY/BUYER_EMAIL); Fase 0 e Fase 1 OK
 - [x] Fase 2: assinatura de teste criada com Visa oficial; start_date futuro provado (vira trial, sem cobrança antecipada); pausa/reativação/cancelamento/troca de valor validados; ambos os recursos de teste cancelados
 - [x] Perguntas da recorrência respondidas (relatório: /mnt/documents/Relatorio_Prompt11_2_Homologacao.md); única lacuna: retry do MP em falha de cartão no dia da cobrança
+
+## Prompt 11.3 — Troca PRO/PREMIUM → MARCA no vencimento
+- [x] Fase A auditoria (/mnt/documents/Relatorio_Prompt11_3_FaseA.md)
+- [x] PIX mensal e anual: agendamento, vencimento, expiração, ativação só com pagamento pago (testado, desfeito)
+- [x] "Pausado" deixa de dar plano pago para sempre (tolerância 7/14 dias)
+- [ ] Ligar o checkout MARCA ao agendamento (create-master-subscription chama activate_marca_scheduled_upgrade)
+- [ ] Cartão recorrente → MARCA (bloqueado: data confiável + assinatura real inadimplente)
