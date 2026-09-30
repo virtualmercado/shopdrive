@@ -20,7 +20,7 @@ type View = {
 };
 type Pix = { qrCode: string; qrCodeBase64?: string | null; expiresAt?: string | null; subscriptionId: string };
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR") : "");
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "");
 const fmtMoney = (v?: number) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const planName = (p?: string) => (p === "premium" ? "PREMIUM" : p === "pro" ? "PRO" : "—");
 

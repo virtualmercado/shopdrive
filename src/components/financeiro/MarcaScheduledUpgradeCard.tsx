@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Upgrade = { status: string; effective_at?: string; grace_until?: string; amount?: number; target_cycle?: string };
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR") : "");
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "");
 const fmtMoney = (v?: number) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Estado da troca agendada para MARCA. Só aparece com o MARCA ligado (o servidor responde "unavailable" caso contrário). */
