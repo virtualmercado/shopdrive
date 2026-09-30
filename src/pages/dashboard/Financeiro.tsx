@@ -10,7 +10,8 @@ import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySec
 import { SubscriptionStatusAlert } from "@/components/financeiro/SubscriptionStatusAlert";
 import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
 import { MarcaScheduledUpgradeCard } from "@/components/financeiro/MarcaScheduledUpgradeCard";
-import { MarcaPlanOffer } from "@/components/financeiro/MarcaPlanOffer";
+import { MarcaCommercialFlow, useMarcaOffer, marcaBlockedMessage } from "@/components/financeiro/MarcaPlanOffer";
+import { toast } from "sonner";
 import { Crown } from "lucide-react";
 
 interface SubscriptionInfo {
@@ -46,6 +47,8 @@ const Financeiro = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const { data: marcaOffer } = useMarcaOffer();
+  const [marcaOpen, setMarcaOpen] = useState(false);
 
   // Read contextual highlight from URL parameter (e.g., ?highlight=premium)
   const highlightPlan = searchParams.get("highlight");
@@ -134,6 +137,12 @@ const Financeiro = () => {
 
   const handlePlanAction = (planId: string, action: "free" | "current" | "upgrade") => {
     if (planId === currentPlan) return;
+    if (planId === "marca") {
+      const msg = marcaBlockedMessage(marcaOffer);
+      if (msg) { toast.info(msg); return; }
+      setMarcaOpen(true);
+      return;
+    }
     
     if (action === "free") {
       handleSmoothNavigation("/register");
@@ -220,8 +229,11 @@ const Financeiro = () => {
             currentPlan={currentPlan} 
             onPlanAction={handlePlanAction}
             highlightPlan={highlightPlan}
+            showMarca={marcaOffer?.status === "ok" && marcaOffer.path !== "secondary"}
           />
-          <MarcaPlanOffer />
+          {marcaOpen && marcaOffer && (
+            <MarcaCommercialFlow offer={marcaOffer} initialCycle="monthly" onClose={() => setMarcaOpen(false)} />
+          )}
         </Card>
 
         {/* Payment Data Card Container - Only show if has subscription */}

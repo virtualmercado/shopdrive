@@ -118,7 +118,7 @@ export function MarcaPlanOffer() {
 
 type Step = "cycle" | "company" | "contract" | "scheduled_done";
 
-function MarcaCommercialFlow({ offer, initialCycle, onClose }: { offer: MarcaOffer; initialCycle: Cycle; onClose: () => void }) {
+export function MarcaCommercialFlow({ offer, initialCycle, onClose }: { offer: MarcaOffer; initialCycle: Cycle; onClose: () => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { prepareBrandAccount, loadContract } = useMarcaContract();
@@ -281,4 +281,17 @@ function MarcaCommercialFlow({ offer, initialCycle, onClose }: { offer: MarcaOff
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Mensagem/estado do MARCA quando o card do grid é clicado (reusa o fluxo existente). */
+export function marcaBlockedMessage(offer?: MarcaOffer): string | null {
+  if (!offer || offer.status !== "ok") return "O Plano MARCA não está disponível para esta conta no momento.";
+  switch (offer.path) {
+    case "current": return "O Plano MARCA já é o seu plano atual.";
+    case "already_scheduled": return `Sua troca para o Plano MARCA já está agendada para ${fmtDate(offer.effective_at)}.`;
+    case "card_blocked": return CARD_BLOCKED_MESSAGE;
+    case "not_eligible": return "Esta conta não pode contratar o Plano MARCA no momento. Fale com o suporte.";
+    case "secondary": return "A contratação do Plano MARCA é feita apenas pelo responsável principal.";
+    default: return null;
+  }
 }

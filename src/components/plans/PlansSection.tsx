@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import editIcon from "@/assets/edit-icon.png";
 import { useCMSContent } from "@/hooks/useCMSContent";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // VirtualMercado default colors
 const VM_PRIMARY = "#6a1b9a";
@@ -115,11 +117,13 @@ interface PlansSectionProps {
   currentPlan?: string;
   isLandingPage?: boolean;
   onPlanAction?: (planId: string, action: "free" | "current" | "upgrade") => void;
+  /** Show MARCA card in dashboard (server offer available and not a secondary store) */
+  showMarca?: boolean;
   /** Contextual highlight for a specific plan (e.g., from banner navigation) */
   highlightPlan?: string | null;
 }
 
-export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction, highlightPlan = null }: PlansSectionProps) => {
+export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAction, highlightPlan = null, showMarca = true }: PlansSectionProps) => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
   const { data: cmsContent } = useCMSContent();
   const navigate = useNavigate();
@@ -127,7 +131,31 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
   // Get plans content from CMS or use defaults
   const plansContent = cmsContent?.plans || {};
   // Use defaults if arrays are empty or undefined
-  const plans = (plansContent.plans && plansContent.plans.length > 0) ? plansContent.plans : DEFAULT_PLANS;
+  const basePlans = (plansContent.plans && plansContent.plans.length > 0) ? plansContent.plans : DEFAULT_PLANS;
+  // MARCA: price/discount/active from server (master_plans); copy from CMS
+  const { data: marcaRow } = useQuery({
+    queryKey: ["public-master-plan-marca"],
+    queryFn: async () => {
+      const { data } = await supabase.from("master_plans").select("monthly_price, annual_discount_percent, is_active").eq("plan_id", "marca").eq("is_active", true).maybeSingle();
+      return data;
+    },
+  });
+  const marcaCopy: any = (plansContent as any).marca_plan ?? {};
+  const plans = (marcaRow && showMarca)
+    ? [...basePlans.filter((p: any) => p.id !== "marca"), {
+        id: "marca",
+        display_name: marcaCopy.display_name || "Plano MARCA",
+        subtitle: marcaCopy.subtitle || "",
+        monthly_price: Number(marcaRow.monthly_price),
+        annual_discount_percent: Number(marcaRow.annual_discount_percent ?? 0),
+        button_text: marcaCopy.button_text || "Escolher MARCA",
+        badge_text: marcaCopy.badge_text || "",
+        badge_active: !!marcaCopy.badge_active,
+        badge_color: marcaCopy.badge_color,
+        previous_plan: { name: "Plano PREMIUM", label: "PREMIUM", description: "Tudo o que o plano PREMIUM oferece, e mais:" },
+        features: Array.isArray(marcaCopy.features) ? marcaCopy.features : [],
+      }]
+    : basePlans;
   const guarantees = (plansContent.guarantees && plansContent.guarantees.length > 0) ? plansContent.guarantees : DEFAULT_GUARANTEES;
   const toggleMonthly = plansContent.toggle_monthly || "Mensal";
   const toggleAnnual = plansContent.toggle_annual || "Anual";
@@ -156,10 +184,11 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
     return discounted;
   };
 
-  const getDisplayPrice = (monthlyPrice: number) => {
+  const getDisplayPrice = (monthlyPrice: number, discount?: number) => {
     if (billingPeriod === "monthly") {
       return monthlyPrice;
     }
+    if (discount != null) return Math.round(monthlyPrice * 12 * (1 - discount / 100) * 100) / 100;
     return calculateAnnualPrice(monthlyPrice);
   };
 
@@ -248,12 +277,12 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
       <div className={cn(
         "grid gap-6 md:gap-8 lg:gap-10",
         isLandingPage 
-          ? "grid-cols-1 md:grid-cols-3 max-w-6xl mx-auto" 
-          : "grid-cols-1 md:grid-cols-3"
+          ? cn("grid-cols-1 md:grid-cols-2 mx-auto", plans.length > 3 ? "xl:grid-cols-4 max-w-7xl" : "lg:grid-cols-3 max-w-6xl")
+          : cn("grid-cols-1 md:grid-cols-2", plans.length > 3 ? "2xl:grid-cols-4" : "lg:grid-cols-3")
       )}>
         {plans.map((plan: any) => {
           const isCurrent = isCurrentPlan(plan.id);
-          const price = getDisplayPrice(plan.monthly_price);
+          const price = getDisplayPrice(plan.monthly_price, plan.annual_discount_percent);
           const isProPlan = plan.id === "pro";
           const showBadge = plan.badge_active && plan.badge_text;
           const isHighlighted = highlightPlan === plan.id;
@@ -340,7 +369,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                     )}
                     style={{ color: VM_PRIMARY }}
                   >
-                    {annualDiscountText}
+                    {plan.id === "marca" ? `- ${plan.annual_discount_percent}% de desconto no plano anual` : annualDiscountText}
                   </p>
                 )}
               </div>
@@ -487,7 +516,7 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                 )}
 
                 {/* Garantias fixas - apenas para PRO e PREMIUM */}
-                {(plan.id === "pro" || plan.id === "premium") && (
+                {(plan.id === "pro" || plan.id === "premium" || plan.id === "marca") && (
                   <div className={cn(
                     "mt-auto mb-5",
                     isLandingPage ? "space-y-2" : "space-y-3"
@@ -526,6 +555,8 @@ export const PlansSection = ({ currentPlan = "", isLandingPage = false, onPlanAc
                   onClick={() => {
                     const path = plan.id === "gratis" 
                       ? "/register" 
+                      : plan.id === "marca"
+                      ? "/lojista/financeiro?highlight=marca"
                       : `/gestor/checkout-assinatura?plano=${plan.id}&ciclo=${billingPeriod === "monthly" ? "mensal" : "anual"}&origem=landing`;
                     handleSmoothNavigation(path);
                   }}
