@@ -26,7 +26,7 @@ export const CARD_BLOCKED_MESSAGE =
   "O upgrade para o Plano MARCA ainda não está disponível para assinaturas com renovação automática no cartão. Sua assinatura atual continuará funcionando normalmente. Entre em contato com o suporte para verificar opções de migração.";
 
 const fmtMoney = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR") : "");
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "");
 export const marcaPrice = (monthly: number, discount: number, cycle: Cycle) =>
   cycle === "monthly" ? monthly : Math.round(monthly * 12 * (1 - discount / 100) * 100) / 100;
 
