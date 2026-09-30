@@ -211,6 +211,13 @@
       "when": 1790651886927,
       "tag": "0029_plan_marca_commercial_offer",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790739144205,
+      "tag": "0030_marca_eligibility_allow_user_admin",
+      "breakpoints": true
     }
   ]
 }
