@@ -155,10 +155,11 @@ export const useUpdateOrderStatus = () => {
         description: "O status do pedido foi atualizado com sucesso.",
       });
     },
-    onError: () => {
+    onError: (err: any) => {
+      const msg = String(err?.message || "");
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o status do pedido.",
+        description: msg.includes("cancelado") ? msg : "Não foi possível atualizar o status do pedido.",
         variant: "destructive",
       });
     },
