@@ -239,6 +239,13 @@
       "when": 1790824143503,
       "tag": "0033_unified_order_stock_reservation",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790825290617,
+      "tag": "0034_manual_order_atomic_edit_legacy_free_items",
+      "breakpoints": true
     }
   ]
 }

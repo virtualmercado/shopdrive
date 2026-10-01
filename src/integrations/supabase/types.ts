@@ -3082,7 +3082,7 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
-          product_id: string
+          product_id: string | null
           product_name: string
           product_price: number
           quantity: number
@@ -3095,7 +3095,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id: string
-          product_id: string
+          product_id?: string | null
           product_name: string
           product_price: number
           quantity: number
@@ -3108,7 +3108,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id?: string
-          product_id?: string
+          product_id?: string | null
           product_name?: string
           product_price?: number
           quantity?: number
@@ -7633,6 +7633,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
+      is_legacy_stock_order: { Args: { p_order_id: string }; Returns: boolean }
       is_plan_contract_ready: { Args: { p_plan_id: string }; Returns: boolean }
       is_plan_marca_enabled: { Args: never; Returns: boolean }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
@@ -7672,6 +7673,10 @@ export type Database = {
         Returns: undefined
       }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
+      order_items_unchanged: {
+        Args: { p_items: Json; p_order_id: string }
+        Returns: boolean
+      }
       plan_rank: { Args: { _plan: string }; Returns: number }
       prepare_my_marca_brand_account: {
         Args: { p_display_name?: string }
@@ -7846,6 +7851,10 @@ export type Database = {
         Returns: boolean
       }
       unaccent: { Args: { "": string }; Returns: string }
+      update_manual_order: {
+        Args: { p_items: Json; p_order: Json; p_order_id: string }
+        Returns: undefined
+      }
       validate_marca_checkout: {
         Args: {
           p_acceptance_id: string
