@@ -493,7 +493,7 @@ export const CreateOrderModal = ({
       const msg = String((error as any)?.message || "");
       toast({
         title: "Erro",
-        description: msg.includes("Combinação indisponível") || msg.includes("Selecione as opções")
+        description: msg.includes("Combinação indisponível") || msg.includes("Selecione as opções") || msg.includes("Estoque insuficiente") || msg.includes("cancelado")
           ? msg
           : "Erro ao salvar pedido.",
         variant: "destructive",
