@@ -130,35 +130,9 @@ export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, status, previousStatus }: { orderId: string; status: string; previousStatus?: string }) => {
-      // If changing to "delivered", debit stock
-      if (status === "delivered" && previousStatus !== "delivered") {
-        // Get order items to debit stock
-        const { data: orderItems, error: itemsError } = await supabase
-          .from("order_items")
-          .select("product_id, quantity")
-          .eq("order_id", orderId);
-
-        if (itemsError) throw itemsError;
-
-        // Debit stock for each item
-        for (const item of orderItems || []) {
-          const { data: product } = await supabase
-            .from("products")
-            .select("stock")
-            .eq("id", item.product_id)
-            .single();
-
-          if (product) {
-            const newStock = Math.max(0, product.stock - item.quantity);
-            await supabase
-              .from("products")
-              .update({ stock: newStock })
-              .eq("id", item.product_id);
-          }
-        }
-      }
-
+    // Stock is reserved server-side when the order is created and returned
+    // server-side on cancel/delete. Status changes here never move stock.
+    mutationFn: async ({ orderId, status }: { orderId: string; status: string; previousStatus?: string }) => {
       const { error } = await supabase
         .from("orders")
         .update({ status })
