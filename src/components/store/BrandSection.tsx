@@ -55,6 +55,7 @@ export const BrandSection = ({
           .from("products")
           .select("id", { count: "exact", head: true })
           .eq("user_id", storeOwnerId)
+          .eq("is_active", true)
           .eq("brand_id", brand.id);
 
         if (count && count > 0) {

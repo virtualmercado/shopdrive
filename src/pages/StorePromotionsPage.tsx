@@ -85,6 +85,7 @@ const StorePromotionsContent = () => {
         .from("products")
         .select("*")
         .eq("user_id", store.id)
+        .eq("is_active", true)
         .gt("stock", 0)
         .not("promotional_price", "is", null)
         .gt("promotional_price", 0)

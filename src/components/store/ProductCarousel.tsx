@@ -141,6 +141,7 @@ const ProductCarousel = ({
         .from("products")
         .select("*, product_categories(name)")
         .eq("user_id", storeOwnerId)
+        .eq("is_active", true)
         .gt("stock", 0);
 
       // Smart ordering: most popular (sales+views) first, then most recent
