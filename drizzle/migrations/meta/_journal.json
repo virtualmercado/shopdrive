@@ -225,6 +225,13 @@
       "when": 1790739963041,
       "tag": "0031_brand_owned_store_allow_owner_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790822326473,
+      "tag": "0032_public_products_only_active",
+      "breakpoints": true
     }
   ]
 }
