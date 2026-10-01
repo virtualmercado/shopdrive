@@ -818,7 +818,7 @@ const CheckoutContent = () => {
         if (createOrderError || !createdOrder) {
           console.error("[Checkout] create_checkout_order error:", createOrderError);
           const rawMsg = String((createOrderError as any)?.message || "");
-          if (rawMsg.includes("Combinação indisponível") || rawMsg.includes("Selecione as opções")) {
+          if (rawMsg.includes("Combinação indisponível") || rawMsg.includes("Selecione as opções") || rawMsg.includes("Estoque insuficiente")) {
             throw new Error(`${rawMsg} Revise o carrinho e tente novamente.`);
           }
           throw new Error("Não foi possível registrar seu pedido. Tente novamente.");

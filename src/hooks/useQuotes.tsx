@@ -257,93 +257,13 @@ export const useConvertQuoteToOrder = () => {
       paymentMethod: string;
       useCurrentPrices: boolean;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // Get quote with items
-      const { data: quote, error: qErr } = await supabase
-        .from("quotes")
-        .select("*")
-        .eq("id", quoteId)
-        .single();
-      if (qErr) throw qErr;
-
-      const { data: items, error: iErr } = await supabase
-        .from("quote_items")
-        .select("*")
-        .eq("quote_id", quoteId);
-      if (iErr) throw iErr;
-
-      // Optionally update prices
-      let orderItems = (items || []).map((item: any) => ({
-        product_id: item.product_id,
-        product_name: item.name,
-        product_price: item.unit_price,
-        quantity: item.quantity,
-        subtotal: item.line_total,
-      }));
-
-      let orderTotal = quote.total;
-      let orderSubtotal = quote.subtotal;
-
-      if (useCurrentPrices && items) {
-        const productIds = items.filter((i: any) => i.product_id).map((i: any) => i.product_id);
-        if (productIds.length > 0) {
-          const { data: products } = await supabase
-            .from("products")
-            .select("id, price, promotional_price")
-            .in("id", productIds);
-
-          if (products) {
-            const priceMap = new Map(products.map((p: any) => [p.id, p.promotional_price || p.price]));
-            orderItems = orderItems.map((item: any) => {
-              const currentPrice = priceMap.get(item.product_id) || item.product_price;
-              return {
-                ...item,
-                product_price: currentPrice,
-                subtotal: currentPrice * item.quantity,
-              };
-            });
-            orderSubtotal = orderItems.reduce((s: number, i: any) => s + i.subtotal, 0);
-            orderTotal = orderSubtotal - (quote.discount || 0) + (quote.shipping_fee || 0);
-          }
-        }
-      }
-
-      // Create order
-      const { data: order, error: oErr } = await supabase
-        .from("orders")
-        .insert({
-          store_owner_id: user.id,
-          customer_id: quote.customer_id || null,
-          customer_name: quote.customer_name,
-          customer_email: quote.customer_email || "",
-          customer_phone: quote.customer_phone || null,
-          customer_address: quote.delivery_address || null,
-          payment_method: paymentMethod,
-          delivery_fee: quote.shipping_fee || 0,
-          subtotal: orderSubtotal,
-          total_amount: orderTotal,
-          notes: quote.notes || null,
-          status: "pending",
-          order_source: "manual",
-        })
-        .select()
-        .single();
-      if (oErr) throw oErr;
-
-      // Insert order items
-      const { error: oiErr } = await supabase.from("order_items").insert(
-        orderItems.map((item: any) => ({ ...item, order_id: order.id }))
-      );
-      if (oiErr) throw oiErr;
-
-      // Update quote status
-      await supabase
-        .from("quotes")
-        .update({ status: "converted", converted_order_id: order.id, converted_at: new Date().toISOString() })
-        .eq("id", quoteId);
-
+      // Server-side, atomic: creates the order, reserves stock and marks the quote converted.
+      const { data: order, error } = await supabase.rpc("convert_quote_to_order", {
+        p_quote_id: quoteId,
+        p_payment_method: paymentMethod,
+        p_use_current_prices: useCurrentPrices,
+      });
+      if (error) throw error;
       return order;
     },
     onSuccess: () => {

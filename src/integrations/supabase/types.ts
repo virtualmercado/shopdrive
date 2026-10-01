@@ -3179,6 +3179,7 @@ export type Database = {
           kind: string
           order_id: string
           order_item_id: string
+          product_id: string | null
           quantity: number
           reason: string | null
           store_id: string
@@ -3190,6 +3191,7 @@ export type Database = {
           kind: string
           order_id: string
           order_item_id: string
+          product_id?: string | null
           quantity: number
           reason?: string | null
           store_id: string
@@ -3201,6 +3203,7 @@ export type Database = {
           kind?: string
           order_id?: string
           order_item_id?: string
+          product_id?: string | null
           quantity?: number
           reason?: string | null
           store_id?: string
@@ -3219,6 +3222,20 @@ export type Database = {
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_products"
             referencedColumns: ["id"]
           },
           {
@@ -7404,6 +7421,14 @@ export type Database = {
         Args: { p_store_id: string }
         Returns: Json
       }
+      convert_quote_to_order: {
+        Args: {
+          p_payment_method: string
+          p_quote_id: string
+          p_use_current_prices?: boolean
+        }
+        Returns: Json
+      }
       copy_template_products_to_store: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: number
@@ -7705,6 +7730,16 @@ export type Database = {
       replace_manual_order_items: {
         Args: { p_items: Json; p_order_id: string }
         Returns: undefined
+      }
+      reserve_order_item_stock: {
+        Args: {
+          p_order_id: string
+          p_product_id: string
+          p_qty: number
+          p_store_owner_id: string
+          p_variant_id: string
+        }
+        Returns: Record<string, unknown>
       }
       reserve_order_item_variant: {
         Args: {
