@@ -110,6 +110,7 @@ const StoreBrandContent = () => {
         .select("*")
         .eq("user_id", store.id)
         .eq("brand_id", brandId)
+        .eq("is_active", true)
         .gt("stock", 0)
         .order("popularity_score", { ascending: false })
         .order("created_at", { ascending: false });

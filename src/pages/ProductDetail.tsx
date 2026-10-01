@@ -191,6 +191,7 @@ const ProductDetailContent = () => {
           .select("*")
           .eq("id", productId)
           .eq("user_id", profileData.id)
+          .eq("is_active", true)
           .maybeSingle();
 
         if (productData) {

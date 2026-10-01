@@ -191,6 +191,7 @@ const StoreCategoryPageContent = () => {
         .from("products")
         .select("*, product_categories(name)")
         .eq("user_id", store.id)
+        .eq("is_active", true)
         .gt("stock", 0)
         .order("popularity_score", { ascending: false })
         .order("created_at", { ascending: false });
