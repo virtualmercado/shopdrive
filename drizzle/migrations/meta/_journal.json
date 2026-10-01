@@ -232,6 +232,13 @@
       "when": 1790822326473,
       "tag": "0032_public_products_only_active",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790824143503,
+      "tag": "0033_unified_order_stock_reservation",
+      "breakpoints": true
     }
   ]
 }
