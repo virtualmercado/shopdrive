@@ -418,10 +418,10 @@ export const CreateOrderModal = ({
       const deliveryAddress = getCustomerDefaultAddress(selectedCustomerId);
 
       if (editOrder) {
-        // Update existing order
-        const { error: orderError } = await supabase
-          .from("orders")
-          .update({
+        // Whole edit (order data + items + stock restore/reserve) runs atomically server-side.
+        const { error: editError } = await supabase.rpc("update_manual_order", {
+          p_order_id: editOrder.id,
+          p_order: {
             customer_id: selectedCustomerId,
             customer_name: customer.full_name,
             customer_email: customer.email,
@@ -433,19 +433,10 @@ export const CreateOrderModal = ({
             subtotal: subtotal,
             total_amount: total,
             notes: notes,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editOrder.id);
-
-        if (orderError) throw orderError;
-
-        // Replace items server-side: previous combination stock is returned once and
-        // the new items are reserved atomically (per variant_id).
-        const { error: itemsError } = await supabase.rpc("replace_manual_order_items", {
-          p_order_id: editOrder.id,
+          } as any,
           p_items: buildItemsPayload() as any,
         });
-        if (itemsError) throw itemsError;
+        if (editError) throw editError;
 
         toast({ title: "Sucesso", description: "Pedido atualizado com sucesso!" });
       } else {
