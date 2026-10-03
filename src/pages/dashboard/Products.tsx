@@ -90,6 +90,8 @@ const Products = () => {
   }, [searchTerm]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -117,6 +119,7 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchBrands();
     fetchStoreName();
     fetchPendingPlan();
   }, []);
@@ -193,6 +196,21 @@ const Products = () => {
       .order("name");
     
     if (data) setCategories(data);
+  };
+
+  const fetchBrands = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setBrands([]); return; }
+    const { data } = await supabase
+      .from("product_brands")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .order("name");
+    const list = data || [];
+    setBrands(list);
+    setSelectedBrand(prev =>
+      prev === "all" || prev === "none" || list.some(b => b.id === prev) ? prev : "all"
+    );
   };
 
   const handleEdit = (product: Product) => {
@@ -353,7 +371,10 @@ const Products = () => {
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         variantSkuMatches.has(product.id);
       const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesBrand =
+        selectedBrand === "all" ||
+        (selectedBrand === "none" ? !product.brand_id : product.brand_id === selectedBrand);
+      return matchesSearch && matchesCategory && matchesBrand;
     })
   );
 
@@ -365,7 +386,7 @@ const Products = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, sortBy]);
+  }, [searchTerm, selectedCategory, selectedBrand, sortBy]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -434,6 +455,20 @@ const Products = () => {
               />
             </div>
             <div className="flex gap-2 flex-wrap">
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                <SelectTrigger className="w-full sm:w-[240px]" aria-label="Filtrar por marca">
+                  <SelectValue placeholder="Todas as marcas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as marcas</SelectItem>
+                  {products.some(p => !p.brand_id) && (
+                    <SelectItem value="none">Sem marca</SelectItem>
+                  )}
+                  {brands.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-[200px] gap-2">
                   <ArrowDownAZ className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -801,7 +836,7 @@ const Products = () => {
 
         <BrandManagementModal
           open={brandModalOpen}
-          onOpenChange={setBrandModalOpen}
+          onOpenChange={(o) => { setBrandModalOpen(o); if (!o) fetchBrands(); }}
         />
 
         <CategoryManagementModal
