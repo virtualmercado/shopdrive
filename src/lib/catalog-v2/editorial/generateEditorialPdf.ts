@@ -17,7 +17,7 @@ import { buildEditorialTheme, EDITORIAL_TEMPLATE_ID, EDITORIAL_TEMPLATE_VERSION 
 /** Resolve uma imagem já reduzida; deve aplicar cache e timeout (ver createCatalogImageLoader). */
 export type ImageResolver = (url: string, maxEdgePx: number, preserveTransparency: boolean) => Promise<CatalogImage | null>;
 
-export interface EditorialOptions extends ComposeOptions {
+export interface EditorialOptions extends Omit<ComposeOptions, "editorial" | "wrapLines"> {
   resolveImage: ImageResolver;
   title?: string;
   subtitle?: string | null;
@@ -70,7 +70,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
   const wrapLines = (text: string, width: number, size: number) => { pdf.setFont(theme.font, "normal"); pdf.setFontSize(size); return pdf.splitTextToSize(text, width) as string[]; };
   const plan = composePages(doc, { ...opts, editorial: opts.editorial ? config : undefined, wrapLines });
   const title = config.cover.title ?? opts.title ?? "Catálogo de produtos";
-  const subtitle = config.cover.title || config.cover.subtitle ? config.cover.subtitle : opts.subtitle ?? null;
+  const subtitle = config.cover.subtitle ?? (config.cover.title ? null : opts.subtitle ?? null);
   pdf.setProperties({ title: `${config.cover.title ?? opts.title ?? "Catálogo"} — ${doc.identity.storeName}`, creator: `ShopDrive ${EDITORIAL_TEMPLATE_ID} ${EDITORIAL_TEMPLATE_VERSION}` });
   const cv = new EditorialCanvas(pdf, theme);
 

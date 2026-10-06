@@ -68,7 +68,7 @@ export const paginateInstitutional = (paragraphs: string[], hasImage: boolean, w
   const L = INSTITUTIONAL;
   const lh = L.size * 0.3528 * L.leading;
   const pages: string[][][] = [[]];
-  let y = hasImage ? L.topImage : L.topPlain;
+  let y: number = hasImage ? L.topImage : L.topPlain;
   paragraphs.forEach((para) => {
     let lines = wrap(para, L.w, L.size);
     while (lines.length) {
