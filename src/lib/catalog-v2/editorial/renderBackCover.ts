@@ -41,7 +41,8 @@ export const renderBackCover = (cv: EditorialCanvas, ctx: RenderContext) => {
   const maxRows = Math.max(0, Math.floor((PAGE.h - M - 20 - y) / 15));
   rows.slice(0, maxRows).forEach((r) => {
     cv.text([r.label], M, y, 7.5, soft, { style: "bold", align: "center", width: w, charSpace: 0.8 });
-    const lines = cv.wrap(r.value, w - 20, 1);
+    cv.font(11, "bold");
+    const lines = cv.wrapNow(r.value, w - 20, 1);
     const h = cv.text(lines, M, y + 4.5, 11, fg, { style: "bold", align: "center", width: w, label: `back-${r.label}` });
     if (r.url) {
       cv.font(11, "bold");

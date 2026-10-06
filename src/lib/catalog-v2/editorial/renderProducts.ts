@@ -24,7 +24,6 @@ const drawInfo = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b:
   let y = b.y;
   const meta = [ctx.categoryName(p.categoryId), ctx.brandName(p.brandId)].filter(Boolean).join("  ·  ");
   if (meta) y += cv.text(cv.wrap(meta.toUpperCase(), b.w, 1), b.x, y, 6.8, t.muted, { style: "bold", charSpace: 0.4, label: "meta" }) + s.gap;
-  cv.font(s.name, "bold");
   y += cv.text(cv.wrap(p.name, b.w, s.nameLines), b.x, y, s.name, t.ink, { style: "bold", leading: 1.15, label: "name" }) + s.gap + 0.5;
 
   // Rodapé do bloco: preço à esquerda, botão à direita.
@@ -39,7 +38,6 @@ const drawInfo = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b:
   const room = footY - s.gap * 1.5 - y;
   const maxDesc = Math.max(0, Math.floor((room - s.desc * 0.3528) / descLH) + 1);
   if (desc && room > s.desc * 0.3528) {
-    cv.font(s.desc);
     cv.text(cv.wrap(desc, b.w, maxDesc), b.x, y, s.desc, [82, 82, 91], { leading: 1.35, label: "desc" });
   }
 
@@ -84,7 +82,6 @@ const drawChrome = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: strin
   const t = ctx.theme;
   const w = PAGE.w - M * 2;
   cv.text(cv.wrap(ctx.doc.identity.storeName.toUpperCase(), w / 2 - 4, 1), M, M + 2, 7.5, t.primary, { style: "bold", charSpace: 0.6, label: "hdr-store" });
-  cv.font(7.5);
   const sec = cv.wrap(sectionTitle, w / 2 - 4, 1);
   cv.text(sec, M + w / 2 + 4, M + 2, 7.5, t.muted, { align: "right", width: w / 2 - 4, label: "hdr-section" });
   cv.line(M, M + PAGE.headerH - 2, PAGE.w - M, M + PAGE.headerH - 2, t.hairline, 0.25);
@@ -103,11 +100,11 @@ export const renderProductsPage = (cv: EditorialCanvas, ctx: RenderContext, plan
 
   if (plan.layout === 1) {
     const p = products[0];
-    const imgH = 150;
+    const imgH = 168;
     drawImage(cv, ctx, p, { x: C.x, y: C.y, w: C.w, h: imgH }, 10);
     drawInfo(cv, ctx, p, { x: C.x + 4, y: C.y + imgH + 9, w: C.w - 8, h: C.h - imgH - 9 }, s);
   } else if (plan.layout === 2) {
-    const gap = 8, w = (C.w - gap) / 2, imgH = 132;
+    const gap = 8, w = (C.w - gap) / 2, imgH = 150;
     products.forEach((p, i) => {
       const x = C.x + i * (w + gap);
       drawImage(cv, ctx, p, { x, y: C.y, w, h: imgH }, 6);

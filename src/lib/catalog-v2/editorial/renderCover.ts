@@ -33,8 +33,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
   cv.line(M, top, M + 18, top, t.accent === t.primary ? fg : t.accent, 1.2);
   let y = top + 7;
   y += cv.text(cv.wrap(ctx.doc.identity.storeName.toUpperCase(), w, 1), M, y, 10, soft, { style: "bold", charSpace: 0.8, label: "cover-store" }) + 5;
-  cv.font(34, "bold");
-  y += cv.text(cv.wrap(ctx.title, w, 2), M, y, 34, fg, { style: "bold", leading: 1.05, label: "cover-title" }) + 5;
+  y += cv.text(cv.wrap(ctx.title, w, 2), M, y, 34, fg, { style: "bold", leading: 1.05, label: "cover-title", minSize: 22 }) + 5;
   if (ctx.subtitle) y += cv.text(cv.wrap(ctx.subtitle, w, 2), M, y, 12, soft, { label: "cover-subtitle" }) + 4;
 
   const footY = PAGE.h - M - 4;

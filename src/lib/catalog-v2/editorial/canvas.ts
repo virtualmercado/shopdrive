@@ -2,6 +2,7 @@ import type { jsPDF } from "jspdf";
 import type { CatalogImage } from "@/lib/catalogPdfClassic";
 import type { EditorialTheme, RGB } from "./theme";
 
+export interface WrapReq { wrap: true; text: string; width: number; maxLines: number }
 export interface Box { x: number; y: number; w: number; h: number }
 export interface DrawnRect extends Box { page: number; kind: "text" | "image" | "button" | "shape"; label?: string }
 
@@ -49,8 +50,13 @@ export class EditorialCanvas {
   /** mm por linha para o tamanho de fonte atual. */
   lineH(size: number, leading = 1.25) { return (size * 0.3528) * leading; }
 
-  /** Quebra texto em no máximo maxLines, com reticências na última linha. */
-  wrap(text: string, width: number, maxLines: number): string[] {
+  /** Pedido de quebra resolvido em text(), já com a fonte/tamanho corretos. */
+  wrap(text: string, width: number, maxLines: number): WrapReq {
+    return { wrap: true, text, width, maxLines };
+  }
+
+  /** Quebra com a fonte ATUAL em no máximo maxLines, com reticências na última linha. */
+  wrapNow(text: string, width: number, maxLines: number): string[] {
     if (!text || maxLines <= 0) return [];
     const lines = this.pdf.splitTextToSize(text.replace(/\s+/g, " ").trim(), width) as string[];
     if (lines.length <= maxLines) return lines;
@@ -62,9 +68,19 @@ export class EditorialCanvas {
   }
 
   /** Desenha linhas a partir do topo `y`; retorna a altura usada. */
-  text(lines: string[], x: number, y: number, size: number, c: RGB, opts: { style?: "normal" | "bold"; align?: "left" | "center" | "right"; width?: number; leading?: number; label?: string; charSpace?: number } = {}) {
-    if (!lines.length) return 0;
+  text(input: string[] | WrapReq, x: number, y: number, size: number, c: RGB, opts: { style?: "normal" | "bold"; align?: "left" | "center" | "right"; width?: number; leading?: number; label?: string; charSpace?: number; minSize?: number } = {}) {
     this.font(size, opts.style);
+    let lines: string[];
+    if (Array.isArray(input)) lines = input;
+    else {
+      // Títulos: reduz o corpo até nenhuma palavra precisar ser partida.
+      if (opts.minSize) {
+        const words = input.text.split(/\s+/).filter(Boolean);
+        while (size > opts.minSize && words.some((w) => this.pdf.getTextWidth(w) > input.width)) this.font(--size, opts.style);
+      }
+      lines = this.wrapNow(input.text, input.width, input.maxLines);
+    }
+    if (!lines.length) return 0;
     this.color(c);
     const lh = this.lineH(size, opts.leading);
     const ascent = size * 0.3528 * 0.78;
