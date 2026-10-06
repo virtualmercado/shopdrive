@@ -1,42 +1,65 @@
 import type { EditorialCanvas } from "./canvas";
 import type { RenderContext } from "./context";
 import type { PagePlan } from "./composer";
-import { PAGE, mix } from "./theme";
+import { PAGE, mix, type RGB } from "./theme";
 
-/** Abertura de seção: foto à esquerda e bloco de cor à direita; sem foto, composição tipográfica. */
+/**
+ * Bloco tipográfico (linha, título, subtítulo, quantidade) medido antes de
+ * desenhar, para centralizar verticalmente dentro da área de cor.
+ */
+const drawTitleBlock = (cv: EditorialCanvas, x: number, w: number, top: number, bottom: number, title: string, subtitle: string | null, label: string, sizes: { title: number; min: number; lines: number }, fg: RGB, soft: RGB) => {
+  const t = cv.fitTitle(title, w, sizes.title, sizes.min, sizes.lines);
+  cv.font(11);
+  const sub = subtitle ? cv.wrapNow(subtitle, w, 3) : [];
+  const titleH = cv.lineH(t.size, 1.08) * (t.lines.length - 1) + t.size * 0.3528;
+  const subH = sub.length ? cv.lineH(11, 1.35) * (sub.length - 1) + 11 * 0.3528 + 5 : 0;
+  const blockH = 8 + titleH + 6 + subH + 8.5 * 0.3528;
+  let y = Math.max(top, top + (bottom - top - blockH) / 2);
+  cv.line(x, y, x + 16, y, fg, 1.1);
+  y += 8;
+  y += cv.text(t.lines, x, y, t.size, fg, { style: "bold", leading: 1.08, label: "sep-title" }) + 6;
+  if (sub.length) y += cv.text(sub, x, y, 11, soft, { leading: 1.35, label: "sep-subtitle" }) + 5;
+  cv.text([label.toUpperCase()], x, y, 8.5, soft, { style: "bold", charSpace: 0.7, label: "sep-count" });
+};
+
+/**
+ * Abertura de seção. Foto vertical: coluna à esquerda + cor à direita.
+ * Foto horizontal/quadrada: faixa no topo + cor embaixo. Sem foto: tipográfica.
+ */
 export const renderSeparator = (cv: EditorialCanvas, ctx: RenderContext, plan: Extract<PagePlan, { kind: "separator" }>) => {
   const t = ctx.theme;
   const M = PAGE.margin;
   const img = ctx.image(plan.image);
   const fg = t.onPrimary;
-  const soft = mix(t.primary, fg, 0.6);
+  const soft = mix(t.primary, fg, 0.68);
+  const faint = mix(t.primary, fg, 0.3);
   const idx = String(plan.index).padStart(2, "0");
   const label = `${plan.productCount} ${plan.productCount === 1 ? "produto" : "produtos"}`;
+  const store = ctx.doc.identity.storeName;
 
-  if (img) {
-    const split = 118;
+  if (img && img.width / img.height < 0.8) {
+    const split = 112;
     cv.rect({ x: 0, y: 0, w: split, h: PAGE.h }, t.imageBg);
     cv.imageCover(img, { x: 0, y: 0, w: split, h: PAGE.h });
     cv.rect({ x: split, y: 0, w: PAGE.w - split, h: PAGE.h }, t.primary);
-    const x = split + 10, w = PAGE.w - split - 10 - M;
-    cv.text([idx], x, 40, 40, mix(t.primary, fg, 0.3), { style: "bold", label: "sep-index" });
-    let y = 150;
-    cv.line(x, y, x + 14, y, fg, 1);
-    y += 7;
-    y += cv.text(cv.wrap(plan.title, w, 4), x, y, 24, fg, { style: "bold", leading: 1.1, label: "sep-title", minSize: 14 }) + 5;
-    if (plan.subtitle) y += cv.text(cv.wrap(plan.subtitle, w, 3), x, y, 10, soft) + 4;
-    cv.text([label.toUpperCase()], x, y + 2, 8, soft, { style: "bold", charSpace: 0.6, label: "sep-count" });
-    cv.text(cv.wrap(ctx.doc.identity.storeName, w, 1), x, PAGE.h - M - 3, 8, soft, { label: "sep-store", width: w });
+    const x = split + 11, w = PAGE.w - split - 11 - M;
+    cv.text([idx], x, M + 10, 44, faint, { style: "bold", label: "sep-index" });
+    drawTitleBlock(cv, x, w, 90, PAGE.h - M - 20, plan.title, plan.subtitle, label, { title: 24, min: 14, lines: 5 }, fg, soft);
+    cv.text(cv.wrap(store, w, 1), x, PAGE.h - M - 3, 8, soft, { label: "sep-store", width: w });
+  } else if (img) {
+    const imgH = 158;
+    cv.rect({ x: 0, y: 0, w: PAGE.w, h: imgH }, t.imageBg);
+    cv.imageCover(img, { x: 0, y: 0, w: PAGE.w, h: imgH });
+    cv.rect({ x: 0, y: imgH, w: PAGE.w, h: PAGE.h - imgH }, t.primary);
+    const w = PAGE.w - M * 2 - 40;
+    cv.text([idx], PAGE.w - M - 40, imgH + 14, 40, faint, { style: "bold", align: "right", width: 40, label: "sep-index" });
+    drawTitleBlock(cv, M, w, imgH + 14, PAGE.h - M - 14, plan.title, plan.subtitle, label, { title: 30, min: 16, lines: 3 }, fg, soft);
+    cv.text(cv.wrap(store, PAGE.w - M * 2, 1), M, PAGE.h - M - 3, 8, soft, { label: "sep-store" });
   } else {
     cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, t.primary);
     const w = PAGE.w - M * 2;
-    cv.text([idx], M, 60, 110, mix(t.primary, fg, 0.18), { style: "bold", label: "sep-index" });
-    let y = 170;
-    cv.line(M, y, M + 22, y, fg, 1.2);
-    y += 8;
-    y += cv.text(cv.wrap(plan.title, w, 3), M, y, 36, fg, { style: "bold", leading: 1.05, label: "sep-title", minSize: 18 }) + 6;
-    if (plan.subtitle) y += cv.text(cv.wrap(plan.subtitle, w, 3), M, y, 12, soft) + 4;
-    cv.text([label.toUpperCase()], M, y + 2, 9, soft, { style: "bold", charSpace: 0.6, label: "sep-count" });
-    cv.text(cv.wrap(ctx.doc.identity.storeName, w, 1), M, PAGE.h - M - 3, 8, soft, { label: "sep-store", width: w });
+    cv.text([idx], M, 50, 110, mix(t.primary, fg, 0.16), { style: "bold", label: "sep-index" });
+    drawTitleBlock(cv, M, w, 150, PAGE.h - M - 20, plan.title, plan.subtitle, label, { title: 36, min: 18, lines: 3 }, fg, soft);
+    cv.text(cv.wrap(store, w, 1), M, PAGE.h - M - 3, 8, soft, { label: "sep-store", width: w });
   }
 };

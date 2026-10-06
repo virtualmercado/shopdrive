@@ -4,7 +4,8 @@ import { composePages, splitSection } from "./composer";
 import { generateEditorialPdf, type ImageResolver } from "./generateEditorialPdf";
 import { buildEditorialTheme, contrast, PAGE } from "./theme";
 import { fixtureStoreA, fixtureStoreB, FIXTURE_STORE_A, FIXTURE_STORE_B } from "./editorialFixtures";
-import type { DrawnRect } from "./canvas";
+import { EditorialCanvas, formatBRL, type DrawnRect } from "./canvas";
+import { jsPDF } from "jspdf";
 
 // 1×1 JPEG válido; dimensões declaradas simulam fotos reais.
 const PIXEL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
@@ -105,4 +106,89 @@ describe("editorial_01 PDF", () => {
     expect(r.pageCount).toBe(r.plan.length);
     expect(maxInFlight).toBeLessThanOrEqual(4);
   }, 30000);
+});
+
+describe("editorial_01 v1.1 — refinamento visual", () => {
+  const sized = (w: number, h: number): ImageResolver => async (url) => (url.includes("p3.") || url.includes("missing") ? null : { data: PIXEL, width: w, height: h, format: "JPEG", alias: `${url}-${w}x${h}` });
+  const pageOf = (r: Awaited<ReturnType<typeof generateEditorialPdf>>, kind: string, layout?: number) =>
+    r.plan.findIndex((p) => p.kind === kind && (layout === undefined || (p.kind === "products" && p.layout === layout))) + 1;
+
+  it("1. dois produtos em faixas horizontais (imagem à esquerda, texto à direita)", async () => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
+    const pg = pageOf(r, "products", 2);
+    const imgs = r.rects.filter((x) => x.page === pg && x.kind === "image");
+    const names = r.rects.filter((x) => x.page === pg && x.label === "name");
+    expect(names).toHaveLength(2);
+    expect(names[1].y).toBeGreaterThan(names[0].y + 100);
+    imgs.forEach((im) => names.forEach((n) => expect(im.x + im.w).toBeLessThanOrEqual(n.x)));
+  });
+
+  it("2/3. sem imagem: aviso 'Imagem indisponível'; com imagem adicional válida: usa a adicional", async () => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: sized(900, 1200) });
+    expect(r.rects.filter((x) => x.label === "noimg")).toHaveLength(1); // Shampoo sem foto
+    // Esfoliante tem principal quebrada + adicional válida → não cai no aviso
+    const doc = docA();
+    expect(doc.products.find((p) => p.name.startsWith("Esfoliante"))!.additionalImages).toHaveLength(1);
+  });
+
+  it.each([[900, 1200], [1200, 900], [1000, 1000]])("4-6. imagem %ix%i sem distorção", async (w, h) => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: sized(w, h) });
+    r.rects.filter((x) => x.kind === "image" && r.plan[x.page - 1].kind === "products" && x.w < 150).forEach((im) => {
+      expect(Math.abs(im.w / im.h - w / h)).toBeLessThan(0.01);
+    });
+  });
+
+  it("7/8. nome extenso até 3 linhas e truncamento sem partir palavra", async () => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
+    const cond = r.rects.find((x) => x.label === "name" && x.h > 12);
+    expect(cond).toBeTruthy();
+    const cv = new EditorialCanvas(new jsPDF({ unit: "mm", format: "a4" }), buildEditorialTheme(docA().identity));
+    cv.font(14, "bold");
+    const lines = cv.wrapNow("Condicionador Nutritivo de Murumuru ".repeat(8).trim(), 80, 3);
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toMatch(/(Condicionador|Nutritivo|de|Murumuru)\.\.\.$/);
+    lines.forEach((l) => expect(cv.pdf.getTextWidth(l)).toBeLessThanOrEqual(80.01));
+  });
+
+  it("9-13. descrição curta/longa, preço normal/promo e CTA dentro do bloco", async () => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
+    expect(r.rects.some((x) => x.label === "price-old")).toBe(true);
+    r.plan.forEach((p, i) => {
+      if (p.kind !== "products") return;
+      const pg = i + 1;
+      const descs = r.rects.filter((x) => x.page === pg && x.label === "desc");
+      const prices = r.rects.filter((x) => x.page === pg && (x.label === "price" || x.label === "price-old"));
+      descs.forEach((d) => prices.forEach((pr) => !(d.x + d.w < pr.x || pr.x + pr.w < d.x) && d.y < pr.y && expect(d.y + d.h).toBeLessThanOrEqual(pr.y)));
+    });
+    expect(r.links.filter((l) => l.url.includes("/produto/")).every((l) => l.box.w > 15 && l.box.h > 5)).toBe(true);
+  });
+
+  it("14/15. separador com título longo e sem imagem permanece na página", async () => {
+    const doc = docA();
+    doc.sections[0] = { ...doc.sections[0], title: "Cuidados Diários Para Corpo, Rosto e Cabelos com Ingredientes Amazônicos Certificados" };
+    for (const res of [resolver, (async () => null) as ImageResolver]) {
+      const r = await generateEditorialPdf(doc, { resolveImage: res });
+      const t = r.rects.filter((x) => x.label === "sep-title");
+      expect(t.length).toBe(3);
+      t.forEach((x) => { expect(x.x + x.w).toBeLessThanOrEqual(PAGE.w); expect(x.y + x.h).toBeLessThanOrEqual(PAGE.h - PAGE.margin); });
+    }
+  });
+
+  it("16/17. capa sem imagem e contracapa só com o que existe", async () => {
+    const src = fixtureStoreB();
+    const r = await generateEditorialPdf(buildCatalogDocument(src), { resolveImage: async () => null });
+    expect(r.rects.some((x) => x.label === "cover-title")).toBe(true);
+    const back = r.rects.filter((x) => x.page === r.pageCount).map((x) => x.label);
+    expect(back).toContain("back-WHATSAPP");
+    expect(back).not.toContain("back-E-MAIL");
+    expect(back).not.toContain("back-ENDEREÇO");
+  });
+
+  it("18. caracteres PT-BR e R$", async () => {
+    const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
+    expect(formatBRL(1234.5)).toBe("R$ 1.234,50");
+    expect(r.rects.some((x) => x.label === "noimg")).toBe(true);
+    expect(r.templateId).toBe("editorial_01");
+    expect(r.templateVersion).toBe("1.1");
+  });
 });

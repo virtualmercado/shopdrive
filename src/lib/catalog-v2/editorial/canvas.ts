@@ -61,10 +61,22 @@ export class EditorialCanvas {
     const lines = this.pdf.splitTextToSize(text.replace(/\s+/g, " ").trim(), width) as string[];
     if (lines.length <= maxLines) return lines;
     const out = lines.slice(0, maxLines);
-    let last = out[maxLines - 1];
-    while (last.length > 1 && this.pdf.getTextWidth(`${last}...`) > width) last = last.slice(0, -1);
-    out[maxLines - 1] = `${last.replace(/[\s,.;:-]+$/, "")}...`;
+    // Corta por palavra inteira (nunca no meio) até caber com reticências.
+    const words = out[maxLines - 1].split(" ");
+    const fits = (ws: string[]) => this.pdf.getTextWidth(`${ws.join(" ").replace(/[\s,.;:–—-]+$/, "")}...`) <= width;
+    while (words.length > 1 && !fits(words)) words.pop();
+    let last = words.join(" ");
+    while (last.length > 1 && !fits([last])) last = last.slice(0, -1);
+    out[maxLines - 1] = `${last.replace(/[\s,.;:–—-]+$/, "")}...`;
     return out;
+  }
+
+  /** Mede um título: reduz o corpo (até minSize) para não partir palavras; não desenha. */
+  fitTitle(text: string, width: number, size: number, minSize: number, maxLines: number, style: "normal" | "bold" = "bold") {
+    this.font(size, style);
+    const words = text.split(/\s+/).filter(Boolean);
+    while (size > minSize && words.some((w) => this.pdf.getTextWidth(w) > width)) this.font(--size, style);
+    return { lines: this.wrapNow(text, width, maxLines), size };
   }
 
   /** Desenha linhas a partir do topo `y`; retorna a altura usada. */

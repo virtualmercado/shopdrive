@@ -84,7 +84,15 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
     if (i > 0) cv.newPage();
     const edge = imageEdge(page);
     const refs = pageImageRefs(page, ctx).filter((r): r is CatalogImageRef => !!r);
-    current = new Map(await Promise.all(refs.map(async (r) => [r.url, await opts.resolveImage(r.url, edge, false).catch(() => null)] as const)));
+    const load = (rs: CatalogImageRef[]) => Promise.all(rs.map(async (r) => [r.url, await opts.resolveImage(r.url, edge, false).catch(() => null)] as const));
+    current = new Map(await load(refs));
+    // Foto principal inválida: tenta só a primeira imagem adicional do próprio produto.
+    if (page.kind === "products") {
+      const fallbacks = page.productIds.map(ctx.product)
+        .filter((p) => !(p.primaryImage && current.get(p.primaryImage.url)) && p.additionalImages[0])
+        .map((p) => p.additionalImages[0]);
+      (await load(fallbacks)).forEach(([u, img]) => current.set(u, img));
+    }
     if (page.kind === "cover") renderCover(cv, ctx, page);
     else if (page.kind === "separator") renderSeparator(cv, ctx, page);
     else if (page.kind === "products") renderProductsPage(cv, ctx, page);

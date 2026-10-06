@@ -2,79 +2,104 @@ import { formatBRL, type Box, type EditorialCanvas } from "./canvas";
 import type { RenderContext } from "./context";
 import type { PagePlan } from "./composer";
 import type { CatalogProduct } from "../types";
-import { PAGE } from "./theme";
+import { PAGE, mix, type EditorialTheme } from "./theme";
 
 const M = PAGE.margin;
 export const CONTENT: Box = { x: M, y: M + PAGE.headerH + 4, w: PAGE.w - M * 2, h: PAGE.h - M * 2 - PAGE.headerH - PAGE.footerH - 4 };
 
-interface InfoScale { name: number; nameLines: number; desc: number; price: number; gap: number }
+/**
+ * flow: preço/CTA logo após o texto (faixas horizontais, sem vazio artificial).
+ * bottom: preço/CTA ancorados no pé do bloco (grade, alinhando os vizinhos).
+ */
+interface InfoScale { name: number; nameMin: number; nameLines: number; desc: number; descLines: number; price: number; meta: number; gap: number; anchor: "flow" | "bottom" }
 
 const SCALES: Record<1 | 2 | 3 | 4, InfoScale> = {
-  1: { name: 20, nameLines: 2, desc: 10, price: 20, gap: 3 },
-  2: { name: 14, nameLines: 3, desc: 9, price: 15, gap: 2.5 },
-  3: { name: 14, nameLines: 2, desc: 9, price: 15, gap: 2.2 },
-  4: { name: 11, nameLines: 2, desc: 8, price: 12.5, gap: 1.8 },
+  1: { name: 22, nameMin: 16, nameLines: 3, desc: 10.5, descLines: 6, price: 21, meta: 7.5, gap: 3, anchor: "flow" },
+  2: { name: 16, nameMin: 12, nameLines: 3, desc: 9.5, descLines: 7, price: 17, meta: 7.2, gap: 2.6, anchor: "flow" },
+  3: { name: 13.5, nameMin: 11, nameLines: 3, desc: 9, descLines: 4, price: 15, meta: 7, gap: 2.2, anchor: "flow" },
+  4: { name: 11.5, nameMin: 10, nameLines: 3, desc: 8.5, descLines: 3, price: 13, meta: 7, gap: 1.8, anchor: "bottom" },
 };
 
+const BODY: [number, number, number] = [63, 63, 70];
 const descriptionOf = (p: CatalogProduct) => p.description.plainText.replace(/\n+/g, " ").trim();
 
-/** Bloco de informações com reserva do rodapé (preço + botão) antes da descrição. */
 const drawInfo = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b: Box, s: InfoScale) => {
   const t = ctx.theme;
   let y = b.y;
   const meta = [ctx.categoryName(p.categoryId), ctx.brandName(p.brandId)].filter(Boolean).join("  ·  ");
-  if (meta) y += cv.text(cv.wrap(meta.toUpperCase(), b.w, 1), b.x, y, 6.8, t.muted, { style: "bold", charSpace: 0.4, label: "meta" }) + s.gap;
-  y += cv.text(cv.wrap(p.name, b.w, s.nameLines), b.x, y, s.name, t.ink, { style: "bold", leading: 1.15, label: "name" }) + s.gap + 0.5;
+  if (meta) y += cv.text(cv.wrap(meta.toUpperCase(), b.w, 1), b.x, y, s.meta, t.muted, { style: "bold", charSpace: 0.35, label: "meta" }) + s.gap;
+  const name = cv.fitTitle(p.name, b.w, s.name, s.nameMin, s.nameLines);
+  y += cv.text(name.lines, b.x, y, name.size, t.ink, { style: "bold", leading: 1.15, label: "name" }) + s.gap + 0.6;
 
-  // Rodapé do bloco: preço à esquerda, botão à direita.
+  // Reserva do rodapé (preço + botão) antes da descrição: o texto nunca invade.
   const hasPromo = ctx.showPrices && !!p.price.promotional;
-  const priceH = ctx.showPrices ? s.price * 0.3528 + (hasPromo ? 4.2 : 0) : 0;
-  const btnH = 8 * 0.3528 + 5;
+  const oldH = 3.6;
+  const priceH = ctx.showPrices ? s.price * 0.3528 + (hasPromo ? oldH + 1.2 : 0) : 0;
+  const btnH = 8.5 * 0.3528 + 5;
   const footH = Math.max(priceH, p.publicUrl ? btnH : 0);
-  const footY = b.y + b.h - footH;
+  const bottomFoot = b.y + b.h - footH;
 
   const desc = descriptionOf(p);
-  const descLH = cv.lineH(s.desc, 1.35);
-  const room = footY - s.gap * 1.5 - y;
-  const maxDesc = Math.max(0, Math.floor((room - s.desc * 0.3528) / descLH) + 1);
-  if (desc && room > s.desc * 0.3528) {
-    cv.text(cv.wrap(desc, b.w, maxDesc), b.x, y, s.desc, [82, 82, 91], { leading: 1.35, label: "desc" });
+  const descLH = cv.lineH(s.desc, 1.4);
+  const room = bottomFoot - s.gap * 2 - y;
+  const maxDesc = Math.min(s.descLines, Math.max(0, Math.floor((room - s.desc * 0.3528) / descLH) + 1));
+  let descH = 0;
+  if (desc && maxDesc > 0 && room > s.desc * 0.3528) {
+    cv.font(s.desc);
+    descH = cv.text(cv.wrapNow(desc, b.w, maxDesc), b.x, y, s.desc, BODY, { leading: 1.4, label: "desc" });
   }
+  const flowFoot = y + descH + s.gap * 2.6;
+  const footY = s.anchor === "flow" ? Math.min(bottomFoot, Math.max(flowFoot, y)) : bottomFoot;
 
   if (ctx.showPrices) {
     let py = footY + (footH - priceH);
     if (hasPromo) {
       const old = formatBRL(p.price.regular.amount);
-      cv.text([old], b.x, py, 8, t.muted, { label: "price-old" });
-      cv.font(8);
-      const ow = cv.pdf.getTextWidth(old);
-      cv.line(b.x, py + 1.45, b.x + ow, py + 1.45, t.muted, 0.25);
-      py += 4.2;
+      cv.text([old], b.x, py, 8.5, t.muted, { label: "price-old" });
+      cv.font(8.5);
+      cv.line(b.x, py + 1.5, b.x + cv.pdf.getTextWidth(old), py + 1.5, t.muted, 0.3);
+      py += oldH + 1.2;
     }
     cv.text([formatBRL(p.price.effective.amount)], b.x, py, s.price, t.price, { style: "bold", label: "price" });
   }
   if (p.publicUrl) {
-    cv.font(8, "bold");
-    const bw = cv.pdf.getTextWidth("Ver produto") + 10;
-    cv.button("Ver produto", b.x + b.w - bw, footY + footH - btnH, p.publicUrl, t.accent, t.onAccent, 8);
+    cv.font(8.5, "bold");
+    const bw = cv.pdf.getTextWidth("Ver produto") + 12;
+    cv.button("Ver produto", b.x + b.w - bw, footY + footH - btnH, p.publicUrl, t.accent, t.onAccent, 8.5, bw);
   }
+};
+
+/** Sem imagem válida: bloco neutro com ícone de foto e aviso discreto, no mesmo espaço. */
+export const drawNoImage = (cv: EditorialCanvas, t: EditorialTheme, b: Box) => {
+  const s = Math.max(9, Math.min(24, Math.min(b.w, b.h) * 0.2));
+  const iconC = mix(t.primary, [255, 255, 255], 0.6);
+  const textSize = s < 12 ? 7 : 8;
+  const blockH = s * 0.78 + 4 + textSize * 0.3528;
+  const x = b.x + (b.w - s) / 2, y = b.y + (b.h - blockH) / 2;
+  const h = s * 0.78;
+  cv.stroke(iconC);
+  cv.pdf.setLineWidth(0.6);
+  cv.pdf.roundedRect(x, y, s, h, s * 0.08, s * 0.08, "S");
+  cv.fill(iconC);
+  cv.pdf.circle(x + s * 0.7, y + h * 0.3, s * 0.08, "F");
+  cv.pdf.triangle(x + s * 0.12, y + h * 0.85, x + s * 0.4, y + h * 0.42, x + s * 0.64, y + h * 0.85, "F");
+  cv.pdf.triangle(x + s * 0.48, y + h * 0.85, x + s * 0.66, y + h * 0.58, x + s * 0.88, y + h * 0.85, "F");
+  cv.rects.push({ x, y, w: s, h, page: cv.page, kind: "shape", label: "noimg-icon" });
+  cv.text(["Imagem indisponível"], b.x, y + h + 4, textSize, t.muted, { align: "center", width: b.w, label: "noimg" });
 };
 
 const drawImage = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b: Box, pad: number) => {
   const t = ctx.theme;
   cv.rect(b, t.imageBg, 2);
-  const img = ctx.image(p.primaryImage);
+  const img = ctx.image(p.primaryImage) ?? ctx.image(p.additionalImages[0]);
   if (img) cv.imageContain(img, b, pad);
-  else {
-    const initial = (p.name.trim()[0] || "?").toUpperCase();
-    cv.text([initial], b.x, b.y + b.h / 2 - 9, 44, t.tint.map((c) => c - 22) as typeof t.tint, { style: "bold", align: "center", width: b.w, label: "noimg" });
-  }
+  else drawNoImage(cv, t, b);
   if (ctx.showPrices && p.price.discountPercent) {
     const label = `-${p.price.discountPercent}%`;
-    cv.font(7.5, "bold");
+    cv.font(8, "bold");
     const w = cv.pdf.getTextWidth(label) + 6;
-    cv.rect({ x: b.x + 3, y: b.y + 3, w, h: 6 }, t.primary, 3);
-    cv.text([label], b.x + 3, b.y + 4.4, 7.5, t.onPrimary, { style: "bold", align: "center", width: w, label: "badge" });
+    cv.rect({ x: b.x + 3, y: b.y + 3, w, h: 6.2 }, t.primary, 3.1);
+    cv.text([label], b.x + 3, b.y + 4.45, 8, t.onPrimary, { style: "bold", align: "center", width: w, label: "badge" });
   }
 };
 
@@ -82,13 +107,19 @@ const drawChrome = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: strin
   const t = ctx.theme;
   const w = PAGE.w - M * 2;
   cv.text(cv.wrap(ctx.doc.identity.storeName.toUpperCase(), w / 2 - 4, 1), M, M + 2, 7.5, t.primary, { style: "bold", charSpace: 0.6, label: "hdr-store" });
-  const sec = cv.wrap(sectionTitle, w / 2 - 4, 1);
-  cv.text(sec, M + w / 2 + 4, M + 2, 7.5, t.muted, { align: "right", width: w / 2 - 4, label: "hdr-section" });
+  cv.text(cv.wrap(sectionTitle, w / 2 - 4, 1), M + w / 2 + 4, M + 2, 7.5, t.muted, { align: "right", width: w / 2 - 4, label: "hdr-section" });
   cv.line(M, M + PAGE.headerH - 2, PAGE.w - M, M + PAGE.headerH - 2, t.hairline, 0.25);
   const fy = PAGE.h - M - 3;
   cv.line(M, fy - 3, PAGE.w - M, fy - 3, t.hairline, 0.25);
   if (ctx.doc.identity.publicUrl) cv.text([ctx.doc.identity.publicUrl.replace(/^https?:\/\//, "")], M, fy, 7, t.muted, { label: "ftr-url" });
   cv.text([String(pageNo).padStart(2, "0")], M + w - 20, fy, 7, t.muted, { style: "bold", align: "right", width: 20, label: "ftr-page" });
+};
+
+/** Faixa horizontal: imagem à esquerda, informações à direita. */
+const drawBand = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, y: number, h: number, imgW: number, pad: number, s: InfoScale, inner: number) => {
+  drawImage(cv, ctx, p, { x: CONTENT.x, y, w: imgW, h }, pad);
+  const ix = CONTENT.x + imgW + inner;
+  drawInfo(cv, ctx, p, { x: ix, y: y + 3, w: CONTENT.x + CONTENT.w - ix, h: h - 6 }, s);
 };
 
 export const renderProductsPage = (cv: EditorialCanvas, ctx: RenderContext, plan: Extract<PagePlan, { kind: "products" }>) => {
@@ -100,22 +131,21 @@ export const renderProductsPage = (cv: EditorialCanvas, ctx: RenderContext, plan
 
   if (plan.layout === 1) {
     const p = products[0];
-    const imgH = 168;
+    const imgH = 160;
     drawImage(cv, ctx, p, { x: C.x, y: C.y, w: C.w, h: imgH }, 10);
     drawInfo(cv, ctx, p, { x: C.x + 4, y: C.y + imgH + 9, w: C.w - 8, h: C.h - imgH - 9 }, s);
   } else if (plan.layout === 2) {
-    const gap = 8, w = (C.w - gap) / 2, imgH = 150;
+    const gap = 12, h = (C.h - gap) / 2, imgW = 96;
     products.forEach((p, i) => {
-      const x = C.x + i * (w + gap);
-      drawImage(cv, ctx, p, { x, y: C.y, w, h: imgH }, 6);
-      drawInfo(cv, ctx, p, { x: x + 1, y: C.y + imgH + 7, w: w - 2, h: C.h - imgH - 7 }, s);
+      const y = C.y + i * (h + gap);
+      drawBand(cv, ctx, p, y, h, imgW, 7, s, 9);
+      if (i === 0) cv.line(C.x, y + h + gap / 2, C.x + C.w, y + h + gap / 2, ctx.theme.hairline, 0.25);
     });
   } else if (plan.layout === 3) {
     const gap = 9, h = (C.h - gap * 2) / 3, imgW = 74;
     products.forEach((p, i) => {
       const y = C.y + i * (h + gap);
-      drawImage(cv, ctx, p, { x: C.x, y, w: imgW, h }, 5);
-      drawInfo(cv, ctx, p, { x: C.x + imgW + 8, y: y + 2, w: C.w - imgW - 8, h: h - 4 }, s);
+      drawBand(cv, ctx, p, y, h, imgW, 5, s, 8);
       if (i < products.length - 1) cv.line(C.x + imgW + 8, y + h + gap / 2, C.x + C.w, y + h + gap / 2, ctx.theme.hairline, 0.25);
     });
   } else {
