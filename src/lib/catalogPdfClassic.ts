@@ -52,7 +52,7 @@ export const htmlToCatalogText = (html: string | null | undefined): string => {
   s = s.replace(/<br\s*\/?>/gi, "\n");
   s = s.replace(/<li[^>]*>/gi, "\n• ");
   s = s.replace(/<\/(p|div|h[1-6]|blockquote|ul|ol|tr|section|article)\s*>/gi, "\n\n");
-  s = s.replace(/<\/li\s*>/gi, "\n");
+  s = s.replace(/<\/li\s*>/gi, "");
   s = s.replace(/<[^>]*>/g, "");
   s = s.replace(/</g, "");
   s = decodeEntities(s);
