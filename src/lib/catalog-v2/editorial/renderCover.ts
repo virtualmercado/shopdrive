@@ -55,7 +55,8 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
   const count = `${doc.products.length} ${doc.products.length === 1 ? "produto" : "produtos"}`;
   const year = new Date(doc.meta.generatedAt).getFullYear();
   cv.line(M, footY - 5, PAGE.w - M, footY - 5, mix(t.primary, fg, 0.25), 0.25);
-  if (ctx.coverOptions.showMeta) cv.text([`${count}  ·  ${year}`], M, footY, 9, soft, { label: "cover-meta" });
+  const meta = [ctx.coverOptions.showCount ? count : null, ctx.coverOptions.showYear ? String(year) : null].filter(Boolean).join("  ·  ");
+  if (meta) cv.text([meta], M, footY, 9, soft, { label: "cover-meta" });
   if (doc.identity.publicUrl) {
     const url = doc.identity.publicUrl.replace(/^https?:\/\//, "");
     cv.font(9, "bold");
