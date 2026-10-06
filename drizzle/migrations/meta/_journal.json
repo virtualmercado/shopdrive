@@ -253,6 +253,13 @@
       "when": 1791306777162,
       "tag": "0035_catalog_editorial_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791306963533,
+      "tag": "0036_catalog_editorial_publish_reset_marker",
+      "breakpoints": true
     }
   ]
 }
