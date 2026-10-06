@@ -8,7 +8,7 @@ export const renderBackCover = (cv: EditorialCanvas, ctx: RenderContext) => {
   const id = ctx.doc.identity;
   const M = PAGE.margin;
   const fg = t.onPrimary;
-  const soft = mix(t.primary, fg, 0.62);
+  const soft = mix(t.primary, fg, 0.7);
   const w = PAGE.w - M * 2;
 
   cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, t.primary);

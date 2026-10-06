@@ -55,10 +55,11 @@ export const fixtureStoreA = (): CatalogSource => {
 
 export const fixtureStoreB = (count = 4): CatalogSource => {
   const s = FIXTURE_STORE_B;
+  const names = ["Tênis Urbano Couro Caramelo", "Tênis Casual Branco Feminino", "Sapatênis Camurça Bordô", "Mocassim Couro Natural"];
   return {
     storeId: s,
     profile: profile(s, { store_name: "Oficina Rubi Calçados", store_slug: "oficina-rubi", store_logo_url: "fixture://logoB.png", primary_color: "#962838", whatsapp_number: "5511988887777" }),
-    products: Array.from({ length: count }, (_, i) => row(s, i, { name: `Tênis Urbano Modelo ${i + 1}`, category_id: i % 2 ? "b-cat-2" : "b-cat-1", description: "Cabedal em couro, palmilha anatômica e solado de borracha natural.", price: 199.9 + i, promotional_price: i % 5 === 0 ? 179.9 + i : null, image_url: `fixture://shoe${i % 4}.jpg` })),
+    products: Array.from({ length: count }, (_, i) => row(s, i, { name: count <= 4 ? names[i % 4] : `${names[i % 4]} ${i + 1}`, category_id: i % 2 ? "b-cat-2" : "b-cat-1", description: "Cabedal em couro, palmilha anatômica e solado de borracha natural.", price: 199.9 + i, promotional_price: i % 5 === 0 ? 179.9 + i : null, image_url: `fixture://shoe${i % 4}.jpg` })),
     categories: [{ id: "b-cat-1", user_id: s, name: "Masculino", icon_url: null }, { id: "b-cat-2", user_id: s, name: "Feminino", icon_url: null }],
     brands: [],
     galleryByProduct: {},
