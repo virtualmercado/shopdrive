@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { FileText, Download, Copy, RefreshCw, Printer, Check, Grid3X3, Grid2X2, MapPin, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,15 @@ import {
   isValidShareCode,
   setCurrentCatalog,
 } from "@/lib/catalogShareLink";
+import {
+  buildCatalogProductUrl,
+  buildCatalogStoreUrl,
+  catalogImageMaxEdgePx,
+  createCatalogImageLoader,
+  fitWithinEdge,
+  htmlToCatalogText,
+  type CatalogImage,
+} from "@/lib/catalogPdfClassic";
 
 interface Product {
   id: string;
@@ -111,6 +120,7 @@ const CatalogPDF = () => {
       .from("products")
       .select("id, name, description, price, promotional_price, image_url, category_id, variations")
       .eq("user_id", user.id)
+      .eq("is_active", true)
       .order("name");
 
     if (productsData) {
@@ -195,32 +205,76 @@ const CatalogPDF = () => {
     return { r, g, b };
   };
 
-  // Helper function to load image and get dimensions
-  const loadImageWithDimensions = (url: string, preserveTransparency: boolean = false): Promise<{ data: string; width: number; height: number; format: string } | null> => {
+  // Decode one image, downscaled to the area it will occupy (with timeout).
+  const decodeCatalogImage = (url: string, preserveTransparency: boolean, maxEdgePx: number, timeoutMs: number): Promise<Omit<CatalogImage, "alias"> | null> => {
     return new Promise((resolve) => {
       const img = new Image();
+      let settled = false;
+      const done = (v: Omit<CatalogImage, "alias"> | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        img.onload = null;
+        img.onerror = null;
+        resolve(v);
+      };
+      const timer = setTimeout(() => { img.src = ""; done(null); }, timeoutMs);
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
+        try {
+          const { width, height } = fitWithinEdge(img.naturalWidth, img.naturalHeight, maxEdgePx);
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return done(null);
           if (!preserveTransparency) {
             ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, width, height);
           }
-          ctx.drawImage(img, 0, 0);
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, width, height);
           const format = preserveTransparency ? "image/png" : "image/jpeg";
           const data = canvas.toDataURL(format, 0.9);
-          resolve({ data, width: img.naturalWidth, height: img.naturalHeight, format: preserveTransparency ? "PNG" : "JPEG" });
-        } else {
-          resolve(null);
+          // Aspect ratio is reported from the original so layout math is unchanged.
+          done({ data, width: img.naturalWidth, height: img.naturalHeight, format: preserveTransparency ? "PNG" : "JPEG" });
+        } catch {
+          done(null);
         }
       };
-      img.onerror = () => resolve(null);
+      img.onerror = () => done(null);
       img.src = url;
     });
+  };
+
+  const imageLoaderRef = useRef(createCatalogImageLoader(decodeCatalogImage));
+
+  // Load (cached per generation) an image sized for `maxMm` on the page.
+  const loadImageWithDimensions = (url: string, preserveTransparency: boolean = false, maxMm: number = 200): Promise<CatalogImage | null> =>
+    imageLoaderRef.current.load(url, preserveTransparency, catalogImageMaxEdgePx(maxMm));
+
+  // Neutral placeholder when a product image cannot be loaded.
+  const drawImageFallback = (pdf: jsPDF, x: number, y: number, w: number, h: number) => {
+    pdf.setFillColor(243, 243, 243);
+    pdf.setDrawColor(225, 225, 225);
+    pdf.setLineWidth(0.2);
+    pdf.roundedRect(x, y, w, h, 1.5, 1.5, "FD");
+    if (h >= 8 && w >= 16) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(Math.min(8, Math.max(5, h / 6)));
+      pdf.setTextColor(160, 160, 160);
+      pdf.text("Imagem indisponível", x + w / 2, y + h / 2 + 1, { align: "center" });
+    }
+  };
+
+  // Cover message wrapped inside the cover box (max 3 lines). Returns lines drawn.
+  const drawCoverMessage = (pdf: jsPDF, centerX: number, y: number, maxWidth: number, fontSize: number) => {
+    pdf.setFontSize(fontSize);
+    pdf.setFont("helvetica", "italic");
+    pdf.setTextColor(80, 80, 80);
+    const lines = (pdf.splitTextToSize(coverMessage.trim(), maxWidth) as string[]).slice(0, 3);
+    lines.forEach((line, i) => pdf.text(line, centerX, y + i * fontSize * 0.45, { align: "center" }));
+    return lines.length;
   };
 
   const calculateImageDimensions = (
@@ -285,7 +339,7 @@ const CatalogPDF = () => {
     let logoImage: { data: string; width: number; height: number; format: string } | null = null;
     
     if (storeProfile?.store_logo_url) {
-      logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
       if (logoImage) {
         logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, 55, 45);
       }
@@ -315,11 +369,8 @@ const CatalogPDF = () => {
     currentY += 10;
 
     if (coverMessage.trim()) {
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
-      currentY += 10;
+      const lines = drawCoverMessage(pdf, textCenterX, currentY, rectWidth - 12, 12);
+      currentY += 10 + (lines - 1) * 5.4;
     }
     currentY += 10;
 
@@ -333,7 +384,7 @@ const CatalogPDF = () => {
       const logoX = textCenterX - (logoDimensions.width / 2);
       const maxLogoY = rectY + rectHeight - logoDimensions.height - 20;
       const logoY = Math.min(currentY, maxLogoY);
-      pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+      pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height, logoImage.alias);
     }
   };
 
@@ -385,11 +436,8 @@ const CatalogPDF = () => {
     currentY += 8;
 
     if (coverMessage.trim()) {
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
-      currentY += 8;
+      const lines = drawCoverMessage(pdf, textCenterX, currentY, rectSize - 12, 11);
+      currentY += 8 + (lines - 1) * 5;
     }
     currentY += 8;
 
@@ -399,12 +447,12 @@ const CatalogPDF = () => {
     currentY += 14;
 
     if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
       if (logoImage) {
         const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
         const logoX = textCenterX - (dim.width / 2);
         const maxLogoY = rectY + rectSize - dim.height - 8;
-        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height, logoImage.alias);
       }
     }
   };
@@ -458,11 +506,8 @@ const CatalogPDF = () => {
     currentY += 8;
 
     if (coverMessage.trim()) {
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
-      currentY += 8;
+      const lines = drawCoverMessage(pdf, textCenterX, currentY, rectSize - 12, 11);
+      currentY += 8 + (lines - 1) * 5;
     }
     currentY += 8;
 
@@ -472,12 +517,12 @@ const CatalogPDF = () => {
     currentY += 14;
 
     if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
       if (logoImage) {
         const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
         const logoX = textCenterX - (dim.width / 2);
         const maxLogoY = rectY + rectSize - dim.height - 8;
-        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height, logoImage.alias);
       }
     }
   };
@@ -522,11 +567,8 @@ const CatalogPDF = () => {
     currentY += 8;
 
     if (coverMessage.trim()) {
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(coverMessage.trim(), textCenterX, currentY, { align: "center" });
-      currentY += 8;
+      const lines = drawCoverMessage(pdf, textCenterX, currentY, rectSize - 12, 11);
+      currentY += 8 + (lines - 1) * 5;
     }
     currentY += 8;
 
@@ -536,12 +578,12 @@ const CatalogPDF = () => {
     currentY += 14;
 
     if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
       if (logoImage) {
         const dim = calculateImageDimensions(logoImage.width, logoImage.height, 45, 35);
         const logoX = textCenterX - (dim.width / 2);
         const maxLogoY = rectY + rectSize - dim.height - 8;
-        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, Math.min(currentY, maxLogoY), dim.width, dim.height, logoImage.alias);
       }
     }
   };
@@ -566,7 +608,7 @@ const CatalogPDF = () => {
     pdf.setFont("helvetica", "normal");
 
     if (storeProfile?.store_slug) {
-      const storeUrl = `${window.location.origin}/${storeProfile.store_slug}`;
+      const storeUrl = buildCatalogStoreUrl(storeProfile.store_slug);
       pdf.setTextColor(r, g, b);
       pdf.setFont("helvetica", "bold");
       pdf.text(storeUrl, centerX, infoY, { align: "center" });
@@ -591,9 +633,9 @@ const CatalogPDF = () => {
       const totalBlockWidth = iconSize + iconTextGap + textWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
       
-      const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false);
+      const whatsappIconData = await loadImageWithDimensions(iconWhatsAppOutline, false, 20);
       if (whatsappIconData) {
-        pdf.addImage(whatsappIconData.data, whatsappIconData.format, blockStartX, infoY - 4.5, iconSize, iconSize);
+        pdf.addImage(whatsappIconData.data, whatsappIconData.format, blockStartX, infoY - 4.5, iconSize, iconSize, whatsappIconData.alias);
       }
       pdf.text(displayNumber, blockStartX + iconSize + iconTextGap, infoY);
       const whatsappUrl = `https://wa.me/${rawNumber}`;
@@ -616,9 +658,9 @@ const CatalogPDF = () => {
       });
       const totalBlockWidth = iconSize + iconTextGap + maxLineWidth;
       const blockStartX = centerX - (totalBlockWidth / 2);
-      const mapPinIconData = await loadImageWithDimensions(iconMapPin, false);
+      const mapPinIconData = await loadImageWithDimensions(iconMapPin, false, 20);
       if (mapPinIconData) {
-        pdf.addImage(mapPinIconData.data, mapPinIconData.format, blockStartX, infoY - 3.5, iconSize, iconSize);
+        pdf.addImage(mapPinIconData.data, mapPinIconData.format, blockStartX, infoY - 3.5, iconSize, iconSize, mapPinIconData.alias);
       }
       const textStartX = blockStartX + iconSize + iconTextGap;
       let addressY = infoY;
@@ -639,13 +681,13 @@ const CatalogPDF = () => {
     pdf.setFillColor(255, 255, 255);
     pdf.circle(centerX, centerY, circleRadius, "F");
     if (storeProfile?.store_logo_url) {
-      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true);
+      const logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
       if (logoImage) {
         const logoMaxSize = circleRadius * 1.5;
         const logoDimensions = calculateImageDimensions(logoImage.width, logoImage.height, logoMaxSize, logoMaxSize);
         const logoX = centerX - (logoDimensions.width / 2);
         const logoY = centerY - (logoDimensions.height / 2);
-        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height);
+        pdf.addImage(logoImage.data, logoImage.format, logoX, logoY, logoDimensions.width, logoDimensions.height, logoImage.alias);
       }
     }
   };
@@ -769,8 +811,11 @@ const CatalogPDF = () => {
 
     // Product image
     if (product.image_url) {
-      const productImageData = await loadImageWithDimensions(product.image_url, false);
-      if (productImageData) {
+      const productImageData = await loadImageWithDimensions(product.image_url, false, 80);
+      if (!productImageData) {
+        drawImageFallback(pdf, contentCenterX - 40, currentY, 80, 80);
+        currentY += 80 + 15;
+      } else {
         const imgMaxWidth = 80;
         const imgMaxHeight = 80;
         const imgDimensions = calculateImageDimensions(
@@ -780,7 +825,7 @@ const CatalogPDF = () => {
           imgMaxHeight
         );
         const imgX = contentCenterX - (imgDimensions.width / 2);
-        pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height);
+        pdf.addImage(productImageData.data, productImageData.format, imgX, currentY, imgDimensions.width, imgDimensions.height, productImageData.alias);
         currentY += imgDimensions.height + 15;
       }
     }
@@ -818,17 +863,18 @@ const CatalogPDF = () => {
     pdf.text("Ver produto", contentCenterX, currentY + 6.5, { align: "center" });
 
     if (storeProfile?.store_slug) {
-      const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
+      const productUrl = buildCatalogProductUrl(storeProfile.store_slug, product.id);
       pdf.link(btnX, currentY, btnWidth, btnHeight, { url: productUrl });
     }
     currentY += btnHeight + 15;
 
     // Description
-    if (product.description) {
+    const descriptionText = htmlToCatalogText(product.description);
+    if (descriptionText) {
       pdf.setFontSize(11);
       pdf.setTextColor(60, 60, 60);
       pdf.setFont("helvetica", "normal");
-      const descLines = pdf.splitTextToSize(product.description, contentWidth);
+      const descLines = pdf.splitTextToSize(descriptionText, contentWidth);
       const maxLines = Math.min(descLines.length, 20);
       for (let i = 0; i < maxLines; i++) {
         pdf.text(descLines[i], contentStartX, currentY);
@@ -917,8 +963,10 @@ const CatalogPDF = () => {
         const imageAreaY = y + 4;
 
         if (product.image_url) {
-          const productImageData = await loadImageWithDimensions(product.image_url, false);
-          if (productImageData) {
+          const productImageData = await loadImageWithDimensions(product.image_url, false, Math.max(imageAreaWidth, imageAreaHeight));
+          if (!productImageData) {
+            drawImageFallback(pdf, imageAreaX + 2, imageAreaY + 2, imageAreaWidth - 4, imageAreaHeight - 4);
+          } else {
             const imgDimensions = calculateImageDimensions(
               productImageData.width,
               productImageData.height,
@@ -927,7 +975,7 @@ const CatalogPDF = () => {
             );
             const imgX = imageAreaX + (imageAreaWidth - imgDimensions.width) / 2;
             const imgY = imageAreaY + (imageAreaHeight - imgDimensions.height) / 2;
-            pdf.addImage(productImageData.data, productImageData.format, imgX, imgY, imgDimensions.width, imgDimensions.height);
+            pdf.addImage(productImageData.data, productImageData.format, imgX, imgY, imgDimensions.width, imgDimensions.height, productImageData.alias);
           }
         }
 
@@ -973,7 +1021,7 @@ const CatalogPDF = () => {
         pdf.text("Ver produto", x + cardWidth / 2, btnY + btnHeight * 0.65, { align: "center" });
 
         if (storeProfile?.store_slug) {
-          const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}?src=catalogo_pdf`;
+          const productUrl = buildCatalogProductUrl(storeProfile.store_slug, product.id);
           pdf.link(x, y, cardWidth, cardHeight, { url: productUrl });
         }
       }
@@ -1062,15 +1110,17 @@ const CatalogPDF = () => {
         const thumbY = currentY - 6;
         if (product.image_url) {
           try {
-            const thumbData = await loadImageWithDimensions(product.image_url, false);
-            if (thumbData) {
+            const thumbData = await loadImageWithDimensions(product.image_url, false, thumbnailSize);
+            if (!thumbData) {
+              drawImageFallback(pdf, thumbX, thumbY, thumbnailSize, thumbnailSize);
+            } else {
               const thumbDimensions = calculateImageDimensions(
                 thumbData.width,
                 thumbData.height,
                 thumbnailSize,
                 thumbnailSize
               );
-              pdf.addImage(thumbData.data, thumbData.format, thumbX, thumbY, thumbDimensions.width, thumbDimensions.height);
+              pdf.addImage(thumbData.data, thumbData.format, thumbX, thumbY, thumbDimensions.width, thumbDimensions.height, thumbData.alias);
             }
           } catch {
             // Skip if image fails to load
@@ -1096,7 +1146,7 @@ const CatalogPDF = () => {
 
         // Make row clickable
         if (storeProfile?.store_slug) {
-          const productUrl = `${window.location.origin}/${storeProfile.store_slug}/produto/${product.id}`;
+          const productUrl = buildCatalogProductUrl(storeProfile.store_slug, product.id);
           pdf.link(contentStartX, currentY - 7, contentWidth, rowHeight, { url: productUrl });
         }
 
@@ -1117,6 +1167,11 @@ const CatalogPDF = () => {
     }
 
     setIsGenerating(true);
+    // Fresh image cache per generation; drop any previous file URL so a
+    // failed upload never leaves an older catalog looking current.
+    imageLoaderRef.current = createCatalogImageLoader(decodeCatalogImage);
+    setCatalogUrl(null);
+    let uploadOk = false;
 
     try {
       let pdf: jsPDF;
@@ -1146,10 +1201,12 @@ const CatalogPDF = () => {
             .getPublicUrl(uploadData.path).data.publicUrl;
 
           if (publicUrl) {
-            setCatalogUrl(publicUrl);
             // Register this as the store's current catalog: the permanent
             // short link keeps working and now resolves to this file.
-            await setCurrentCatalog(uploadData.path, publicUrl);
+            const registered = await setCurrentCatalog(uploadData.path, publicUrl);
+            if (!registered) throw new Error("set_current_catalog failed");
+            setCatalogUrl(publicUrl);
+            uploadOk = true;
             const code = shareCode ?? (await ensureCatalogShareCode());
             if (code) setShareCode(code);
           }
@@ -1157,9 +1214,13 @@ const CatalogPDF = () => {
       } catch (e) {
         if (import.meta.env.DEV) console.error("Error uploading PDF:", e);
       }
-      
+
       setPdfGenerated(true);
-      toast.success("Catálogo gerado com sucesso!");
+      if (uploadOk) {
+        toast.success("Catálogo gerado com sucesso!");
+      } else {
+        toast.error("O PDF foi gerado, mas não foi possível atualizar o catálogo compartilhado. Tente novamente.");
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Erro ao gerar catálogo");
@@ -1201,8 +1262,9 @@ const CatalogPDF = () => {
         .getPublicUrl(uploadData.path).data.publicUrl;
 
       if (physicalUrl) {
+        const registered = await setCurrentCatalog(uploadData.path, physicalUrl);
+        if (!registered) throw new Error("set_current_catalog failed");
         setCatalogUrl(physicalUrl);
-        await setCurrentCatalog(uploadData.path, physicalUrl);
       }
     }
 
@@ -1926,9 +1988,9 @@ const CatalogPDF = () => {
                               {/* Button */}
                               <div className="text-[8px] text-white rounded py-1 px-4 mt-1 flex-shrink-0" style={{ backgroundColor: previewColor }}>Ver produto</div>
                               {/* Description */}
-                              {singleProduct.description && (
+                              {htmlToCatalogText(singleProduct.description) && (
                                 <div className="w-full mt-2 px-1 text-left overflow-hidden flex-1">
-                                  <p className="text-[6px] leading-[1.4] text-gray-600 whitespace-pre-line">{singleProduct.description}</p>
+                                  <p className="text-[6px] leading-[1.4] text-gray-600 whitespace-pre-line break-words">{htmlToCatalogText(singleProduct.description)}</p>
                                 </div>
                               )}
                             </div>

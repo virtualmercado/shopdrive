@@ -30,7 +30,7 @@ export const CatalogCoverPreview = ({ layoutType, primaryColor, logoUrl, coverMe
       <p className="text-sm text-gray-800">de</p>
       <p className="text-lg font-bold text-gray-800">PRODUTOS</p>
       {coverMessage && (
-        <p className="text-xs text-gray-600 mt-1 italic">{coverMessage}</p>
+        <p className="text-xs text-gray-600 mt-1 italic break-words line-clamp-3">{coverMessage}</p>
       )}
       <p className="text-sm text-gray-600 mt-2">{year}</p>
       {logoUrl && (

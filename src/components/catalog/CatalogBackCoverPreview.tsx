@@ -1,4 +1,5 @@
 import { MapPin } from 'lucide-react';
+import { buildCatalogStoreUrl } from "@/lib/catalogPdfClassic";
 import { type CatalogLayoutType } from './CatalogLayoutSelector';
 import iconWhatsAppOutline from '@/assets/icon-whatsapp-outline.jpg';
 
@@ -47,7 +48,7 @@ export const CatalogBackCoverPreview = ({
     <div className="mt-4 text-center text-xs text-gray-600 max-w-[80%] space-y-2">
       {storeSlug && (
         <p className="font-semibold cursor-pointer hover:underline" style={{ color }}>
-          {window.location.origin}/{storeSlug}
+          {buildCatalogStoreUrl(storeSlug)}
         </p>
       )}
       {whatsappNumber && (
