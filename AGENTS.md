@@ -4,3 +4,4 @@
 - Resolver de plano ignora `past_due` com tolerância vencida. Why: assinatura antiga esquecida mantinha plano pago.
 - Estoque (simples e variação) reservado só no servidor via `reserve_order_item_stock` na criação do pedido; devolvido uma vez em cancelamento/exclusão; Entregue não move estoque. Why: baixa no navegador não era atômica.
 - Regras detalhadas de backend em `supabase/AGENTS.md`.
+- Catálogo PDF clássico: texto, links públicos e imagens passam por `src/lib/catalogPdfClassic.ts` (compartilhado por prévia e PDF). Why: evita divergência e vazamento do host de preview nos PDFs.
