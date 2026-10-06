@@ -20,6 +20,8 @@ import CatalogLayoutSelector, { type CatalogLayoutType } from "@/components/cata
 import CatalogCoverPreview from "@/components/catalog/CatalogCoverPreview";
 import CatalogBackCoverPreview from "@/components/catalog/CatalogBackCoverPreview";
 import CatalogShareImageSection from "@/components/catalog/CatalogShareImageSection";
+import EditorialCatalogConfigurator from "@/components/catalog/editorial/EditorialCatalogConfigurator";
+import { useEditorialCatalogAccess } from "@/components/catalog/editorial/useEditorialCatalogAccess";
 import { fetchImageAsFile, resolveEffectiveShareImage } from "@/lib/catalogShareImage";
 import {
   DEFAULT_CAMPAIGN_TEXT,
@@ -103,6 +105,11 @@ const CatalogPDF = () => {
   const [campaignCopied, setCampaignCopied] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  // Fase 5A: modalidade (Clássico padrão). Editorial só com acesso autorizado no servidor.
+  const { allowed: editorialAllowed } = useEditorialCatalogAccess();
+  const [catalogMode, setCatalogMode] = useState<"classic" | "editorial">("classic");
+  const [editorialMounted, setEditorialMounted] = useState(false);
+  const isEditorial = editorialAllowed && catalogMode === "editorial";
   useEffect(() => {
     if (user) {
       fetchData();
@@ -1612,8 +1619,31 @@ const CatalogPDF = () => {
           </Card>
         )}
 
+        {/* Seletor de modalidade (somente contas autorizadas) */}
+        {editorialAllowed && !pdfGenerated && (
+          <div role="radiogroup" aria-label="Modalidade do catálogo" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([
+              ["classic", "Clássico", "Modelos tradicionais de catálogo, com geração rápida e configurações simplificadas."],
+              ["editorial", "Editorial", "Catálogo profissional com páginas personalizadas, apresentação da loja e produtos organizados."],
+            ] as const).map(([value, label, desc]) => (
+              <button key={value} type="button" role="radio" aria-checked={catalogMode === value}
+                onClick={() => { setCatalogMode(value); if (value === "editorial") setEditorialMounted(true); }}
+                className={`text-left rounded-lg border p-4 transition-colors ${catalogMode === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
+                <p className="font-semibold text-foreground">{label}{value === "editorial" && <span className="ml-2 text-xs font-normal text-muted-foreground">homologação</span>}</p>
+                <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {editorialAllowed && editorialMounted && !pdfGenerated && (
+          <div className={isEditorial ? "" : "hidden"}>
+            <EditorialCatalogConfigurator />
+          </div>
+        )}
+
         {/* Main Content */}
-        {!pdfGenerated && (
+        {!pdfGenerated && !isEditorial && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Filter Options */}
             <Card>
