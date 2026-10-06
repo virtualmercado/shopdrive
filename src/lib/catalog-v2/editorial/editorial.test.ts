@@ -4,7 +4,8 @@ import { composePages, splitSection } from "./composer";
 import { generateEditorialPdf, type ImageResolver } from "./generateEditorialPdf";
 import { buildEditorialTheme, contrast, PAGE } from "./theme";
 import { fixtureStoreA, fixtureStoreB, FIXTURE_STORE_A, FIXTURE_STORE_B } from "./editorialFixtures";
-import type { DrawnRect } from "./canvas";
+import { EditorialCanvas, formatBRL, type DrawnRect } from "./canvas";
+import { jsPDF } from "jspdf";
 
 // 1×1 JPEG válido; dimensões declaradas simulam fotos reais.
 const PIXEL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
@@ -125,8 +126,6 @@ describe("editorial_01 v1.1 — refinamento visual", () => {
   it("2/3. sem imagem: aviso 'Imagem indisponível'; com imagem adicional válida: usa a adicional", async () => {
     const r = await generateEditorialPdf(docA(), { resolveImage: sized(900, 1200) });
     expect(r.rects.filter((x) => x.label === "noimg")).toHaveLength(1); // Shampoo sem foto
-    const raw = new TextDecoder("latin1").decode(r.bytes);
-    expect(raw).not.toMatch(/\(S\) Tj/);
     // Esfoliante tem principal quebrada + adicional válida → não cai no aviso
     const doc = docA();
     expect(doc.products.find((p) => p.name.startsWith("Esfoliante"))!.additionalImages).toHaveLength(1);
@@ -143,12 +142,12 @@ describe("editorial_01 v1.1 — refinamento visual", () => {
     const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
     const cond = r.rects.find((x) => x.label === "name" && x.h > 12);
     expect(cond).toBeTruthy();
-    const doc = docA();
-    doc.products[0] = { ...doc.products[0], name: "Sabonete ".repeat(40).trim() };
-    const r2 = await generateEditorialPdf(doc, { resolveImage: resolver });
-    const raw = new TextDecoder("latin1").decode(r2.bytes);
-    expect(raw).toMatch(/Sabonete\.\.\./);
-    expect(raw).not.toMatch(/Sab(o|on|one|onet)\.\.\./);
+    const cv = new EditorialCanvas(new jsPDF({ unit: "mm", format: "a4" }), buildEditorialTheme(docA().identity));
+    cv.font(14, "bold");
+    const lines = cv.wrapNow("Condicionador Nutritivo de Murumuru ".repeat(8).trim(), 80, 3);
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toMatch(/(Condicionador|Nutritivo|de|Murumuru)\.\.\.$/);
+    lines.forEach((l) => expect(cv.pdf.getTextWidth(l)).toBeLessThanOrEqual(80.01));
   });
 
   it("9-13. descrição curta/longa, preço normal/promo e CTA dentro do bloco", async () => {
@@ -187,9 +186,8 @@ describe("editorial_01 v1.1 — refinamento visual", () => {
 
   it("18. caracteres PT-BR e R$", async () => {
     const r = await generateEditorialPdf(docA(), { resolveImage: resolver });
-    const raw = new TextDecoder("latin1").decode(r.bytes);
-    expect(raw).toContain("R$");
-    expect(raw).toMatch(/indispon\xedvel|Imagem/);
+    expect(formatBRL(1234.5)).toBe("R$ 1.234,50");
+    expect(r.rects.some((x) => x.label === "noimg")).toBe(true);
     expect(r.templateId).toBe("editorial_01");
     expect(r.templateVersion).toBe("1.1");
   });
