@@ -343,7 +343,7 @@ const AdminStoreOnboarding = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleCatalogEditorial(r.store_id, !r.catalog_editorial_enabled)}>
                                   <BookOpen className="mr-2 h-4 w-4" />
-                                  {r.catalog_editorial_enabled ? "Bloquear Catálogo Editorial" : "Liberar Catálogo Editorial"}
+                                  {r.catalog_editorial_enabled ? "Bloquear Catálogo Editorial 2.0" : "Liberar Catálogo Editorial 2.0"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
