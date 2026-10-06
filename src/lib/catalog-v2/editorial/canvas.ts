@@ -2,6 +2,11 @@ import type { jsPDF } from "jspdf";
 import type { CatalogImage } from "@/lib/catalogPdfClassic";
 import type { EditorialTheme, RGB } from "./theme";
 
+/** Fontes padrão do jsPDF só codificam WinAnsi: emojis/símbolos fora dela viram lixo e quebram o espaçamento. */
+const WINANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+export const pdfSafe = (s: string) =>
+  s.normalize("NFC").replace(/[^\u0000-\u00FF]/gu, (ch) => (WINANSI_EXTRA.includes(ch) ? ch : "")).replace(/[ \t]{2,}/g, " ");
+
 export interface WrapReq { wrap: true; text: string; width: number; maxLines: number }
 export interface Box { x: number; y: number; w: number; h: number }
 export interface DrawnRect extends Box { page: number; kind: "text" | "image" | "button" | "shape"; label?: string }
@@ -58,7 +63,7 @@ export class EditorialCanvas {
   /** Quebra com a fonte ATUAL em no máximo maxLines, com reticências na última linha. */
   wrapNow(text: string, width: number, maxLines: number): string[] {
     if (!text || maxLines <= 0) return [];
-    const lines = this.pdf.splitTextToSize(text.replace(/\s+/g, " ").trim(), width) as string[];
+    const lines = this.pdf.splitTextToSize(pdfSafe(text).replace(/\s+/g, " ").trim(), width) as string[];
     if (lines.length <= maxLines) return lines;
     const out = lines.slice(0, maxLines);
     // Corta por palavra inteira (nunca no meio) até caber com reticências.
@@ -83,7 +88,7 @@ export class EditorialCanvas {
   text(input: string[] | WrapReq, x: number, y: number, size: number, c: RGB, opts: { style?: "normal" | "bold"; align?: "left" | "center" | "right"; width?: number; leading?: number; label?: string; charSpace?: number; minSize?: number } = {}) {
     this.font(size, opts.style);
     let lines: string[];
-    if (Array.isArray(input)) lines = input;
+    if (Array.isArray(input)) lines = input.map(pdfSafe);
     else {
       // Títulos: reduz o corpo até nenhuma palavra precisar ser partida.
       if (opts.minSize) {

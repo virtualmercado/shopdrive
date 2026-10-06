@@ -7,4 +7,4 @@
 - Catálogo PDF clássico: texto, links públicos e imagens passam por `src/lib/catalogPdfClassic.ts` (compartilhado por prévia e PDF). Why: evita divergência e vazamento do host de preview nos PDFs.
 
 - Catálogo PDF 2.0 vive isolado em `src/lib/catalog-v2/` (loader → normalizer → CatalogDocument → `composePages` → renderer jsPDF → preview pdf.js dos mesmos bytes); `CatalogPDF.tsx` só monta `src/components/catalog/editorial/` (estado e handlers próprios, sem publicar/compartilhar). Why: paginação única e preview fiel, sem regressão do Clássico.
-- Editorial visível só para papel admin (user_roles) e ocultável pela flag `ENABLE_CATALOG_EDITORIAL_V2=false` em `onboarding_feature_flags` (falha de leitura = oculto). Why: homologação controlada sem migration.
+- Editorial visível só para papel admin (user_roles) e exige também a flag `ENABLE_CATALOG_EDITORIAL_V2` com enabled=true em `onboarding_feature_flags` (ausente, desligada ou erro = oculto). Why: homologação controlada sem migration.
