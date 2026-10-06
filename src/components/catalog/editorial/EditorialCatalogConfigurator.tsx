@@ -280,8 +280,8 @@ const EditorialCatalogConfigurator = () => {
         setBaseline(null); // nova publicação exige nova prévia
         toast.success("Catálogo Editorial publicado.");
       } else {
-        setPublishError(outcome.message);
-        if (outcome.reason === "stale") setBaseline(null);
+        setPublishError((outcome as { message: string }).message);
+        if ((outcome as { reason: string }).reason === "stale") setBaseline(null);
       }
     } finally {
       setPublishing(false);
