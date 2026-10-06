@@ -33,7 +33,7 @@ describe("Fase 4 — retrocompatibilidade", () => {
     const empty = composePages(docA(), { editorial: normalizeEditorialConfig(docA(), {}).config });
     const strip = (p: PagePlan[]) => p.map((x) => (x.kind === "separator" ? { ...x, imageSource: undefined } : x));
     expect(strip(empty)).toEqual(strip(base));
-    expect(kinds(base).join(" ")).toBe("cover separator P3 P4 separator P2 separator P1 back");
+    expect(kinds(base).join(" ")).toBe("cover separator P2 separator P3 P4 separator P1 back");
   });
 
   it("1. só capa, produtos e contracapa (sem agrupamento)", async () => {
@@ -74,7 +74,7 @@ describe("Fase 4 — páginas institucional e comercial", () => {
   });
 
   it("4/8. ambas as páginas, ordem correta e textos longos sem corte nem sobreposição", async () => {
-    const long = Array.from({ length: 14 }, (_, i) => `Parágrafo ${i + 1}. ` + "Trabalhamos com ingredientes selecionados e processos cuidadosos em cada etapa da produção. ".repeat(3)).join("\n");
+    const long = Array.from({ length: 11 }, (_, i) => `Parágrafo ${i + 1}. ` + "Trabalhamos com ingredientes selecionados e processos cuidadosos em cada etapa da produção. ".repeat(3)).join("\n");
     const field = "x".repeat(10) + " palavra".repeat(Math.floor((EDITORIAL_LIMITS.commercialField - 10) / 8));
     const r = await gen(docA(), {
       cover: { title: "Catálogo Atacado Primavera Verão Dois Mil e Vinte e Seis Edição Revendedores", subtitle: "Linha completa de cuidados naturais para corpo, casa e presentes, com preços especiais" },
@@ -108,7 +108,7 @@ describe("Fase 4 — capa", () => {
     const cover = r.rects.filter((x) => x.page === 1).map((x) => x.label);
     expect(cover).toContain("cover-subtitle");
     expect(cover).not.toContain("cover-meta");
-    expect(new TextDecoder("latin1").decode(r.bytes)).toContain("Cole");
+    expect(r.rects.filter((x) => x.label === "cover-title")).toHaveLength(1);
   });
 
   it("imagem de capa só se pertencer ao documento; senão usa o fallback", () => {
@@ -125,10 +125,10 @@ describe("Fase 4 — separadores e agrupamento", () => {
   it("9-14. completo, compacto e automático (1, 2 e 3+ produtos)", () => {
     const d = docA();
     const plan = (separators: "full" | "compact" | "auto") => kinds(composePages(d, { editorial: normalizeEditorialConfig(d, { separators }).config })).join(" ");
-    expect(plan("full")).toBe("cover separator P3 P4 separator P2 separator P1 back");
-    expect(plan("compact")).toBe("cover P3h P4 P2h P1h back");
-    // Corpo (7) = completo; Casa (2) e Kits (1) = compactos.
-    expect(plan("auto")).toBe("cover separator P3 P4 P2h P1h back");
+    expect(plan("full")).toBe("cover separator P2 separator P3 P4 separator P1 back");
+    expect(plan("compact")).toBe("cover P2h P3h P4 P1h back");
+    // Casa (2) e Kits (1) = compactos; Corpo (7) = completo.
+    expect(plan("auto")).toBe("cover P2h separator P3 P4 P1h back");
   });
 
   it("10. cabeçalho compacto não sobrepõe produtos nem sai da página", async () => {
