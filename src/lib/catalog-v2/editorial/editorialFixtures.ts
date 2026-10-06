@@ -28,7 +28,7 @@ export const fixtureStoreA = (): CatalogSource => {
   const products: RawProductRow[] = [
     ...names.map((name, i) => row(s, i, { name, category_id: "a-cat-corpo", brand_id: i % 2 ? "a-br-1" : null,
       description: i === 0 ? "<p><strong>Limpeza suave</strong> com argila verde &amp; óleos essenciais.</p><ul><li>Vegano</li><li>Sem parabenos</li></ul><script>alert(1)</script>" : i === 6 ? null : "Fórmula artesanal produzida em pequenos lotes, com ingredientes de origem vegetal e fragrância delicada. Ideal para uso diário.",
-      price: 39.9 + i * 10, promotional_price: i === 4 ? 89.9 : i === 2 ? 49.9 : null, is_featured: i === 1, image_url: i === 3 ? null : `fixture://p${i}.jpg` })),
+      price: 39.9 + i * 10, promotional_price: i === 4 ? 89.9 : i === 2 ? 49.9 : null, is_featured: i === 1, image_url: i === 3 ? null : i === 6 ? "fixture://missing6.jpg" : `fixture://p${i}.jpg` })),
     row(s, 7, { name: "Vela Aromática Cedro & Âmbar", category_id: "a-cat-casa", description: "Cera vegetal, pavio de algodão. Aproximadamente 40 horas de queima.", price: 79.9, image_url: "fixture://p7.jpg" }),
     row(s, 8, { name: "Difusor de Ambientes Lavanda", category_id: "a-cat-casa", description: "Perfuma ambientes por até 60 dias.", price: 119, promotional_price: 99, image_url: "fixture://p8.jpg" }),
     row(s, 9, { name: "Kit Presente Coração da Floresta", category_id: "a-cat-kits", description: "Seleção especial com três itens da linha corporal, embalados em caixa reciclável.", price: 249.9, image_url: "fixture://p9.jpg" }),
@@ -47,7 +47,8 @@ export const fixtureStoreA = (): CatalogSource => {
       { id: "a-cat-kits", user_id: s, name: "Kits & Presentes", icon_url: null },
     ],
     brands: [{ id: "a-br-1", user_id: s, name: "Linha Origem", logo_url: null }],
-    galleryByProduct: {},
+    // Esfoliante: foto principal quebrada, mas com imagem adicional válida na galeria.
+    galleryByProduct: { [`${s}-p006`]: [{ image_url: "fixture://p6.jpg", display_order: 1 }] },
     variantsByProduct: {},
   };
 };
@@ -57,7 +58,7 @@ export const fixtureStoreB = (count = 4): CatalogSource => {
   return {
     storeId: s,
     profile: profile(s, { store_name: "Oficina Rubi Calçados", store_slug: "oficina-rubi", store_logo_url: "fixture://logoB.png", primary_color: "#962838", whatsapp_number: "5511988887777" }),
-    products: Array.from({ length: count }, (_, i) => row(s, i, { name: `Tênis Urbano Modelo ${i + 1}`, category_id: i % 2 ? "b-cat-2" : "b-cat-1", description: "Cabedal em couro, palmilha anatômica e solado de borracha natural.", price: 199.9 + i, promotional_price: i % 5 === 0 ? 179.9 + i : null })),
+    products: Array.from({ length: count }, (_, i) => row(s, i, { name: `Tênis Urbano Modelo ${i + 1}`, category_id: i % 2 ? "b-cat-2" : "b-cat-1", description: "Cabedal em couro, palmilha anatômica e solado de borracha natural.", price: 199.9 + i, promotional_price: i % 5 === 0 ? 179.9 + i : null, image_url: `fixture://shoe${i % 4}.jpg` })),
     categories: [{ id: "b-cat-1", user_id: s, name: "Masculino", icon_url: null }, { id: "b-cat-2", user_id: s, name: "Feminino", icon_url: null }],
     brands: [],
     galleryByProduct: {},
