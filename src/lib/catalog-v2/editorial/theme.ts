@@ -1,7 +1,7 @@
 import type { CatalogIdentity } from "../types";
 
 export const EDITORIAL_TEMPLATE_ID = "editorial_01";
-export const EDITORIAL_TEMPLATE_VERSION = "1.1";
+export const EDITORIAL_TEMPLATE_VERSION = "1.2";
 
 /** A4 retrato em milímetros. */
 export const PAGE = { w: 210, h: 297, margin: 14, headerH: 12, footerH: 10 } as const;

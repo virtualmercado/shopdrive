@@ -189,6 +189,6 @@ describe("editorial_01 v1.1 — refinamento visual", () => {
     expect(formatBRL(1234.5)).toBe("R$ 1.234,50");
     expect(r.rects.some((x) => x.label === "noimg")).toBe(true);
     expect(r.templateId).toBe("editorial_01");
-    expect(r.templateVersion).toBe("1.1");
+    expect(r.templateVersion).toBe("1.2");
   });
 });
