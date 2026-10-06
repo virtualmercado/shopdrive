@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle, Send, Copy, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { buildCanonicalCatalogUrl } from "@/lib/catalogShareLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -32,6 +35,9 @@ import {
   type EditorialIssue,
   type FeaturedPolicy,
   type SeparatorMode,
+  publishEditorialCatalog,
+  productsWithoutImage,
+  type PublishStep,
 } from "@/lib/catalog-v2/editorial";
 import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
 
@@ -123,6 +129,15 @@ const EditorialCatalogConfigurator = () => {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   const [lastKey, setLastKey] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [excludeNoImage, setExcludeNoImage] = useState(false);
+  // Estado do catálogo público visto na prévia: o servidor recusa se mudar até a confirmação.
+  const [baseline, setBaseline] = useState<{ updatedAt: string | null; hasCurrent: boolean } | null>(null);
+  const [publishKey, setPublishKey] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const reqId = useRef(0);
   const renderId = useRef(0);
   const canvasHost = useRef<HTMLDivElement>(null);
@@ -138,10 +153,17 @@ const EditorialCatalogConfigurator = () => {
 
   const selection = useMemo(() => toCatalogSelection({ mode, categoryIds, brandIds, productIds }), [mode, categoryIds, brandIds, productIds]);
 
-  const doc = useMemo(() => {
+  const fullDoc = useMemo(() => {
     if (!source || !selection) return null;
     return buildCatalogDocument(source, { selection, presentation: { grouping, showPrices } });
   }, [source, selection, grouping, showPrices]);
+  const noImageIds = useMemo(() => (fullDoc ? productsWithoutImage(fullDoc) : []), [fullDoc]);
+  // Exclusão só da composição deste catálogo; o cadastro do produto não é tocado.
+  const doc = useMemo(() => {
+    if (!fullDoc || !source || !selection || !excludeNoImage || noImageIds.length === 0) return fullDoc;
+    const skip = new Set(noImageIds);
+    return buildCatalogDocument({ ...source, products: source.products.filter((p) => !skip.has(p.id)) }, { selection: { ...selection, productIds: selection.productIds?.filter((id) => !skip.has(id)) }, presentation: { grouping, showPrices } });
+  }, [fullDoc, source, selection, excludeNoImage, noImageIds, grouping, showPrices]);
 
   const editorialInput: EditorialConfigInput | null = useMemo(() => {
     if (!doc) return null;
@@ -158,7 +180,7 @@ const EditorialCatalogConfigurator = () => {
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
   const blocking = [...blockingIssues(issues), ...issues.filter((i) => i.code === "empty")];
-  const configKey = useMemo(() => JSON.stringify({ selection, grouping, showPrices, editorialInput }), [selection, grouping, showPrices, editorialInput]);
+  const configKey = useMemo(() => JSON.stringify({ selection, grouping, showPrices, editorialInput, excludeNoImage }), [selection, grouping, showPrices, editorialInput, excludeNoImage]);
   const stale = !!bytes && lastKey !== configKey;
 
   const allImages = useMemo(() => {
@@ -175,9 +197,21 @@ const EditorialCatalogConfigurator = () => {
     const key = configKey;
     setGenerating(true);
     setGenError(null);
+    setPublishError(null);
+    setPublishedUrl(null);
+    setProgress(`Preparando ${doc.products.length} produtos…`);
     try {
-      const r = await generateEditorialPdf(doc, { resolveImage: createBrowserImageResolver(), editorial: editorialInput });
+      const r = await generateEditorialPdf(doc, {
+        resolveImage: createBrowserImageResolver(),
+        editorial: editorialInput,
+        onProgress: (p, t) => id === reqId.current && setProgress(`Processando imagens e gerando página ${p} de ${t}…`),
+      });
       if (id !== reqId.current) return; // resultado obsoleto
+      const { data: st } = await supabase.rpc("get_my_current_catalog_state");
+      if (id !== reqId.current) return;
+      const state = (st ?? {}) as { updated_at?: string | null; has_current?: boolean };
+      setBaseline({ updatedAt: state.updated_at ?? null, hasCurrent: !!state.has_current });
+      setPublishKey(crypto.randomUUID());
       setBytes(r.bytes);
       setPageCount(r.pageCount);
       setPage(1);
@@ -186,7 +220,7 @@ const EditorialCatalogConfigurator = () => {
       if (id !== reqId.current) return;
       setGenError(e instanceof EditorialConfigError ? "Há campos inválidos. Corrija os itens destacados." : "Não foi possível gerar a prévia. Tente novamente.");
     } finally {
-      if (id === reqId.current) setGenerating(false);
+      if (id === reqId.current) { setGenerating(false); setProgress(null); }
     }
   }, [doc, editorialInput, blocking.length, configKey]);
 
@@ -214,6 +248,45 @@ const EditorialCatalogConfigurator = () => {
     a.download = "catalogo-editorial-teste.pdf";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const STEP_LABEL: Record<PublishStep, string> = { uploading: "Enviando arquivo…", publishing: "Publicando catálogo…", sharing: "Confirmando link de compartilhamento…" };
+
+  const publish = async () => {
+    if (!bytes || stale || !baseline || !publishKey || publishing) return;
+    setConfirmOpen(false);
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const outcome = await publishEditorialCatalog(bytes, publishKey, baseline.updatedAt, {
+        begin: async (key, expected) => {
+          const { data, error } = await supabase.rpc("begin_editorial_catalog_publication", { _idempotency_key: key, _expected_updated_at: expected as string });
+          if (error) throw error;
+          return data as { publication_id: string; storage_path: string; status: string };
+        },
+        upload: async (path, b) => {
+          const { error } = await supabase.storage.from("product-images").upload(path, new Blob([b], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+          if (error) throw error;
+        },
+        publish: async (pid) => {
+          const { data, error } = await supabase.rpc("publish_editorial_catalog", { _publication_id: pid });
+          if (error) throw error;
+          return data as { status: string; share_code?: string | null; replayed?: boolean };
+        },
+      }, (s) => setProgress(STEP_LABEL[s]));
+      if (outcome.ok) {
+        const url = buildCanonicalCatalogUrl(outcome.shareCode);
+        setPublishedUrl(url);
+        setBaseline(null); // nova publicação exige nova prévia
+        toast.success("Catálogo Editorial publicado.");
+      } else {
+        setPublishError(outcome.message);
+        if (outcome.reason === "stale") setBaseline(null);
+      }
+    } finally {
+      setPublishing(false);
+      setProgress(null);
+    }
   };
 
   if (loadError) return <Card><CardContent className="py-10 text-center text-sm text-destructive">{loadError}</CardContent></Card>;
@@ -415,13 +488,52 @@ const EditorialCatalogConfigurator = () => {
               {bytes ? "Atualizar prévia" : "Gerar prévia"}
             </Button>
             <Button variant="outline" onClick={downloadTest} disabled={!bytes || stale || generating} className="gap-2">
-              <Download className="h-4 w-4" /> Baixar PDF de teste
+              <Download className="h-4 w-4" /> Baixar PDF
+            </Button>
+            <Button variant="secondary" onClick={() => setConfirmOpen(true)} disabled={!bytes || stale || generating || publishing || !baseline} className="gap-2">
+              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publicar catálogo
             </Button>
           </div>
+          {noImageIds.length > 0 && (
+            <div className="rounded-md border border-border p-2 text-xs space-y-2">
+              <p className="flex gap-1"><AlertTriangle className="h-4 w-4 shrink-0 text-muted-foreground" />{noImageIds.length} produto(s) selecionado(s) sem nenhuma imagem cadastrada. Eles aparecem com a imagem padrão.</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={excludeNoImage} onCheckedChange={(c) => setExcludeNoImage(!!c)} />
+                Deixar esses produtos fora deste catálogo (o cadastro não é alterado)
+              </label>
+            </div>
+          )}
+          {progress && <p className="text-xs text-muted-foreground flex gap-1 items-center"><Loader2 className="h-3 w-3 animate-spin" />{progress}</p>}
+          {publishError && <p className="text-xs text-destructive">{publishError}</p>}
+          {publishedUrl && (
+            <div className="rounded-md border border-border p-2 text-xs space-y-1">
+              <p className="flex gap-1 items-center font-medium"><CheckCircle2 className="h-4 w-4 text-primary" />Publicado. O link da sua loja já abre este catálogo:</p>
+              <div className="flex gap-2 items-center">
+                <code className="truncate">{publishedUrl}</code>
+                <Button size="icon" variant="ghost" aria-label="Copiar link" onClick={() => navigator.clipboard.writeText(publishedUrl).then(() => toast.success("Link copiado!"))}><Copy className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{baseline?.hasCurrent ? "Substituir o catálogo publicado?" : "Publicar o primeiro catálogo?"}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {baseline?.hasCurrent
+                    ? "Este catálogo substituirá o catálogo atualmente acessado pelo link compartilhável da sua loja. Deseja continuar?"
+                    : "Esta será a primeira publicação de catálogo da sua loja. Ela passará a ser aberta pelo link compartilhável da loja. Deseja continuar?"}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={publish}>Publicar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {blocking.length > 0 && <p className="text-xs text-destructive flex gap-1"><AlertTriangle className="h-4 w-4 shrink-0" />Corrija os campos destacados para gerar a prévia.</p>}
           {stale && <p className="text-xs text-muted-foreground">As configurações mudaram — clique em “Atualizar prévia”.</p>}
           {genError && <p className="text-xs text-destructive">{genError}</p>}
-          <p className="text-xs text-muted-foreground">Prévia de homologação: nada é publicado nem compartilhado.</p>
+          <p className="text-xs text-muted-foreground">Prévia e download não alteram o catálogo público. Só “Publicar catálogo” atualiza o link da loja.</p>
         </CardHeader>
         <CardContent className="space-y-3">
           {!bytes && !generating && <div className="aspect-[210/297] rounded-md border border-dashed border-border flex items-center justify-center text-sm text-muted-foreground p-6 text-center">Configure o catálogo e clique em “Gerar prévia”.</div>}
