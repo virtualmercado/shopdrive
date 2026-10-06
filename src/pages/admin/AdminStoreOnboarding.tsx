@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2, Sparkles } from "lucide-react";
+import { MoreHorizontal, Search, ExternalLink, RefreshCw, Copy, ShieldCheck, Loader2, Sparkles, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -74,7 +74,7 @@ const AdminStoreOnboarding = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
   const { flags } = useOnboardingFlags();
-  const { rows, loading, recompute, setExempt, setAiAccess } = useAdminOnboardingStores(filter, search);
+  const { rows, loading, recompute, setExempt, setAiAccess, setCatalogEditorial } = useAdminOnboardingStores(filter, search);
   const pager = useClientPagination(rows, [filter, search]);
 
   const handleAiAccess = async (storeId: string, enabled: boolean) => {
@@ -84,6 +84,18 @@ const AdminStoreOnboarding = () => {
       toast.success(enabled ? "IA de imagens reativada para esta loja." : "IA de imagens suspensa para esta loja.");
     } catch {
       toast.error("Não foi possível atualizar a IA de imagens desta loja.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCatalogEditorial = async (storeId: string, enabled: boolean) => {
+    setBusyId(storeId);
+    try {
+      await setCatalogEditorial({ storeId, enabled });
+      toast.success(enabled ? "Catálogo Editorial liberado para esta loja." : "Catálogo Editorial bloqueado para esta loja.");
+    } catch {
+      toast.error("Não foi possível atualizar o Catálogo Editorial desta loja.");
     } finally {
       setBusyId(null);
     }
@@ -242,6 +254,11 @@ const AdminStoreOnboarding = () => {
                               erro: {r.ai_last_error}
                             </div>
                           )}
+                          <div className="mt-1">
+                            <Badge variant={r.catalog_editorial_enabled ? "default" : "outline"}>
+                              Editorial: {r.catalog_editorial_enabled ? "liberado" : "bloqueado"}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs">
                           <Badge
@@ -323,6 +340,10 @@ const AdminStoreOnboarding = () => {
                                 >
                                   <Sparkles className="mr-2 h-4 w-4" />
                                   {r.ai_image_enabled ? "Suspender IA de imagens" : "Reativar IA de imagens"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCatalogEditorial(r.store_id, !r.catalog_editorial_enabled)}>
+                                  <BookOpen className="mr-2 h-4 w-4" />
+                                  {r.catalog_editorial_enabled ? "Bloquear Catálogo Editorial" : "Liberar Catálogo Editorial"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

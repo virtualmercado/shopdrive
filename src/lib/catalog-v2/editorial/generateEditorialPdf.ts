@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { catalogImageMaxEdgePx, type CatalogImage } from "@/lib/catalogPdfClassic";
+import { type CatalogImage } from "@/lib/catalogPdfClassic";
 import type { CatalogDocument, CatalogImageRef } from "../types";
 import { EditorialCanvas, type DrawnRect } from "./canvas";
 import { composePages, type ComposeOptions, type PagePlan } from "./composer";
@@ -23,6 +23,8 @@ export interface EditorialOptions extends Omit<ComposeOptions, "editorial" | "wr
   subtitle?: string | null;
   /** Fase 4: configurações editoriais opcionais (dado não confiável, sempre normalizado). */
   editorial?: EditorialConfigInput;
+  /** Andamento real: chamado antes de cada página (1-based) com o total do plano. */
+  onProgress?: (page: number, total: number) => void;
 }
 
 export interface EditorialResult {
@@ -37,12 +39,15 @@ export interface EditorialResult {
   issues: EditorialIssue[];
 }
 
+/** PDF digital: ~150 ppp no tamanho de uso (Clássico mantém o próprio orçamento). */
+const editorialEdgePx = (mm: number): number => Math.max(160, Math.min(1400, Math.round(mm * 6)));
+
 const imageEdge = (plan: PagePlan): number => {
-  if (plan.kind === "cover") return catalogImageMaxEdgePx(210);
-  if (plan.kind === "separator") return catalogImageMaxEdgePx(170);
-  if (plan.kind === "products") return catalogImageMaxEdgePx(({ 1: 170, 2: 110, 3: 80, 4: 80 } as const)[plan.layout]);
-  if (plan.kind === "featured") return catalogImageMaxEdgePx(170);
-  if (plan.kind === "institutional") return catalogImageMaxEdgePx(210);
+  if (plan.kind === "cover") return editorialEdgePx(210);
+  if (plan.kind === "separator") return editorialEdgePx(170);
+  if (plan.kind === "products") return editorialEdgePx(({ 1: 170, 2: 110, 3: 80, 4: 80 } as const)[plan.layout]);
+  if (plan.kind === "featured") return editorialEdgePx(170);
+  if (plan.kind === "institutional") return editorialEdgePx(210);
   return 0;
 };
 
@@ -77,7 +82,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
   const products = new Map(doc.products.map((p) => [p.id, p]));
   const cats = new Map(doc.categories.map((c) => [c.id, c.name]));
   const brands = new Map(doc.brands.map((b) => [b.id, b.name]));
-  const logo = doc.identity.logoUrl ? await opts.resolveImage(doc.identity.logoUrl, catalogImageMaxEdgePx(48), true) : null;
+  const logo = doc.identity.logoUrl ? await opts.resolveImage(doc.identity.logoUrl, editorialEdgePx(48), true) : null;
 
   let current = new Map<string, CatalogImage | null>();
   const ctx: RenderContext = {
@@ -101,6 +106,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
 
   for (let i = 0; i < plan.length; i++) {
     const page = plan[i];
+    opts.onProgress?.(i + 1, plan.length);
     if (i > 0) cv.newPage();
     const edge = imageEdge(page);
     const refs = pageImageRefs(page, ctx).filter((r): r is CatalogImageRef => !!r);

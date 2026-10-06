@@ -1055,6 +1055,49 @@ export type Database = {
           },
         ]
       }
+      catalog_editorial_access: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          enabled: boolean
+          store_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          enabled?: boolean
+          store_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          enabled?: boolean
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_editorial_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_editorial_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_editorial_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_pdf_clicks: {
         Row: {
           created_at: string
@@ -1090,6 +1133,82 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "public_store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_publications: {
+        Row: {
+          catalog_kind: string
+          created_at: string
+          created_by: string | null
+          expected_updated_at: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          previous_path: string | null
+          previous_updated_at: string | null
+          previous_url: string | null
+          public_url: string | null
+          published_at: string | null
+          status: string
+          storage_path: string | null
+          store_id: string
+        }
+        Insert: {
+          catalog_kind: string
+          created_at?: string
+          created_by?: string | null
+          expected_updated_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          previous_path?: string | null
+          previous_updated_at?: string | null
+          previous_url?: string | null
+          public_url?: string | null
+          published_at?: string | null
+          status: string
+          storage_path?: string | null
+          store_id: string
+        }
+        Update: {
+          catalog_kind?: string
+          created_at?: string
+          created_by?: string | null
+          expected_updated_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          previous_path?: string | null
+          previous_updated_at?: string | null
+          previous_url?: string | null
+          public_url?: string | null
+          published_at?: string | null
+          status?: string
+          storage_path?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -7210,6 +7329,7 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _catalog_editorial_allowed: { Args: { _uid: string }; Returns: boolean }
       _marca_assert_owner_eligible: {
         Args: { p_uid: string }
         Returns: undefined
@@ -7316,6 +7436,10 @@ export type Database = {
         Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
       }
+      admin_set_store_catalog_editorial: {
+        Args: { p_enabled: boolean; p_store_id: string }
+        Returns: Json
+      }
       admin_unassign_brand_template: {
         Args: { p_template_id: string }
         Returns: undefined
@@ -7364,6 +7488,10 @@ export type Database = {
       }
       backfill_store_onboarding_states: {
         Args: { p_limit?: number }
+        Returns: Json
+      }
+      begin_editorial_catalog_publication: {
+        Args: { _expected_updated_at: string; _idempotency_key: string }
         Returns: Json
       }
       bind_marca_upgrade_target: {
@@ -7585,6 +7713,8 @@ export type Database = {
         }
         Returns: Json
       }
+      get_my_catalog_editorial_access: { Args: never; Returns: boolean }
+      get_my_current_catalog_state: { Args: never; Returns: Json }
       get_my_marca_offer: { Args: never; Returns: Json }
       get_my_marca_upgrade: { Args: never; Returns: Json }
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
@@ -7689,6 +7819,10 @@ export type Database = {
       }
       propagate_content_banner_from_template: {
         Args: { p_user_id: string }
+        Returns: Json
+      }
+      publish_editorial_catalog: {
+        Args: { _publication_id: string }
         Returns: Json
       }
       reactivate_products_after_upgrade: {
