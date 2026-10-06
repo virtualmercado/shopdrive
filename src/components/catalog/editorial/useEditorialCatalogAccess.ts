@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 /** Flag global na tabela existente. Só libera com enabled=true explícito; ausente/desligada/erro = oculto. */
 export const EDITORIAL_KILL_SWITCH_KEY = "ENABLE_CATALOG_EDITORIAL_V2";
@@ -14,7 +15,9 @@ export const EDITORIAL_KILL_SWITCH_KEY = "ENABLE_CATALOG_EDITORIAL_V2";
  */
 export const useEditorialCatalogAccess = () => {
   const { hasRole, loading } = useRoleCheck();
-  const isAdmin = !loading && hasRole("admin");
+  const { storeSlug } = useAuthContext();
+  // Admin sem loja própria (sem store_slug) nunca vê o Editorial.
+  const isAdmin = !loading && hasRole("admin") && !!storeSlug;
   const { data: enabled, isLoading } = useQuery({
     queryKey: ["catalog-editorial-flag"],
     enabled: isAdmin,
