@@ -25,7 +25,9 @@ export const renderInstitutional = (cv: EditorialCanvas, ctx: RenderContext, pla
   } else if (img) {
     const box = { x: 0, y: 0, w: PAGE.w, h: 100 };
     cv.rect(box, t.imageBg);
-    cv.imageCover(img, box);
+    // Fotos panorâmicas preenchem a faixa; packshots/retratos ficam inteiros (contain).
+    if (img.width / img.height >= 1.7) cv.imageCover(img, box);
+    else cv.imageContain(img, { x: M, y: M + 4, w: PAGE.w - M * 2, h: box.h - M - 8 });
     cv.text(cv.wrap(store, L.w, 1), L.x, 108, 8, t.primary, { style: "bold", charSpace: 0.8, label: "inst-store" });
     const title = cv.fitTitle(plan.title, L.w, 24, 16, 2);
     const th = cv.text(title.lines, L.x, 114, title.size, t.ink, { style: "bold", leading: 1.08, label: "inst-title" });

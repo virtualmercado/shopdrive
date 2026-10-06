@@ -50,14 +50,21 @@ export const renderCommercial = (cv: EditorialCanvas, ctx: RenderContext, plan: 
   }
 
   const tx = x + 16, tw = w - 16;
+  cv.font(10.5);
+  // Limite de 500 caracteres validado na configuração: cabe em até 12 linhas.
+  const blocks = plan.items.map((it) => it.text.split("\n").flatMap((p) => cv.wrapNow(p, tw, 10)).slice(0, 12));
+  const lh = cv.lineH(10.5, 1.45);
+  const heights = blocks.map((l) => 7 + 5.5 + (l.length - 1) * lh + 10.5 * 0.3528);
+  const natural = heights.reduce((a, b) => a + b, 0) + Math.max(0, plan.items.length - 1) * 7;
+  // Poucos campos: distribui o espaço livre entre os blocos (sem criar conteúdo).
+  const free = Math.max(0, PAGE.h - M - 30 - y - natural);
+  const extra = plan.items.length > 1 ? Math.min(14, (free * 0.45) / (plan.items.length - 1)) : 0;
+  y += Math.min(22, free * 0.12);
   plan.items.forEach((it, i) => {
     cv.line(x, y, x + w, y, t.hairline, 0.25);
     y += 7;
     drawIcon(cv, it.key, x + 4.6, y + 4.4, t.tint, t.primary);
     cv.text([it.label.toUpperCase()], tx, y, 8, t.primary, { style: "bold", charSpace: 0.7, label: `com-label-${it.key}` });
-    cv.font(10.5);
-    // Limite de 500 caracteres validado na configuração: cabe em até 10 linhas.
-    const lines = it.text.split("\n").flatMap((p) => cv.wrapNow(p, tw, 10));
-    y += 5.5 + cv.text(lines.slice(0, 12), tx, y + 5.5, 10.5, BODY, { leading: 1.45, label: `com-text-${it.key}` }) + (i < plan.items.length - 1 ? 7 : 0);
+    y += 5.5 + cv.text(blocks[i], tx, y + 5.5, 10.5, BODY, { leading: 1.45, label: `com-text-${it.key}` }) + (i < plan.items.length - 1 ? 7 + extra : 0);
   });
 };

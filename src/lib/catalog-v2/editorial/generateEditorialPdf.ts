@@ -96,7 +96,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
     image: (ref) => (ref ? current.get(ref.url) ?? null : null),
     logo,
     totalPages: plan.length,
-    coverOptions: { showLogo: config.cover.showLogo, showMeta: config.cover.showMeta },
+    coverOptions: { showLogo: config.cover.showLogo, showMeta: config.cover.showMeta, showYear: config.cover.showYear, showCount: config.cover.showCount },
   };
 
   for (let i = 0; i < plan.length; i++) {

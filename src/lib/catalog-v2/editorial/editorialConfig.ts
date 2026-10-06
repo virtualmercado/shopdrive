@@ -13,7 +13,7 @@ export type SeparatorMode = "full" | "compact" | "auto";
 export type FeaturedPolicy = "keep_in_section" | "featured_only";
 
 export interface EditorialConfigInput {
-  cover?: { title?: string | null; subtitle?: string | null; imageUrl?: string | null; showLogo?: boolean; showMeta?: boolean };
+  cover?: { title?: string | null; subtitle?: string | null; imageUrl?: string | null; showLogo?: boolean; showMeta?: boolean; showYear?: boolean; showCount?: boolean };
   institutional?: { enabled?: boolean; title?: string | null; text?: string | null; useStoreAbout?: boolean; imageUrl?: string | null };
   commercial?: { enabled?: boolean; title?: string | null; intro?: string | null; payment?: string | null; delivery?: string | null; minimumOrder?: string | null; notes?: string | null };
   separators?: SeparatorMode;
@@ -39,7 +39,7 @@ export const AUTO_COMPACT_MAX = 2;
 export interface CommercialItem { key: "payment" | "delivery" | "minimumOrder" | "notes"; label: string; text: string }
 
 export interface EditorialConfig {
-  cover: { title: string | null; subtitle: string | null; image: CatalogImageRef | null; showLogo: boolean; showMeta: boolean };
+  cover: { title: string | null; subtitle: string | null; image: CatalogImageRef | null; showLogo: boolean; showMeta: boolean; showYear: boolean; showCount: boolean };
   institutional: { title: string; paragraphs: string[]; image: CatalogImageRef | null } | null;
   commercial: { title: string; intro: string | null; items: CommercialItem[] } | null;
   /** null = comportamento anterior (separador completo quando agrupado). */
@@ -127,6 +127,8 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
     image: img("cover.imageUrl", c.imageUrl, allowed),
     showLogo: c.showLogo ?? true,
     showMeta: c.showMeta ?? true,
+    showYear: c.showYear ?? c.showMeta ?? true,
+    showCount: c.showCount ?? c.showMeta ?? true,
   };
 
   let institutional: EditorialConfig["institutional"] = null;
