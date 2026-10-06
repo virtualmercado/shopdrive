@@ -27,6 +27,7 @@ export interface AdminOnboardingRow {
   manual_exempt: boolean;
   activation_readiness: "READY" | "NOT_READY";
   ai_image_enabled: boolean;
+  catalog_editorial_enabled: boolean;
   ai_generations_24h: number;
   ai_last_generation_at: string | null;
   ai_last_error: string | null;
@@ -82,6 +83,13 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
         });
       }
 
+      // Liberação individual do Catálogo Editorial (independente da IA de imagens)
+      const editorialSet = new Set<string>();
+      if (ids.length) {
+        const { data: acc } = await supabase.from("catalog_editorial_access").select("store_id, enabled").eq("enabled", true);
+        (acc ?? []).forEach((a) => editorialSet.add(a.store_id));
+      }
+
       let rows: AdminOnboardingRow[] = (states ?? []).map((s: any) => {
         const p = profileMap.get(s.store_id) ?? {};
         const ai = aiMap.get(s.store_id);
@@ -106,6 +114,7 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
               ? "NOT_READY"
               : "READY"),
           ai_image_enabled: !!s.ai_image_enabled,
+          catalog_editorial_enabled: editorialSet.has(s.store_id),
           ai_generations_24h: ai?.count ?? 0,
           ai_last_generation_at: ai?.last ?? null,
           ai_last_error: ai?.error ?? null,
@@ -180,7 +189,16 @@ export const useAdminOnboardingStores = (filter: OnboardingAdminFilter, search: 
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
   });
 
+  const setCatalogEditorial = useMutation({
+    mutationFn: async ({ storeId, enabled }: { storeId: string; enabled: boolean }) => {
+      const { error } = await supabase.rpc("admin_set_store_catalog_editorial", { p_store_id: storeId, p_enabled: enabled });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-onboarding-stores"] }),
+  });
+
   return {
+    setCatalogEditorial: setCatalogEditorial.mutateAsync,
     rows: query.data ?? [],
     loading: query.isLoading,
     refetch: query.refetch,
