@@ -29,7 +29,9 @@ const drawTitleBlock = (cv: EditorialCanvas, x: number, w: number, top: number, 
 export const renderSeparator = (cv: EditorialCanvas, ctx: RenderContext, plan: Extract<PagePlan, { kind: "separator" }>) => {
   const t = ctx.theme;
   const M = PAGE.margin;
-  const img = ctx.image(plan.image);
+  // Ícone/logo da categoria ou marca: nunca recortado; vai num cartão sobre a página tipográfica.
+  const emblem = plan.imageSource === "ref" ? ctx.image(plan.image) : null;
+  const img = plan.imageSource === "ref" ? null : ctx.image(plan.image);
   const fg = t.onPrimary;
   const soft = mix(t.primary, fg, 0.68);
   const faint = mix(t.primary, fg, 0.3);
@@ -58,6 +60,11 @@ export const renderSeparator = (cv: EditorialCanvas, ctx: RenderContext, plan: E
   } else {
     cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, t.primary);
     const w = PAGE.w - M * 2;
+    if (emblem) {
+      const box = { x: PAGE.w - M - 44, y: M + 6, w: 44, h: 44 };
+      cv.rect(box, t.paper, 4);
+      cv.imageContain(emblem, box, 5);
+    }
     cv.text([idx], M, 50, 110, mix(t.primary, fg, 0.16), { style: "bold", label: "sep-index" });
     drawTitleBlock(cv, M, w, 150, PAGE.h - M - 20, plan.title, plan.subtitle, label, { title: 36, min: 18, lines: 3 }, fg, soft);
     cv.text(cv.wrap(store, w, 1), M, PAGE.h - M - 3, 8, soft, { label: "sep-store", width: w });

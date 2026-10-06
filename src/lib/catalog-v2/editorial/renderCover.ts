@@ -28,7 +28,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
   const soft = mix(t.primary, fg, 0.68);
 
   // Logo em cartão branco (legível sobre foto ou cor).
-  if (ctx.logo) {
+  if (ctx.logo && ctx.coverOptions.showLogo) {
     const logoBox = { x: M, y: M, w: 36, h: 21 };
     cv.rect(logoBox, t.paper, 2.5);
     cv.imageContain(ctx.logo, logoBox, 2.5);
@@ -55,7 +55,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
   const count = `${doc.products.length} ${doc.products.length === 1 ? "produto" : "produtos"}`;
   const year = new Date(doc.meta.generatedAt).getFullYear();
   cv.line(M, footY - 5, PAGE.w - M, footY - 5, mix(t.primary, fg, 0.25), 0.25);
-  cv.text([`${count}  ·  ${year}`], M, footY, 9, soft, { label: "cover-meta" });
+  if (ctx.coverOptions.showMeta) cv.text([`${count}  ·  ${year}`], M, footY, 9, soft, { label: "cover-meta" });
   if (doc.identity.publicUrl) {
     const url = doc.identity.publicUrl.replace(/^https?:\/\//, "");
     cv.font(9, "bold");

@@ -15,4 +15,5 @@ export interface RenderContext {
   image: (ref: CatalogImageRef | null | undefined) => CatalogImage | null;
   logo: CatalogImage | null;
   totalPages: number;
+  coverOptions: { showLogo: boolean; showMeta: boolean };
 }
