@@ -104,7 +104,6 @@ const drawImage = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b
 };
 
 export const drawChrome = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: string, pageNo: number, header = true) => {
-  const t = ctx.theme;
   const w = PAGE.w - M * 2;
   if (header) drawChromeHeader(cv, ctx, sectionTitle, w);
   drawChromeFooter(cv, ctx, pageNo, w);
