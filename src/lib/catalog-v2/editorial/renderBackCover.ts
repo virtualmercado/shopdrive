@@ -13,7 +13,21 @@ export const renderBackCover = (cv: EditorialCanvas, ctx: RenderContext) => {
 
   cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, t.primary);
 
-  let y = 56;
+  const rows: { label: string; value: string; url: string | null }[] = [];
+  if (id.whatsapp) rows.push({ label: "WHATSAPP", value: formatWhatsapp(id.whatsapp), url: whatsappUrl(id.whatsapp) });
+  if (id.publicUrl) rows.push({ label: "LOJA ONLINE", value: id.publicUrl.replace(/^https?:\/\//, ""), url: id.publicUrl });
+  if (id.email) rows.push({ label: "E-MAIL", value: id.email, url: `mailto:${id.email}` });
+  const social: [string, string | null][] = [["INSTAGRAM", id.social.instagram], ["FACEBOOK", id.social.facebook], ["YOUTUBE", id.social.youtube], ["X", id.social.x]];
+  social.forEach(([label, url]) => {
+    if (url && /^https?:\/\//i.test(url)) rows.push({ label, value: url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, ""), url });
+  });
+  if (id.address) rows.push({ label: "ENDEREÇO", value: id.address, url: null });
+
+  // Centraliza verticalmente o bloco real de conteúdo.
+  cv.font(10);
+  const aboutLines = id.about?.text ? cv.wrapNow(id.about.text, 140, 6).length : 0;
+  const est = (ctx.logo ? 40 : 0) + 26 + (aboutLines ? aboutLines * 5.1 + 12 : 0) + Math.min(rows.length, 10) * 15;
+  let y = Math.max(40, (PAGE.h - est) / 2);
   if (ctx.logo) {
     const box = { x: (PAGE.w - 48) / 2, y, w: 48, h: 28 };
     cv.rect(box, t.paper, 3);
@@ -27,16 +41,6 @@ export const renderBackCover = (cv: EditorialCanvas, ctx: RenderContext) => {
   if (id.about?.text) {
     y += cv.text(cv.wrap(id.about.text, 140, 6), (PAGE.w - 140) / 2, y, 10, soft, { align: "center", width: 140, leading: 1.45, label: "back-about" }) + 12;
   }
-
-  const rows: { label: string; value: string; url: string | null }[] = [];
-  if (id.whatsapp) rows.push({ label: "WHATSAPP", value: formatWhatsapp(id.whatsapp), url: whatsappUrl(id.whatsapp) });
-  if (id.publicUrl) rows.push({ label: "LOJA ONLINE", value: id.publicUrl.replace(/^https?:\/\//, ""), url: id.publicUrl });
-  if (id.email) rows.push({ label: "E-MAIL", value: id.email, url: `mailto:${id.email}` });
-  const social: [string, string | null][] = [["INSTAGRAM", id.social.instagram], ["FACEBOOK", id.social.facebook], ["YOUTUBE", id.social.youtube], ["X", id.social.x]];
-  social.forEach(([label, url]) => {
-    if (url && /^https?:\/\//i.test(url)) rows.push({ label, value: url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, ""), url });
-  });
-  if (id.address) rows.push({ label: "ENDEREÇO", value: id.address, url: null });
 
   const maxRows = Math.max(0, Math.floor((PAGE.h - M - 20 - y) / 15));
   rows.slice(0, maxRows).forEach((r) => {
