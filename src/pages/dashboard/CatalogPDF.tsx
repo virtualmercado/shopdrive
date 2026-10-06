@@ -336,7 +336,7 @@ const CatalogPDF = () => {
     const textCenterX = pageWidth / 2;
     
     let logoDimensions = { width: 0, height: 0 };
-    let logoImage: { data: string; width: number; height: number; format: string } | null = null;
+    let logoImage: CatalogImage | null = null;
     
     if (storeProfile?.store_logo_url) {
       logoImage = await loadImageWithDimensions(storeProfile.store_logo_url, true, 60);
