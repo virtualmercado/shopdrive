@@ -46,3 +46,10 @@ describe("Fase 5A — capa: ano e quantidade independentes", () => {
     expect(await meta({ showMeta: false })).toBe(0);
   });
 });
+
+describe("Fase 5B — texto seguro para o PDF", async () => {
+  const { pdfSafe } = await import("./canvas");
+  it("remove emojis e mantém acentos e pontuação tipográfica", () => {
+    expect(pdfSafe("Chá 🌿 de ervas — “natural” ✅")).toBe("Chá de ervas — “natural” ");
+  });
+});
