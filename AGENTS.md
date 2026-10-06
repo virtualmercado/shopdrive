@@ -5,3 +5,5 @@
 - Estoque (simples e variação) reservado só no servidor via `reserve_order_item_stock` na criação do pedido; devolvido uma vez em cancelamento/exclusão; Entregue não move estoque. Why: baixa no navegador não era atômica.
 - Regras detalhadas de backend em `supabase/AGENTS.md`.
 - Catálogo PDF clássico: texto, links públicos e imagens passam por `src/lib/catalogPdfClassic.ts` (compartilhado por prévia e PDF). Why: evita divergência e vazamento do host de preview nos PDFs.
+
+- Catálogo PDF 2.0 vive isolado em `src/lib/catalog-v2/` (loader → normalizer → CatalogDocument serializável), sem importar nem ser importado por `CatalogPDF.tsx`. Why: evolução sem regressão do Clássico e removível apagando a pasta.
