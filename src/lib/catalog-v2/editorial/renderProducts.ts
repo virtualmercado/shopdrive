@@ -103,12 +103,22 @@ const drawImage = (cv: EditorialCanvas, ctx: RenderContext, p: CatalogProduct, b
   }
 };
 
-const drawChrome = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: string, pageNo: number) => {
+export const drawChrome = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: string, pageNo: number, header = true) => {
   const t = ctx.theme;
   const w = PAGE.w - M * 2;
+  if (header) drawChromeHeader(cv, ctx, sectionTitle, w);
+  drawChromeFooter(cv, ctx, pageNo, w);
+};
+
+const drawChromeHeader = (cv: EditorialCanvas, ctx: RenderContext, sectionTitle: string, w: number) => {
+  const t = ctx.theme;
   cv.text(cv.wrap(ctx.doc.identity.storeName.toUpperCase(), w / 2 - 4, 1), M, M + 2, 7.5, t.primary, { style: "bold", charSpace: 0.6, label: "hdr-store" });
   cv.text(cv.wrap(sectionTitle, w / 2 - 4, 1), M + w / 2 + 4, M + 2, 7.5, t.muted, { align: "right", width: w / 2 - 4, label: "hdr-section" });
   cv.line(M, M + PAGE.headerH - 2, PAGE.w - M, M + PAGE.headerH - 2, t.hairline, 0.25);
+};
+
+const drawChromeFooter = (cv: EditorialCanvas, ctx: RenderContext, pageNo: number, w: number) => {
+  const t = ctx.theme;
   const fy = PAGE.h - M - 3;
   cv.line(M, fy - 3, PAGE.w - M, fy - 3, t.hairline, 0.25);
   if (ctx.doc.identity.publicUrl) cv.text([ctx.doc.identity.publicUrl.replace(/^https?:\/\//, "")], M, fy, 7, t.muted, { label: "ftr-url" });
