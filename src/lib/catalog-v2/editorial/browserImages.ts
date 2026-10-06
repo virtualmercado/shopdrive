@@ -25,7 +25,7 @@ const decodeInBrowser = (url: string, preserve: boolean, maxEdge: number, timeou
         if (!preserve) { c.fillStyle = "#FFFFFF"; c.fillRect(0, 0, width, height); }
         c.imageSmoothingQuality = "high";
         c.drawImage(img, 0, 0, width, height);
-        const data = canvas.toDataURL(preserve ? "image/png" : "image/jpeg", 0.88);
+        const data = canvas.toDataURL(preserve ? "image/png" : "image/jpeg", 0.82);
         canvas.width = canvas.height = 0; // libera o bitmap imediatamente
         finish({ data, width, height, format: preserve ? "PNG" : "JPEG" });
       } catch {
