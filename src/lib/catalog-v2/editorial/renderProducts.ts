@@ -202,8 +202,8 @@ export const renderFeaturedPage = (cv: EditorialCanvas, ctx: RenderContext, plan
   drawSingle(cv, ctx, p, CONTENT, SCALES[1]);
   const label = "PRODUTO EM DESTAQUE";
   cv.font(7.5, "bold");
-  const w = cv.pdf.getTextWidth(label) + 0.6 * label.length + 8;
+  const w = cv.pdf.getTextWidth(label) + 9;
   const x = CONTENT.x + CONTENT.w - w - 4, y = CONTENT.y + 4;
   cv.rect({ x, y, w, h: 6.6 }, t.accent, 3.3);
-  cv.text([label], x, y + 1.75, 7.5, t.onAccent, { style: "bold", align: "center", width: w, charSpace: 0.6, label: "featured-badge" });
+  cv.text([label], x, y + 1.75, 7.5, t.onAccent, { style: "bold", align: "center", width: w, label: "featured-badge" });
 };
