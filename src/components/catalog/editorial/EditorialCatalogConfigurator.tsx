@@ -274,7 +274,7 @@ const EditorialCatalogConfigurator = () => {
           return data as { status: string; share_code?: string | null; replayed?: boolean };
         },
       }, (s) => setProgress(STEP_LABEL[s]));
-      if (outcome.ok) {
+      if ("shareCode" in outcome) {
         const url = buildCanonicalCatalogUrl(outcome.shareCode);
         setPublishedUrl(url);
         setBaseline(null); // nova publicação exige nova prévia
