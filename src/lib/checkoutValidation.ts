@@ -39,8 +39,31 @@ interface CheckoutValidationInput {
 
 const isFilled = (value?: string) => !!value && value.trim().length > 0;
 
+/** Texto exibido/gravado quando a entrega fica para ser combinada. */
+export const DELIVERY_TO_BE_AGREED_LABEL = "A combinar pelo WhatsApp";
+
+/**
+ * Exceção única: visitante NÃO autenticado (checkout sem cadastro) que escolheu
+ * "Combinar via WhatsApp" pode finalizar sem escolher a forma de recebimento.
+ * Qualquer outro fluxo mantém a regra atual.
+ */
+export const canDeferDelivery = (params: { isAuthenticated: boolean; paymentMethod?: string }): boolean =>
+  !params.isAuthenticated && params.paymentMethod === "whatsapp";
+
+export interface CheckoutValidationOptions {
+  /** Resultado de canDeferDelivery. */
+  deliveryCanBeDeferred?: boolean;
+}
+
+/** Entrega deixada para combinar: exceção ativa E nenhuma modalidade escolhida. */
+export const isDeliveryDeferred = (
+  formData: Pick<CheckoutValidationInput, "delivery_method">,
+  options: CheckoutValidationOptions = {}
+): boolean => !!options.deliveryCanBeDeferred && !isFilled(formData.delivery_method);
+
 export const getCheckoutPendingRequirements = (
-  formData: CheckoutValidationInput
+  formData: CheckoutValidationInput,
+  options: CheckoutValidationOptions = {}
 ): CheckoutPendingRequirement[] => {
   const pending: CheckoutPendingRequirement[] = [];
 
@@ -50,6 +73,9 @@ export const getCheckoutPendingRequirements = (
   if (!isFilled(formData.customer_phone)) {
     pending.push({ key: "customer_phone", label: "Telefone/WhatsApp", message: "Informe um telefone válido." });
   }
+
+  // Entrega a combinar (visitante + WhatsApp sem modalidade): endereço não é exigido.
+  if (isDeliveryDeferred(formData, options)) return pending;
 
   // Retirada não exige endereço de entrega (regra atual preservada).
   if (formData.delivery_method !== "retirada") {
