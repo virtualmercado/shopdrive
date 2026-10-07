@@ -57,6 +57,8 @@ interface DeliveryColumnProps {
   genericDeliveryFee?: number;
   /** Requisitos obrigatórios pendentes (mesma fonte de validação do botão). */
   pendingRequirements?: { key: string; label: string; message: string }[];
+  /** Visitante sem cadastro + "Combinar via WhatsApp": entrega opcional. */
+  deliveryCanBeDeferred?: boolean;
 }
 
 
@@ -80,6 +82,7 @@ export const DeliveryColumn = ({
   genericDeliveryAvailable = false,
   genericDeliveryFee = 0,
   pendingRequirements = [],
+  deliveryCanBeDeferred = false,
 }: DeliveryColumnProps) => {
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const markTouched = (key: string) => setTouchedFields((prev) => ({ ...prev, [key]: true }));
@@ -164,6 +167,11 @@ export const DeliveryColumn = ({
             ? "Escolha entre entrega no seu endereço ou retirada no local"
             : "Cálculo baseado no endereço de entrega informado"}
         </p>
+        {deliveryCanBeDeferred && (
+          <p className="text-xs text-muted-foreground mt-1">
+            A entrega ou retirada poderá ser combinada diretamente com o vendedor pelo WhatsApp.
+          </p>
+        )}
       </div>
 
       <div className="border-t pt-4">

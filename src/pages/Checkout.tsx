@@ -11,7 +11,7 @@ import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import { useCoupon } from "@/hooks/useCoupon";
-import { getCheckoutPendingRequirements, getCheckoutPendingMessage } from "@/lib/checkoutValidation";
+import { getCheckoutPendingRequirements, getCheckoutPendingMessage, canDeferDelivery, isDeliveryDeferred, DELIVERY_TO_BE_AGREED_LABEL } from "@/lib/checkoutValidation";
 
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { PixPayment } from "@/components/checkout/PixPayment";
@@ -64,7 +64,8 @@ const checkoutSchema = z.object({
   customer_name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
   customer_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   customer_address: z.string().trim().max(500).optional(),
-  delivery_method: z.enum(["retirada", "entrega", "motoboy", "sedex", "pac", "mini_envios"]),
+  // Opcional apenas porque a exceção visitante + WhatsApp já é verificada antes do parse.
+  delivery_method: z.enum(["retirada", "entrega", "motoboy", "sedex", "pac", "mini_envios"]).optional(),
   payment_method: z.enum(["cartao_credito", "pix", "boleto", "whatsapp"]),
   notes: z.string().max(1000).optional(),
 });
@@ -518,6 +519,13 @@ const CheckoutContent = () => {
     }
   }, [storeData, deliveryOption, formData.delivery_method]);
 
+  // Exceção única: visitante sem cadastro + "Combinar via WhatsApp" → entrega opcional.
+  const deliveryCanBeDeferred = canDeferDelivery({
+    isAuthenticated: !!user || !!customerProfile,
+    paymentMethod: formData.payment_method,
+  });
+  const deliveryDeferred = isDeliveryDeferred(formData, { deliveryCanBeDeferred });
+
   const calculateDeliveryFee = () => {
     // Nenhuma modalidade escolhida => nenhum frete aplicado (estado "a calcular").
     if (!formData.delivery_method) {
@@ -697,12 +705,12 @@ const CheckoutContent = () => {
       return;
     }
 
-    if (!formData.delivery_method) {
+    if (!formData.delivery_method && !deliveryDeferred) {
       toast.error("Escolha como deseja receber seu pedido");
       return;
     }
 
-    if (formData.delivery_method !== "retirada") {
+    if (!deliveryDeferred && formData.delivery_method !== "retirada") {
       if (!formData.cep || !formData.address || !formData.number || !formData.neighborhood || !formData.city || !formData.state) {
         toast.error("Preencha todos os dados de endereço para entrega");
         return;
@@ -710,7 +718,9 @@ const CheckoutContent = () => {
     }
 
     try {
-      const addressString = formData.delivery_method !== "retirada" 
+      const addressString = deliveryDeferred
+        ? DELIVERY_TO_BE_AGREED_LABEL
+        : formData.delivery_method !== "retirada" 
         ? `${formData.address}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ""}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`
         : storeData?.pickup_address || "Retirada na loja";
 
@@ -718,7 +728,7 @@ const CheckoutContent = () => {
         customer_name: formData.customer_name,
         customer_phone: formData.customer_phone,
         customer_address: addressString,
-        delivery_method: formData.delivery_method,
+        delivery_method: deliveryDeferred ? undefined : formData.delivery_method,
         payment_method: formData.payment_method,
         notes: formData.notes,
       });
@@ -744,11 +754,14 @@ const CheckoutContent = () => {
       const pixDiscountAmount = (subtotal - couponDiscount) * (pixDiscountPercent / 100);
       const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
 
-      const addressString = formData.delivery_method !== "retirada" 
+      const addressString = deliveryDeferred
+        ? DELIVERY_TO_BE_AGREED_LABEL
+        : formData.delivery_method !== "retirada" 
         ? `${formData.address}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ""}, ${formData.neighborhood}, ${formData.city} - ${formData.state}, CEP: ${formData.cep}`
         : storeData.pickup_address || "Retirada na loja";
 
-      const deliveryMethodLabel = formData.delivery_method === "retirada" ? "retirada" : "entrega";
+      // Entrega a combinar: nenhuma modalidade é gravada (NULL), sem valor artificial.
+      const deliveryMethodLabel = deliveryDeferred ? null : formData.delivery_method === "retirada" ? "retirada" : "entrega";
       const checkoutCustomerId = customerProfile?.id || null;
       const isGuestOrder = !checkoutCustomerId;
       const orderItemsPayload = cart.map((item) => ({
@@ -979,7 +992,7 @@ const CheckoutContent = () => {
             subtotal,
             delivery_fee: deliveryFee,
             total_amount: total,
-            delivery_method: formData.delivery_method,
+            delivery_method: deliveryDeferred ? "a_combinar" : formData.delivery_method,
             payment_method: "whatsapp",
             notes: formData.notes || null,
           },
@@ -1207,7 +1220,7 @@ const CheckoutContent = () => {
   const total = Math.max(0, subtotal - couponDiscount - pixDiscountAmount + deliveryFee);
   
   // Fonte única de validação: define o estado do botão E orienta a interface.
-  const pendingRequirements = getCheckoutPendingRequirements(formData);
+  const pendingRequirements = getCheckoutPendingRequirements(formData, { deliveryCanBeDeferred });
   const pendingMessage = getCheckoutPendingMessage(pendingRequirements);
   const pendingFieldKeys = pendingRequirements.map((p) => p.key);
   const isFormValid = pendingRequirements.length === 0;
@@ -1318,6 +1331,7 @@ const CheckoutContent = () => {
             primaryColor={primaryColor}
             hasSelectedAddress={!!selectedAddressId}
             pendingRequirements={pendingRequirements}
+            deliveryCanBeDeferred={deliveryCanBeDeferred}
 
             melhorEnvioQuotes={melhorEnvioQuotes}
             melhorEnvioLoading={melhorEnvioLoading}

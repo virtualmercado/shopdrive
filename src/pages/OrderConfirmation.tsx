@@ -288,7 +288,7 @@ const OrderConfirmation = () => {
           {/* Delivery Info */}
           <div className="mb-6">
             <h3 className="font-semibold mb-3">
-              {orderData.delivery_method === "entrega" ? "Endereço de Entrega" : "Retirada"}
+              {orderData.delivery_method === "entrega" ? "Endereço de Entrega" : !orderData.delivery_method ? "Forma de recebimento" : "Retirada"}
             </h3>
             <p className="text-sm text-gray-700">{orderData.customer_address}</p>
           </div>

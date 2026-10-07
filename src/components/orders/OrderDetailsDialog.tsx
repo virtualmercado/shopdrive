@@ -40,7 +40,14 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
                   <p><span className="text-muted-foreground">Telefone:</span> {order.customer_phone}</p>
                 )}
                 {order.customer_address && (
-                  <p><span className="text-muted-foreground">Endereço:</span> {order.customer_address}</p>
+                  <p>
+                    <span className="text-muted-foreground">
+                      {!order.delivery_method && order.customer_address === "A combinar pelo WhatsApp"
+                        ? "Forma de recebimento:"
+                        : "Endereço:"}
+                    </span>{" "}
+                    {order.customer_address}
+                  </p>
                 )}
               </div>
             </div>
