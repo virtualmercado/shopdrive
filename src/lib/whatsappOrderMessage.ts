@@ -53,6 +53,7 @@ const deliveryLabel = (method?: string | null): string => {
   if (!method) return "";
   const labels: Record<string, string> = {
     retirada: "Retirada na loja",
+    a_combinar: "A combinar pelo WhatsApp",
     motoboy: "Motoboy",
     sedex: "Sedex",
     pac: "PAC",

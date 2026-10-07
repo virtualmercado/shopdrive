@@ -519,6 +519,13 @@ const CheckoutContent = () => {
     }
   }, [storeData, deliveryOption, formData.delivery_method]);
 
+  // Exceção única: visitante sem cadastro + "Combinar via WhatsApp" → entrega opcional.
+  const deliveryCanBeDeferred = canDeferDelivery({
+    isAuthenticated: !!user || !!customerProfile,
+    paymentMethod: formData.payment_method,
+  });
+  const deliveryDeferred = isDeliveryDeferred(formData, { deliveryCanBeDeferred });
+
   const calculateDeliveryFee = () => {
     // Nenhuma modalidade escolhida => nenhum frete aplicado (estado "a calcular").
     if (!formData.delivery_method) {
