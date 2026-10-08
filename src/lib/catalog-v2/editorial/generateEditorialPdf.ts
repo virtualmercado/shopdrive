@@ -43,7 +43,7 @@ export interface EditorialResult {
 const editorialEdgePx = (mm: number): number => Math.max(160, Math.min(1400, Math.round(mm * 6)));
 
 const imageEdge = (plan: PagePlan): number => {
-  if (plan.kind === "cover") return editorialEdgePx(210);
+  if (plan.kind === "cover") return editorialEdgePx(297);
   if (plan.kind === "separator") return editorialEdgePx(170);
   if (plan.kind === "products") return editorialEdgePx(({ 1: 170, 2: 110, 3: 80, 4: 80 } as const)[plan.layout]);
   if (plan.kind === "featured") return editorialEdgePx(170);
