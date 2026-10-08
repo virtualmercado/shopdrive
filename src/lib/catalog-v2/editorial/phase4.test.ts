@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { buildCatalogDocument } from "../catalogDocument";
 import { composePages, type PagePlan } from "./composer";
 import { generateEditorialPdf, type ImageResolver } from "./generateEditorialPdf";
-import { EditorialConfigError, EDITORIAL_LIMITS, normalizeEditorialConfig, type EditorialConfigInput } from "./editorialConfig";
+import { EditorialConfigError, EDITORIAL_LIMITS, normalizeEditorialConfig, isOwnCoverUrl, type EditorialConfigInput } from "./editorialConfig";
 import { fixtureStoreA, fixtureStoreB, FIXTURE_STORE_B } from "./editorialFixtures";
 import type { DrawnRect } from "./canvas";
 import { PAGE } from "./theme";
@@ -111,13 +111,25 @@ describe("Fase 4 — capa", () => {
     expect(r.rects.filter((x) => x.label === "cover-title")).toHaveLength(1);
   });
 
-  it("imagem de capa só se pertencer ao documento; senão usa o fallback", () => {
+  it("capa: imagem de produto não é aceita; só a pasta de capas da própria loja", () => {
     const d = docA();
     const own = d.products[2].primaryImage!.url;
-    expect((composePages(d, { editorial: normalizeEditorialConfig(d, { cover: { imageUrl: own } }).config })[0] as { heroImage: { url: string } }).heroImage.url).toBe(own);
-    const foreign = normalizeEditorialConfig(d, { cover: { imageUrl: "https://outra-loja.exemplo/privado.jpg" } });
-    expect(foreign.config.cover.image).toBeNull();
-    expect(foreign.issues[0].code).toBe("unauthorized_image");
+    const n = normalizeEditorialConfig(d, { cover: { imageUrl: own } });
+    expect(n.config.cover.image).toBeNull();
+    expect((composePages(d, { editorial: n.config })[0] as { heroImage: unknown }).heroImage).toBeNull();
+    expect((composePages(d, {})[0] as { heroImage: unknown }).heroImage).toBeNull();
+    const base = "https://x.supabase.co";
+    expect(isOwnCoverUrl(`${base}/storage/v1/object/public/product-images/${d.storeId}/catalog-covers/1-a.jpg`, d.storeId, base)).toBe(true);
+    expect(isOwnCoverUrl(`${base}/storage/v1/object/public/product-images/outra-loja/catalog-covers/1-a.jpg`, d.storeId, base)).toBe(false);
+    expect(isOwnCoverUrl(`${base}/storage/v1/object/public/product-images/${d.storeId}/catalog-covers/../x/a.jpg`, d.storeId, base)).toBe(false);
+    expect(isOwnCoverUrl("https://outra-loja.exemplo/privado.jpg", d.storeId, base)).toBe(false);
+  });
+
+  it("capa Padrão: fundo branco, sem produto, logo centralizada", async () => {
+    const r = await gen(docA(), {});
+    const logo = r.rects.find((x) => x.page === 1 && x.label === "cover-logo");
+    if (logo) { expect(logo.w).toBeLessThanOrEqual(70.01); expect(Math.abs(logo.x + logo.w / 2 - 105)).toBeLessThan(0.1); }
+    expect(r.plan[0]).toEqual({ kind: "cover", heroImage: null });
   });
 });
 

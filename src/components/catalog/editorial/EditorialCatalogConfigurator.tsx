@@ -31,6 +31,7 @@ import {
   normalizeEditorialConfig,
   renderPdfPreview,
   sectionImageUrls,
+  coverStoragePath,
   type EditorialConfigInput,
   type EditorialIssue,
   type FeaturedPolicy,
@@ -100,6 +101,32 @@ const EditorialCatalogConfigurator = () => {
   const [title, setTitle] = useState("Catálogo de produtos");
   const [subtitle, setSubtitle] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [coverMode, setCoverMode] = useState<"default" | "custom">("default");
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverWarn, setCoverWarn] = useState<string | null>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
+  const uploadCover = async (file: File) => {
+    if (!user) return;
+    const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[file.type];
+    if (!ext) { toast.error("Formato não permitido. Use JPG, PNG ou WebP."); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo excede o limite de 10 MB."); return; }
+    const dims = await new Promise<{ w: number; h: number } | null>((res) => {
+      const u = URL.createObjectURL(file); const im = new Image();
+      im.onload = () => { res({ w: im.naturalWidth, h: im.naturalHeight }); URL.revokeObjectURL(u); };
+      im.onerror = () => { res(null); URL.revokeObjectURL(u); };
+      im.src = u;
+    });
+    if (!dims || !dims.w || !dims.h) { toast.error("Arquivo de imagem inválido."); return; }
+    setCoverUploading(true);
+    try {
+      const path = coverStoragePath(user.id, ext);
+      const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      setCoverImage(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
+      setCoverWarn(dims.w < 1240 || dims.h < 1754 ? "Esta imagem possui resolução baixa e poderá perder qualidade no PDF." : null);
+    } catch { toast.error("Não foi possível enviar a imagem. Tente novamente."); }
+    finally { setCoverUploading(false); }
+  };
   const [showYear, setShowYear] = useState(true);
   const [showCount, setShowCount] = useState(true);
   // Organização
@@ -360,11 +387,44 @@ const EditorialCatalogConfigurator = () => {
                 </div>
                 <div className="space-y-1">
                   <Label>Imagem da capa</Label>
-                  <ImagePicker urls={allImages} value={coverImage} onChange={setCoverImage} autoLabel="Padrão" />
+                  <RadioGroup value={coverImage ? "custom" : coverMode} onValueChange={(v) => { if (v === "default") { setCoverImage(""); setCoverWarn(null); } setCoverMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                    <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
+                    <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
+                  </RadioGroup>
+                  {(coverImage ? "custom" : coverMode) === "default" ? (
+                    <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja centralizada.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <input ref={coverInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void uploadCover(f); }} />
+                      {coverImage ? (
+                        <div className="flex items-start gap-3">
+                          <img src={coverImage} alt="Capa personalizada" className="h-28 aspect-[210/297] object-cover rounded-md border border-border" />
+                          <div className="flex flex-col gap-2">
+                            <Button type="button" size="sm" variant="outline" disabled={coverUploading} onClick={() => coverInput.current?.click()}>Trocar imagem</Button>
+                            <Button type="button" size="sm" variant="ghost" disabled={coverUploading} onClick={() => { setCoverImage(""); setCoverWarn(null); setCoverMode("default"); }}>Remover imagem</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button type="button" size="sm" variant="outline" disabled={coverUploading} onClick={() => coverInput.current?.click()}>
+                          {coverUploading && <Loader2 className="h-4 w-4 animate-spin" />} Enviar imagem
+                        </Button>
+                      )}
+                      {coverWarn && <p className="text-xs text-destructive flex gap-1 items-center"><AlertTriangle className="h-3 w-3" />{coverWarn}</p>}
+                      <div className="text-xs text-muted-foreground rounded-md bg-muted p-2 space-y-0.5">
+                        <p className="font-medium text-foreground">Imagem recomendada para capa</p>
+                        <p>Formato: A4 vertical · Proporção: 1:1,414</p>
+                        <p>Recomendado: <b>2480 × 3508 px — 300 dpi</b></p>
+                        <p>Mínimo recomendado: <b>1240 × 1754 px — 150 dpi</b></p>
+                        <p>Formatos: <b>JPG, PNG ou WebP</b> (até 10 MB)</p>
+                        <p>Mantenha textos, logos e elementos importantes afastados das bordas.</p>
+                        <p>Imagens fora da proporção A4 poderão ser recortadas automaticamente para preencher toda a capa.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between"><Label htmlFor="ed-year">Mostrar ano</Label><Switch id="ed-year" checked={showYear} onCheckedChange={setShowYear} /></div>
                 <div className="flex items-center justify-between"><Label htmlFor="ed-count">Mostrar quantidade de produtos</Label><Switch id="ed-count" checked={showCount} onCheckedChange={setShowCount} /></div>
-                <p className="text-xs text-muted-foreground">Cores e logotipo vêm da identidade já cadastrada na loja.</p>
+                <p className="text-xs text-muted-foreground">O logotipo vem da identidade já cadastrada na loja.</p>
               </AccordionContent>
             </AccordionItem>
 
