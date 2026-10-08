@@ -1,7 +1,7 @@
 import type { EditorialCanvas } from "./canvas";
 import type { RenderContext } from "./context";
 import type { PagePlan } from "./composer";
-import { PAGE, mix, type RGB } from "./theme";
+import { PAGE, type RGB } from "./theme";
 
 /** Altura da região visual superior da capa (logo no Padrão). Os textos ficam abaixo, nas posições de sempre. */
 export const COVER_VISUAL_H = 178;
@@ -20,7 +20,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
   const custom = ctx.image(plan.heroImage);
   const WHITE: RGB = [255, 255, 255];
 
-  cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, WHITE, 0, "cover-bg");
+  cv.rect({ x: 0, y: 0, w: PAGE.w, h: PAGE.h }, WHITE);
 
   if (custom) {
     cv.imageCover(custom, { x: 0, y: 0, w: PAGE.w, h: PAGE.h });
@@ -28,7 +28,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
     const s = Math.min(COVER_LOGO_MAX.w / ctx.logo.width, COVER_LOGO_MAX.h / ctx.logo.height);
     const w = ctx.logo.width * s, h = ctx.logo.height * s;
     cv.imageContain(ctx.logo, { x: (PAGE.w - w) / 2, y: (COVER_VISUAL_H - h) / 2, w, h });
-    cv.rects.push({ page: cv.page, x: (PAGE.w - w) / 2, y: (COVER_VISUAL_H - h) / 2, w, h, label: "cover-logo" });
+    cv.rects.push({ page: cv.page, kind: "image", x: (PAGE.w - w) / 2, y: (COVER_VISUAL_H - h) / 2, w, h, label: "cover-logo" });
   }
 
   const fg: RGB = custom ? WHITE : t.ink;
@@ -63,5 +63,4 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
     cv.text([url], PAGE.w - M - uw, footY, 9, fg, { style: "bold", label: "cover-url" });
     cv.link({ x: PAGE.w - M - uw, y: footY - 1, w: uw, h: 5 }, doc.identity.publicUrl);
   }
-  void mix;
 };
