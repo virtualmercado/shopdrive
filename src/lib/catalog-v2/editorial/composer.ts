@@ -109,7 +109,8 @@ export const composePages = (doc: CatalogDocument, opts: ComposeOptions = {}): P
 
   const pages: PagePlan[] = [];
   if (includeCover) {
-    const hero = ed?.cover.image ?? doc.products.find((p) => p.isFeatured && p.primaryImage)?.primaryImage ?? doc.products.find((p) => p.primaryImage)?.primaryImage ?? null;
+    // Capa: só a imagem personalizada enviada pela loja; nunca produto como fallback (Padrão = branco + logo).
+    const hero = ed?.cover.image ?? null;
     pages.push({ kind: "cover", heroImage: hero });
   }
   if (ed?.institutional) {

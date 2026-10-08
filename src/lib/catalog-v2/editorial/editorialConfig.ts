@@ -82,6 +82,22 @@ export const cleanParagraphs = (s: string | null | undefined): string[] => {
     .filter(Boolean);
 };
 
+/** Pasta da imagem personalizada de capa: `{storeId}/catalog-covers/` no bucket público da loja (RLS: só o dono grava). */
+export const COVER_FOLDER = "catalog-covers";
+export const coverStoragePath = (storeId: string, ext: string) => `${storeId}/${COVER_FOLDER}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+const storageBase = (): string => {
+  const u = (typeof import.meta !== "undefined" ? (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_URL : undefined) ?? "";
+  return u.replace(/\/+$/, "");
+};
+/** Aceita somente a URL pública do Storage da plataforma, na pasta de capas da própria loja. */
+export const isOwnCoverUrl = (url: string, storeId: string, base = storageBase()): boolean => {
+  if (!base || !storeId) return false;
+  const prefix = `${base}/storage/v1/object/public/product-images/${storeId}/${COVER_FOLDER}/`;
+  if (!url.startsWith(prefix)) return false;
+  const rest = url.slice(prefix.length);
+  return /^[A-Za-z0-9._-]+\.(jpe?g|png|webp)$/i.test(rest);
+};
+
 const docImageUrls = (doc: CatalogDocument) => {
   const all = new Set<string>();
   doc.products.forEach((p) => [p.primaryImage, ...p.additionalImages].forEach((r) => r && all.add(r.url)));
@@ -121,10 +137,12 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
   };
 
   const c = input.cover ?? {};
+  const coverUrl = typeof c.imageUrl === "string" ? c.imageUrl.trim() : "";
+  const coverImage = !coverUrl ? null : isOwnCoverUrl(coverUrl, doc.storeId) ? { url: coverUrl, order: 0 } : (issues.push({ field: "cover.imageUrl", code: "unauthorized_image", url: coverUrl }), null);
   const cover = {
     title: len("cover.title", cleanLine(c.title), EDITORIAL_LIMITS.coverTitle),
     subtitle: len("cover.subtitle", cleanLine(c.subtitle), EDITORIAL_LIMITS.coverSubtitle),
-    image: img("cover.imageUrl", c.imageUrl, allowed),
+    image: coverImage,
     showLogo: c.showLogo ?? true,
     showMeta: c.showMeta ?? true,
     showYear: c.showYear ?? c.showMeta ?? true,
