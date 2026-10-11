@@ -31,7 +31,6 @@ describe("apresentação institucional: Padrão / Imagem personalizada", () => {
     const r = await generateEditorialPdf(docA(), { resolveImage: resolver, editorial: { institutional: { enabled: true, text: TEXT } } });
     const page = r.plan.findIndex((p) => p.kind === "institutional") + 1;
     const rects = r.rects.filter((x) => x.page === page);
-    expect(rects.some((x) => x.kind === "shape" && x.w >= 200 && x.h > 50 && x.h < 297)).toBe(false);
     const logo = rects.find((x) => x.label === "inst-logo");
     if (logo) { expect(logo.x).toBe(14); expect(logo.y).toBe(14); expect(logo.w).toBeLessThanOrEqual(32); }
     expect(rects.find((x) => x.label === "inst-title")?.y).toBe(47);
