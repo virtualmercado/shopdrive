@@ -505,7 +505,43 @@ const EditorialCatalogConfigurator = () => {
                       <Textarea id="ed-itx" rows={6} value={instText} onChange={(e) => setInstText(e.target.value)} />
                       <FieldError msg={errorOf("institutional.text") ?? errorOf("institutional")} />
                     </div>
-                    <div className="space-y-1"><Label>Imagem (opcional)</Label><ImagePicker urls={allImages} value={instImage} onChange={setInstImage} autoLabel="Sem imagem" /></div>
+                    <div className="space-y-1">
+                      <Label>Imagem da apresentação</Label>
+                      <RadioGroup value={instImage ? "custom" : instMode} onValueChange={(v) => { if (v === "default") { setInstImage(""); setInstWarn(null); } setInstMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                        <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
+                        <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
+                      </RadioGroup>
+                      {(instImage ? "custom" : instMode) === "default" ? (
+                        <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja discreta no canto superior esquerdo.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <input ref={instInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void uploadInst(f); }} />
+                          {instImage ? (
+                            <div className="flex items-start gap-3">
+                              <img src={instImage} alt="Imagem da apresentação" className="h-16 object-cover rounded-md border border-border" style={{ aspectRatio: `${INSTITUTIONAL_BAND.w}/${INSTITUTIONAL_BAND.h}` }} />
+                              <div className="flex flex-col gap-2">
+                                <Button type="button" size="sm" variant="outline" disabled={instUploading} onClick={() => instInput.current?.click()}>Trocar imagem</Button>
+                                <Button type="button" size="sm" variant="ghost" disabled={instUploading} onClick={() => { setInstImage(""); setInstWarn(null); setInstMode("default"); }}>Remover imagem</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button type="button" size="sm" variant="outline" disabled={instUploading} onClick={() => instInput.current?.click()}>
+                              {instUploading && <Loader2 className="h-4 w-4 animate-spin" />} Enviar imagem
+                            </Button>
+                          )}
+                          {instWarn && <p className="text-xs text-destructive flex gap-1 items-center"><AlertTriangle className="h-3 w-3" />{instWarn}</p>}
+                          <div className="text-xs text-muted-foreground rounded-md bg-muted p-2 space-y-0.5">
+                            <p className="font-medium text-foreground">Imagem recomendada para apresentação</p>
+                            <p>Formato: horizontal · Proporção: {INST_RATIO}:1</p>
+                            <p>Recomendado: <b>{INST_REC.w} × {INST_REC.h} px — 300 dpi</b></p>
+                            <p>Mínimo recomendado: <b>{INST_MIN.w} × {INST_MIN.h} px — 150 dpi</b></p>
+                            <p>Formatos: <b>JPG, PNG ou WebP</b> (até 10 MB)</p>
+                            <p>Mantenha logos, textos e elementos importantes afastados das bordas.</p>
+                            <p>Imagens fora da proporção recomendada poderão ser recortadas automaticamente para preencher a área.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </AccordionContent>
