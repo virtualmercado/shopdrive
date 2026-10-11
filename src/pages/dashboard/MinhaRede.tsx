@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, Eye, Info, Lock, RefreshCw, Search } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PlanGateOverlay } from '@/components/plan';
@@ -70,7 +70,8 @@ const Kpi = ({ title, value, sub, loading, tip }: { title: string; value: string
   </CardContent></Card>
 );
 
-const NetworkContent = () => {
+/** preview: estrutura visual bloqueada; nenhuma consulta de rede é disparada. */
+const NetworkContent = ({ preview = false }: { preview?: boolean }) => {
   const [preset, setPreset] = useState<PeriodPreset>('30d');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -87,7 +88,7 @@ const NetworkContent = () => {
   );
   const customInvalid = preset === 'custom' && !!customStart && !!customEnd && !range;
 
-  const scope = { enabled: !denied };
+  const scope = { enabled: !denied && !preview };
   const dash = useBrandNetworkDashboard(range, templateId, scope);
   const list = useBrandNetworkActivations(filters, scope);
   const detail = useBrandNetworkActivationDetail(detailKey, scope);
@@ -113,7 +114,8 @@ const NetworkContent = () => {
   const d = dash.data;
   const templates = d?.templates ?? [];
   const summary = d?.summary;
-  const dashLoading = dash.isLoading || (!d && !dash.error);
+  const dashLoading = !preview && (dash.isLoading || (!d && !dash.error));
+  const listData = preview ? { items: [] as NetworkActivation[], totalCount: 0 } : list.data;
   const dashErr = dash.error ? classifyNetworkError(dash.error) : null;
 
   return (
@@ -244,9 +246,9 @@ const NetworkContent = () => {
               <p className="text-foreground">Tivemos um problema ao carregar os dados da sua rede.</p>
               <Button variant="outline" onClick={() => list.refetch()}><RefreshCw className="h-4 w-4 mr-2" />Tentar novamente</Button>
             </div>
-          ) : list.isLoading || !list.data ? (
+          ) : !listData ? (
             <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : list.data.totalCount === 0 ? (
+          ) : listData.totalCount === 0 ? (
             <div className="py-8 text-center">
               {filters.search || filters.templateId || filters.plan || filters.status !== 'all' ? (
                 <p className="text-muted-foreground">Nenhuma loja encontrada com os filtros selecionados.</p>
@@ -265,7 +267,7 @@ const NetworkContent = () => {
                   <TableHead>Produtos</TableHead><TableHead>Loja pública</TableHead><TableHead className="text-right">Ações</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {list.data.items.map((it) => (
+                  {listData.items.map((it) => (
                     <TableRow key={it.storeKey}>
                       <TableCell className="font-medium">{it.storeName || '—'}</TableCell>
                       <TableCell>{it.templateName || '—'}</TableCell>
@@ -287,7 +289,7 @@ const NetworkContent = () => {
             </div>
             {/* Mobile */}
             <div className="md:hidden space-y-3">
-              {list.data.items.map((it) => (
+              {listData.items.map((it) => (
                 <div key={it.storeKey} className="rounded-lg border p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -303,7 +305,7 @@ const NetworkContent = () => {
                 </div>
               ))}
             </div>
-            <AdminPagination page={filters.page} totalItems={list.data.totalCount} pageSize={NETWORK_PAGE_SIZE}
+            <AdminPagination page={filters.page} totalItems={listData.totalCount} pageSize={NETWORK_PAGE_SIZE}
               itemLabel="lojas" onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))} />
           </>)}
         </CardContent>
@@ -344,6 +346,16 @@ const DetailBody = ({ loading, error, data }: { loading: boolean; error: boolean
   );
 };
 
+const LockedPreview = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.setAttribute('inert', ''); }, []);
+  return (
+    <div ref={ref} aria-hidden="true" className="pointer-events-none select-none">
+      <NetworkContent preview />
+    </div>
+  );
+};
+
 const MinhaRede = () => {
   const flag = usePlanMarcaFlag();
   const { plan, loading: planLoading, planSource, ownedStoreRole } = useMerchantPlan();
@@ -365,16 +377,14 @@ const MinhaRede = () => {
             text="Esta loja utiliza os recursos do Plano MARCA da empresa, mas o gerenciamento da rede está disponível apenas para o responsável principal." />
         )}
         {access === 'locked' && (
-          <div className="relative min-h-[360px] rounded-lg border overflow-hidden">
-            <div className="p-6 grid grid-cols-2 xl:grid-cols-4 gap-4" aria-hidden="true">
-              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
-              <Skeleton className="h-40 col-span-2 xl:col-span-4" />
-            </div>
+          <div className="relative">
             <PlanGateOverlay
-              message={"Desbloqueie o Minha Rede com o Plano MARCA.\nAcompanhe as lojas criadas\npelos seus Templates por Marca."}
+              message={"Desbloqueie o Minha Rede com o Plano MARCA\n\nAcompanhe as lojas criadas pelos seus Templates por Marca, métricas de cliques, ativações e conversão da sua rede."}
               buttonLabel="Conhecer Plano MARCA"
-              navigateTo="/lojista/financeiro"
+              navigateTo="/lojista/financeiro?highlight=marca"
+              stickyContent
             />
+            <LockedPreview />
           </div>
         )}
         {access === 'full' && <NetworkContent />}
