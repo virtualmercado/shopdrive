@@ -845,17 +845,18 @@ serve(async (req) => {
           amount: totalAmount,
           payment_method: "credit_card",
           gateway: "mercadopago",
-          status: mpData.status === "approved" ? "paid" : "pending",
+          // MARCA: aprovação é confirmada só pelo webhook (valida fatura/aceite/valor) antes de ativar.
+          status: mpData.status === "approved" && !isMarca ? "paid" : "pending",
           gateway_payment_id: mpData.id?.toString(),
           gateway_status: mpData.status,
           gateway_response: mpData,
-          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+          paid_at: mpData.status === "approved" && !isMarca ? new Date().toISOString() : null,
           idempotency_key: idempotencyKey,
         })
         .select()
         .single();
 
-      if (mpData.status === "approved") {
+      if (mpData.status === "approved" && !isMarca) {
         await supabase
           .from("master_subscriptions")
           .update({ 
@@ -890,15 +891,17 @@ serve(async (req) => {
       if (invoice?.id) {
         await supabase.from("invoices").update({
           amount: totalAmount,
-          status: mpData.status === "approved" ? "paid" : "pending",
-          paid_at: mpData.status === "approved" ? new Date().toISOString() : null,
+          status: mpData.status === "approved" && !isMarca ? "paid" : "pending",
+          paid_at: mpData.status === "approved" && !isMarca ? new Date().toISOString() : null,
           mp_payment_id: mpData.id?.toString(),
         }).eq("id", invoice.id);
       }
 
       paymentResult = {
-        success: mpData.status === "approved",
-        status: mpData.status,
+        success: mpData.status === "approved" && !isMarca,
+        status: isMarca && mpData.status === "approved" ? "in_review" : mpData.status,
+        normalizedStatus: isMarca && mpData.status === "approved" ? "in_review" : undefined,
+        requiresPolling: isMarca,
         statusDetail: mpData.status_detail,
         paymentId: mpData.id,
         subscriptionId: subscription.id,
