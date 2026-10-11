@@ -110,6 +110,7 @@ const getPlanName = (planId: string): string => {
     gratis: "Grátis",
     pro: "PRO",
     premium: "Premium",
+    marca: "MARCA",
     free: "Grátis",
   };
   return planNames[planId?.toLowerCase()] || planId;

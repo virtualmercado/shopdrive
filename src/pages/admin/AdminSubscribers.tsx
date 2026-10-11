@@ -158,7 +158,8 @@ const AdminSubscribers = () => {
           let planName = 'Grátis';
           if (masterSub) {
             const pid = masterSub.plan_id;
-            if (pid === 'premium') planName = 'Premium';
+            if (pid === 'marca') planName = 'MARCA';
+            else if (pid === 'premium') planName = 'Premium';
             else if (pid === 'pro') planName = 'Pro';
             else if (pid === 'gratis') planName = 'Grátis';
             else planName = pid || 'Grátis';
@@ -188,7 +189,7 @@ const AdminSubscribers = () => {
             if (latestInvoice.status === 'paid' && subscriptionStatus !== 'active') {
               subscriptionStatus = 'active';
               if (latestInvoice.plan) {
-                planName = latestInvoice.plan === 'premium' ? 'Premium' : latestInvoice.plan === 'pro' ? 'Pro' : latestInvoice.plan;
+                planName = latestInvoice.plan === 'marca' ? 'MARCA' : latestInvoice.plan === 'premium' ? 'Premium' : latestInvoice.plan === 'pro' ? 'Pro' : latestInvoice.plan;
               }
             } else if (latestInvoice.status === 'pending' && (subscriptionStatus === 'inactive' || subscriptionStatus === 'free')) {
               subscriptionStatus = 'pending';

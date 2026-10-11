@@ -154,10 +154,10 @@ const AdminReports = () => {
       liveSubs.forEach((s) => {
         if (!planByUser.has(s.user_id)) planByUser.set(s.user_id, (s.plan_id || '').toLowerCase().trim());
       });
-      const planCounts: Record<string, number> = { 'Grátis': 0, 'Pro': 0, 'Premium': 0 };
+      const planCounts: Record<string, number> = { 'Grátis': 0, 'Pro': 0, 'Premium': 0, 'MARCA': 0 };
       stores.forEach((st) => {
         const pid = planByUser.get(st.id);
-        const planName = pid === 'premium' ? 'Premium' : pid === 'pro' ? 'Pro' : 'Grátis';
+        const planName = pid === 'marca' ? 'MARCA' : pid === 'premium' ? 'Premium' : pid === 'pro' ? 'Pro' : 'Grátis';
         planCounts[planName] += 1;
       });
       const totalStores = stores.length;
