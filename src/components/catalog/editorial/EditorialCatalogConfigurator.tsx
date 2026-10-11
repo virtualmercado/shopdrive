@@ -32,6 +32,9 @@ import {
   renderPdfPreview,
   sectionImageUrls,
   coverStoragePath,
+  COVER_FOLDER,
+  INSTITUTIONAL_FOLDER,
+  type EditorialUploadFolder,
   type EditorialConfigInput,
   type EditorialIssue,
   type FeaturedPolicy,
@@ -41,6 +44,13 @@ import {
   type PublishStep,
 } from "@/lib/catalog-v2/editorial";
 import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
+import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
+
+// Recomendação derivada da faixa real do renderer (mm → px).
+const mmToPx = (mm: number, dpi: number) => Math.round((mm / 25.4) * dpi);
+const INST_REC = { w: mmToPx(INSTITUTIONAL_BAND.w, 300), h: mmToPx(INSTITUTIONAL_BAND.h, 300) };
+const INST_MIN = { w: mmToPx(INSTITUTIONAL_BAND.w, 150), h: mmToPx(INSTITUTIONAL_BAND.h, 150) };
+const INST_RATIO = (INSTITUTIONAL_BAND.w / INSTITUTIONAL_BAND.h).toFixed(1).replace(".", ",");
 
 const MAX_LIST = 150;
 
@@ -105,7 +115,8 @@ const EditorialCatalogConfigurator = () => {
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverWarn, setCoverWarn] = useState<string | null>(null);
   const coverInput = useRef<HTMLInputElement>(null);
-  const uploadCover = async (file: File) => {
+  /** Upload compartilhado (capa e apresentação): mesma validação, bucket e pasta isolada por loja. */
+  const uploadEditorialImage = async (file: File, folder: EditorialUploadFolder, min: { w: number; h: number }, setBusy: (b: boolean) => void, onDone: (url: string, lowRes: boolean) => void) => {
     if (!user) return;
     const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[file.type];
     if (!ext) { toast.error("Formato não permitido. Use JPG, PNG ou WebP."); return; }
@@ -117,16 +128,17 @@ const EditorialCatalogConfigurator = () => {
       im.src = u;
     });
     if (!dims || !dims.w || !dims.h) { toast.error("Arquivo de imagem inválido."); return; }
-    setCoverUploading(true);
+    setBusy(true);
     try {
-      const path = coverStoragePath(user.id, ext);
+      const path = coverStoragePath(user.id, ext, folder);
       const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
-      setCoverImage(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
-      setCoverWarn(dims.w < 1240 || dims.h < 1754 ? "Esta imagem possui resolução baixa e poderá perder qualidade no PDF." : null);
+      onDone(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl, dims.w < min.w || dims.h < min.h);
     } catch { toast.error("Não foi possível enviar a imagem. Tente novamente."); }
-    finally { setCoverUploading(false); }
+    finally { setBusy(false); }
   };
+  const LOW_RES = "Esta imagem possui resolução baixa e poderá perder qualidade no PDF.";
+  const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverWarn(low ? LOW_RES : null); });
   const [showYear, setShowYear] = useState(true);
   const [showCount, setShowCount] = useState(true);
   // Organização
@@ -139,6 +151,11 @@ const EditorialCatalogConfigurator = () => {
   const [instTitle, setInstTitle] = useState("");
   const [instText, setInstText] = useState("");
   const [instImage, setInstImage] = useState("");
+  const [instMode, setInstMode] = useState<"default" | "custom">("default");
+  const [instUploading, setInstUploading] = useState(false);
+  const [instWarn, setInstWarn] = useState<string | null>(null);
+  const instInput = useRef<HTMLInputElement>(null);
+  const uploadInst = (file: File) => uploadEditorialImage(file, INSTITUTIONAL_FOLDER, INST_MIN, setInstUploading, (url, low) => { setInstImage(url); setInstWarn(low ? LOW_RES : null); });
   // Comercial
   const [comEnabled, setComEnabled] = useState(false);
   const [com, setCom] = useState({ title: "", intro: "", payment: "", delivery: "", minimumOrder: "", notes: "" });
@@ -210,13 +227,6 @@ const EditorialCatalogConfigurator = () => {
   const configKey = useMemo(() => JSON.stringify({ selection, grouping, showPrices, editorialInput, excludeNoImage }), [selection, grouping, showPrices, editorialInput, excludeNoImage]);
   const stale = !!bytes && lastKey !== configKey;
 
-  const allImages = useMemo(() => {
-    if (!doc) return [];
-    const s = new Set<string>();
-    if (doc.identity.logoUrl) s.add(doc.identity.logoUrl);
-    doc.products.forEach((p) => p.primaryImage && s.add(p.primaryImage.url));
-    return Array.from(s);
-  }, [doc]);
 
   const refreshPreview = useCallback(async () => {
     if (!doc || !editorialInput || blocking.length || doc.products.length === 0) return;
@@ -488,7 +498,43 @@ const EditorialCatalogConfigurator = () => {
                       <Textarea id="ed-itx" rows={6} value={instText} onChange={(e) => setInstText(e.target.value)} />
                       <FieldError msg={errorOf("institutional.text") ?? errorOf("institutional")} />
                     </div>
-                    <div className="space-y-1"><Label>Imagem (opcional)</Label><ImagePicker urls={allImages} value={instImage} onChange={setInstImage} autoLabel="Sem imagem" /></div>
+                    <div className="space-y-1">
+                      <Label>Imagem da apresentação</Label>
+                      <RadioGroup value={instImage ? "custom" : instMode} onValueChange={(v) => { if (v === "default") { setInstImage(""); setInstWarn(null); } setInstMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                        <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
+                        <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
+                      </RadioGroup>
+                      {(instImage ? "custom" : instMode) === "default" ? (
+                        <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja discreta no canto superior esquerdo.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <input ref={instInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void uploadInst(f); }} />
+                          {instImage ? (
+                            <div className="flex items-start gap-3">
+                              <img src={instImage} alt="Imagem da apresentação" className="h-16 object-cover rounded-md border border-border" style={{ aspectRatio: `${INSTITUTIONAL_BAND.w}/${INSTITUTIONAL_BAND.h}` }} />
+                              <div className="flex flex-col gap-2">
+                                <Button type="button" size="sm" variant="outline" disabled={instUploading} onClick={() => instInput.current?.click()}>Trocar imagem</Button>
+                                <Button type="button" size="sm" variant="ghost" disabled={instUploading} onClick={() => { setInstImage(""); setInstWarn(null); setInstMode("default"); }}>Remover imagem</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button type="button" size="sm" variant="outline" disabled={instUploading} onClick={() => instInput.current?.click()}>
+                              {instUploading && <Loader2 className="h-4 w-4 animate-spin" />} Enviar imagem
+                            </Button>
+                          )}
+                          {instWarn && <p className="text-xs text-destructive flex gap-1 items-center"><AlertTriangle className="h-3 w-3" />{instWarn}</p>}
+                          <div className="text-xs text-muted-foreground rounded-md bg-muted p-2 space-y-0.5">
+                            <p className="font-medium text-foreground">Imagem recomendada para apresentação</p>
+                            <p>Formato: horizontal · Proporção: {INST_RATIO}:1</p>
+                            <p>Recomendado: <b>{INST_REC.w} × {INST_REC.h} px — 300 dpi</b></p>
+                            <p>Mínimo recomendado: <b>{INST_MIN.w} × {INST_MIN.h} px — 150 dpi</b></p>
+                            <p>Formatos: <b>JPG, PNG ou WebP</b> (até 10 MB)</p>
+                            <p>Mantenha logos, textos e elementos importantes afastados das bordas.</p>
+                            <p>Imagens fora da proporção recomendada poderão ser recortadas automaticamente para preencher a área.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </AccordionContent>

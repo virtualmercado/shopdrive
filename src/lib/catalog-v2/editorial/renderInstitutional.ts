@@ -2,14 +2,20 @@ import type { EditorialCanvas } from "./canvas";
 import type { RenderContext } from "./context";
 import { INSTITUTIONAL as L, type PagePlan } from "./composer";
 import { drawChrome } from "./renderProducts";
-import { PAGE, mix } from "./theme";
+import { PAGE } from "./theme";
 
 const BODY: [number, number, number] = [55, 55, 62];
 
+/** Faixa superior da imagem personalizada (mm). A interface calcula a recomendação a partir daqui. */
+export const INSTITUTIONAL_BAND = { x: 0, y: 0, w: PAGE.w, h: 100 } as const;
+/** Logo discreta do modo Padrão, no canto superior esquerdo. */
+export const INSTITUTIONAL_LOGO_MAX = { w: 32, h: 18 } as const;
+
 /**
- * Apresentação da loja. 1ª página: foto no topo (ou faixa de cor com logo) + título.
- * Continuações: cabeçalho padrão. As linhas já vêm quebradas pelo compositor
- * (mesma medição), então nada é cortado aqui.
+ * Apresentação da loja. 1ª página:
+ * - Padrão: fundo branco + logo discreta no canto superior esquerdo (sem bloco de cor).
+ * - Imagem personalizada: imagem da loja em cover na faixa superior, sem logo sobreposta.
+ * Continuações: cabeçalho padrão. As linhas já vêm quebradas pelo compositor.
  */
 export const renderInstitutional = (cv: EditorialCanvas, ctx: RenderContext, plan: Extract<PagePlan, { kind: "institutional" }>) => {
   const t = ctx.theme;
@@ -23,28 +29,23 @@ export const renderInstitutional = (cv: EditorialCanvas, ctx: RenderContext, pla
     drawChrome(cv, ctx, `Apresentação · ${plan.part}/${plan.parts}`, cv.page);
     y = L.topNext;
   } else if (img) {
-    const box = { x: 0, y: 0, w: PAGE.w, h: 100 };
-    cv.rect(box, t.imageBg);
-    // Fotos panorâmicas preenchem a faixa; packshots/retratos ficam inteiros (contain).
-    if (img.width / img.height >= 1.7) cv.imageCover(img, box);
-    else cv.imageContain(img, { x: M, y: M + 4, w: PAGE.w - M * 2, h: box.h - M - 8 });
-    cv.text(cv.wrap(store, L.w, 1), L.x, 108, 8, t.primary, { style: "bold", charSpace: 0.8, label: "inst-store" });
+    cv.imageCover(img, INSTITUTIONAL_BAND);
+    cv.text(cv.wrap(store, L.w, 1), L.x, 108, 8, t.muted, { style: "bold", charSpace: 0.8, label: "inst-store" });
     const title = cv.fitTitle(plan.title, L.w, 24, 16, 2);
     const th = cv.text(title.lines, L.x, 114, title.size, t.ink, { style: "bold", leading: 1.08, label: "inst-title" });
     cv.line(L.x, 114 + th + 4.5, L.x + 16, 114 + th + 4.5, t.accent, 1.1);
     drawChrome(cv, ctx, "", cv.page, false);
     y = L.topImage;
   } else {
-    cv.rect({ x: 0, y: 0, w: PAGE.w, h: 86 }, t.primary);
-    const fg = t.onPrimary;
     if (ctx.logo) {
-      const lb = { x: M, y: M, w: 32, h: 18 };
-      cv.rect(lb, t.paper, 2.5);
-      cv.imageContain(ctx.logo, lb, 2.5);
+      const s = Math.min(INSTITUTIONAL_LOGO_MAX.w / ctx.logo.width, INSTITUTIONAL_LOGO_MAX.h / ctx.logo.height);
+      const w = ctx.logo.width * s, h = ctx.logo.height * s;
+      cv.imageContain(ctx.logo, { x: M, y: M, w, h });
+      cv.rects.push({ page: cv.page, kind: "image", x: M, y: M, w, h, label: "inst-logo" });
     }
-    cv.text(cv.wrap(store, L.w, 1), L.x, 40, 8, mix(t.primary, fg, 0.68), { style: "bold", charSpace: 0.8, label: "inst-store" });
+    cv.text(cv.wrap(store, L.w, 1), L.x, 40, 8, t.muted, { style: "bold", charSpace: 0.8, label: "inst-store" });
     const title = cv.fitTitle(plan.title, L.w, 26, 16, 2);
-    cv.text(title.lines, L.x, 47, title.size, fg, { style: "bold", leading: 1.08, label: "inst-title" });
+    cv.text(title.lines, L.x, 47, title.size, t.ink, { style: "bold", leading: 1.08, label: "inst-title" });
     drawChrome(cv, ctx, "", cv.page, false);
     y = L.topPlain;
   }
