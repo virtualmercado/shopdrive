@@ -5,9 +5,10 @@ import { isOwnInstitutionalUrl, normalizeEditorialConfig } from "./editorialConf
 import { fixtureStoreA } from "./editorialFixtures";
 import { INSTITUTIONAL_BAND } from "./renderInstitutional";
 
-const docA = () => buildCatalogDocument(fixtureStoreA(), { selection: { kind: "all" } as never, presentation: { grouping: "category" } as never });
+const docA = () => buildCatalogDocument(fixtureStoreA(), { presentation: { grouping: "category" }, now: new Date("2026-10-06T00:00:00Z") });
 const TEXT = "Somos uma loja de cosmética natural.";
-const resolver: ImageResolver = async () => ({ dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", format: "PNG", width: 400, height: 200 } as never);
+const PIXEL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+const resolver: ImageResolver = async (url) => ({ data: PIXEL, width: 1000, height: 400, format: "JPEG", alias: url });
 
 describe("apresentação institucional: Padrão / Imagem personalizada", () => {
   it("foto de produto ou logo não são aceitas como imagem institucional", () => {
@@ -30,7 +31,7 @@ describe("apresentação institucional: Padrão / Imagem personalizada", () => {
     const r = await generateEditorialPdf(docA(), { resolveImage: resolver, editorial: { institutional: { enabled: true, text: TEXT } } });
     const page = r.plan.findIndex((p) => p.kind === "institutional") + 1;
     const rects = r.rects.filter((x) => x.page === page);
-    expect(rects.some((x) => x.kind === "rect" && x.w >= 200 && x.h > 50 && x.h < 297)).toBe(false);
+    expect(rects.some((x) => x.kind === "shape" && x.w >= 200 && x.h > 50 && x.h < 297)).toBe(false);
     const logo = rects.find((x) => x.label === "inst-logo");
     if (logo) { expect(logo.x).toBe(14); expect(logo.y).toBe(14); expect(logo.w).toBeLessThanOrEqual(32); }
     expect(rects.find((x) => x.label === "inst-title")?.y).toBe(47);
