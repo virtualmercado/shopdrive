@@ -227,13 +227,6 @@ const EditorialCatalogConfigurator = () => {
   const configKey = useMemo(() => JSON.stringify({ selection, grouping, showPrices, editorialInput, excludeNoImage }), [selection, grouping, showPrices, editorialInput, excludeNoImage]);
   const stale = !!bytes && lastKey !== configKey;
 
-  const allImages = useMemo(() => {
-    if (!doc) return [];
-    const s = new Set<string>();
-    if (doc.identity.logoUrl) s.add(doc.identity.logoUrl);
-    doc.products.forEach((p) => p.primaryImage && s.add(p.primaryImage.url));
-    return Array.from(s);
-  }, [doc]);
 
   const refreshPreview = useCallback(async () => {
     if (!doc || !editorialInput || blocking.length || doc.products.length === 0) return;
