@@ -88,6 +88,7 @@ export const StoreDetailsDialog = ({
   const getPlanName = () => {
     if (!masterSub) return "Grátis";
     const pid = masterSub.plan_id;
+    if (pid === "marca") return "MARCA";
     if (pid === "premium") return "Premium";
     if (pid === "pro") return "Pro";
     if (pid === "gratis") return "Grátis";
