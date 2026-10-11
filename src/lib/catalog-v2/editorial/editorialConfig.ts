@@ -84,19 +84,23 @@ export const cleanParagraphs = (s: string | null | undefined): string[] => {
 
 /** Pasta da imagem personalizada de capa: `{storeId}/catalog-covers/` no bucket público da loja (RLS: só o dono grava). */
 export const COVER_FOLDER = "catalog-covers";
-export const coverStoragePath = (storeId: string, ext: string) => `${storeId}/${COVER_FOLDER}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+/** Pasta da imagem personalizada da apresentação institucional (mesmo bucket e isolamento da capa). */
+export const INSTITUTIONAL_FOLDER = "catalog-institutional";
+export type EditorialUploadFolder = typeof COVER_FOLDER | typeof INSTITUTIONAL_FOLDER;
+export const coverStoragePath = (storeId: string, ext: string, folder: EditorialUploadFolder = COVER_FOLDER) => `${storeId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 const storageBase = (): string => {
   const u = (typeof import.meta !== "undefined" ? (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_URL : undefined) ?? "";
   return u.replace(/\/+$/, "");
 };
-/** Aceita somente a URL pública do Storage da plataforma, na pasta de capas da própria loja. */
-export const isOwnCoverUrl = (url: string, storeId: string, base = storageBase()): boolean => {
+/** Aceita somente a URL pública do Storage da plataforma, na pasta editorial da própria loja. */
+export const isOwnCoverUrl = (url: string, storeId: string, base = storageBase(), folder: EditorialUploadFolder = COVER_FOLDER): boolean => {
   if (!base || !storeId) return false;
-  const prefix = `${base}/storage/v1/object/public/product-images/${storeId}/${COVER_FOLDER}/`;
+  const prefix = `${base}/storage/v1/object/public/product-images/${storeId}/${folder}/`;
   if (!url.startsWith(prefix)) return false;
   const rest = url.slice(prefix.length);
   return /^[A-Za-z0-9._-]+\.(jpe?g|png|webp)$/i.test(rest);
 };
+export const isOwnInstitutionalUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, INSTITUTIONAL_FOLDER);
 
 const docImageUrls = (doc: CatalogDocument) => {
   const all = new Set<string>();
@@ -158,7 +162,10 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
     const total = paragraphs.join("\n").length;
     if (total > EDITORIAL_LIMITS.institutionalText) issues.push({ field: "institutional.text", code: "too_long", limit: EDITORIAL_LIMITS.institutionalText, length: total });
     const title = len("institutional.title", cleanLine(ins.title) ?? (custom.length ? null : cleanLine(doc.identity.about?.title)), EDITORIAL_LIMITS.institutionalTitle) ?? "Bem-vindo à nossa loja";
-    if (paragraphs.length) institutional = { title, paragraphs, image: img("institutional.imageUrl", ins.imageUrl, allowed) };
+    // Só imagem enviada pela própria loja na pasta institucional; nunca produto/logo como foto.
+    const iu = typeof ins.imageUrl === "string" ? ins.imageUrl.trim() : "";
+    const instImage = !iu ? null : isOwnInstitutionalUrl(iu, doc.storeId) ? { url: iu, order: 0 } : (issues.push({ field: "institutional.imageUrl", code: "unauthorized_image", url: iu }), null);
+    if (paragraphs.length) institutional = { title, paragraphs, image: instImage };
     else issues.push({ field: "institutional", code: "empty" });
   }
 
