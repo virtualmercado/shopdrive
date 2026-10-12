@@ -1,47 +1,47 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { createUserScopedLoader } from '@/lib/authIdentity';
 
 type AppRole = 'admin' | 'user' | 'financeiro' | 'suporte' | 'tecnico';
 
 export const useRoleCheck = () => {
   const { user, loading: authLoading } = useAuthContext();
-  const [roles, setRoles] = useState<AppRole[]>([]);
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id ?? null;
+  // Roles are always stored together with the identity they belong to.
+  const [resolved, setResolved] = useState<{ userId: string; roles: AppRole[] } | null>(null);
 
-  const fetchRoles = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      setRoles(data?.map(r => r.role as AppRole) || []);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching roles:', error);
-      }
-      setRoles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loaderRef = useRef(
+    createUserScopedLoader<AppRole[]>(
+      (uid, r) => setResolved({ userId: uid, roles: r }),
+      (uid, error) => {
+        if (import.meta.env.DEV) console.error('Error fetching roles:', error);
+        setResolved({ userId: uid, roles: [] });
+      },
+    ),
+  );
 
   useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
+    if (authLoading) return;
+    if (!userId) {
+      loaderRef.current.invalidate(null);
+      setResolved(null);
       return;
     }
+    if (loaderRef.current.currentUserId() === userId) return;
+    void loaderRef.current.load(userId, async () => {
+      const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.role as AppRole);
+    });
+  }, [userId, authLoading]);
 
-    if (!user) {
-      setRoles([]);
-      setLoading(false);
-      return;
-    }
-
-    fetchRoles(user.id);
-  }, [user, authLoading, fetchRoles]);
+  // Roles of any other identity are never exposed, not even for one render.
+  const roles = useMemo<AppRole[]>(
+    () => (resolved && resolved.userId === userId ? resolved.roles : []),
+    [resolved, userId],
+  );
+  const loading = authLoading || (!!userId && resolved?.userId !== userId);
 
   const hasRole = useCallback((role: AppRole): boolean => {
     return roles.includes(role);

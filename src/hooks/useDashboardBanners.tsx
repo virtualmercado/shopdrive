@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -75,8 +76,10 @@ export const useAdminBanners = () => {
 
 // Hook for merchants to view active banners only
 export const useMerchantBanners = () => {
+  const { user } = useAuthContext();
   return useQuery({
-    queryKey: ["merchant-dashboard-banners"],
+    queryKey: ["merchant-dashboard-banners", user?.id ?? null],
+    enabled: !!user?.id,
     queryFn: async () => {
       const now = new Date().toISOString();
       

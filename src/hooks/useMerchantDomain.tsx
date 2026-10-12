@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,10 +40,13 @@ export interface DomainProviderTutorial {
 }
 
 export const useMerchantDomain = () => {
+  const { user: authUser } = useAuthContext();
+  const authUserId = authUser?.id ?? null;
   const queryClient = useQueryClient();
 
   const { data: domain, isLoading, refetch } = useQuery({
-    queryKey: ['merchant-domain'],
+    queryKey: ['merchant-domain', authUserId],
+    enabled: !!authUserId,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;

@@ -13,7 +13,8 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
   // on cold loads/new tabs (which could redirect admins to the landing page).
   const { user, authLoading, hasAnyRole, loading: roleLoading } = useRoleCheck();
   const navigate = useNavigate();
-  const [hasChecked, setHasChecked] = useState(false);
+  const [checkedFor, setCheckedFor] = useState<string | null | undefined>(undefined);
+  const hasChecked = checkedFor === (user?.id ?? null);
 
   const loading = authLoading || roleLoading;
   const isAdmin = hasAnyRole(['admin', 'financeiro', 'suporte', 'tecnico']);
@@ -22,7 +23,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     // CRITICAL: Only perform access check after BOTH auth and roles are fully loaded
     // This prevents premature redirects when opening preview in new tabs
     if (!authLoading && !roleLoading && !hasChecked) {
-      setHasChecked(true);
+      setCheckedFor(user?.id ?? null);
       
       if (!user) {
         navigate('/gestor/login', { replace: true });
