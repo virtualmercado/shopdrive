@@ -75,15 +75,27 @@ import { PLAN_DISPLAY_NAMES, getPlanFromPlanId } from "@/lib/planLimits";
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [planFilter, setPlanFilter] = useState("all");
+  const [contactFilter, setContactFilter] = useState("all");
+  const [productsFilter, setProductsFilter] = useState("all");
+  const [setupFilter, setSetupFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [exporting, setExporting] = useState<null | "pdf" | "csv">(null);
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
   };
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
   };
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(searchTerm.trim()); setCurrentPage(1); }, 350);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+  const withReset = (setter: (v: string) => void) => (v: string) => { setter(v); setCurrentPage(1); };
   const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null);
   const [deletionModalOpen, setDeletionModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -99,164 +111,95 @@ const AdminSubscribers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = ADMIN_PAGE_SIZE;
 
-  const { data: allSubscribers, isLoading, refetch } = useQuery({
-    queryKey: ['admin-subscribers', searchTerm],
-    queryFn: async () => {
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          store_name,
-          email,
-          created_at,
-          store_slug,
-          account_status
-        `)
-        .not('store_slug', 'is', null)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: false });
-
-      if (searchTerm) {
-        query = query.or(`store_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-      }
-
-      const profiles = await fetchAllRows<any>(() => query);
-
-      const profileIds = (profiles || []).map(p => p.id);
-      
-      const { data: allMasterSubs } = await supabase
-        .from('master_subscriptions')
-        .select('user_id, status, plan_id, billing_cycle, monthly_price, total_amount, downgrade_reason')
-        .in('user_id', profileIds)
-        .order('created_at', { ascending: false });
-
-      const masterSubMap = new Map<string, any>();
-      allMasterSubs?.forEach((sub) => {
-        if (!masterSubMap.has(sub.user_id)) {
-          masterSubMap.set(sub.user_id, sub);
-        }
-      });
-
-      const { data: allInvoices } = await supabase
-        .from('invoices')
-        .select('subscriber_id, status, paid_at, plan')
-        .in('subscriber_id', profileIds)
-        .order('created_at', { ascending: false });
-
-      const invoiceMap = new Map<string, any>();
-      allInvoices?.forEach((inv) => {
-        if (!invoiceMap.has(inv.subscriber_id)) {
-          invoiceMap.set(inv.subscriber_id, inv);
-        }
-      });
-
-      const subscriberData = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const masterSub = masterSubMap.get(profile.id);
-          const latestInvoice = invoiceMap.get(profile.id);
-
-          let planName = 'Grátis';
-          if (masterSub) {
-            const pid = masterSub.plan_id;
-            if (pid === 'marca') planName = 'MARCA';
-            else if (pid === 'premium') planName = 'Premium';
-            else if (pid === 'pro') planName = 'Pro';
-            else if (pid === 'gratis') planName = 'Grátis';
-            else planName = pid || 'Grátis';
-          }
-
-          // No paid subscription row (or free/downgraded plan) = operating on the Free plan.
-          let subscriptionStatus = 'free';
-          if (masterSub) {
-            if (masterSub.plan_id === 'gratis') {
-              subscriptionStatus = 'free';
-              planName = 'Grátis';
-            } else if (masterSub.status === 'cancelled' && masterSub.downgrade_reason === 'payment_failed') {
-              subscriptionStatus = 'free';
-              planName = 'Grátis';
-            } else if (masterSub.status === 'active') {
-              subscriptionStatus = 'active';
-            } else if (masterSub.status === 'past_due') {
-              subscriptionStatus = 'past_due';
-            } else if (masterSub.status === 'pending') {
-              subscriptionStatus = 'pending';
-            } else {
-              subscriptionStatus = 'inactive';
-            }
-          }
-
-          if (latestInvoice) {
-            if (latestInvoice.status === 'paid' && subscriptionStatus !== 'active') {
-              subscriptionStatus = 'active';
-              if (latestInvoice.plan) {
-                planName = latestInvoice.plan === 'marca' ? 'MARCA' : latestInvoice.plan === 'premium' ? 'Premium' : latestInvoice.plan === 'pro' ? 'Pro' : latestInvoice.plan;
-              }
-            } else if (latestInvoice.status === 'pending' && (subscriptionStatus === 'inactive' || subscriptionStatus === 'free')) {
-              subscriptionStatus = 'pending';
-            }
-          }
-
-          return {
-            ...profile,
-            planName,
-            subscriptionStatus,
-          };
-        })
-      );
-
-      return subscriberData;
-    }
-  });
-
-  // Derive a unified filter status for each subscriber
-  const getFilterStatus = (subscriber: any): string => {
-    const acct = subscriber.account_status;
-    if (acct === 'excluida') return 'excluida';
-    if (acct === 'exclusao_solicitada') return 'exclusao_solicitada';
-    if (acct === 'bloqueado') return 'bloqueado';
-    if (acct === 'suspenso') return 'suspenso';
-    if (subscriber.subscriptionStatus === 'pending') return 'pending';
-    if (subscriber.subscriptionStatus === 'active') return 'active';
-    return 'inactive';
+  const filterArgs = {
+    p_search: debouncedSearch || null,
+    p_plan: planFilter,
+    p_status: statusFilter,
+    p_contact: contactFilter,
+    p_date_from: dateFrom ? new Date(`${dateFrom}T00:00:00`).toISOString() : null,
+    p_date_to: dateTo ? new Date(`${dateTo}T23:59:59.999`).toISOString() : null,
+    p_products: productsFilter,
+    p_setup: setupFilter,
   };
 
-  // Compute counts for each filter
-  const statusCounts = (allSubscribers || []).reduce((acc, sub) => {
-    const s = getFilterStatus(sub);
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const toSubscriber = (r: SubscriberRow) => ({
+    ...r,
+    email: r.account_email || r.profile_email,
+    planName: planLabel(r.plan_code),
+    subscriptionStatus: r.subscription_status,
+  });
 
-  const totalCount = allSubscribers?.length || 0;
+  const { data: pageData, isLoading, refetch } = useQuery({
+    queryKey: ['admin-subscribers', filterArgs, currentPage],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('admin_list_subscribers', {
+        ...filterArgs,
+        p_limit: PAGE_SIZE,
+        p_offset: (currentPage - 1) * PAGE_SIZE,
+      });
+      if (error) throw error;
+      return data as { total: number; counts: Record<string, number>; counts_all: number; rows: SubscriberRow[] };
+    },
+  });
 
-  // Apply filter client-side
-  const filteredSubscribers = statusFilter === 'all'
-    ? allSubscribers || []
-    : (allSubscribers || []).filter(sub => getFilterStatus(sub) === statusFilter);
-
-  const totalPages = Math.max(1, Math.ceil(filteredSubscribers.length / PAGE_SIZE));
+  const statusCounts = pageData?.counts || {};
+  const totalCount = pageData?.counts_all || 0;
+  const filteredTotal = pageData?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
-  const subscribers = filteredSubscribers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const subscribers = (pageData?.rows || []).map(toSubscriber);
 
   // Temporary plan trials (entitlements) for the visible page only
   const { data: trialMap } = useAdminPlanTrials(subscribers.map((s) => s.id));
+  const productCounts = Object.fromEntries(subscribers.map((s) => [s.id, s.product_count])) as Record<string, number>;
 
-  // Product counts only for the visible page (avoids one count query per subscriber)
-  const visibleIds = subscribers.map((s) => s.id);
-  const { data: productCounts } = useQuery({
-    queryKey: ['admin-subscribers-product-counts', visibleIds.join(',')],
-    enabled: visibleIds.length > 0,
-    queryFn: async () => {
-      const entries = await Promise.all(visibleIds.map(async (id) => {
-        const { count } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', id);
-        return [id, count || 0] as const;
-      }));
-      return Object.fromEntries(entries) as Record<string, number>;
-    },
-  });
+  const describeFilters = () => {
+    const f: string[] = [];
+    if (debouncedSearch) f.push(`Busca: "${debouncedSearch}"`);
+    if (planFilter !== 'all') f.push(`Plano: ${planLabel(planFilter)}`);
+    if (statusFilter !== 'all') f.push(`Status: ${statusLabel(statusFilter)}`);
+    if (contactFilter !== 'all') f.push(`Contato: ${CONTACT_OPTIONS.find(o => o.value === contactFilter)?.label}`);
+    if (productsFilter !== 'all') f.push(`Produtos: ${PRODUCT_OPTIONS.find(o => o.value === productsFilter)?.label}`);
+    if (setupFilter !== 'all') f.push(`Configuração: ${SETUP_OPTIONS.find(o => o.value === setupFilter)?.label}`);
+    if (dateFrom) f.push(`Cadastro desde ${format(new Date(`${dateFrom}T00:00:00`), 'dd/MM/yyyy')}`);
+    if (dateTo) f.push(`Cadastro até ${format(new Date(`${dateTo}T00:00:00`), 'dd/MM/yyyy')}`);
+    return f.length ? f.join(' · ') : 'Nenhum (todos os assinantes)';
+  };
+
+  const handleExport = async (kind: "pdf" | "csv") => {
+    setExporting(kind);
+    try {
+      // Busca todo o resultado filtrado no servidor (não só a página atual).
+      const all: SubscriberRow[] = [];
+      for (let offset = 0; offset < EXPORT_MAX; offset += 1000) {
+        const { data, error } = await (supabase.rpc as any)('admin_list_subscribers', {
+          ...filterArgs, p_limit: 1000, p_offset: offset,
+        });
+        if (error) throw error;
+        all.push(...(data.rows as SubscriberRow[]));
+        if (all.length >= data.total || data.rows.length < 1000) break;
+      }
+      const stamp = format(new Date(), 'yyyy-MM-dd_HHmm');
+      const fmtDate = (iso: string) => format(new Date(iso), 'dd/MM/yyyy');
+      if (kind === 'csv') {
+        const blob = new Blob([buildSubscribersCsv(all, fmtDate)], { type: 'text/csv;charset=utf-8' });
+        downloadBlob(blob, `assinantes_${stamp}.csv`);
+      } else {
+        const { generateSubscribersPdf } = await import('@/lib/subscribersPdf');
+        const blob = generateSubscribersPdf(all, describeFilters());
+        downloadBlob(blob, `assinantes_${stamp}.pdf`);
+      }
+      await (supabase.rpc as any)('admin_log_subscribers_export', {
+        p_format: kind, p_count: all.length, p_filters: { ...filterArgs, descricao: describeFilters() },
+      });
+      toast.success(`Exportação gerada com ${all.length} lojas`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Não foi possível gerar a exportação');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
