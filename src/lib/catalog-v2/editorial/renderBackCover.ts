@@ -1,4 +1,3 @@
-// @ts-expect-error — pacote sem tipos; usamos só QRCode.create (síncrono).
 import QRCode from "qrcode";
 import { formatWhatsapp, whatsappUrl, type EditorialCanvas } from "./canvas";
 import type { RenderContext } from "./context";

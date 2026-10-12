@@ -35,6 +35,7 @@ import {
   SECTION_FOLDER,
   COVER_FOLDER,
   INSTITUTIONAL_FOLDER,
+  BACK_COVER_FOLDER,
   type EditorialUploadFolder,
   type EditorialConfigInput,
   type EditorialIssue,
@@ -45,7 +46,7 @@ import {
   type PublishStep,
 } from "@/lib/catalog-v2/editorial";
 import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
-import { COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
+import { BACK_TEXT_ELEMENTS, COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type BackTextKey, type BackTypographyInput, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
 import { SEPARATOR_BAND } from "@/lib/catalog-v2/editorial/renderSeparator";
 
@@ -138,6 +139,16 @@ const EditorialCatalogConfigurator = () => {
   // Cor digitada: só vai para a configuração quando o HEX é válido.
   const [hexDraft, setHexDraft] = useState<Partial<Record<CoverTextKey, string>>>({});
   const setTypo = (key: CoverTextKey, patch: Partial<CoverTextStyle>) => setTypography((t) => ({ ...t, [key]: { ...t[key], ...patch } }));
+  // Contracapa
+  const [backImage, setBackImage] = useState("");
+  const [backMode, setBackMode] = useState<"default" | "custom">("default");
+  const [backUploading, setBackUploading] = useState(false);
+  const [backWarn, setBackWarn] = useState<string | null>(null);
+  const backInput = useRef<HTMLInputElement>(null);
+  const uploadBack = (file: File) => uploadEditorialImage(file, BACK_COVER_FOLDER, { w: 1240, h: 1754 }, setBackUploading, (url, low) => { setBackImage(url); setBackWarn(low ? LOW_RES : null); });
+  const [backTypography, setBackTypography] = useState<BackTypographyInput>({});
+  const [backHexDraft, setBackHexDraft] = useState<Partial<Record<BackTextKey, string>>>({});
+  const setBackTypo = (key: BackTextKey, patch: Partial<CoverTextStyle>) => setBackTypography((t) => ({ ...t, [key]: { ...t[key], ...patch } }));
   // Organização
   const [grouping, setGrouping] = useState<CatalogGrouping>("none");
   const [separators, setSeparators] = useState<SeparatorMode>("auto");
@@ -229,8 +240,9 @@ const EditorialCatalogConfigurator = () => {
       separators,
       sectionImages: sectionImagesInDocument(doc, sectionImages),
       featured: featEnabled ? { productIds: featuredInDocument(doc, featured), policy: featPolicy } : undefined,
+      backCover: { imageUrl: backImage || null, typography: backTypography },
     };
-  }, [doc, title, subtitle, coverImage, showYear, showCount, typography, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy]);
+  }, [doc, title, subtitle, coverImage, showYear, showCount, typography, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy, backImage, backTypography]);
 
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
@@ -492,6 +504,93 @@ const EditorialCatalogConfigurator = () => {
                   </AccordionItem>
                 </Accordion>
                 <p className="text-xs text-muted-foreground">O logotipo vem da identidade já cadastrada na loja.</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="contracapa">
+              <AccordionTrigger>Contracapa</AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">Logo, nome, contatos (WhatsApp, loja online, e-mail e endereço cadastrados) e QR Code da sua loja ficam sempre nas mesmas posições.</p>
+                <div className="space-y-1">
+                  <Label>Fundo da contracapa</Label>
+                  <RadioGroup value={backImage ? "custom" : backMode} onValueChange={(v) => { if (v === "default") { setBackImage(""); setBackWarn(null); } setBackMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                    <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
+                    <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
+                  </RadioGroup>
+                  {(backImage ? "custom" : backMode) === "default" ? (
+                    <p className="text-xs text-muted-foreground">Fundo branco com detalhes discretos na cor da loja.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <input ref={backInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void uploadBack(f); }} />
+                      {backImage ? (
+                        <div className="flex items-start gap-3">
+                          <img src={backImage} alt="Contracapa personalizada" className="h-28 aspect-[210/297] object-cover rounded-md border border-border" />
+                          <div className="flex flex-col gap-2">
+                            <Button type="button" size="sm" variant="outline" disabled={backUploading} onClick={() => backInput.current?.click()}>Trocar imagem</Button>
+                            <Button type="button" size="sm" variant="ghost" disabled={backUploading} onClick={() => { setBackImage(""); setBackWarn(null); setBackMode("default"); }}>Remover imagem</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button type="button" size="sm" variant="outline" disabled={backUploading} onClick={() => backInput.current?.click()}>
+                          {backUploading && <Loader2 className="h-4 w-4 animate-spin" />} Enviar imagem
+                        </Button>
+                      )}
+                      {backWarn && <p className="text-xs text-destructive flex gap-1 items-center"><AlertTriangle className="h-3 w-3" />{backWarn}</p>}
+                      <div className="text-xs text-muted-foreground rounded-md bg-muted p-2 space-y-0.5">
+                        <p className="font-medium text-foreground">Imagem recomendada para contracapa</p>
+                        <p>Formato: A4 vertical · Proporção: 1:1,414</p>
+                        <p>Recomendado: <b>2480 × 3508 px — 300 dpi</b></p>
+                        <p>Mínimo recomendado: <b>1240 × 1754 px — 150 dpi</b></p>
+                        <p>Formatos: <b>JPG, PNG ou WebP</b> (até 10 MB)</p>
+                        <p>Mantenha textos, logos e elementos importantes afastados das bordas.</p>
+                        <p>Imagens fora da proporção A4 poderão ser recortadas automaticamente para preencher toda a página.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <Accordion type="single" collapsible className="rounded-md border border-border px-3">
+                  <AccordionItem value="tipografia-back" className="border-b-0">
+                    <AccordionTrigger className="py-2 text-sm">Tipografia da contracapa</AccordionTrigger>
+                    <AccordionContent className="space-y-4">
+                      <p className="text-xs text-muted-foreground">"Padrão" mantém a aparência do modelo. As escolhas aparecem na prévia, no download e na publicação.</p>
+                      {BACK_TEXT_ELEMENTS.map((el) => {
+                        const st = backTypography[el.key] ?? {};
+                        const fam = st.fontFamily ?? "default";
+                        const wt = st.fontWeight ?? "default";
+                        const draft = backHexDraft[el.key] ?? st.color ?? "";
+                        const btn = (sel: boolean) => `rounded-md border px-2 py-1 text-xs ${sel ? "border-primary bg-primary/10 text-primary font-semibold" : "border-input"}`;
+                        return (
+                          <div key={el.key} className="space-y-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                            <p className="text-sm font-medium">{el.label}</p>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Estilo da fonte</Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                                <button type="button" className={btn(fam === "default")} onClick={() => setBackTypo(el.key, { fontFamily: "default" })}>Padrão</button>
+                                {COVER_FONTS.map((f) => <button key={f.id} type="button" className={btn(fam === f.id)} onClick={() => setBackTypo(el.key, { fontFamily: f.id })}>{f.label}</button>)}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Peso</Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+                                <button type="button" className={btn(wt === "default")} onClick={() => setBackTypo(el.key, { fontWeight: "default" })}>Padrão</button>
+                                {COVER_WEIGHTS.map((w) => <button key={w.value} type="button" className={btn(wt === w.value)} style={{ fontWeight: w.value }} onClick={() => setBackTypo(el.key, { fontWeight: w.value })}>{w.label}</button>)}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Cor do texto</Label>
+                              <div className="flex gap-2">
+                                <Input type="color" aria-label={`Cor: ${el.label}`} value={st.color ?? (backImage ? "#FFFFFF" : "#111827")} onChange={(e) => { setBackTypo(el.key, { color: e.target.value.toUpperCase() }); setBackHexDraft((d) => ({ ...d, [el.key]: e.target.value.toUpperCase() })); }} className="h-9 w-14 p-1 cursor-pointer" />
+                                <Input type="text" placeholder="Padrão" value={draft} maxLength={7} onChange={(e) => { const v = e.target.value.trim(); setBackHexDraft((d) => ({ ...d, [el.key]: v })); if (!v) setBackTypo(el.key, { color: null }); else if (isValidHex(v)) setBackTypo(el.key, { color: v.toUpperCase() }); }} className="flex-1" />
+                                <Button type="button" size="sm" variant="ghost" onClick={() => { setBackTypo(el.key, { color: null }); setBackHexDraft((d) => ({ ...d, [el.key]: "" })); }}>Padrão</Button>
+                              </div>
+                              {draft && !isValidHex(draft) && <p className="text-xs text-destructive">Use o formato #RRGGBB (ex.: #FFFFFF).</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </AccordionContent>
             </AccordionItem>
 
