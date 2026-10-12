@@ -13,6 +13,7 @@ interface SendEmailRequest {
   subject: string;
   message: string;
   ticketProtocolo: string;
+  idempotencyKey: string;
 }
 
 Deno.serve(async (req) => {
@@ -58,19 +59,55 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { ticketId, to, subject, message, ticketProtocolo }: SendEmailRequest = await req.json();
+    const { ticketId, to, subject, message, ticketProtocolo, idempotencyKey }: SendEmailRequest = await req.json();
 
 
 
 
-    if (!ticketId || !to || !subject || !message) {
+    if (!ticketId || !to || !subject || !message || !idempotencyKey || idempotencyKey.length > 100) {
       return new Response(
-        JSON.stringify({ error: "Campos obrigatórios faltando: ticketId, to, subject, message" }),
+        JSON.stringify({ error: "Campos obrigatórios faltando: ticketId, to, subject, message, idempotencyKey" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build HTML content
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Validate ticket + recipient
+    const { data: ticket, error: ticketErr } = await supabase
+      .from("tickets_landing_page").select("id, email").eq("id", ticketId).maybeSingle();
+    if (ticketErr || !ticket) return json({ success: false, error: "Ticket não encontrado" }, 404);
+    if (String(ticket.email).trim().toLowerCase() !== String(to).trim().toLowerCase()) {
+      return json({ success: false, error: "Destinatário não corresponde ao ticket" }, 400);
+    }
+
+    // Idempotency: return existing operation for same key
+    const findExisting = async () => {
+      const { data } = await supabase.from("ticket_landing_responses")
+        .select("id, status_envio, email_queue_id, erro_envio").eq("idempotency_key", idempotencyKey).maybeSingle();
+      return data;
+    };
+    const existing = await findExisting();
+    if (existing) {
+      return json({ success: existing.status_envio !== "falha", duplicate: true, responseId: existing.id,
+        status: existing.status_envio, error: existing.erro_envio ?? undefined });
+    }
+
+    // 1) History first (pendente)
+    const { data: created, error: insertError } = await supabase.from("ticket_landing_responses").insert({
+      ticket_id: ticketId, tipo: "email_enviado", assunto: subject, mensagem: message,
+      enviado_por: userId, email_destinatario: to, status_envio: "pendente", idempotency_key: idempotencyKey,
+    }).select("id").single();
+    if (insertError || !created) {
+      if ((insertError as any)?.code === "23505") {
+        const dup = await findExisting();
+        if (dup) return json({ success: dup.status_envio !== "falha", duplicate: true, responseId: dup.id, status: dup.status_envio });
+      }
+      console.error("Error recording response:", insertError);
+      return json({ success: false, error: "Não foi possível registrar o histórico. O e-mail não foi enviado." }, 500);
+    }
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -103,46 +140,25 @@ Deno.serve(async (req) => {
       </body>
       </html>`;
 
-    // Enqueue email instead of sending directly via Resend
-    const { error: queueError } = await supabase.from("email_queue").insert({
-      to_email: to,
-      subject: subject,
-      html: htmlContent,
-      template: "landing_ticket_response",
-      status: "pending",
-      scheduled_at: new Date().toISOString(),
-    });
-
-    if (queueError) {
+    // 2) Enqueue only after history exists
+    const { data: queued, error: queueError } = await supabase.from("email_queue").insert({
+      to_email: to, subject, html: htmlContent, template: "landing_ticket_response",
+      status: "pending", scheduled_at: new Date().toISOString(),
+      payload: { landing_ticket_response_id: created.id, ticket_id: ticketId },
+    }).select("id").single();
+    if (queueError || !queued) {
       console.error("Error enqueuing email:", queueError);
-      throw new Error("Erro ao enfileirar e-mail");
+      await supabase.from("ticket_landing_responses")
+        .update({ status_envio: "falha", erro_envio: "Falha ao colocar o e-mail na fila de envio" }).eq("id", created.id);
+      return json({ success: false, responseId: created.id, status: "falha", error: "Erro ao enfileirar e-mail" }, 500);
     }
 
-    // Record response in database
-    const { error: insertError } = await supabase.from("ticket_landing_responses").insert({
-      ticket_id: ticketId,
-      tipo: "email_enviado",
-      assunto: subject,
-      mensagem: message,
-      enviado_por: userId,
-      email_destinatario: to,
-      status_envio: "enfileirado",
-    });
+    // 3) Link history <-> queue (worker trigger updates status to enviado/falha)
+    const { error: linkErr } = await supabase.from("ticket_landing_responses")
+      .update({ email_queue_id: queued.id }).eq("id", created.id);
+    if (linkErr) console.error("Error linking queue:", linkErr);
 
-    if (insertError) {
-      console.error("Error recording response:", insertError);
-    }
-
-    // Update ticket status
-    await supabase
-      .from("tickets_landing_page")
-      .update({ status: "aguardando_cliente", updated_at: new Date().toISOString() })
-      .eq("id", ticketId);
-
-    return new Response(
-      JSON.stringify({ success: true, message: "E-mail enfileirado com sucesso!" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ success: true, responseId: created.id, status: "pendente", message: "E-mail colocado na fila de envio." });
   } catch (error: any) {
     console.error("Error in send-landing-ticket-response:", error);
     return new Response(

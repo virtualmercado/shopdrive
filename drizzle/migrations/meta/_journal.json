@@ -274,6 +274,13 @@
       "when": 1791845473965,
       "tag": "0038_landing_ticket_responses_queue_link",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791845491596,
+      "tag": "0039_ltr_trigger_status_fix",
+      "breakpoints": true
     }
   ]
 }
