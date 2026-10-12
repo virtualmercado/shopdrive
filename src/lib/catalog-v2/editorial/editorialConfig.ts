@@ -56,7 +56,8 @@ export type EditorialIssue =
   | { field: string; code: "unauthorized_image"; url: string }
   | { field: string; code: "empty" }
   | { field: string; code: "invalid_value" }
-  | { field: string; code: "font_fallback"; font: string };
+  | { field: string; code: "font_fallback"; font: string }
+  | { field: string; code: "image_failed"; url: string };
 
 /** Erro bloqueante: texto acima do limite ou produto fora do documento. Nunca corta em silêncio. */
 export class EditorialConfigError extends Error {
@@ -89,7 +90,9 @@ export const cleanParagraphs = (s: string | null | undefined): string[] => {
 export const COVER_FOLDER = "catalog-covers";
 /** Pasta da imagem personalizada da apresentação institucional (mesmo bucket e isolamento da capa). */
 export const INSTITUTIONAL_FOLDER = "catalog-institutional";
-export type EditorialUploadFolder = typeof COVER_FOLDER | typeof INSTITUTIONAL_FOLDER;
+/** Pasta das imagens personalizadas de abertura de seção (categoria/marca), mesmo isolamento da capa. */
+export const SECTION_FOLDER = "catalog-sections";
+export type EditorialUploadFolder = typeof COVER_FOLDER | typeof INSTITUTIONAL_FOLDER | typeof SECTION_FOLDER;
 export const coverStoragePath = (storeId: string, ext: string, folder: EditorialUploadFolder = COVER_FOLDER) => `${storeId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 const storageBase = (): string => {
   const u = (typeof import.meta !== "undefined" ? (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_URL : undefined) ?? "";
@@ -104,6 +107,7 @@ export const isOwnCoverUrl = (url: string, storeId: string, base = storageBase()
   return /^[A-Za-z0-9._-]+\.(jpe?g|png|webp)$/i.test(rest);
 };
 export const isOwnInstitutionalUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, INSTITUTIONAL_FOLDER);
+export const isOwnSectionUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, SECTION_FOLDER);
 
 const docImageUrls = (doc: CatalogDocument) => {
   const all = new Set<string>();
@@ -188,8 +192,10 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
 
   const sectionImages: Record<string, CatalogImageRef> = {};
   Object.entries(input.sectionImages ?? {}).forEach(([sid, url]) => {
-    const ref = img(`sectionImages.${sid}`, url, sectionImageUrls(doc, sid));
-    if (ref) sectionImages[sid] = ref;
+    // Só imagem enviada pela própria loja para seção existente; nunca foto de produto.
+    if (!url || !doc.sections.some((x) => x.id === sid)) return;
+    if (isOwnSectionUrl(url, doc.storeId)) sectionImages[sid] = { url, order: 0 };
+    else issues.push({ field: `sectionImages.${sid}`, code: "unauthorized_image", url });
   });
 
   const known = new Set(doc.products.map((p) => p.id));
