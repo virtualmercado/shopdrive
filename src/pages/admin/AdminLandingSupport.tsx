@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,7 @@ interface TicketResponse {
   enviado_por: string | null;
   email_destinatario: string | null;
   status_envio: string;
+  erro_envio?: string | null;
   created_at: string;
 }
 
@@ -155,6 +156,8 @@ const AdminLandingSupport = () => {
   const [editingTemplate, setEditingTemplate] = useState<ResponseTemplate | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const isSendingRef = useRef(false);
+  const sendKeyRef = useRef<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -949,6 +952,9 @@ const AdminLandingSupport = () => {
                                 <p className="text-xs text-muted-foreground">Para:</p>
                                 <p className="text-sm">{response.email_destinatario}</p>
                               </div>
+                              {response.status_envio === 'falha' && response.erro_envio && (
+                                <p className="text-xs text-destructive">Motivo: {response.erro_envio}</p>
+                              )}
                               <details className="text-sm">
                                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                                   Ver mensagem
