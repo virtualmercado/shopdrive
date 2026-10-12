@@ -122,15 +122,10 @@ export const composePages = (doc: CatalogDocument, opts: ComposeOptions = {}): P
   sections.forEach((s, i) => {
     const compact = separators && (mode === "compact" || (mode === "auto" && s.productIds.length <= (ed?.autoCompactMax ?? 2)));
     if (separators && !compact) {
+      // Abertura: só imagem personalizada da própria seção; Padrão = página branca + logo (sem produto/ícone).
       const custom = ed?.sectionImages[s.id] ?? null;
-      const ref = ed && s.refId ? (s.kind === "category" ? doc.categories.find((c) => c.id === s.refId)?.iconUrl : s.kind === "brand" ? doc.brands.find((b) => b.id === s.refId)?.logoUrl : null) : null;
-      const product = s.featuredImage ?? s.productIds.map((id) => byId.get(id)!.primaryImage).find(Boolean) ?? null;
-      const [image, imageSource]: [CatalogImageRef | null, SeparatorImageSource | undefined] = custom
-        ? [custom, "custom"]
-        : ref ? [{ url: ref, order: 0 }, "ref"]
-        : product ? [product, ed ? "product" : undefined] : [null, undefined];
-      const sep: PagePlan = { kind: "separator", sectionId: s.id, title: s.title, subtitle: s.subtitle, index: i + 1, productCount: s.productIds.length, image };
-      if (imageSource) sep.imageSource = imageSource;
+      const sep: PagePlan = { kind: "separator", sectionId: s.id, title: s.title, subtitle: s.subtitle, index: i + 1, productCount: s.productIds.length, image: custom };
+      if (custom) sep.imageSource = "custom";
       pages.push(sep);
     }
     let cursor = 0;

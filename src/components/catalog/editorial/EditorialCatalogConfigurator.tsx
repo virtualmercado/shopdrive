@@ -30,8 +30,9 @@ import {
   generateEditorialPdf,
   normalizeEditorialConfig,
   renderPdfPreview,
-  sectionImageUrls,
   coverStoragePath,
+  AUTO_COMPACT_MAX,
+  SECTION_FOLDER,
   COVER_FOLDER,
   INSTITUTIONAL_FOLDER,
   type EditorialUploadFolder,
@@ -46,12 +47,17 @@ import {
 import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
 import { COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
+import { SEPARATOR_BAND } from "@/lib/catalog-v2/editorial/renderSeparator";
 
 // Recomendação derivada da faixa real do renderer (mm → px).
 const mmToPx = (mm: number, dpi: number) => Math.round((mm / 25.4) * dpi);
 const INST_REC = { w: mmToPx(INSTITUTIONAL_BAND.w, 300), h: mmToPx(INSTITUTIONAL_BAND.h, 300) };
 const INST_MIN = { w: mmToPx(INSTITUTIONAL_BAND.w, 150), h: mmToPx(INSTITUTIONAL_BAND.h, 150) };
 const INST_RATIO = (INSTITUTIONAL_BAND.w / INSTITUTIONAL_BAND.h).toFixed(1).replace(".", ",");
+
+const SEC_REC = { w: mmToPx(SEPARATOR_BAND.w, 300), h: mmToPx(SEPARATOR_BAND.h, 300) };
+const SEC_MIN = { w: mmToPx(SEPARATOR_BAND.w, 150), h: mmToPx(SEPARATOR_BAND.h, 150) };
+const SEC_RATIO = (SEPARATOR_BAND.w / SEPARATOR_BAND.h).toFixed(2).replace(".", ",");
 
 const MAX_LIST = 150;
 
@@ -70,20 +76,6 @@ const issueMessage = (i: EditorialIssue): string => {
   if (i.code === "empty") return "Preencha ao menos um campo ou desmarque esta opção.";
   return "Valor inválido.";
 };
-
-/** Miniaturas de imagens já autorizadas (pertencentes ao documento). Valor "" = automática. */
-const ImagePicker = ({ urls, value, onChange, autoLabel = "Automática" }: { urls: string[]; value: string; onChange: (v: string) => void; autoLabel?: string }) => (
-  <div className="flex flex-wrap gap-2">
-    <button type="button" onClick={() => onChange("")} aria-pressed={value === ""}
-      className={`h-14 px-3 rounded-md border text-xs ${value === "" ? "border-primary ring-2 ring-primary" : "border-border"}`}>{autoLabel}</button>
-    {urls.slice(0, 24).map((u) => (
-      <button key={u} type="button" onClick={() => onChange(u)} aria-pressed={value === u} aria-label="Selecionar imagem"
-        className={`h-14 w-14 rounded-md border overflow-hidden bg-muted ${value === u ? "border-primary ring-2 ring-primary" : "border-border"}`}>
-        <img src={u} alt="" loading="lazy" className="h-full w-full object-contain" />
-      </button>
-    ))}
-  </div>
-);
 
 const IdChecklist = ({ items, selected, onChange }: { items: { id: string; name: string }[]; selected: string[]; onChange: (ids: string[]) => void }) => (
   <div className="max-h-56 overflow-y-auto space-y-1 rounded-md border border-border p-2">
@@ -150,6 +142,20 @@ const EditorialCatalogConfigurator = () => {
   const [grouping, setGrouping] = useState<CatalogGrouping>("none");
   const [separators, setSeparators] = useState<SeparatorMode>("auto");
   const [sectionImages, setSectionImages] = useState<Record<string, string>>({});
+  const [sectionCustom, setSectionCustom] = useState<Record<string, boolean>>({});
+  const [sectionBusy, setSectionBusy] = useState<string | null>(null);
+  const [sectionWarn, setSectionWarn] = useState<Record<string, string | null>>({});
+  const sectionInput = useRef<HTMLInputElement>(null);
+  const sectionTarget = useRef<string | null>(null);
+  const setSectionDefault = (sid: string) => {
+    setSectionImages((m) => { const n = { ...m }; delete n[sid]; return n; });
+    setSectionCustom((m) => ({ ...m, [sid]: false }));
+    setSectionWarn((m) => ({ ...m, [sid]: null }));
+  };
+  const uploadSection = (sid: string, file: File) => uploadEditorialImage(file, SECTION_FOLDER, SEC_MIN, (b) => setSectionBusy(b ? sid : null), (url, low) => {
+    setSectionImages((m) => ({ ...m, [sid]: url }));
+    setSectionWarn((m) => ({ ...m, [sid]: low ? "Esta imagem possui resolução baixa e poderá perder qualidade no PDF." : null }));
+  });
   const [showPrices, setShowPrices] = useState(true);
   // Institucional
   const [instEnabled, setInstEnabled] = useState(false);
@@ -250,6 +256,7 @@ const EditorialCatalogConfigurator = () => {
       });
       if (id !== reqId.current) return; // resultado obsoleto
       const fallback = r.issues.filter((i) => i.code === "font_fallback");
+      if (r.issues.some((i) => i.code === "image_failed")) toast.warning("Não foi possível carregar a imagem de uma seção; foi usada a abertura Padrão.");
       if (fallback.length) toast.warning(`Não foi possível carregar a fonte ${fallback.map((i) => (i as { font: string }).font).join(", ")}; foi usada a fonte padrão do catálogo.`);
       const { data: st } = await supabase.rpc("get_my_current_catalog_state");
       if (id !== reqId.current) return;
@@ -509,16 +516,57 @@ const EditorialCatalogConfigurator = () => {
                         ))}
                       </RadioGroup>
                     </div>
-                    <div className="space-y-3">
-                      <Label>Imagem de cada seção</Label>
-                      {doc?.sections.map((s) => (
-                        <div key={s.id} className="space-y-1">
-                          <p className="text-xs font-medium">{s.title} <span className="text-muted-foreground">({s.productIds.length})</span></p>
-                          <ImagePicker urls={Array.from(sectionImageUrls(doc, s.id))} value={sectionImages[s.id] ?? ""}
-                            onChange={(v) => setSectionImages((m) => ({ ...m, [s.id]: v }))} />
+                    {separators !== "compact" && doc && (() => {
+                      // Só seções que realmente ganham página de abertura (mesmo critério do compositor).
+                      const full = doc.sections.filter((s) => separators === "full" || s.productIds.length > AUTO_COMPACT_MAX);
+                      if (!full.length) return null;
+                      return (
+                        <div className="space-y-3">
+                          <Label>Imagem de cada seção</Label>
+                          <input ref={sectionInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; const sid = sectionTarget.current; if (f && sid) void uploadSection(sid, f); }} />
+                          {full.map((s) => {
+                            const url = sectionImages[s.id] ?? "";
+                            const custom = !!url || !!sectionCustom[s.id];
+                            const busy = sectionBusy === s.id;
+                            const pick = () => { sectionTarget.current = s.id; sectionInput.current?.click(); };
+                            return (
+                              <div key={s.id} className="space-y-2 rounded-md border border-border p-2">
+                                <p className="text-xs font-medium">{s.title} <span className="text-muted-foreground">({s.productIds.length} {s.productIds.length === 1 ? "produto" : "produtos"})</span></p>
+                                <RadioGroup value={custom ? "custom" : "default"} onValueChange={(v) => v === "default" ? setSectionDefault(s.id) : setSectionCustom((m) => ({ ...m, [s.id]: true }))} className="grid grid-cols-2 gap-2">
+                                  <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
+                                  <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
+                                </RadioGroup>
+                                {!custom ? (
+                                  <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja discreta no canto superior esquerdo.</p>
+                                ) : url ? (
+                                  <div className="flex items-start gap-3">
+                                    <img src={url} alt={`Imagem da seção ${s.title}`} className="h-16 object-cover rounded-md border border-border" style={{ aspectRatio: `${SEPARATOR_BAND.w}/${SEPARATOR_BAND.h}` }} />
+                                    <div className="flex flex-col gap-2">
+                                      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={pick}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Trocar imagem</Button>
+                                      <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setSectionDefault(s.id)}>Remover imagem</Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Button type="button" size="sm" variant="outline" disabled={busy} onClick={pick}>{busy && <Loader2 className="h-4 w-4 animate-spin" />} Enviar imagem</Button>
+                                )}
+                                {custom && sectionWarn[s.id] && <p className="text-xs text-destructive flex gap-1 items-center"><AlertTriangle className="h-3 w-3" />{sectionWarn[s.id]}</p>}
+                              </div>
+                            );
+                          })}
+                          {full.some((s) => sectionImages[s.id] || sectionCustom[s.id]) && (
+                            <div className="text-xs text-muted-foreground rounded-md bg-muted p-2 space-y-0.5">
+                              <p className="font-medium text-foreground">Imagem recomendada para abertura da seção</p>
+                              <p>Formato: horizontal · Proporção: {SEC_RATIO}:1</p>
+                              <p>Recomendado: <b>{SEC_REC.w} × {SEC_REC.h} px — 300 dpi</b></p>
+                              <p>Mínimo recomendado: <b>{SEC_MIN.w} × {SEC_MIN.h} px — 150 dpi</b></p>
+                              <p>Formatos: <b>JPG, PNG ou WebP</b> (até 10 MB)</p>
+                              <p>Mantenha textos, logos e elementos importantes afastados das bordas.</p>
+                              <p>Imagens fora da proporção recomendada poderão ser recortadas automaticamente para preencher a área.</p>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                   </>
                 )}
               </AccordionContent>

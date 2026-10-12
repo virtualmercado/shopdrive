@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { buildCatalogDocument } from "../catalogDocument";
 import { composePages, type PagePlan } from "./composer";
 import { generateEditorialPdf, type ImageResolver } from "./generateEditorialPdf";
-import { EditorialConfigError, EDITORIAL_LIMITS, normalizeEditorialConfig, isOwnCoverUrl, type EditorialConfigInput } from "./editorialConfig";
+import { EditorialConfigError, EDITORIAL_LIMITS, normalizeEditorialConfig, isOwnSectionUrl, isOwnCoverUrl, type EditorialConfigInput } from "./editorialConfig";
 import { fixtureStoreA, fixtureStoreB, FIXTURE_STORE_B } from "./editorialFixtures";
 import type { DrawnRect } from "./canvas";
 import { PAGE } from "./theme";
@@ -167,17 +167,23 @@ describe("Fase 4 — separadores e agrupamento", () => {
     expect(plan.filter((p) => p.kind === "separator").map((p) => (p as { title: string }).title).at(-1)).toBe("Sem categoria");
   });
 
-  it("19 + imagem por seção: personalizada só da própria seção; sem imagem cai no tipográfico", async () => {
+  it("19 + abertura de seção: só imagem enviada pela loja; nunca produto; Padrão branco + logo", async () => {
     const d = docA();
     const casa = d.sections.find((s) => s.title === "Casa Perfumada")!;
-    const corpoImg = d.products.find((p) => p.categoryId === "a-cat-corpo")!.primaryImage!.url;
-    const casaImg = d.products.find((p) => p.categoryId === "a-cat-casa" && p.name.startsWith("Difusor"))!.primaryImage!.url;
-    const bad = normalizeEditorialConfig(d, { sectionImages: { [casa.id]: corpoImg } });
+    const productImg = d.products[0].primaryImage!.url;
+    const base = "https://x.supabase.co";
+    const own = `${base}/storage/v1/object/public/product-images/${d.storeId}/catalog-sections/a.jpg`;
+    const other = `${base}/storage/v1/object/public/product-images/outra-loja/catalog-sections/a.jpg`;
+    expect(isOwnSectionUrl(own, d.storeId, base)).toBe(true);
+    expect(isOwnSectionUrl(other, d.storeId, base)).toBe(false);
+    expect(isOwnSectionUrl(productImg, d.storeId, base)).toBe(false);
+    const bad = normalizeEditorialConfig(d, { sectionImages: { [casa.id]: productImg } });
     expect(bad.config.sectionImages[casa.id]).toBeUndefined();
-    const good = composePages(d, { editorial: normalizeEditorialConfig(d, { sectionImages: { [casa.id]: casaImg } }).config });
-    const sep = good.find((p) => p.kind === "separator" && p.sectionId === casa.id) as Extract<PagePlan, { kind: "separator" }>;
-    expect(sep.image?.url).toBe(casaImg);
-    expect(sep.imageSource).toBe("custom");
+    expect(bad.issues.some((i) => i.code === "unauthorized_image")).toBe(true);
+    const plan = composePages(d, { editorial: bad.config, includeSeparators: true });
+    const seps = plan.filter((p) => p.kind === "separator") as Extract<PagePlan, { kind: "separator" }>[];
+    expect(seps.length).toBeGreaterThan(0);
+    seps.forEach((s) => { expect(s.image).toBeNull(); expect(s.imageSource).toBeUndefined(); });
     const r = await generateEditorialPdf(d, { resolveImage: async () => null, editorial: { separators: "full" } });
     expect(r.rects.filter((x) => x.label === "sep-title").length).toBe(3);
   });

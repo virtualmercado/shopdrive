@@ -128,6 +128,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
         .map((p) => p.additionalImages[0]);
       (await load(fallbacks)).forEach(([u, img]) => current.set(u, img));
     }
+    if (page.kind === "separator" && page.image && !current.get(page.image.url)) issues.push({ field: `sectionImages.${page.sectionId}`, code: "image_failed", url: page.image.url });
     if (page.kind === "cover") renderCover(cv, ctx, page);
     else if (page.kind === "separator") renderSeparator(cv, ctx, page);
     else if (page.kind === "products") renderProductsPage(cv, ctx, page);
