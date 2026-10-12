@@ -7470,6 +7470,25 @@ export type Database = {
         Args: { p_brand_account_id: string; p_store_profile_id: string }
         Returns: string
       }
+      admin_list_subscribers: {
+        Args: {
+          p_contact?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_plan?: string
+          p_products?: string
+          p_search?: string
+          p_setup?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_log_subscribers_export: {
+        Args: { p_count: number; p_filters: Json; p_format: string }
+        Returns: undefined
+      }
       admin_publish_contract_version: {
         Args: { p_set_current?: boolean; p_version_id: string }
         Returns: string
