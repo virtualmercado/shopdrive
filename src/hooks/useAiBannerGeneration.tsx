@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AiBannerStatus {
@@ -40,22 +41,36 @@ const invokeAi = async (payload: Record<string, unknown>) => {
   return data;
 };
 
+const FALLBACK_STATUS: AiBannerStatus = { ai_image_enabled: false, used_24h: 0, quota_24h: 3, remaining: 0 };
+
 /** Geração de Hero por IA: sempre server-side, com preview antes de aplicar. */
 export const useAiBannerGeneration = (storeId?: string) => {
-  const [status, setStatus] = useState<AiBannerStatus | null>(null);
+  const queryClient = useQueryClient();
   const [generation, setGeneration] = useState<AiBannerGeneration | null>(null);
   const [busy, setBusy] = useState(false);
+  const statusKey = ["ai-banner-status", storeId];
+
+  // Status em cache por sessão: voltar ao passo mostra o estado já resolvido e revalida em segundo plano.
+  const statusQuery = useQuery({
+    queryKey: statusKey,
+    enabled: !!storeId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      try {
+        return (await invokeAi({ action: "status", store_id: storeId })) as AiBannerStatus;
+      } catch {
+        return FALLBACK_STATUS;
+      }
+    },
+  });
+  const status = statusQuery.data ?? null;
+  /** true enquanto a disponibilidade ainda não foi decidida (nunca tratar como bloqueio). */
+  const statusLoading = !status;
 
   const loadStatus = async () => {
     if (!storeId) return null;
-    try {
-      const data = (await invokeAi({ action: "status", store_id: storeId })) as AiBannerStatus;
-      setStatus(data);
-      return data;
-    } catch {
-      setStatus({ ai_image_enabled: false, used_24h: 0, quota_24h: 3, remaining: 0 });
-      return null;
-    }
+    await queryClient.invalidateQueries({ queryKey: statusKey });
+    return (queryClient.getQueryData(statusKey) as AiBannerStatus | undefined) ?? null;
   };
 
   const generate = async (objective: string, additionalGuidance: string) => {
@@ -70,7 +85,7 @@ export const useAiBannerGeneration = (storeId?: string) => {
       })) as AiBannerGeneration;
       setGeneration(data);
       if (typeof data.used_24h === "number") {
-        setStatus((prev) =>
+        queryClient.setQueryData<AiBannerStatus>(statusKey, (prev) =>
           prev
             ? { ...prev, used_24h: data.used_24h!, remaining: Math.max(0, prev.quota_24h - data.used_24h!) }
             : prev
