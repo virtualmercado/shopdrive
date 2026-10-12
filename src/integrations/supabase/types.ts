@@ -3124,6 +3124,44 @@ export type Database = {
           },
         ]
       }
+      merchant_support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          legacy_source: string | null
+          message: string
+          sender_type: string
+          sender_user_id: string | null
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legacy_source?: string | null
+          message: string
+          sender_type: string
+          sender_user_id?: string | null
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legacy_source?: string | null
+          message?: string
+          sender_type?: string
+          sender_user_id?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_support_tickets: {
         Row: {
           answered_at: string | null
@@ -7802,6 +7840,10 @@ export type Database = {
         Args: { p_email_queue_id: string; p_run_id: string }
         Returns: undefined
       }
+      merchant_reply_support_ticket: {
+        Args: { _message: string; _ticket_id: string }
+        Returns: string
+      }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       order_items_unchanged: {
         Args: { p_items: Json; p_order_id: string }
@@ -7960,6 +8002,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      support_reply_merchant_ticket: {
+        Args: { _message: string; _ticket_id: string }
+        Returns: string
+      }
       sync_brand_network_report_status: { Args: never; Returns: Json }
       sync_customer_from_order: { Args: { p_order_id: string }; Returns: Json }
       sync_invoice_for_payment: {
