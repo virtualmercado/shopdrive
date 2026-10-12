@@ -227,7 +227,8 @@ const AdminLandingSupport = () => {
       if (error) throw error;
       return data as unknown as TicketResponse[];
     },
-    enabled: !!selectedTicket
+    enabled: !!selectedTicket,
+    refetchInterval: (q: any) => (q.state?.data as TicketResponse[] | undefined)?.some((r) => r.status_envio === 'pendente') ? 4000 : false
   });
 
   // Update ticket mutation
@@ -359,7 +360,10 @@ const AdminLandingSupport = () => {
       .replace(/{protocolo}/g, selectedTicket.protocolo)
       .replace(/{nome}/g, selectedTicket.nome) || `Resposta - ${selectedTicket.protocolo}`;
 
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
     setIsSendingEmail(true);
+    if (!sendKeyRef.current) sendKeyRef.current = crypto.randomUUID();
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -371,6 +375,7 @@ const AdminLandingSupport = () => {
           subject: subject,
           message: editableResponse,
           ticketProtocolo: selectedTicket.protocolo,
+          idempotencyKey: sendKeyRef.current,
         },
       });
 
@@ -384,10 +389,8 @@ const AdminLandingSupport = () => {
         throw new Error(data.error || "Erro ao enviar e-mail");
       }
 
-      toast.success("E-mail enviado com sucesso!");
-      
-      // Update local state
-      setSelectedTicket({ ...selectedTicket, status: "aguardando_cliente" });
+      toast.success(data.duplicate ? "Este envio já havia sido registrado." : "E-mail colocado na fila de envio. Acompanhe o status no histórico.");
+      sendKeyRef.current = null;
       setGeneratedResponse("");
       setEditableResponse("");
       
@@ -399,7 +402,9 @@ const AdminLandingSupport = () => {
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error(error.message || "Erro ao enviar e-mail. Tente novamente.");
+      refetchResponses();
     } finally {
+      isSendingRef.current = false;
       setIsSendingEmail(false);
     }
   };
@@ -923,9 +928,11 @@ const AdminLandingSupport = () => {
                           ticketResponses?.map((response) => (
                             <div key={response.id} className="border rounded-lg p-3 space-y-2">
                               <div className="flex items-center justify-between">
-                                <Badge variant={response.status_envio === 'enviado' ? 'default' : 'destructive'}>
+                                <Badge variant={response.status_envio === 'enviado' ? 'default' : response.status_envio === 'pendente' ? 'secondary' : 'destructive'}>
                                   {response.status_envio === 'enviado' ? (
                                     <><CheckCircle className="h-3 w-3 mr-1" /> Enviado</>
+                                  ) : response.status_envio === 'pendente' ? (
+                                    <><Clock className="h-3 w-3 mr-1" /> Pendente</>
                                   ) : (
                                     <><AlertCircle className="h-3 w-3 mr-1" /> Falha</>
                                   )}
