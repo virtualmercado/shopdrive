@@ -77,20 +77,6 @@ const issueMessage = (i: EditorialIssue): string => {
   return "Valor inválido.";
 };
 
-/** Miniaturas de imagens já autorizadas (pertencentes ao documento). Valor "" = automática. */
-const ImagePicker = ({ urls, value, onChange, autoLabel = "Automática" }: { urls: string[]; value: string; onChange: (v: string) => void; autoLabel?: string }) => (
-  <div className="flex flex-wrap gap-2">
-    <button type="button" onClick={() => onChange("")} aria-pressed={value === ""}
-      className={`h-14 px-3 rounded-md border text-xs ${value === "" ? "border-primary ring-2 ring-primary" : "border-border"}`}>{autoLabel}</button>
-    {urls.slice(0, 24).map((u) => (
-      <button key={u} type="button" onClick={() => onChange(u)} aria-pressed={value === u} aria-label="Selecionar imagem"
-        className={`h-14 w-14 rounded-md border overflow-hidden bg-muted ${value === u ? "border-primary ring-2 ring-primary" : "border-border"}`}>
-        <img src={u} alt="" loading="lazy" className="h-full w-full object-contain" />
-      </button>
-    ))}
-  </div>
-);
-
 const IdChecklist = ({ items, selected, onChange }: { items: { id: string; name: string }[]; selected: string[]; onChange: (ids: string[]) => void }) => (
   <div className="max-h-56 overflow-y-auto space-y-1 rounded-md border border-border p-2">
     {items.length === 0 && <p className="text-xs text-muted-foreground p-2">Nenhum item disponível.</p>}
