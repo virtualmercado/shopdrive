@@ -78,7 +78,7 @@ export const renderCover = (cv: EditorialCanvas, ctx: RenderContext, plan: Extra
       x += cv.pdf.getTextWidth(p.text);
     });
     cv.fontOverride = null;
-    cv.rects.push({ page: cv.page, kind: "text", x: M, y: footY, w: x - M, h: maxH, label: "cover-meta" });
+    cv.rects.push({ page: cv.page, kind: "shape", x: M, y: footY, w: x - M, h: maxH, label: "cover-meta" });
   }
   if (doc.identity.publicUrl) {
     const url = doc.identity.publicUrl.replace(/^https?:\/\//, "");
