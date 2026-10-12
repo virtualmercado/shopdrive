@@ -343,7 +343,7 @@ const AdminLandingSupport = () => {
       .replace(/{nome}/g, selectedTicket.nome);
 
     setGeneratedResponse(response);
-    setEditableResponse(response);
+    sendKeyRef.current = null; setEditableResponse(response);
     toast.success("Resposta gerada! Edite se necessário e clique em 'Enviar por E-mail'.");
   };
 
@@ -874,7 +874,7 @@ const AdminLandingSupport = () => {
                         <Label>Editar Resposta (opcional)</Label>
                         <Textarea
                           value={editableResponse}
-                          onChange={(e) => setEditableResponse(e.target.value)}
+                          onChange={(e) => { sendKeyRef.current = null; setEditableResponse(e.target.value); }}
                           className="min-h-[200px] font-sans text-sm"
                         />
                         <div className="flex items-center gap-2">
