@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { ProfileLoadError } from '@/components/ProfileLoadError';
 
 interface MerchantRouteProps {
   children: React.ReactNode;

@@ -112,11 +112,13 @@ const Login = () => {
   // Redirect after login — only when global auth+profile loading is done
   useEffect(() => {
     if (!user || isSetNewPasswordMode || globalLoading) return;
+    // Erro técnico nunca é "sem loja": não redireciona para o onboarding.
+    if (profileStatus === 'error') return;
 
-    if (isMerchant) {
+    if (profileStatus === 'complete' && isMerchant) {
       console.log('[Auth] redirecting to dashboard');
       navigate("/lojista", { replace: true });
-    } else {
+    } else if (profileStatus === 'incomplete') {
       console.log('[Auth] redirecting to onboarding');
       navigate("/onboarding", { replace: true });
     }
