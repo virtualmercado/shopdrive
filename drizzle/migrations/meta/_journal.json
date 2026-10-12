@@ -260,6 +260,13 @@
       "when": 1791306963533,
       "tag": "0036_catalog_editorial_publish_reset_marker",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791843403380,
+      "tag": "0037_merchant_support_ticket_messages",
+      "breakpoints": true
     }
   ]
 }

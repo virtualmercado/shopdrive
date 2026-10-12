@@ -15,6 +15,44 @@ import { ptBR } from "date-fns/locale";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { PlanGateOverlay } from "@/components/plan";
 import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
+import { TicketConversation, useTicketMessages, TICKET_MESSAGE_MAX } from "@/components/support/TicketConversation";
+
+const MerchantTicketThread = ({ ticketId, onSent, buttonStyle }: { ticketId: string; onSent: () => void; buttonStyle: React.CSSProperties }) => {
+  const conv = useTicketMessages(ticketId);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    const msg = text.trim();
+    if (!msg) return;
+    setSending(true);
+    const { error } = await supabase.rpc("merchant_reply_support_ticket", { _ticket_id: ticketId, _message: msg });
+    setSending(false);
+    if (error) {
+      toast.error("Erro ao enviar mensagem. Tente novamente.");
+      return;
+    }
+    setText("");
+    toast.success("Mensagem enviada!");
+    conv.reload();
+    onSent();
+  };
+
+  return (
+    <div className="px-3 pb-3 pt-3 border-t bg-muted/30 space-y-3">
+      <TicketConversation messages={conv.messages} hasOlder={conv.hasOlder} loading={conv.loading} onLoadOlder={conv.loadOlder} />
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-muted-foreground">Responder ao ticket</label>
+        <Textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={TICKET_MESSAGE_MAX} placeholder="Digite sua mensagem..." className="min-h-[80px] resize-none" />
+        <div className="flex justify-end">
+          <Button size="sm" onClick={send} disabled={!text.trim() || sending} className="gap-2" style={buttonStyle}>
+            <Send className="h-4 w-4" /> Enviar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface SupportTicket {
   id: string;
@@ -274,12 +312,10 @@ const Support = () => {
                               )}
                             </p>
                           </div>
-                          {ticket.response && (
-                            expandedTicketId === ticket.id ? (
-                              <ChevronUp className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                            )
+                          {expandedTicketId === ticket.id ? (
+                            <ChevronUp className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 flex-shrink-0 mt-0.5" />
                           )}
                         </button>
                         <button
@@ -296,23 +332,8 @@ const Support = () => {
                         </button>
                       </div>
                       
-                      {/* Response area */}
-                      {expandedTicketId === ticket.id && ticket.response && (
-                        <div className="px-3 pb-3 pt-0 border-t bg-muted/30">
-                          <div className="pt-3">
-                            <p className="text-xs font-semibold text-muted-foreground mb-1">
-                              Resposta do suporte:
-                            </p>
-                            <p className="text-sm text-foreground">
-                              {ticket.response}
-                            </p>
-                            {ticket.answered_at && (
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Respondido em {format(new Date(ticket.answered_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                      {expandedTicketId === ticket.id && (
+                        <MerchantTicketThread ticketId={ticket.id} onSent={fetchTickets} buttonStyle={{ backgroundColor: buttonBgColor, color: buttonTextColor }} />
                       )}
                     </div>
                   ))}

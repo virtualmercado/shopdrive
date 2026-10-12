@@ -49,6 +49,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AdminPagination, useClientPagination } from "@/components/admin/AdminPagination";
 import { fetchAllRows } from "@/lib/adminPagination";
+import { TicketConversation, useTicketMessages, TICKET_MESSAGE_MAX } from "@/components/support/TicketConversation";
 
 interface MerchantTicket {
   id: string;
@@ -105,7 +106,7 @@ const AdminSupport = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [responseText, setResponseText] = useState("");
   const [sendingResponse, setSendingResponse] = useState(false);
-  const [expandedMessage, setExpandedMessage] = useState(false);
+  const conversation = useTicketMessages(dialogOpen && selectedTicket ? selectedTicket.id : null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: tickets, isLoading, refetch } = useQuery({
@@ -229,21 +230,14 @@ const AdminSupport = () => {
   };
 
   const handleSendResponse = async () => {
-    if (!selectedTicket || !responseText.trim()) return;
+    const text = responseText.trim();
+    if (!selectedTicket || !text) return;
 
     setSendingResponse(true);
-
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from('merchant_support_tickets')
-      .update({
-        response: responseText.trim(),
-        status: 'answered',
-        answered_at: now,
-        last_interaction_by: 'admin',
-        last_interaction_at: now,
-      })
-      .eq('id', selectedTicket.id);
+    const { error } = await supabase.rpc('support_reply_merchant_ticket', {
+      _ticket_id: selectedTicket.id,
+      _message: text,
+    });
 
     if (error) {
       toast.error("Erro ao enviar resposta");
@@ -251,14 +245,16 @@ const AdminSupport = () => {
       return;
     }
 
+    const now = new Date().toISOString();
     toast.success("Resposta enviada com sucesso!");
     setResponseText("");
     setSendingResponse(false);
     invalidateAll();
-    
+    conversation.reload();
+
     setSelectedTicket({
       ...selectedTicket,
-      response: responseText.trim(),
+      response: text,
       status: 'answered',
       answered_at: now,
       last_interaction_by: 'admin',
@@ -268,8 +264,7 @@ const AdminSupport = () => {
 
   const openTicketDialog = (ticket: MerchantTicket) => {
     setSelectedTicket(ticket);
-    setResponseText(ticket.response || "");
-    setExpandedMessage(false);
+    setResponseText("");
     setDialogOpen(true);
   };
 
@@ -527,46 +522,14 @@ const AdminSupport = () => {
                   </div>
                 )}
 
-                {/* Message from merchant - click to expand */}
-                <div className="border rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setExpandedMessage(!expandedMessage)}
-                    className="w-full p-4 bg-muted/50 text-left flex items-start justify-between gap-3 hover:bg-muted/70 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">
-                        Mensagem do lojista:
-                      </p>
-                      <p className={`text-sm ${!expandedMessage ? 'line-clamp-2' : ''}`}>
-                        {selectedTicket.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {format(new Date(selectedTicket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                    {expandedMessage ? (
-                      <ChevronUp className="h-4 w-4 flex-shrink-0 mt-1 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 flex-shrink-0 mt-1 text-muted-foreground" />
-                    )}
-                  </button>
-
-                  {/* Response area - visible when expanded */}
-                  {expandedMessage && selectedTicket.response && (
-                    <div className="p-4 border-t bg-blue-50/50">
-                      <p className="text-xs font-semibold text-blue-800 mb-1">
-                        Resposta do suporte:
-                      </p>
-                      <p className="text-sm text-foreground">
-                        {selectedTicket.response}
-                      </p>
-                      {selectedTicket.answered_at && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Respondido em {format(new Date(selectedTicket.answered_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                {/* Conversation history */}
+                <div className="border rounded-lg p-3">
+                  <TicketConversation
+                    messages={conversation.messages}
+                    hasOlder={conversation.hasOlder}
+                    loading={conversation.loading}
+                    onLoadOlder={conversation.loadOlder}
+                  />
                 </div>
 
                 {/* Response input */}
@@ -577,6 +540,7 @@ const AdminSupport = () => {
                     value={responseText}
                     onChange={(e) => setResponseText(e.target.value)}
                     rows={4}
+                    maxLength={TICKET_MESSAGE_MAX}
                     className="resize-none"
                   />
                   <div className="flex justify-end">
