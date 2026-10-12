@@ -50,18 +50,35 @@ export const isValidHex = (s: unknown): s is string => typeof s === "string" && 
 
 export type TypographyIssue = { field: string; code: "invalid_value" };
 
+/** Textos da contracapa: mesmas famílias/pesos/cores da capa (lista central única). */
+export const BACK_TEXT_ELEMENTS = [
+  { key: "storeName", label: "Nome da loja" },
+  { key: "contacts", label: "Contatos" },
+  { key: "footer", label: "Rodapé e QR Code" },
+] as const;
+export type BackTextKey = (typeof BACK_TEXT_ELEMENTS)[number]["key"];
+export type BackTypographyInput = Partial<Record<BackTextKey, Partial<CoverTextStyle> | null>>;
+export type BackTypography = Record<BackTextKey, CoverTextStyle>;
+export const BACK_DEFAULT_WEIGHT: Record<BackTextKey, CoverWeight> = { storeName: 700, contacts: 700, footer: 400 };
+export type ResolvedBackTypography = Record<BackTextKey, ResolvedCoverText>;
+
+type Els = readonly { key: string }[];
+
 /** Aceita apenas valores da lista central; o resto volta ao padrão (com aviso). */
-export const normalizeCoverTypography = (input: CoverTypographyInput | undefined): { typography: CoverTypography; issues: TypographyIssue[] } => {
+export const normalizeCoverTypography = (input: CoverTypographyInput | undefined) => normalizeTypography(input, COVER_TEXT_ELEMENTS, "coverTypography") as { typography: CoverTypography; issues: TypographyIssue[] };
+export const normalizeBackTypography = (input: BackTypographyInput | undefined) => normalizeTypography(input, BACK_TEXT_ELEMENTS, "backTypography") as { typography: BackTypography; issues: TypographyIssue[] };
+
+const normalizeTypography = (input: Record<string, Partial<CoverTextStyle> | null | undefined> | undefined, els: Els, prefix: string): { typography: Record<string, CoverTextStyle>; issues: TypographyIssue[] } => {
   const issues: TypographyIssue[] = [];
-  const out = {} as CoverTypography;
-  for (const { key } of COVER_TEXT_ELEMENTS) {
+  const out: Record<string, CoverTextStyle> = {};
+  for (const { key } of els) {
     const s = input?.[key] ?? {};
     const fam = s.fontFamily ?? "default";
-    const fontFamily = fam === "default" || COVER_FONTS.some((f) => f.id === fam) ? fam : (issues.push({ field: `coverTypography.${key}.fontFamily`, code: "invalid_value" }), "default");
+    const fontFamily = fam === "default" || COVER_FONTS.some((f) => f.id === fam) ? fam : (issues.push({ field: `${prefix}.${key}.fontFamily`, code: "invalid_value" }), "default");
     const w = s.fontWeight ?? "default";
-    const fontWeight = w === "default" || COVER_WEIGHTS.some((x) => x.value === w) ? w : (issues.push({ field: `coverTypography.${key}.fontWeight`, code: "invalid_value" }), "default");
+    const fontWeight = w === "default" || COVER_WEIGHTS.some((x) => x.value === w) ? w : (issues.push({ field: `${prefix}.${key}.fontWeight`, code: "invalid_value" }), "default");
     const c = s.color ?? null;
-    const color = c === null || c === "" ? null : isValidHex(c) ? c.toUpperCase() : (issues.push({ field: `coverTypography.${key}.color`, code: "invalid_value" }), null);
+    const color = c === null || c === "" ? null : isValidHex(c) ? c.toUpperCase() : (issues.push({ field: `${prefix}.${key}.color`, code: "invalid_value" }), null);
     out[key] = { fontFamily: fontFamily as CoverTextStyle["fontFamily"], fontWeight: fontWeight as CoverTextStyle["fontWeight"], color };
   }
   return { typography: out, issues };
@@ -107,14 +124,18 @@ export const browserFontLoader: FontLoader = (font, weight) => {
  * Registra no jsPDF somente as variantes usadas (uma vez cada).
  * Falha de carga → Helvetica no peso equivalente (fallback previsível) e aviso.
  */
-export const resolveCoverTypography = async (pdf: jsPDF, t: CoverTypography, load: FontLoader): Promise<{ resolved: ResolvedCoverTypography; failed: string[] }> => {
-  const registered = new Map<string, PdfFontRef | null>();
+export const resolveCoverTypography = (pdf: jsPDF, t: CoverTypography, load: FontLoader, registered = new Map<string, PdfFontRef | null>()) =>
+  resolveTypography(pdf, t, load, COVER_TEXT_ELEMENTS, COVER_DEFAULT_WEIGHT, registered) as Promise<{ resolved: ResolvedCoverTypography; failed: string[] }>;
+export const resolveBackTypography = (pdf: jsPDF, t: BackTypography, load: FontLoader, registered = new Map<string, PdfFontRef | null>()) =>
+  resolveTypography(pdf, t, load, BACK_TEXT_ELEMENTS, BACK_DEFAULT_WEIGHT, registered) as Promise<{ resolved: ResolvedBackTypography; failed: string[] }>;
+
+const resolveTypography = async (pdf: jsPDF, t: Record<string, CoverTextStyle>, load: FontLoader, els: Els, defaults: Record<string, CoverWeight>, registered: Map<string, PdfFontRef | null>): Promise<{ resolved: Record<string, ResolvedCoverText>; failed: string[] }> => {
   const failed: string[] = [];
-  const resolved = {} as ResolvedCoverTypography;
-  for (const { key } of COVER_TEXT_ELEMENTS) {
+  const resolved: Record<string, ResolvedCoverText> = {};
+  for (const { key } of els) {
     const s = t[key];
     const color = s.color ? hexToRgb(s.color) : null;
-    const reqWeight = s.fontWeight === "default" ? COVER_DEFAULT_WEIGHT[key] : s.fontWeight;
+    const reqWeight = s.fontWeight === "default" ? defaults[key] : s.fontWeight;
     let font: PdfFontRef | null = null;
     if (s.fontFamily === "default") {
       if (s.fontWeight !== "default") font = { family: "helvetica", style: reqWeight >= 600 ? "bold" : "normal" };

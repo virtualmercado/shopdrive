@@ -16,7 +16,7 @@ export type PagePlan =
   | { kind: "separator"; sectionId: string; title: string; subtitle: string | null; index: number; productCount: number; image: CatalogImageRef | null; imageSource?: SeparatorImageSource }
   | { kind: "products"; sectionId: string; sectionTitle: string; layout: ProductSlotCount; productIds: string[]; header?: CompactHeader }
   | { kind: "featured"; productId: string }
-  | { kind: "back" };
+  | { kind: "back"; image?: CatalogImageRef | null };
 
 /**
  * Divide n produtos de uma seção em páginas de 1–4 itens, priorizando a
@@ -137,6 +137,6 @@ export const composePages = (doc: CatalogDocument, opts: ComposeOptions = {}): P
     });
   });
   featured.forEach((productId) => pages.push({ kind: "featured", productId }));
-  if (includeBackCover) pages.push({ kind: "back" });
+  if (includeBackCover) pages.push({ kind: "back", image: ed?.backCover?.image ?? null });
   return pages;
 };
