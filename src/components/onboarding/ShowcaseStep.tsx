@@ -68,7 +68,7 @@ const ShowcaseStep = ({ storeId, onChanged }: ShowcaseStepProps) => {
 
   useEffect(() => {
     void load();
-    void ai.loadStatus();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
@@ -261,7 +261,11 @@ const ShowcaseStep = ({ storeId, onChanged }: ShowcaseStepProps) => {
             <h3 className="font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> Criar imagem com ajuda da ShopDrive
             </h3>
-            {!aiEnabled ? (
+            {ai.statusLoading ? (
+              <p className="text-xs text-muted-foreground flex items-center gap-2" role="status">
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" /> Carregando recursos de IA…
+              </p>
+            ) : !aiEnabled ? (
               <p className="text-xs text-muted-foreground flex gap-2">
                 <Info className="h-4 w-4 shrink-0" />
                 {ai.status?.global_enabled === false

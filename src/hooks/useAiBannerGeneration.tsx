@@ -128,5 +128,5 @@ export const useAiBannerGeneration = (storeId?: string) => {
     }
   };
 
-  return { status, generation, busy, loadStatus, generate, apply, discard };
+  return { status, statusLoading, generation, busy, loadStatus, generate, apply, discard };
 };
