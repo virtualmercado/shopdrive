@@ -389,6 +389,7 @@ const AdminLandingSupport = () => {
       const data = response.data;
       
       if (!data.success) {
+        if (data.status === 'falha') sendKeyRef.current = null;
         throw new Error(data.error || "Erro ao enviar e-mail");
       }
 
