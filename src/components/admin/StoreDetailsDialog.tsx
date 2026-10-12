@@ -138,38 +138,37 @@ export const StoreDetailsDialog = ({
           </TabsList>
 
           <TabsContent value="cadastro" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Nome Completo</p>
-                <p className="text-base">{store.full_name || store.store_name || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">E-mail</p>
-                <p className="text-base">{store.email || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">CPF/CNPJ</p>
-                <p className="text-base">{store.cpf_cnpj || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Telefone</p>
-                <p className="text-base">{store.phone || "-"}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-muted-foreground">Endereço</p>
-                <p className="text-base">{store.address || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Slug da Loja</p>
-                <p className="text-base">{store.store_slug || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Data de Cadastro</p>
-                <p className="text-base">
-                  {store.created_at ? format(new Date(store.created_at), "dd/MM/yyyy 'às' HH:mm") : "-"}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const NI = "Não informado";
+              const accountEmail = store.account_email ?? store.email;
+              const commercial = store.profile_email && store.profile_email !== accountEmail ? store.profile_email : null;
+              const addr = [
+                [store.address, store.address_number].filter(Boolean).join(", "),
+                store.address_complement, store.address_neighborhood,
+                [store.address_city, store.address_state].filter(Boolean).join("/"), store.address_zip_code,
+              ].filter((p: any) => p && String(p).trim()).join(" - ");
+              const link = store.store_slug ? `https://shopdrive.com.br/${store.store_slug}` : null;
+              const Field = ({ label, value, wide }: { label: string; value: any; wide?: boolean }) => (
+                <div className={wide ? "sm:col-span-2" : ""}>
+                  <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                  <p className="text-base break-words">{value || NI}</p>
+                </div>
+              );
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Nome completo / responsável" value={store.full_name} />
+                  <Field label="E-mail da conta" value={accountEmail} />
+                  {commercial && <Field label="E-mail comercial" value={commercial} />}
+                  <Field label="Telefone" value={store.phone} />
+                  <Field label="WhatsApp" value={store.whatsapp ?? store.whatsapp_number} />
+                  <Field label="CPF/CNPJ" value={store.cpf_cnpj} />
+                  <Field label="Endereço" value={addr} wide />
+                  <Field label="Slug da loja" value={store.store_slug} />
+                  <Field label="Link da loja" value={link && <a href={link} target="_blank" rel="noreferrer" className="text-primary underline">{link}</a>} />
+                  <Field label="Data de cadastro" value={store.created_at ? format(new Date(store.created_at), "dd/MM/yyyy 'às' HH:mm") : null} />
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="financeiro" className="space-y-4 mt-4">
