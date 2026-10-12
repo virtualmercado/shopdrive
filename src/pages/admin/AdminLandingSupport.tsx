@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,7 @@ interface TicketResponse {
   enviado_por: string | null;
   email_destinatario: string | null;
   status_envio: string;
+  erro_envio?: string | null;
   created_at: string;
 }
 
@@ -155,6 +156,8 @@ const AdminLandingSupport = () => {
   const [editingTemplate, setEditingTemplate] = useState<ResponseTemplate | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const isSendingRef = useRef(false);
+  const sendKeyRef = useRef<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -227,7 +230,8 @@ const AdminLandingSupport = () => {
       if (error) throw error;
       return data as unknown as TicketResponse[];
     },
-    enabled: !!selectedTicket
+    enabled: !!selectedTicket,
+    refetchInterval: (q: any) => (q.state?.data as TicketResponse[] | undefined)?.some((r) => r.status_envio === 'pendente') ? 4000 : false
   });
 
   // Update ticket mutation
@@ -339,7 +343,7 @@ const AdminLandingSupport = () => {
       .replace(/{nome}/g, selectedTicket.nome);
 
     setGeneratedResponse(response);
-    setEditableResponse(response);
+    sendKeyRef.current = null; setEditableResponse(response);
     toast.success("Resposta gerada! Edite se necessário e clique em 'Enviar por E-mail'.");
   };
 
@@ -359,7 +363,10 @@ const AdminLandingSupport = () => {
       .replace(/{protocolo}/g, selectedTicket.protocolo)
       .replace(/{nome}/g, selectedTicket.nome) || `Resposta - ${selectedTicket.protocolo}`;
 
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
     setIsSendingEmail(true);
+    if (!sendKeyRef.current) sendKeyRef.current = crypto.randomUUID();
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -371,6 +378,7 @@ const AdminLandingSupport = () => {
           subject: subject,
           message: editableResponse,
           ticketProtocolo: selectedTicket.protocolo,
+          idempotencyKey: sendKeyRef.current,
         },
       });
 
@@ -381,13 +389,12 @@ const AdminLandingSupport = () => {
       const data = response.data;
       
       if (!data.success) {
+        if (data.status === 'falha') sendKeyRef.current = null;
         throw new Error(data.error || "Erro ao enviar e-mail");
       }
 
-      toast.success("E-mail enviado com sucesso!");
-      
-      // Update local state
-      setSelectedTicket({ ...selectedTicket, status: "aguardando_cliente" });
+      toast.success(data.duplicate ? "Este envio já havia sido registrado." : "E-mail colocado na fila de envio. Acompanhe o status no histórico.");
+      sendKeyRef.current = null;
       setGeneratedResponse("");
       setEditableResponse("");
       
@@ -399,7 +406,9 @@ const AdminLandingSupport = () => {
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error(error.message || "Erro ao enviar e-mail. Tente novamente.");
+      refetchResponses();
     } finally {
+      isSendingRef.current = false;
       setIsSendingEmail(false);
     }
   };
@@ -866,7 +875,7 @@ const AdminLandingSupport = () => {
                         <Label>Editar Resposta (opcional)</Label>
                         <Textarea
                           value={editableResponse}
-                          onChange={(e) => setEditableResponse(e.target.value)}
+                          onChange={(e) => { sendKeyRef.current = null; setEditableResponse(e.target.value); }}
                           className="min-h-[200px] font-sans text-sm"
                         />
                         <div className="flex items-center gap-2">
@@ -923,9 +932,11 @@ const AdminLandingSupport = () => {
                           ticketResponses?.map((response) => (
                             <div key={response.id} className="border rounded-lg p-3 space-y-2">
                               <div className="flex items-center justify-between">
-                                <Badge variant={response.status_envio === 'enviado' ? 'default' : 'destructive'}>
+                                <Badge variant={response.status_envio === 'enviado' ? 'default' : response.status_envio === 'pendente' ? 'secondary' : 'destructive'}>
                                   {response.status_envio === 'enviado' ? (
                                     <><CheckCircle className="h-3 w-3 mr-1" /> Enviado</>
+                                  ) : response.status_envio === 'pendente' ? (
+                                    <><Clock className="h-3 w-3 mr-1" /> Pendente</>
                                   ) : (
                                     <><AlertCircle className="h-3 w-3 mr-1" /> Falha</>
                                   )}
@@ -942,6 +953,9 @@ const AdminLandingSupport = () => {
                                 <p className="text-xs text-muted-foreground">Para:</p>
                                 <p className="text-sm">{response.email_destinatario}</p>
                               </div>
+                              {response.status_envio === 'falha' && response.erro_envio && (
+                                <p className="text-xs text-destructive">Motivo: {response.erro_envio}</p>
+                              )}
                               <details className="text-sm">
                                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                                   Ver mensagem

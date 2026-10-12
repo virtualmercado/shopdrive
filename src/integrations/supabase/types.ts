@@ -6464,8 +6464,12 @@ export type Database = {
           assunto: string
           created_at: string
           email_destinatario: string | null
+          email_queue_id: string | null
+          enviado_em: string | null
           enviado_por: string | null
+          erro_envio: string | null
           id: string
+          idempotency_key: string | null
           mensagem: string
           status_envio: string | null
           ticket_id: string
@@ -6475,8 +6479,12 @@ export type Database = {
           assunto: string
           created_at?: string
           email_destinatario?: string | null
+          email_queue_id?: string | null
+          enviado_em?: string | null
           enviado_por?: string | null
+          erro_envio?: string | null
           id?: string
+          idempotency_key?: string | null
           mensagem: string
           status_envio?: string | null
           ticket_id: string
@@ -6486,8 +6494,12 @@ export type Database = {
           assunto?: string
           created_at?: string
           email_destinatario?: string | null
+          email_queue_id?: string | null
+          enviado_em?: string | null
           enviado_por?: string | null
+          erro_envio?: string | null
           id?: string
+          idempotency_key?: string | null
           mensagem?: string
           status_envio?: string | null
           ticket_id?: string
