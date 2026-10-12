@@ -12,7 +12,7 @@ import { renderInstitutional } from "./renderInstitutional";
 import { renderCommercial } from "./renderCommercial";
 import { renderFeaturedPage } from "./renderProducts";
 import { blockingIssues, EditorialConfigError, normalizeEditorialConfig, type EditorialConfigInput, type EditorialIssue } from "./editorialConfig";
-import { browserFontLoader, resolveCoverTypography, type FontLoader } from "./coverTypography";
+import { browserFontLoader, resolveBackTypography, resolveCoverTypography, type FontLoader, type PdfFontRef } from "./coverTypography";
 import { buildEditorialTheme, EDITORIAL_TEMPLATE_ID, EDITORIAL_TEMPLATE_VERSION } from "./theme";
 
 /** Resolve uma imagem já reduzida; deve aplicar cache e timeout (ver createCatalogImageLoader). */
@@ -51,6 +51,7 @@ const imageEdge = (plan: PagePlan): number => {
   if (plan.kind === "products") return editorialEdgePx(({ 1: 170, 2: 110, 3: 80, 4: 80 } as const)[plan.layout]);
   if (plan.kind === "featured") return editorialEdgePx(170);
   if (plan.kind === "institutional") return editorialEdgePx(210);
+  if (plan.kind === "back") return editorialEdgePx(297);
   return 0;
 };
 
@@ -60,6 +61,7 @@ const pageImageRefs = (plan: PagePlan, ctx: Pick<RenderContext, "product">): (Ca
   if (plan.kind === "products") return plan.productIds.map((id) => ctx.product(id).primaryImage);
   if (plan.kind === "featured") return [ctx.product(plan.productId).primaryImage];
   if (plan.kind === "institutional") return [plan.image];
+  if (plan.kind === "back") return [plan.image ?? null];
   return [];
 };
 
@@ -88,8 +90,12 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
   const logo = doc.identity.logoUrl ? await opts.resolveImage(doc.identity.logoUrl, editorialEdgePx(48), true) : null;
 
   // Só as variantes efetivamente escolhidas são carregadas e embutidas.
-  const typo = await resolveCoverTypography(pdf, config.cover.typography, opts.loadFont ?? browserFontLoader);
+  const fontsRegistered = new Map<string, PdfFontRef | null>();
+  const typo = await resolveCoverTypography(pdf, config.cover.typography, opts.loadFont ?? browserFontLoader, fontsRegistered);
   typo.failed.forEach((font) => issues.push({ field: "cover.typography", code: "font_fallback", font }));
+  const hasBack = plan.some((p) => p.kind === "back");
+  const backTypo = hasBack ? await resolveBackTypography(pdf, config.backCover.typography, opts.loadFont ?? browserFontLoader, fontsRegistered) : null;
+  backTypo?.failed.forEach((font) => issues.push({ field: "backCover.typography", code: "font_fallback", font }));
 
   let current = new Map<string, CatalogImage | null>();
   const ctx: RenderContext = {
@@ -110,6 +116,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
     totalPages: plan.length,
     coverOptions: { showLogo: config.cover.showLogo, showMeta: config.cover.showMeta, showYear: config.cover.showYear, showCount: config.cover.showCount },
     coverTypography: typo.resolved,
+    backTypography: backTypo?.resolved,
   };
 
   for (let i = 0; i < plan.length; i++) {
@@ -135,7 +142,10 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
     else if (page.kind === "featured") renderFeaturedPage(cv, ctx, page);
     else if (page.kind === "institutional") renderInstitutional(cv, ctx, page);
     else if (page.kind === "commercial") renderCommercial(cv, ctx, page);
-    else renderBackCover(cv, ctx);
+    else {
+      if (page.image && !current.get(page.image.url)) issues.push({ field: "backCover.imageUrl", code: "image_failed", url: page.image.url });
+      renderBackCover(cv, ctx, page);
+    }
   }
 
   return {

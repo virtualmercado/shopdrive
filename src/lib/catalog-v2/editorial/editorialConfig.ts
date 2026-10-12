@@ -1,6 +1,6 @@
 import { htmlToCatalogText } from "@/lib/catalogPdfClassic";
 import type { CatalogDocument, CatalogImageRef } from "../types";
-import { normalizeCoverTypography, type CoverTypography, type CoverTypographyInput } from "./coverTypography";
+import { normalizeBackTypography, normalizeCoverTypography, type BackTypography, type BackTypographyInput, type CoverTypography, type CoverTypographyInput } from "./coverTypography";
 
 /**
  * Configurações editoriais opcionais do editorial_01 (Fase 4).
@@ -21,6 +21,8 @@ export interface EditorialConfigInput {
   /** Chave = id da seção do CatalogDocument (ex.: "category:<id>"). */
   sectionImages?: Record<string, string>;
   featured?: { productIds?: string[]; policy?: FeaturedPolicy };
+  /** Contracapa: Padrão (branco) ou imagem própria em página inteira; template fixo. */
+  backCover?: { imageUrl?: string | null; typography?: BackTypographyInput };
 }
 
 export const EDITORIAL_LIMITS = {
@@ -48,6 +50,7 @@ export interface EditorialConfig {
   autoCompactMax: number;
   sectionImages: Record<string, CatalogImageRef>;
   featured: { productIds: string[]; policy: FeaturedPolicy };
+  backCover: { image: CatalogImageRef | null; typography: BackTypography };
 }
 
 export type EditorialIssue =
@@ -92,7 +95,9 @@ export const COVER_FOLDER = "catalog-covers";
 export const INSTITUTIONAL_FOLDER = "catalog-institutional";
 /** Pasta das imagens personalizadas de abertura de seção (categoria/marca), mesmo isolamento da capa. */
 export const SECTION_FOLDER = "catalog-sections";
-export type EditorialUploadFolder = typeof COVER_FOLDER | typeof INSTITUTIONAL_FOLDER | typeof SECTION_FOLDER;
+/** Pasta da imagem personalizada da contracapa (mesmo isolamento da capa). */
+export const BACK_COVER_FOLDER = "catalog-backcovers";
+export type EditorialUploadFolder = typeof COVER_FOLDER | typeof INSTITUTIONAL_FOLDER | typeof SECTION_FOLDER | typeof BACK_COVER_FOLDER;
 export const coverStoragePath = (storeId: string, ext: string, folder: EditorialUploadFolder = COVER_FOLDER) => `${storeId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 const storageBase = (): string => {
   const u = (typeof import.meta !== "undefined" ? (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_URL : undefined) ?? "";
@@ -108,6 +113,7 @@ export const isOwnCoverUrl = (url: string, storeId: string, base = storageBase()
 };
 export const isOwnInstitutionalUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, INSTITUTIONAL_FOLDER);
 export const isOwnSectionUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, SECTION_FOLDER);
+export const isOwnBackCoverUrl = (url: string, storeId: string, base = storageBase()) => isOwnCoverUrl(url, storeId, base, BACK_COVER_FOLDER);
 
 const docImageUrls = (doc: CatalogDocument) => {
   const all = new Set<string>();
@@ -206,8 +212,15 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
   });
   if (featuredIds.length > EDITORIAL_LIMITS.featured) issues.push({ field: "featured.productIds", code: "too_long", limit: EDITORIAL_LIMITS.featured, length: featuredIds.length });
 
+  const b = input.backCover ?? {};
+  const bu = typeof b.imageUrl === "string" ? b.imageUrl.trim() : "";
+  const backImage = !bu ? null : isOwnBackCoverUrl(bu, doc.storeId) ? { url: bu, order: 0 } : (issues.push({ field: "backCover.imageUrl", code: "unauthorized_image", url: bu }), null);
+  const backTypo = normalizeBackTypography(b.typography);
+  issues.push(...backTypo.issues);
+
   return {
     config: {
+      backCover: { image: backImage, typography: backTypo.typography },
       cover,
       institutional,
       commercial,

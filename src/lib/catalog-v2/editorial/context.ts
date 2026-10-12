@@ -1,7 +1,7 @@
 import type { CatalogImage } from "@/lib/catalogPdfClassic";
 import type { CatalogDocument, CatalogImageRef, CatalogProduct } from "../types";
 import type { EditorialTheme } from "./theme";
-import type { ResolvedCoverTypography } from "./coverTypography";
+import type { ResolvedCoverTypography, ResolvedBackTypography } from "./coverTypography";
 
 export interface RenderContext {
   doc: CatalogDocument;
@@ -19,4 +19,6 @@ export interface RenderContext {
   coverOptions: { showLogo: boolean; showMeta: boolean; showYear: boolean; showCount: boolean };
   /** Fonte/cor por texto da capa; null = comportamento original. */
   coverTypography?: ResolvedCoverTypography;
+  /** Fonte/cor por texto da contracapa; null = padrão. */
+  backTypography?: ResolvedBackTypography;
 }
