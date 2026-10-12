@@ -126,36 +126,39 @@ serve(async (req) => {
     const storeId: string = typeof body?.store_id === "string" ? body.store_id : "";
     if (!/^[0-9a-f-]{36}$/i.test(storeId)) return json({ error: "store_id inválido." }, 400);
 
-    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    // Consultas independentes em paralelo; nada é devolvido antes da checagem de permissão.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [roleRes, stateRes, flagRes, countRes] = await Promise.all([
+      admin.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+      admin
+        .from("store_onboarding_state")
+        .select("ai_image_enabled, brand_profile, applied_palette_id, applied_layout_id")
+        .eq("store_id", storeId)
+        .maybeSingle(),
+      admin
+        .from("onboarding_feature_flags")
+        .select("enabled")
+        .eq("flag_key", "ENABLE_AI_IMAGE_GENERATION")
+        .maybeSingle(),
+      admin
+        .from("ai_media_generation_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId)
+        .eq("kind", KIND)
+        .gte("created_at", since),
+    ]);
+    const isAdmin = roleRes.data;
 
     // Multitenancy: somente o dono da loja ou um admin.
     if (!isAdmin && storeId !== user.id) {
       return json({ error: "Sem permissão para esta loja." }, 403);
     }
 
-    const { data: state } = await admin
-      .from("store_onboarding_state")
-      .select("ai_image_enabled, brand_profile, applied_palette_id, applied_layout_id")
-      .eq("store_id", storeId)
-      .maybeSingle();
-
+    const state = stateRes.data;
     // Regra efetiva: chave global AND loja não suspensa (sem linha de estado = padrão ativo).
-    const { data: flag } = await admin
-      .from("onboarding_feature_flags")
-      .select("enabled")
-      .eq("flag_key", "ENABLE_AI_IMAGE_GENERATION")
-      .maybeSingle();
-    const globalEnabled = !!flag?.enabled;
+    const globalEnabled = !!flagRes.data?.enabled;
     const storeEnabled = state ? state.ai_image_enabled !== false : true;
-
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: usedCount } = await admin
-      .from("ai_media_generation_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("store_id", storeId)
-      .eq("kind", KIND)
-      .gte("created_at", since);
-    const used = usedCount ?? 0;
+    const used = countRes.count ?? 0;
 
     if (action === "status") {
       return json({
