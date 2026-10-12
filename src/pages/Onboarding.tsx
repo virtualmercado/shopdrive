@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeStoreLayout } from "@/lib/storeLayout";
 import { toast } from "sonner";
 import { Store, Settings, Package, Rocket, ArrowRight, ArrowLeft, SkipForward, Loader2 } from "lucide-react";
-import logoVirtualMercado from "@/assets/logo-virtual-mercado.png";
+import logoShopDrive from "@/assets/logo-shopdrive-oficial.png";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const STEPS = [
   { id: 1, title: "Criar loja", icon: Store },
@@ -42,6 +43,15 @@ const Onboarding = () => {
   const [checkingTemplate, setCheckingTemplate] = useState(!!templateSlug);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { loading: authLoading, isMerchant, profileStatus, refreshProfile } = useAuthContext();
+  // Decided once on entry: an account that already has a store never goes through onboarding.
+  const [entryChecked, setEntryChecked] = useState(false);
+  useEffect(() => {
+    if (entryChecked || authLoading || !user) return;
+    if (profileStatus === 'error') return;
+    setEntryChecked(true);
+    if (isMerchant && !templateSlug) navigate("/lojista", { replace: true });
+  }, [entryChecked, authLoading, user, profileStatus, isMerchant, templateSlug, navigate]);
 
   const [storeData, setStoreData] = useState({
     storeName: "",
@@ -100,7 +110,7 @@ const Onboarding = () => {
                 p_store_name: profile.store_name,
               });
               if (slugData) {
-                await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id);
+                await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id).or('store_slug.is.null,store_slug.eq.');
               }
             }
 
@@ -133,13 +143,30 @@ const Onboarding = () => {
 
     setLoading(true);
     try {
+      // Re-check on the server: an existing store must never be replaced by onboarding.
+      const { data: current, error: currentError } = await supabase
+        .from("profiles")
+        .select("store_slug")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (currentError) {
+        toast.error("Não foi possível verificar sua conta. Tente novamente.");
+        return;
+      }
+      if (current?.store_slug) {
+        toast.info("Sua conta já possui uma loja.");
+        await refreshProfile();
+        navigate("/lojista", { replace: true });
+        return;
+      }
+
       const { data: slugData } = await supabase.rpc("generate_store_slug", {
         p_store_name: storeData.storeName,
       });
 
       const slug = slugData || storeData.storeName.toLowerCase().replace(/\s+/g, "-");
 
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("profiles")
         .update({
           store_name: storeData.storeName,
@@ -148,7 +175,17 @@ const Onboarding = () => {
           city: storeData.city || null,
           store_category: storeData.category || null,
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        // Atomic guard: only updates when the account still has no store address.
+        .or("store_slug.is.null,store_slug.eq.")
+        .select("id");
+
+      if (!error && (!updated || updated.length === 0)) {
+        toast.info("Sua conta já possui uma loja.");
+        await refreshProfile();
+        navigate("/lojista", { replace: true });
+        return;
+      }
 
       if (error) {
         console.error("[Onboarding] Error creating store:", error);
@@ -237,10 +274,11 @@ const Onboarding = () => {
           p_store_name: profile.store_name,
         });
         if (slugData) {
-          await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id);
+          await supabase.from('profiles').update({ store_slug: slugData }).eq('id', user.id).or('store_slug.is.null,store_slug.eq.');
         }
       }
     }
+    await refreshProfile();
     navigate("/lojista", { replace: true });
   };
 
@@ -260,7 +298,7 @@ const Onboarding = () => {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-6">
-          <img src={logoVirtualMercado} alt="VirtualMercado" className="h-10 w-auto mx-auto mb-4" />
+          <img src={logoShopDrive} alt="ShopDrive" className="h-10 w-auto mx-auto mb-4" />
         </div>
 
         {/* Progress */}

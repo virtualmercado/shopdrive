@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { ProfileLoadError } from "@/components/ProfileLoadError";
 import logoShopDrive from "@/assets/logo-shopdrive-oficial.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -59,7 +60,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { user, signIn, resetPassword, updatePassword } = useAuth();
-  const { isMerchant, loading: globalLoading, profileStatus } = useAuthContext();
+  const { isMerchant, loading: globalLoading, profileStatus, refreshProfile } = useAuthContext();
   const { toast } = useToast();
 
   // Listen for PASSWORD_RECOVERY event
@@ -215,6 +216,10 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (user && profileStatus === 'error' && !isSetNewPasswordMode) {
+    return <ProfileLoadError onRetry={refreshProfile} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
