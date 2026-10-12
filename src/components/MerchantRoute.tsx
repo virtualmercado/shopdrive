@@ -7,7 +7,7 @@ interface MerchantRouteProps {
 }
 
 export const MerchantRoute = ({ children }: MerchantRouteProps) => {
-  const { user, isMerchant, loading } = useAuthContext();
+  const { user, isMerchant, loading, profileStatus, refreshProfile } = useAuthContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -15,19 +15,15 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
 
   useEffect(() => {
     if (loading) return;
+    if (isTemplateEditorMode) return;
 
     if (!user) {
-      if (isTemplateEditorMode) return;
-      console.log('[MerchantRoute] No user — redirecting to /login');
       navigate('/login', { replace: true });
-    } else if (!isMerchant) {
-      if (isTemplateEditorMode) return;
-      console.log('[MerchantRoute] User has no store — redirecting to /onboarding');
+    } else if (profileStatus === 'incomplete') {
+      // Only a completed lookup proving "no store" leads to onboarding — never an error.
       navigate('/onboarding', { replace: true });
-    } else {
-      console.log('[MerchantRoute] Merchant confirmed — rendering dashboard');
     }
-  }, [user, isMerchant, loading, navigate, isTemplateEditorMode]);
+  }, [user, loading, profileStatus, navigate, isTemplateEditorMode]);
 
   if (loading) {
     return (
@@ -35,6 +31,10 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  if (!isTemplateEditorMode && user && profileStatus === 'error') {
+    return <ProfileLoadError onRetry={refreshProfile} />;
   }
 
   if (isTemplateEditorMode) {
