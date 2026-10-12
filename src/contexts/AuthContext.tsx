@@ -1,8 +1,17 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { createUserScopedLoader, classifyProfileLookup } from '@/lib/authIdentity';
 
-type ProfileStatus = 'loading' | 'complete' | 'incomplete' | 'missing';
+/**
+ * loading    — resolving the current identity
+ * complete   — current user has a store (found)
+ * incomplete — a successful lookup proved the user has no store (not_found)
+ * error      — technical failure; NEVER means "no store"
+ * missing    — no authenticated user
+ */
+type ProfileStatus = 'loading' | 'complete' | 'incomplete' | 'error' | 'missing';
 
 interface AuthContextValue {
   user: User | null;
@@ -18,7 +27,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+type ProfileRow = { store_slug: string | null; is_template_profile: boolean | null; store_name: string | null };
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -26,148 +38,111 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isMerchant, setIsMerchant] = useState(false);
   const [isTemplateProfile, setIsTemplateProfile] = useState(false);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
-  const profileFetchRef = useRef<string | null>(null);
+  /** Identity whose profile is resolved/being resolved. */
+  const identityRef = useRef<string | null | undefined>(undefined);
 
-  const fetchProfile = useCallback(async (currentUser: User | null) => {
+  const loaderRef = useRef(
+    createUserScopedLoader<{ data: ProfileRow | null; error: unknown }>(
+      (_uid, { data, error }) => {
+        const { resolution, isMerchant: merchant } = classifyProfileLookup(data, error);
+        if (resolution === 'error') {
+          console.error('[Auth] profile lookup failed — not treating as "no store"');
+          setProfileStatus('error');
+          return;
+        }
+        setIsTemplateProfile(data?.is_template_profile === true);
+        setIsMerchant(merchant);
+        setStoreSlug(data?.store_slug ?? null);
+        setProfileStatus(resolution === 'found' ? 'complete' : 'incomplete');
+      },
+      () => setProfileStatus('error'),
+    ),
+  );
+
+  const clearTenantState = useCallback(() => {
+    setIsMerchant(false);
+    setIsTemplateProfile(false);
+    setStoreSlug(null);
+  }, []);
+
+  const resolveIdentity = useCallback((currentUser: User | null, force = false) => {
+    const nextId = currentUser?.id ?? null;
+    const prevId = identityRef.current;
+    const changed = prevId !== nextId;
+
+    if (!changed && !force) return;
+
+    // Identity changed: drop any pending lookup and all state of the previous account.
+    if (changed) {
+      clearTenantState();
+      if (prevId) {
+        // Private caches belong to the previous identity (public storefront uses another client).
+        queryClient.removeQueries();
+      }
+    }
+    identityRef.current = nextId;
+
     if (!currentUser) {
-      console.log('[Auth] no user, setting profile status to missing');
+      loaderRef.current.invalidate(null);
       setProfileStatus('missing');
-      setIsMerchant(false);
-      setIsTemplateProfile(false);
-      setStoreSlug(null);
-      profileFetchRef.current = null;
       return;
     }
 
-    // Avoid duplicate fetches for same user
-    if (profileFetchRef.current === currentUser.id) return;
-    profileFetchRef.current = currentUser.id;
-
-    console.log('[Auth] profile lookup started for', currentUser.id);
     setProfileStatus('loading');
-
-    try {
+    void loaderRef.current.load(currentUser.id, async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('store_slug, is_template_profile, store_name')
         .eq('id', currentUser.id)
         .maybeSingle();
-
-      if (error) {
-        console.error('[Auth] Error querying profile:', error.message);
-        setProfileStatus('missing');
-        setIsMerchant(false);
-        setIsTemplateProfile(false);
-        setStoreSlug(null);
-      } else if (!data) {
-        console.log('[Auth] profile missing');
-        setProfileStatus('missing');
-        setIsMerchant(false);
-        setIsTemplateProfile(false);
-        setStoreSlug(null);
-      } else {
-        const isTemplate = data.is_template_profile === true;
-        const hasStore = !!data.store_slug || isTemplate;
-        setIsTemplateProfile(isTemplate);
-        setIsMerchant(hasStore);
-        setStoreSlug(data.store_slug);
-
-        if (hasStore) {
-          console.log('[Auth] profile found — merchant confirmed');
-          setProfileStatus('complete');
-        } else {
-          console.log('[Auth] profile incomplete — no store');
-          setProfileStatus('incomplete');
-        }
-      }
-    } catch (err) {
-      console.error('[Auth] Unexpected error:', err);
-      setProfileStatus('missing');
-      setIsMerchant(false);
-      setIsTemplateProfile(false);
-      setStoreSlug(null);
-    }
-  }, []);
+      return { data: data as ProfileRow | null, error };
+    });
+  }, [clearTenantState, queryClient]);
 
   const refreshProfile = useCallback(async () => {
-    // Force re-fetch by clearing the cache
-    profileFetchRef.current = null;
-    if (user) {
-      await fetchProfile(user);
-    }
-  }, [user, fetchProfile]);
+    const { data: { session: current } } = await supabase.auth.getSession();
+    resolveIdentity(current?.user ?? null, true);
+  }, [resolveIdentity]);
 
   useEffect(() => {
-    console.log('[Auth] auth started');
-
-    // 1. Set up listener FIRST (Supabase best practice)
-    // This fires INITIAL_SESSION synchronously on setup
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log(`[Auth] onAuthStateChange: ${event}`);
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (event === 'INITIAL_SESSION') {
-          // Session restored from storage — fetch profile immediately
-          setAuthReady(true);
-          fetchProfile(newSession?.user ?? null);
-        } else if (event === 'SIGNED_IN') {
-          setAuthReady(true);
-          // Reset profile cache for new/different user
-          if (newSession?.user?.id !== profileFetchRef.current) {
-            profileFetchRef.current = null;
-          }
-          fetchProfile(newSession?.user ?? null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          setAuthReady(true);
-          // Only re-fetch if user changed (shouldn't happen, but safety)
-          if (newSession?.user?.id !== profileFetchRef.current) {
-            profileFetchRef.current = null;
-            fetchProfile(newSession?.user ?? null);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setAuthReady(true);
-          profileFetchRef.current = null;
-          fetchProfile(null);
-        }
-      }
-    );
-
-    // 2. Fallback: if INITIAL_SESSION didn't fire (older Supabase versions),
-    // ensure we still restore the session
-    supabase.auth.getSession().then(({ data: { session: restored } }) => {
-      console.log('[Auth] getSession fallback', restored ? 'with user' : 'no session');
-      if (!profileFetchRef.current && restored?.user) {
-        // Profile wasn't fetched by INITIAL_SESSION — do it now
-        setSession(restored);
-        setUser(restored.user);
-        setAuthReady(true);
-        fetchProfile(restored.user);
-      } else if (!restored) {
-        // No session at all — ensure auth is ready
-        setAuthReady(true);
-        if (profileFetchRef.current === null) {
-          fetchProfile(null);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setAuthReady(true);
+      if (event === 'SIGNED_OUT') {
+        resolveIdentity(null);
+      } else {
+        // INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED:
+        // only re-resolves when the identity actually changed.
+        resolveIdentity(newSession?.user ?? null);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+    // Fallback in case INITIAL_SESSION did not fire.
+    supabase.auth.getSession().then(({ data: { session: restored } }) => {
+      if (identityRef.current !== undefined) return;
+      setSession(restored);
+      setUser(restored?.user ?? null);
+      setAuthReady(true);
+      resolveIdentity(restored?.user ?? null);
+    });
 
-  // Global loading = auth not ready OR profile still loading (when user exists)
-  const loading = !authReady || (!!user && profileStatus === 'loading');
+    return () => subscription.unsubscribe();
+  }, [resolveIdentity]);
+
+  // While the resolved identity differs from the current user, we are loading.
+  const identityPending = (user?.id ?? null) !== (identityRef.current ?? null);
+  const loading = !authReady || (!!user && (profileStatus === 'loading' || identityPending));
 
   return (
     <AuthContext.Provider value={{
       user,
       session,
       loading,
-      profileStatus,
-      isMerchant,
-      isTemplateProfile,
-      storeSlug,
+      profileStatus: identityPending && user ? 'loading' : profileStatus,
+      isMerchant: identityPending ? false : isMerchant,
+      isTemplateProfile: identityPending ? false : isTemplateProfile,
+      storeSlug: identityPending ? null : storeSlug,
       refreshProfile,
     }}>
       {children}
