@@ -1624,12 +1624,12 @@ const CatalogPDF = () => {
           <div role="radiogroup" aria-label="Modalidade do catálogo" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
               ["classic", "Clássico", "Modelos tradicionais de catálogo, com geração rápida e configurações simplificadas."],
-              ["editorial", "Editorial", "Catálogo profissional com páginas personalizadas, apresentação da loja e produtos organizados."],
+              ["editorial", "Personalizado", "Catálogo profissional com páginas personalizadas, apresentação da loja e produtos organizados."],
             ] as const).map(([value, label, desc]) => (
               <button key={value} type="button" role="radio" aria-checked={catalogMode === value}
                 onClick={() => { setCatalogMode(value); if (value === "editorial") setEditorialMounted(true); }}
                 className={`text-left rounded-lg border p-4 transition-colors ${catalogMode === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                <p className="font-semibold text-foreground">{label}{value === "editorial" && <span className="ml-2 text-xs font-normal text-muted-foreground">homologação</span>}</p>
+                <p className="font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground mt-1">{desc}</p>
               </button>
             ))}
