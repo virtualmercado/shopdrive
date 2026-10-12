@@ -1,5 +1,6 @@
 import { htmlToCatalogText } from "@/lib/catalogPdfClassic";
 import type { CatalogDocument, CatalogImageRef } from "../types";
+import { normalizeCoverTypography, type CoverTypography, type CoverTypographyInput } from "./coverTypography";
 
 /**
  * Configurações editoriais opcionais do editorial_01 (Fase 4).
@@ -13,7 +14,7 @@ export type SeparatorMode = "full" | "compact" | "auto";
 export type FeaturedPolicy = "keep_in_section" | "featured_only";
 
 export interface EditorialConfigInput {
-  cover?: { title?: string | null; subtitle?: string | null; imageUrl?: string | null; showLogo?: boolean; showMeta?: boolean; showYear?: boolean; showCount?: boolean };
+  cover?: { title?: string | null; subtitle?: string | null; imageUrl?: string | null; showLogo?: boolean; showMeta?: boolean; showYear?: boolean; showCount?: boolean; typography?: CoverTypographyInput };
   institutional?: { enabled?: boolean; title?: string | null; text?: string | null; useStoreAbout?: boolean; imageUrl?: string | null };
   commercial?: { enabled?: boolean; title?: string | null; intro?: string | null; payment?: string | null; delivery?: string | null; minimumOrder?: string | null; notes?: string | null };
   separators?: SeparatorMode;
@@ -39,7 +40,7 @@ export const AUTO_COMPACT_MAX = 2;
 export interface CommercialItem { key: "payment" | "delivery" | "minimumOrder" | "notes"; label: string; text: string }
 
 export interface EditorialConfig {
-  cover: { title: string | null; subtitle: string | null; image: CatalogImageRef | null; showLogo: boolean; showMeta: boolean; showYear: boolean; showCount: boolean };
+  cover: { title: string | null; subtitle: string | null; image: CatalogImageRef | null; showLogo: boolean; showMeta: boolean; showYear: boolean; showCount: boolean; typography: CoverTypography };
   institutional: { title: string; paragraphs: string[]; image: CatalogImageRef | null } | null;
   commercial: { title: string; intro: string | null; items: CommercialItem[] } | null;
   /** null = comportamento anterior (separador completo quando agrupado). */
@@ -53,7 +54,9 @@ export type EditorialIssue =
   | { field: string; code: "too_long"; limit: number; length: number }
   | { field: string; code: "unknown_product"; id: string }
   | { field: string; code: "unauthorized_image"; url: string }
-  | { field: string; code: "empty" };
+  | { field: string; code: "empty" }
+  | { field: string; code: "invalid_value" }
+  | { field: string; code: "font_fallback"; font: string };
 
 /** Erro bloqueante: texto acima do limite ou produto fora do documento. Nunca corta em silêncio. */
 export class EditorialConfigError extends Error {
@@ -151,6 +154,7 @@ export const normalizeEditorialConfig = (doc: CatalogDocument, input: EditorialC
     showMeta: c.showMeta ?? true,
     showYear: c.showYear ?? c.showMeta ?? true,
     showCount: c.showCount ?? c.showMeta ?? true,
+    typography: (() => { const r = normalizeCoverTypography(c.typography); issues.push(...r.issues); return r.typography; })(),
   };
 
   let institutional: EditorialConfig["institutional"] = null;

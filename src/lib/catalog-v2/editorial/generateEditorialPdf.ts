@@ -12,6 +12,7 @@ import { renderInstitutional } from "./renderInstitutional";
 import { renderCommercial } from "./renderCommercial";
 import { renderFeaturedPage } from "./renderProducts";
 import { blockingIssues, EditorialConfigError, normalizeEditorialConfig, type EditorialConfigInput, type EditorialIssue } from "./editorialConfig";
+import { browserFontLoader, resolveCoverTypography, type FontLoader } from "./coverTypography";
 import { buildEditorialTheme, EDITORIAL_TEMPLATE_ID, EDITORIAL_TEMPLATE_VERSION } from "./theme";
 
 /** Resolve uma imagem já reduzida; deve aplicar cache e timeout (ver createCatalogImageLoader). */
@@ -25,6 +26,8 @@ export interface EditorialOptions extends Omit<ComposeOptions, "editorial" | "wr
   editorial?: EditorialConfigInput;
   /** Andamento real: chamado antes de cada página (1-based) com o total do plano. */
   onProgress?: (page: number, total: number) => void;
+  /** Carregador das fontes da capa (padrão: arquivos servidos pela ShopDrive). */
+  loadFont?: FontLoader;
 }
 
 export interface EditorialResult {
@@ -84,6 +87,10 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
   const brands = new Map(doc.brands.map((b) => [b.id, b.name]));
   const logo = doc.identity.logoUrl ? await opts.resolveImage(doc.identity.logoUrl, editorialEdgePx(48), true) : null;
 
+  // Só as variantes efetivamente escolhidas são carregadas e embutidas.
+  const typo = await resolveCoverTypography(pdf, config.cover.typography, opts.loadFont ?? browserFontLoader);
+  typo.failed.forEach((font) => issues.push({ field: "cover.typography", code: "font_fallback", font }));
+
   let current = new Map<string, CatalogImage | null>();
   const ctx: RenderContext = {
     doc,
@@ -102,6 +109,7 @@ export async function generateEditorialPdf(doc: CatalogDocument, opts: Editorial
     logo,
     totalPages: plan.length,
     coverOptions: { showLogo: config.cover.showLogo, showMeta: config.cover.showMeta, showYear: config.cover.showYear, showCount: config.cover.showCount },
+    coverTypography: typo.resolved,
   };
 
   for (let i = 0; i < plan.length; i++) {

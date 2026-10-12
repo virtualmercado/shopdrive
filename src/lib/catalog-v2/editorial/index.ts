@@ -5,3 +5,4 @@ export { createBrowserImageResolver } from "./browserImages";
 export { renderPdfPreview } from "./pdfPreview";
 export * from "./editorialConfig";
 export * from "./publish";
+export * from "./coverTypography";

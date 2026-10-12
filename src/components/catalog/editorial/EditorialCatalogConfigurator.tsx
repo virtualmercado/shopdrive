@@ -44,6 +44,7 @@ import {
   type PublishStep,
 } from "@/lib/catalog-v2/editorial";
 import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
+import { COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
 
 // Recomendação derivada da faixa real do renderer (mm → px).
@@ -141,6 +142,10 @@ const EditorialCatalogConfigurator = () => {
   const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverWarn(low ? LOW_RES : null); });
   const [showYear, setShowYear] = useState(true);
   const [showCount, setShowCount] = useState(true);
+  const [typography, setTypography] = useState<CoverTypographyInput>({});
+  // Cor digitada: só vai para a configuração quando o HEX é válido.
+  const [hexDraft, setHexDraft] = useState<Partial<Record<CoverTextKey, string>>>({});
+  const setTypo = (key: CoverTextKey, patch: Partial<CoverTextStyle>) => setTypography((t) => ({ ...t, [key]: { ...t[key], ...patch } }));
   // Organização
   const [grouping, setGrouping] = useState<CatalogGrouping>("none");
   const [separators, setSeparators] = useState<SeparatorMode>("auto");
@@ -212,14 +217,14 @@ const EditorialCatalogConfigurator = () => {
   const editorialInput: EditorialConfigInput | null = useMemo(() => {
     if (!doc) return null;
     return {
-      cover: { title, subtitle, imageUrl: coverImage || null, showYear, showCount },
+      cover: { title, subtitle, imageUrl: coverImage || null, showYear, showCount, typography },
       institutional: instEnabled ? { enabled: true, title: instTitle, text: instText, useStoreAbout: false, imageUrl: instImage || null } : undefined,
       commercial: comEnabled ? { enabled: true, ...com } : undefined,
       separators,
       sectionImages: sectionImagesInDocument(doc, sectionImages),
       featured: featEnabled ? { productIds: featuredInDocument(doc, featured), policy: featPolicy } : undefined,
     };
-  }, [doc, title, subtitle, coverImage, showYear, showCount, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy]);
+  }, [doc, title, subtitle, coverImage, showYear, showCount, typography, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy]);
 
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
@@ -244,6 +249,8 @@ const EditorialCatalogConfigurator = () => {
         onProgress: (p, t) => id === reqId.current && setProgress(`Processando imagens e gerando página ${p} de ${t}…`),
       });
       if (id !== reqId.current) return; // resultado obsoleto
+      const fallback = r.issues.filter((i) => i.code === "font_fallback");
+      if (fallback.length) toast.warning(`Não foi possível carregar a fonte ${fallback.map((i) => (i as { font: string }).font).join(", ")}; foi usada a fonte padrão do catálogo.`);
       const { data: st } = await supabase.rpc("get_my_current_catalog_state");
       if (id !== reqId.current) return;
       const state = (st ?? {}) as { updated_at?: string | null; has_current?: boolean };
@@ -434,6 +441,49 @@ const EditorialCatalogConfigurator = () => {
                 </div>
                 <div className="flex items-center justify-between"><Label htmlFor="ed-year">Mostrar ano</Label><Switch id="ed-year" checked={showYear} onCheckedChange={setShowYear} /></div>
                 <div className="flex items-center justify-between"><Label htmlFor="ed-count">Mostrar quantidade de produtos</Label><Switch id="ed-count" checked={showCount} onCheckedChange={setShowCount} /></div>
+                <Accordion type="single" collapsible className="rounded-md border border-border px-3">
+                  <AccordionItem value="tipografia" className="border-b-0">
+                    <AccordionTrigger className="py-2 text-sm">Tipografia da capa</AccordionTrigger>
+                    <AccordionContent className="space-y-4">
+                      <p className="text-xs text-muted-foreground">"Padrão" mantém a aparência atual. As escolhas aparecem na prévia, no download e na publicação.</p>
+                      {COVER_TEXT_ELEMENTS.filter((el) => (el.key !== "year" || showYear) && (el.key !== "productCount" || showCount)).map((el) => {
+                        const st = typography[el.key] ?? {};
+                        const fam = st.fontFamily ?? "default";
+                        const wt = st.fontWeight ?? "default";
+                        const draft = hexDraft[el.key] ?? st.color ?? "";
+                        const btn = (sel: boolean) => `rounded-md border px-2 py-1 text-xs ${sel ? "border-primary bg-primary/10 text-primary font-semibold" : "border-input"}`;
+                        return (
+                          <div key={el.key} className="space-y-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                            <p className="text-sm font-medium">{el.label}</p>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Estilo da fonte</Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                                <button type="button" className={btn(fam === "default")} onClick={() => setTypo(el.key, { fontFamily: "default" })}>Padrão</button>
+                                {COVER_FONTS.map((f) => <button key={f.id} type="button" className={btn(fam === f.id)} onClick={() => setTypo(el.key, { fontFamily: f.id })}>{f.label}</button>)}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Peso</Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+                                <button type="button" className={btn(wt === "default")} onClick={() => setTypo(el.key, { fontWeight: "default" })}>Padrão</button>
+                                {COVER_WEIGHTS.map((w) => <button key={w.value} type="button" className={btn(wt === w.value)} style={{ fontWeight: w.value }} onClick={() => setTypo(el.key, { fontWeight: w.value })}>{w.label}</button>)}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Cor do texto</Label>
+                              <div className="flex gap-2">
+                                <Input type="color" aria-label={`Cor: ${el.label}`} value={st.color ?? (coverImage ? "#FFFFFF" : "#111827")} onChange={(e) => { setTypo(el.key, { color: e.target.value.toUpperCase() }); setHexDraft((d) => ({ ...d, [el.key]: e.target.value.toUpperCase() })); }} className="h-9 w-14 p-1 cursor-pointer" />
+                                <Input type="text" placeholder="Padrão" value={draft} maxLength={7} onChange={(e) => { const v = e.target.value.trim(); setHexDraft((d) => ({ ...d, [el.key]: v })); if (!v) setTypo(el.key, { color: null }); else if (isValidHex(v)) setTypo(el.key, { color: v.toUpperCase() }); }} className="flex-1" />
+                                <Button type="button" size="sm" variant="ghost" onClick={() => { setTypo(el.key, { color: null }); setHexDraft((d) => ({ ...d, [el.key]: "" })); }}>Padrão</Button>
+                              </div>
+                              {draft && !isValidHex(draft) && <p className="text-xs text-destructive">Use o formato #RRGGBB (ex.: #FFFFFF).</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
                 <p className="text-xs text-muted-foreground">O logotipo vem da identidade já cadastrada na loja.</p>
               </AccordionContent>
             </AccordionItem>
