@@ -1,5 +1,5 @@
 import { AdminPagination } from "@/components/admin/AdminPagination";
-import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
+import { ADMIN_PAGE_SIZE } from "@/lib/adminPagination";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { type SubscriberRow, planLabel, statusLabel, buildSubscribersCsv } from "@/lib/subscriberContacts";
 import { toast } from "sonner";
 import { AccountDeletionModal } from "@/components/admin/AccountDeletionModal";
 import { DataExportModal } from "@/components/admin/DataExportModal";
@@ -72,6 +73,41 @@ import { GrantTrialModal } from "@/components/admin/GrantTrialModal";
 import { ManageTrialModal } from "@/components/admin/ManageTrialModal";
 import { useAdminPlanTrials, trialDaysLeft } from "@/hooks/useAdminPlanTrials";
 import { PLAN_DISPLAY_NAMES, getPlanFromPlanId } from "@/lib/planLimits";
+
+const EXPORT_MAX = 10000;
+const CONTACT_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "with_email", label: "Com e-mail" },
+  { value: "without_email", label: "Sem e-mail" },
+  { value: "with_phone", label: "Com telefone/WhatsApp" },
+  { value: "without_phone", label: "Sem telefone/WhatsApp" },
+  { value: "with_both", label: "Com e-mail e telefone/WhatsApp" },
+];
+const PRODUCT_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "none", label: "Sem produtos" },
+  { value: "1_20", label: "1 a 20" },
+  { value: "21_150", label: "21 a 150" },
+  { value: "over_150", label: "Acima de 150" },
+];
+const SETUP_OPTIONS = [
+  { value: "all", label: "Todas" },
+  { value: "incomplete", label: "Configuração incompleta" },
+  { value: "ready", label: "Pronta" },
+];
+const PLAN_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "gratis", label: "GRÁTIS" },
+  { value: "pro", label: "PRO" },
+  { value: "premium", label: "PREMIUM" },
+  { value: "marca", label: "MARCA" },
+];
+const downloadBlob = (blob: Blob, name: string) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+};
 
 const AdminSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -342,30 +378,14 @@ const AdminSubscribers = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou e-mail..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-52">
-                <SelectValue placeholder="Filtrar status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Ativos</SelectItem>
-                <SelectItem value="inactive">Inativos</SelectItem>
-                <SelectItem value="pending">Pagamento pendente</SelectItem>
-                <SelectItem value="suspenso">Suspensos</SelectItem>
-                <SelectItem value="bloqueado">Bloqueados</SelectItem>
-                <SelectItem value="exclusao_solicitada">Exclusão solicitada</SelectItem>
-                <SelectItem value="excluida">Excluídos</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={() => handleExport('csv')} disabled={!!exporting || filteredTotal === 0}>
+              {exporting === 'csv' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar CSV
+            </Button>
+            <Button variant="outline" onClick={() => handleExport('pdf')} disabled={!!exporting || filteredTotal === 0}>
+              {exporting === 'pdf' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar PDF
+            </Button>
             <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
               {isRefreshing ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -376,6 +396,33 @@ const AdminSubscribers = () => {
             </Button>
           </div>
         </div>
+
+        {/* Commercial filters */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="relative sm:col-span-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar loja, responsável, e-mail, telefone ou slug..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-9 w-full"
+                />
+              </div>
+              <FilterSelect label="Plano" value={planFilter} onChange={withReset(setPlanFilter)} options={PLAN_OPTIONS} />
+              <FilterSelect label="Status" value={statusFilter} onChange={handleStatusFilterChange} options={[{ value: 'all', label: 'Todos' }, ...Object.keys(STATUS_LABELS_LOCAL).map(k => ({ value: k, label: STATUS_LABELS_LOCAL[k] }))]} />
+              <FilterSelect label="Contato" value={contactFilter} onChange={withReset(setContactFilter)} options={CONTACT_OPTIONS} />
+              <FilterSelect label="Produtos" value={productsFilter} onChange={withReset(setProductsFilter)} options={PRODUCT_OPTIONS} />
+              <FilterSelect label="Configuração" value={setupFilter} onChange={withReset(setSetupFilter)} options={SETUP_OPTIONS} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" aria-label="Cadastro desde" value={dateFrom} onChange={(e) => withReset(setDateFrom)(e.target.value)} />
+                <Input type="date" aria-label="Cadastro até" value={dateTo} onChange={(e) => withReset(setDateTo)(e.target.value)} />
+              </div>
+            </div>
+            <p className="text-sm font-medium">{filteredTotal} {filteredTotal === 1 ? 'loja encontrada' : 'lojas encontradas'}</p>
+          </CardContent>
+        </Card>
 
         {/* Status Quick-Filter Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -446,7 +493,7 @@ const AdminSubscribers = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {subscriber.email}
+                        {subscriber.email || 'Não informado'}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1">
@@ -558,10 +605,10 @@ const AdminSubscribers = () => {
         </Card>
 
         {/* Pagination */}
-        {filteredSubscribers.length > 0 && (
+        {filteredTotal > 0 && (
           <AdminPagination
             page={safePage}
-            totalItems={filteredSubscribers.length}
+            totalItems={filteredTotal}
             onPageChange={setCurrentPage}
             itemLabel="assinantes"
           />
@@ -633,5 +680,24 @@ const AdminSubscribers = () => {
     </AdminLayout>
   );
 };
+
+const STATUS_LABELS_LOCAL: Record<string, string> = {
+  active: "Ativo", inactive: "Inativo", pending: "Pagamento pendente", suspenso: "Suspenso",
+  bloqueado: "Bloqueado", exclusao_solicitada: "Exclusão solicitada", excluida: "Excluído",
+};
+
+const FilterSelect = ({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
+}) => (
+  <Select value={value} onValueChange={onChange}>
+    <SelectTrigger className="w-full" aria-label={label}>
+      <span className="text-muted-foreground mr-1 text-xs">{label}:</span>
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+    </SelectContent>
+  </Select>
+);
 
 export default AdminSubscribers;
