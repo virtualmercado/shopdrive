@@ -47,8 +47,12 @@ export class EditorialCanvas {
     this.pdf.line(x1, y1, x2, y2);
   }
 
+  /** Fonte da capa escolhida pelo lojista; quando definida, substitui família+estilo em todas as medições e desenhos. */
+  fontOverride: { family: string; style: "normal" | "bold" } | null = null;
+
   font(size: number, style: "normal" | "bold" = "normal") {
-    this.pdf.setFont(this.theme.font, style);
+    if (this.fontOverride) this.pdf.setFont(this.fontOverride.family, this.fontOverride.style);
+    else this.pdf.setFont(this.theme.font, style);
     this.pdf.setFontSize(size);
   }
 
