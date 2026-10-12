@@ -267,6 +267,13 @@
       "when": 1791843403380,
       "tag": "0037_merchant_support_ticket_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791845473965,
+      "tag": "0038_landing_ticket_responses_queue_link",
+      "breakpoints": true
     }
   ]
 }
