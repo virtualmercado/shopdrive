@@ -306,7 +306,7 @@ const StoreOnboarding = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 w-full min-w-0">
         <div>
           <h1 className="text-2xl font-bold">Configuração guiada da loja</h1>
           <p className="text-muted-foreground text-sm mt-1">
