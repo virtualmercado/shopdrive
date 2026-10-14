@@ -267,6 +267,23 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Não-MARCA: falha após DATA = entrega incerta; falha definitiva em vez de reenviar.
+      if (!bnrRunId && !result.success && result.dataSent) {
+        await supabase.from("email_queue").update({
+          status: "failed", attempts: (email.attempts || 0) + 1, locked_at: null,
+          last_error: `delivery_unknown: ${result.error ?? "smtp_response_lost"}`,
+        }).eq("id", email.id);
+        await supabase.from("email_logs").insert({
+            ...logBase,
+          tenant_id: email.tenant_id, template: email.template, destinatario: email.to_email,
+          email_remetente: finalFrom, status: "error", erro: `delivery_unknown: ${result.error ?? ""}`,
+          subject: email.subject, bcc_email: category === "marketing" ? null : BCC_EMAIL,
+          smtp_provider: "smtp", provider_source: source,
+        });
+        failed++;
+        continue;
+      }
+
       const now = new Date().toISOString();
 
       if (result.success) {
