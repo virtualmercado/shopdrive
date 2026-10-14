@@ -253,6 +253,20 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Proteção final (somente marketing): destinatário descadastrado nunca recebe.
+      // Transacionais NUNCA consultam a supressão. Falha na consulta = não envia (fail-closed).
+      if (category === "marketing") {
+        const { data: suppressed, error: supErr } = await supabase.rpc("is_email_suppressed", { p_email: email.to_email });
+        if (supErr || suppressed !== false) {
+          await supabase.from("email_queue").update(supErr
+            ? { status: "retry", last_error: "suppression_check_failed", locked_at: null, locked_by: null, scheduled_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() }
+            : { status: "suppressed", last_error: "marketing_suppressed", locked_at: null, locked_by: null }
+          ).eq("id", email.id);
+          if (supErr) retried++; else blocked++;
+          continue;
+        }
+      }
+
       // Marca o início do SMTP: lock expirado depois disso = entrega incerta (nunca reenvio automático).
       await supabase.from("email_queue").update({ send_started_at: new Date().toISOString() }).eq("id", email.id);
 
