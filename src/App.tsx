@@ -38,6 +38,7 @@ import StoreBrandPage from "./pages/StoreBrandPage";
 import ReturnPolicyPage from "./pages/ReturnPolicyPage";
 import AboutUsPage from "./pages/AboutUsPage";
 import LandingAboutUs from "./pages/LandingAboutUs";
+import EmailUnsubscribe from "./pages/EmailUnsubscribe";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
@@ -193,6 +194,7 @@ function App() {
               <Route path="/central-de-ajuda" element={<HelpCenterPage />} />
               <Route path="/fale-conosco" element={<ContactPage />} />
               <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
+              <Route path="/descadastro" element={<EmailUnsubscribe />} />
               <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
               <Route path="/politica-de-cookies" element={<CookiePolicyPage />} />
 
