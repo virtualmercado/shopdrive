@@ -2049,6 +2049,33 @@ export type Database = {
           },
         ]
       }
+      email_suppressions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          reason: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          reason?: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          reason?: string
+          source?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           created_at: string
@@ -2088,6 +2115,33 @@ export type Database = {
           text_content?: string | null
           updated_at?: string
           variables?: Json | null
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
         }
         Relationships: []
       }
@@ -7437,6 +7491,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_add_email_suppression: {
+        Args: { p_email: string; p_reason?: string }
+        Returns: string
+      }
       admin_ai_image_usage_24h: {
         Args: never
         Returns: {
@@ -7608,6 +7666,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      check_email_unsubscribe_token: {
+        Args: { p_token: string }
+        Returns: string
+      }
       check_media_file_usage: { Args: { file_id: string }; Returns: boolean }
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       claim_brand_network_report_send: {
@@ -7689,6 +7751,7 @@ export type Database = {
         Args: { p_store_id: string }
         Returns: Json
       }
+      confirm_email_unsubscribe: { Args: { p_token: string }; Returns: string }
       convert_quote_to_order: {
         Args: {
           p_payment_method: string
@@ -7728,6 +7791,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_email_unsubscribe_token: {
+        Args: { p_email: string; p_ttl_days?: number }
+        Returns: string
+      }
       create_manual_store_customer: {
         Args: {
           p_cpf?: string
@@ -7747,6 +7814,18 @@ export type Database = {
       }
       enqueue_brand_network_report: {
         Args: { p_html: string; p_max_attempts?: number; p_run_id: string }
+        Returns: Json
+      }
+      enqueue_marketing_email: {
+        Args: {
+          p_html: string
+          p_idempotency_key: string
+          p_payload?: Json
+          p_priority?: number
+          p_subject: string
+          p_tenant_id?: string
+          p_to_email: string
+        }
         Returns: Json
       }
       ensure_catalog_share_code: { Args: never; Returns: string }
@@ -7903,6 +7982,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_store: { Args: { store_id: string }; Returns: boolean }
+      is_email_suppressed: { Args: { p_email: string }; Returns: boolean }
       is_legacy_stock_order: { Args: { p_order_id: string }; Returns: boolean }
       is_plan_contract_ready: { Args: { p_plan_id: string }; Returns: boolean }
       is_plan_marca_enabled: { Args: never; Returns: boolean }
@@ -7946,6 +8026,7 @@ export type Database = {
         Args: { _message: string; _ticket_id: string }
         Returns: string
       }
+      normalize_email: { Args: { p_email: string }; Returns: string }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       order_items_unchanged: {
         Args: { p_items: Json; p_order_id: string }
