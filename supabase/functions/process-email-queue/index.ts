@@ -21,7 +21,8 @@ interface SmtpConfig {
 
 async function sendViaSMTP(
   config: SmtpConfig,
-  from: string, replyTo: string, to: string, subject: string, html: string, messageId?: string
+  from: string, replyTo: string, to: string, subject: string, html: string, messageId?: string,
+  includeSupportBcc = true
 ): Promise<{ success: boolean; error?: string; dataSent?: boolean; providerResponse?: string }> {
   let dataSent = false;
   try {
@@ -66,15 +67,17 @@ async function sendViaSMTP(
     const rcptResp = await sendCommand(`RCPT TO:<${to}>`);
     if (!rcptResp.startsWith("250")) { conn.close(); return { success: false, error: `RCPT TO failed: ${rcptResp.trim()}` }; }
 
-    const bccResp = await sendCommand(`RCPT TO:<${BCC_EMAIL}>`);
-    if (!bccResp.startsWith("250")) {
-      console.error(`BCC RCPT TO failed (non-blocking): ${bccResp.trim()}`);
+    if (includeSupportBcc) {
+      const bccResp = await sendCommand(`RCPT TO:<${BCC_EMAIL}>`);
+      if (!bccResp.startsWith("250")) {
+        console.error(`BCC RCPT TO failed (non-blocking): ${bccResp.trim()}`);
+      }
     }
 
     await sendCommand("DATA");
     const emailData = [
       `From: ${from}`, `To: ${to}`, `Reply-To: ${replyTo}`, `Subject: ${subject}`,
-      `Bcc: ${BCC_EMAIL}`,
+      ...(includeSupportBcc ? [`Bcc: ${BCC_EMAIL}`] : []),
       `MIME-Version: 1.0`, `Content-Type: text/html; charset=UTF-8`,
       `Content-Transfer-Encoding: 7bit`, `Date: ${new Date().toUTCString()}`,
       ...(messageId ? [`Message-ID: <${messageId}@shopdrive.com.br>`] : []), "", html, ".",
@@ -159,15 +162,16 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: emails, error: fetchErr } = await supabase
-      .from("email_queue")
-      .select("*")
-      .in("status", ["pending", "retry"])
-      .lte("scheduled_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(BATCH_SIZE);
+    // Claim atômico no banco (FOR UPDATE SKIP LOCKED): cada item só é entregue a um worker.
+    const workerId = crypto.randomUUID();
+    const { data: claimed, error: fetchErr } = await supabase.rpc("claim_email_queue_batch", {
+      p_limit: BATCH_SIZE, p_worker: workerId,
+    });
 
     if (fetchErr) throw fetchErr;
+    const emails = ((claimed || []) as any[])
+      .sort((a, b) => (b.priority ?? 100) - (a.priority ?? 100) || String(a.created_at).localeCompare(String(b.created_at)))
+      .slice(0, BATCH_SIZE);
     if (!emails || emails.length === 0) {
       return new Response(JSON.stringify({ processed: 0, message: "Queue empty" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -191,9 +195,10 @@ Deno.serve(async (req) => {
       if (bnrRunId) {
         const { data: claim, error: claimErr } = await supabase.rpc("claim_brand_network_report_send", { p_queue_id: email.id });
         if (claimErr || claim?.claimed !== true) continue;
-      } else {
-        await supabase.from("email_queue").update({ status: "processing" }).eq("id", email.id);
+        await supabase.from("email_queue").update({ locked_at: new Date().toISOString(), locked_by: workerId }).eq("id", email.id);
       }
+      const category: string = email.category === "marketing" ? "marketing" : "transactional";
+      const logBase = { queue_id: email.id, category, attempt: (email.attempts || 0) + 1 };
 
       // Check reputation shield
       if (email.tenant_id) {
@@ -207,9 +212,11 @@ Deno.serve(async (req) => {
           await supabase.from("email_queue").update({
             status: "failed",
             last_error: "Tenant blocked by Reputation Shield",
+            locked_at: null,
           }).eq("id", email.id);
 
           await supabase.from("email_logs").insert({
+            ...logBase,
             tenant_id: email.tenant_id,
             template: email.template,
             destinatario: email.to_email,
@@ -217,7 +224,7 @@ Deno.serve(async (req) => {
             status: "blocked",
             erro: "Reputation Shield: tenant blocked",
             subject: email.subject,
-            bcc_email: BCC_EMAIL,
+            bcc_email: category === "marketing" ? null : BCC_EMAIL,
             smtp_provider: "smtp",
             provider_source: "platform",
           });
@@ -246,13 +253,33 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Send via SMTP (always — no more Resend)
+      // Marca o início do SMTP: lock expirado depois disso = entrega incerta (nunca reenvio automático).
+      await supabase.from("email_queue").update({ send_started_at: new Date().toISOString() }).eq("id", email.id);
+
+      // Send via SMTP (always — no more Resend). Marketing nunca recebe BCC do suporte.
       const result = await sendViaSMTP(config, finalFrom, replyTo, email.to_email, email.subject, email.html || "",
-        bnrRunId ? `bnr-${bnrRunId}` : undefined);
+        bnrRunId ? `bnr-${bnrRunId}` : undefined, category !== "marketing");
 
       // Resposta perdida após DATA: talvez enviado. Nunca reenviar automaticamente.
       if (bnrRunId && !result.success && result.dataSent) {
         await supabase.rpc("mark_brand_network_report_delivery_unknown", { p_queue_id: email.id, p_reason: "smtp_response_lost" });
+        failed++;
+        continue;
+      }
+
+      // Não-MARCA: falha após DATA = entrega incerta; falha definitiva em vez de reenviar.
+      if (!bnrRunId && !result.success && result.dataSent) {
+        await supabase.from("email_queue").update({
+          status: "failed", attempts: (email.attempts || 0) + 1, locked_at: null,
+          last_error: `delivery_unknown: ${result.error ?? "smtp_response_lost"}`,
+        }).eq("id", email.id);
+        await supabase.from("email_logs").insert({
+            ...logBase,
+          tenant_id: email.tenant_id, template: email.template, destinatario: email.to_email,
+          email_remetente: finalFrom, status: "error", erro: `delivery_unknown: ${result.error ?? ""}`,
+          subject: email.subject, bcc_email: category === "marketing" ? null : BCC_EMAIL,
+          smtp_provider: "smtp", provider_source: source,
+        });
         failed++;
         continue;
       }
@@ -263,19 +290,21 @@ Deno.serve(async (req) => {
         await supabase.from("email_queue").update({
           status: "sent",
           sent_at: now,
+          locked_at: null,
         }).eq("id", email.id);
         if (bnrRunId && result.providerResponse) {
           await supabase.rpc("record_brand_network_report_provider_id", { p_queue_id: email.id, p_provider_id: result.providerResponse });
         }
 
         await supabase.from("email_logs").insert({
+            ...logBase,
           tenant_id: email.tenant_id,
           template: email.template,
           destinatario: email.to_email,
           email_remetente: finalFrom,
           status: "sent",
           subject: email.subject,
-          bcc_email: BCC_EMAIL,
+          bcc_email: category === "marketing" ? null : BCC_EMAIL,
           smtp_provider: "smtp",
           provider_source: source,
           sent_at: now,
@@ -294,6 +323,7 @@ Deno.serve(async (req) => {
             status: "failed",
             attempts: newAttempts,
             last_error: result.error,
+            locked_at: null,
           }).eq("id", email.id);
           failed++;
         } else {
@@ -303,11 +333,14 @@ Deno.serve(async (req) => {
             attempts: newAttempts,
             last_error: result.error,
             scheduled_at: retryAt,
+            locked_at: null,
+            send_started_at: null,
           }).eq("id", email.id);
           retried++;
         }
 
         await supabase.from("email_logs").insert({
+            ...logBase,
           tenant_id: email.tenant_id,
           template: email.template,
           destinatario: email.to_email,
@@ -315,7 +348,7 @@ Deno.serve(async (req) => {
           status: "error",
           erro: result.error,
           subject: email.subject,
-          bcc_email: BCC_EMAIL,
+          bcc_email: category === "marketing" ? null : BCC_EMAIL,
           smtp_provider: "smtp",
           provider_source: source,
         });

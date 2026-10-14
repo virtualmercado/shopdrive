@@ -288,6 +288,13 @@
       "when": 1791848279262,
       "tag": "0040_admin_list_subscribers_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791947660189,
+      "tag": "0041_email_queue_stage1_claim_priority",
+      "breakpoints": true
     }
   ]
 }
