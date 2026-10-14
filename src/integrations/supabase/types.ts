@@ -1872,13 +1872,17 @@ export type Database = {
       }
       email_logs: {
         Row: {
+          attempt: number | null
           bcc_email: string | null
+          category: string | null
           data_envio: string
           destinatario: string
           email_remetente: string | null
           erro: string | null
           id: string
+          provider_message_id: string | null
           provider_source: string | null
+          queue_id: string | null
           sent_at: string | null
           smtp_provider: string | null
           status: string
@@ -1887,13 +1891,17 @@ export type Database = {
           tenant_id: string | null
         }
         Insert: {
+          attempt?: number | null
           bcc_email?: string | null
+          category?: string | null
           data_envio?: string
           destinatario: string
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          provider_message_id?: string | null
           provider_source?: string | null
+          queue_id?: string | null
           sent_at?: string | null
           smtp_provider?: string | null
           status?: string
@@ -1902,13 +1910,17 @@ export type Database = {
           tenant_id?: string | null
         }
         Update: {
+          attempt?: number | null
           bcc_email?: string | null
+          category?: string | null
           data_envio?: string
           destinatario?: string
           email_remetente?: string | null
           erro?: string | null
           id?: string
+          provider_message_id?: string | null
           provider_source?: string | null
+          queue_id?: string | null
           sent_at?: string | null
           smtp_provider?: string | null
           status?: string
@@ -1921,12 +1933,19 @@ export type Database = {
       email_queue: {
         Row: {
           attempts: number
+          category: string
           created_at: string
           html: string | null
           id: string
+          idempotency_key: string | null
           last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
           payload: Json | null
+          priority: number
+          provider_message_id: string | null
           scheduled_at: string | null
+          send_started_at: string | null
           sent_at: string | null
           status: string
           store_name: string | null
@@ -1939,12 +1958,19 @@ export type Database = {
         }
         Insert: {
           attempts?: number
+          category?: string
           created_at?: string
           html?: string | null
           id?: string
+          idempotency_key?: string | null
           last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           payload?: Json | null
+          priority?: number
+          provider_message_id?: string | null
           scheduled_at?: string | null
+          send_started_at?: string | null
           sent_at?: string | null
           status?: string
           store_name?: string | null
@@ -1957,12 +1983,19 @@ export type Database = {
         }
         Update: {
           attempts?: number
+          category?: string
           created_at?: string
           html?: string | null
           id?: string
+          idempotency_key?: string | null
           last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           payload?: Json | null
+          priority?: number
+          provider_message_id?: string | null
           scheduled_at?: string | null
+          send_started_at?: string | null
           sent_at?: string | null
           status?: string
           store_name?: string | null
@@ -7580,6 +7613,44 @@ export type Database = {
       claim_brand_network_report_send: {
         Args: { p_queue_id: string }
         Returns: Json
+      }
+      claim_email_queue_batch: {
+        Args: {
+          p_limit?: number
+          p_lock_timeout_minutes?: number
+          p_worker?: string
+        }
+        Returns: {
+          attempts: number
+          category: string
+          created_at: string
+          html: string | null
+          id: string
+          idempotency_key: string | null
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          payload: Json | null
+          priority: number
+          provider_message_id: string | null
+          scheduled_at: string | null
+          send_started_at: string | null
+          sent_at: string | null
+          status: string
+          store_name: string | null
+          subject: string
+          template: string | null
+          template_id: string | null
+          template_name: string | null
+          tenant_id: string | null
+          to_email: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "email_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_marca_upgrade_checkout: {
         Args: { p_user_id: string }
