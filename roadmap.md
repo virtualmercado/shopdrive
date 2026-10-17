@@ -6,4 +6,9 @@
 - [x] RPCs admin-only: criar/editar rascunho, contagem de público, confirmar+snapshot+enqueue idempotente, cancelar, listar campanhas, listar destinatários paginado
 - [x] Frontend: aba "Campanhas de E-mail" em AdminCommunication (admin-only), wizard 5 etapas, listagem, detalhes, cards
 - [x] Testes simulados sem envio real (T1–T18 no banco, transação desfeita; build/typecheck/179 testes OK)
-- [ ] BLOQUEADO: teste real controlado (item 40) — aguarda endereço de e-mail controlado/autorizado pelo admin; não enviar a lojistas reais
+- [ ] BLOQUEADO: teste real controlado (item 40) — suspenso pela instrução atual de não enviar e-mails reais.
+
+## Hotfix pré-publicação — Campanhas
+- [ ] Centralizar destinatário comercial válido → conta válida → inelegível, somente marketing.
+- [ ] Permitir rascunho parcial e exigir validação no conteúdo/prévia/confirmação.
+- [ ] Executar testes sem envio real e relatar resultados sem secrets.
