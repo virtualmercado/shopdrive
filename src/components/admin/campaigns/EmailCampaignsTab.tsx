@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send } from "lucide-react";
+import { validCampaignInformation, validCampaignContent, validCampaignAudienceDates } from "@/lib/emailCampaignValidation";
 
 type CampaignStatus = "draft" | "ready" | "processing" | "completed" | "completed_with_errors" | "cancelled";
 type RecipientStatus = "pending" | "queued" | "sent" | "failed" | "suppressed" | "cancelled";
@@ -403,6 +404,7 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   const [confirming, setConfirming] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countGeneration = useRef(0);
 
   // Carrega rascunho existente para edição.
   useEffect(() => {
@@ -423,16 +425,19 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   }, [open, campaignId, onClose]);
 
   const countAudience = useCallback(async (f: AudienceFilters) => {
+    const generation = ++countGeneration.current;
     setCounting(true);
     try {
       const { data, error } = await supabase.rpc("admin_count_campaign_audience", { p_filters: filtersToPayload(f) });
+      if (generation !== countGeneration.current) return;
       if (error) throw error;
       setAudience(data as unknown as AudienceCount);
     } catch (err) {
+      if (generation !== countGeneration.current) return;
       console.error("Erro ao contar público:", err);
       setAudience(null);
     } finally {
-      setCounting(false);
+      if (generation === countGeneration.current) setCounting(false);
     }
   }, []);
 
@@ -443,9 +448,10 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
     return () => { if (countTimer.current) clearTimeout(countTimer.current); };
   }, [open, step, filters, countAudience]);
 
-  const validStep0 = name.trim().length > 0 && name.trim().length <= 120 && subject.trim().length > 0 && subject.trim().length <= 200;
-  const validStep2 = content.trim().length > 0 && content.length <= 20000
-    && (ctaLabel.trim() === "" || (ctaLabel.trim().length <= 60 && /^https:\/\/[^\s"<>]+$/.test(ctaUrl.trim())));
+  const validStep0 = validCampaignInformation(name, subject);
+  const validStep2 = validCampaignContent(content, ctaLabel, ctaUrl);
+  const validAudience = validCampaignAudienceDates(filters.date_from, filters.date_to)
+    && !counting && !!audience && audience.eligible > 0;
 
   const save = async (): Promise<string | null> => {
     setSaving(true);
@@ -478,6 +484,7 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
 
   const next = async () => {
     if (step === 0 && !validStep0) { toast.error("Preencha nome e assunto"); return; }
+    if (step === 1 && !validAudience) { toast.error("Revise os filtros e aguarde um público elegível"); return; }
     if (step === 2 && !validStep2) {
       toast.error(ctaLabel.trim() ? "Revise o conteúdo e a URL do botão (https://...)" : "Preencha o conteúdo da mensagem");
       return;
@@ -497,7 +504,7 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   };
 
   const confirmAndSend = async () => {
-    if (!id) return;
+    if (!id || !validStep0 || !validStep2 || !validAudience) return;
     setConfirming(true);
     try {
       const { data, error } = await supabase.rpc("admin_confirm_email_campaign", { p_campaign_id: id });
@@ -519,7 +526,11 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
     }
   };
 
-  const setF = (patch: Partial<AudienceFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const setF = (patch: Partial<AudienceFilters>) => {
+    countGeneration.current += 1;
+    setAudience(null);
+    setFilters((f) => ({ ...f, ...patch }));
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onSaved(); onClose(); } }}>
@@ -694,7 +705,7 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
             {step < 4 ? (
               <Button onClick={() => void next()} disabled={saving}>Avançar</Button>
             ) : (
-              <Button onClick={() => setConfirmOpen(true)} disabled={confirming || !audience || audience.eligible === 0}>
+              <Button onClick={() => setConfirmOpen(true)} disabled={confirming || !validStep0 || !validStep2 || !validAudience}>
                 <Send className="h-4 w-4 mr-2" /> Confirmar e enviar campanha
               </Button>
             )}
