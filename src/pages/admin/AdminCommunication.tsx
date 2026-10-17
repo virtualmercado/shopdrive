@@ -60,6 +60,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { MediaSelectorModal } from "@/components/admin/MediaSelectorModal";
+import { EmailCampaignsTab } from "@/components/admin/campaigns/EmailCampaignsTab";
+import { useRoleCheck } from "@/hooks/useRoleCheck";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
