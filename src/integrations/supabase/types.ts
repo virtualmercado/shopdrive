@@ -7535,6 +7535,15 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_email_campaign_content: {
+        Args: {
+          p_content: string
+          p_cta_label: string
+          p_cta_url: string
+          p_subject: string
+        }
+        Returns: undefined
+      }
       _bn_activation_detail: {
         Args: {
           p_key_salt: string
@@ -8313,6 +8322,10 @@ export type Database = {
           p_variant_id: string
         }
         Returns: Record<string, unknown>
+      }
+      resolve_campaign_marketing_email: {
+        Args: { p_account: string; p_commercial: string }
+        Returns: string
       }
       resolve_catalog_share_code: {
         Args: { _code: string }
