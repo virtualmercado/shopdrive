@@ -576,6 +576,12 @@ const AdminCommunication = () => {
               )}
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="campaigns">
+              <EmailCampaignsTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
