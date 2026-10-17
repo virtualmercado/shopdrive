@@ -131,6 +131,9 @@ const DEFAULT_FORM_DATA: BannerFormData = {
 };
 
 const AdminCommunication = () => {
+  // Campanhas de E-mail são exclusivas do perfil admin (Etapa 3).
+  const { hasRole } = useRoleCheck();
+  const isAdmin = hasRole('admin');
   const { data: banners, isLoading } = useAdminBanners();
   const { data: counts } = useBannerCounts();
   const createBanner = useCreateBanner();
@@ -362,6 +365,7 @@ const AdminCommunication = () => {
           <TabsList>
             <TabsTrigger value="list">Lista de Banners</TabsTrigger>
             <TabsTrigger value="metrics">Métricas</TabsTrigger>
+            {isAdmin && <TabsTrigger value="campaigns">Campanhas de E-mail</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="list">
