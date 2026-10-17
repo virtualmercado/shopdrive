@@ -302,6 +302,13 @@
       "when": 1791948660923,
       "tag": "0042_email_marketing_suppressions",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792204410412,
+      "tag": "0043_email_campaigns_stage3",
+      "breakpoints": true
     }
   ]
 }

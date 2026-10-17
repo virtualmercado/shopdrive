@@ -1870,6 +1870,125 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          email: string
+          email_queue_id: string | null
+          id: string
+          last_error: string | null
+          queued_at: string | null
+          sent_at: string | null
+          status: string
+          store_id: string
+          suppressed_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          email: string
+          email_queue_id?: string | null
+          id?: string
+          last_error?: string | null
+          queued_at?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id: string
+          suppressed_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          email_queue_id?: string | null
+          id?: string
+          last_error?: string | null
+          queued_at?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id?: string
+          suppressed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          audience_filters: Json
+          cancelled_at: string | null
+          completed_at: string | null
+          confirmed_at: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          id: string
+          name: string
+          started_at: string | null
+          status: string
+          subject: string
+          total_failed: number
+          total_queued: number
+          total_recipients: number
+          total_sent: number
+          total_suppressed: number
+          updated_at: string
+        }
+        Insert: {
+          audience_filters?: Json
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          id?: string
+          name: string
+          started_at?: string | null
+          status?: string
+          subject: string
+          total_failed?: number
+          total_queued?: number
+          total_recipients?: number
+          total_sent?: number
+          total_suppressed?: number
+          updated_at?: string
+        }
+        Update: {
+          audience_filters?: Json
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          id?: string
+          name?: string
+          started_at?: string | null
+          status?: string
+          subject?: string
+          total_failed?: number
+          total_queued?: number
+          total_recipients?: number
+          total_sent?: number
+          total_suppressed?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           attempt: number | null
@@ -7466,7 +7585,20 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _campaign_resolve_audience: {
+        Args: { p_filters: Json }
+        Returns: {
+          email: string
+          store_id: string
+          store_name: string
+        }[]
+      }
       _catalog_editorial_allowed: { Args: { _uid: string }; Returns: boolean }
+      _ecr_escape: { Args: { p: string }; Returns: string }
+      _ecr_refresh_campaign_counters: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
       _marca_assert_owner_eligible: {
         Args: { p_uid: string }
         Returns: undefined
@@ -7507,6 +7639,18 @@ export type Database = {
       admin_assign_brand_template: {
         Args: { p_brand_account_id: string; p_template_id: string }
         Returns: undefined
+      }
+      admin_cancel_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
+      admin_confirm_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
+      admin_count_campaign_audience: {
+        Args: { p_filters: Json }
+        Returns: Json
       }
       admin_create_brand_account: {
         Args: { p_display_name: string; p_owner_profile_id?: string }
@@ -7553,6 +7697,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_get_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
       admin_grant_plan_trial: {
         Args: { p_reason?: string; p_store_id: string; p_trial_plan: string }
         Returns: Json
@@ -7560,6 +7708,26 @@ export type Database = {
       admin_link_brand_owned_store: {
         Args: { p_brand_account_id: string; p_store_profile_id: string }
         Returns: string
+      }
+      admin_list_campaign_recipients: {
+        Args: {
+          p_campaign_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_list_email_campaigns: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
       }
       admin_list_subscribers: {
         Args: {
@@ -7580,8 +7748,29 @@ export type Database = {
         Args: { p_count: number; p_filters: Json; p_format: string }
         Returns: undefined
       }
+      admin_preview_email_campaign: {
+        Args: {
+          p_content: string
+          p_cta_label: string
+          p_cta_url: string
+          p_subject: string
+        }
+        Returns: string
+      }
       admin_publish_contract_version: {
         Args: { p_set_current?: boolean; p_version_id: string }
+        Returns: string
+      }
+      admin_save_email_campaign: {
+        Args: {
+          p_content: string
+          p_cta_label: string
+          p_cta_url: string
+          p_filters: Json
+          p_id: string
+          p_name: string
+          p_subject: string
+        }
         Returns: string
       }
       admin_set_current_contract_version: {
@@ -8085,6 +8274,16 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      render_email_campaign_html: {
+        Args: {
+          p_content: string
+          p_cta_label: string
+          p_cta_url: string
+          p_subject: string
+          p_unsubscribe_url: string
+        }
+        Returns: string
       }
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
