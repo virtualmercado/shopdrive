@@ -405,6 +405,8 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countGeneration = useRef(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Carrega rascunho existente para edição.
   useEffect(() => {
@@ -416,13 +418,13 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
     }
     void (async () => {
       const { data, error } = await supabase.rpc("admin_get_email_campaign", { p_campaign_id: campaignId });
-      if (error || !data) { toast.error("Erro ao carregar campanha"); onClose(); return; }
+      if (error || !data) { toast.error("Erro ao carregar campanha"); onCloseRef.current(); return; }
       const c = data as unknown as CampaignDetail;
       setId(c.id); setName(c.name); setSubject(c.subject); setContent(c.content);
       setCtaLabel(c.cta_label || ""); setCtaUrl(c.cta_url || "");
       setFilters({ ...EMPTY_FILTERS, ...(c.audience_filters as Partial<AudienceFilters>) });
     })();
-  }, [open, campaignId, onClose]);
+  }, [open, campaignId]);
 
   const countAudience = useCallback(async (f: AudienceFilters) => {
     const generation = ++countGeneration.current;
