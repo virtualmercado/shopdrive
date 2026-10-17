@@ -9,6 +9,6 @@
 - [ ] BLOQUEADO: teste real controlado (item 40) — suspenso pela instrução atual de não enviar e-mails reais.
 
 ## Hotfix pré-publicação — Campanhas
-- [ ] Centralizar destinatário comercial válido → conta válida → inelegível, somente marketing.
-- [ ] Permitir rascunho parcial e exigir validação no conteúdo/prévia/confirmação.
-- [ ] Executar testes sem envio real e relatar resultados sem secrets.
+- [x] Centralizar destinatário comercial válido → conta válida → inelegível, somente marketing.
+- [x] Permitir rascunho parcial e exigir validação no conteúdo/prévia/confirmação.
+- [x] Executar testes sem envio real e relatar resultados sem secrets.
