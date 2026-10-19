@@ -27,7 +27,7 @@ import { ptBR } from "date-fns/locale";
 import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send, Image as ImageIcon, Trash2 } from "lucide-react";
 import { validCampaignInformation, validCampaignContent, validCampaignAudienceDates } from "@/lib/emailCampaignValidation";
 import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
-import { CampaignMedia, campaignImageError, validCampaignImageLink } from "@/lib/campaignImage";
+import { CampaignMedia, campaignImageError, validCampaignImageLink, campaignImageAspectWarning } from "@/lib/campaignImage";
 
 type CampaignStatus = "draft" | "ready" | "processing" | "completed" | "completed_with_errors" | "cancelled";
 type RecipientStatus = "pending" | "queued" | "sent" | "failed" | "suppressed" | "cancelled";
@@ -677,11 +677,15 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
               <p className="text-xs text-destructive">A URL do botão deve começar com https://</p>
             )}
             <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label>Imagem da campanha <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                 <Button variant="outline" size="sm" onClick={() => setMediaOpen(true)}>
                   <ImageIcon className="h-4 w-4 mr-2" />{image ? "Trocar imagem" : "Selecionar da Biblioteca"}
                 </Button>
+              </div>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>Imagem recomendada: 1200 × 600 px (proporção 2:1 horizontal). Formatos: JPG, PNG ou WebP. Peso recomendado até 300 KB • máximo 1,5 MB.</p>
+                <p>Para melhor visualização em celulares e computadores, prefira imagens horizontais e evite imagens quadradas ou verticais.</p>
               </div>
               {image && <>
                 <div className="flex items-center gap-3 min-w-0">
@@ -692,6 +696,9 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
                   </div>
                   <Button variant="ghost" size="icon" title="Remover imagem" aria-label="Remover imagem" onClick={() => { setImage(null); setImageAlt(""); setImageLink(""); }}><Trash2 className="h-4 w-4" /></Button>
                 </div>
+                {campaignImageAspectWarning(image) && <p role="status" className="text-xs text-secondary-foreground bg-secondary/10 rounded-md px-3 py-2">
+                  <span className="text-muted-foreground">Atenção: esta imagem não possui o formato horizontal recomendado e poderá ocupar muito espaço no e-mail. Para melhor resultado, utilize uma imagem na proporção aproximada de 2:1.</span>
+                </p>}
                 <div><Label htmlFor="campaign-image-alt">Texto alternativo da imagem</Label><Input id="campaign-image-alt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} maxLength={200} placeholder={subject} /></div>
                 <div><Label htmlFor="campaign-image-link">Ao clicar na imagem, abrir:</Label><Input id="campaign-image-link" value={imageLink} onChange={(e) => setImageLink(e.target.value)} maxLength={2000} placeholder="https://..." /></div>
                 {!validCampaignImageLink(imageLink) && <p className="text-xs text-destructive">O link da imagem deve ser um endereço HTTPS válido.</p>}

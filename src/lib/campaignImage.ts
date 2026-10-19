@@ -1,5 +1,12 @@
 export const CAMPAIGN_IMAGE_MAX_BYTES = 1.5 * 1024 * 1024;
 export const CAMPAIGN_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp"];
+// Informational only: missing dimensions preserve existing selection behavior.
+export function campaignImageAspectWarning(file: { width?: number | null; height?: number | null }): boolean {
+  const { width, height } = file;
+  if (!width || !height || width <= 0 || height <= 0 || !Number.isFinite(width) || !Number.isFinite(height)) return false;
+  const ratio = width / height;
+  return ratio < 1.7 || ratio > 2.3;
+}
 export interface CampaignMedia {
   id: string; name: string; url: string; file_path: string; file_type: string;
   size: number; mime_type?: string | null; width?: number | null; height?: number | null;
