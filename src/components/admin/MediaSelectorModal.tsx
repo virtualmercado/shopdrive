@@ -63,12 +63,14 @@ export const MediaSelectorModal = ({
 
   // Fetch media files from database
   const { data: files = [], isLoading, refetch } = useQuery({
-    queryKey: ["media-files-selector"],
+    queryKey: ["media-files-selector", campaignImagesOnly ? "campaign-master" : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("media_files")
         .select("*")
         .order("created_at", { ascending: false });
+      if (campaignImagesOnly) query = query.eq("file_type", "image").in("mime_type", CAMPAIGN_IMAGE_MIMES).like("file_path", "uploads/%");
+      const { data, error } = await query;
       
       if (error) {
         console.error("Error fetching media files:", error);
