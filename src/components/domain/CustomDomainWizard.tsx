@@ -1,558 +1,186 @@
-import { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useState } from "react";
+import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Globe, 
-  ArrowLeft, 
-  ArrowRight, 
-  Check, 
-  Copy, 
-  RefreshCw,
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Trash2,
-  Power,
-  PowerOff,
-} from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useMerchantDomain, DomainProviderTutorial } from "@/hooks/useMerchantDomain";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useMerchantDomain } from "@/hooks/useMerchantDomain";
+import { customDomainStateLabel, isCustomDomainConnected } from "@/lib/customDomainStatus";
+import { normalizeCustomDomain } from "../../../supabase/functions/_shared/customDomainCore";
 import { toast } from "sonner";
 
-interface CustomDomainWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  initialStep?: 'domain' | 'provider' | 'manage';
-}
+interface Props { open: boolean; onOpenChange: (open: boolean) => void }
 
-type WizardStep = 'domain' | 'provider' | 'tutorial' | 'verify' | 'activate' | 'manage';
+export const EMAIL_PRESERVATION_NOTICE =
+  "Importante: altere somente os registros indicados pela ShopDrive. Não remova registros MX, SPF, DKIM, DMARC ou outros TXT existentes caso utilize e-mail profissional no domínio.";
 
-export const CustomDomainWizard = ({ open, onOpenChange, initialStep = 'domain' }: CustomDomainWizardProps) => {
-  const { buttonBgColor, buttonTextColor } = useTheme();
-  const { domain, tutorials, addDomain, verifyDns, activateDomain, deactivateDomain, removeDomain } = useMerchantDomain();
-  
-  const [step, setStep] = useState<WizardStep>(initialStep);
-  const [domainInput, setDomainInput] = useState(domain?.domain || '');
-  const [domainType, setDomainType] = useState<'subdomain' | 'root'>(domain?.domain_type || 'subdomain');
-  const [selectedProvider, setSelectedProvider] = useState<DomainProviderTutorial | null>(null);
-  const [redirectOldLink, setRedirectOldLink] = useState(domain?.redirect_old_link ?? true);
-  const [copied, setCopied] = useState<string | null>(null);
+const CopyRow = ({ label, value }: { label: string; value: string }) => {
+  const [done, setDone] = useState(false);
+  return (
+    <div className="flex items-center justify-between gap-2 rounded border bg-background p-2">
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-mono text-sm break-all">{value}</p>
+      </div>
+      <Button size="icon" variant="ghost" aria-label={`Copiar ${label}`} onClick={async () => {
+        await navigator.clipboard.writeText(value); setDone(true); setTimeout(() => setDone(false), 1500);
+      }}>
+        {done ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+};
 
-  // CRITICAL: Sync step with initialStep whenever modal opens
-  useEffect(() => {
-    if (open) {
-      setStep(initialStep);
-    }
-  }, [open, initialStep]);
+const Step = ({ n, title, done, children }: { n: number; title: string; done?: boolean; children: React.ReactNode }) => (
+  <section className="space-y-3 rounded-lg border p-4">
+    <h3 className="flex items-center gap-2 text-sm font-semibold">
+      <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${done ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+        {done ? <Check className="h-3 w-3" /> : n}
+      </span>
+      {title}
+    </h3>
+    {children}
+  </section>
+);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    onOpenChange(isOpen);
-  };
+export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
+  const { overview, domain, tutorials, claimDomain, regenerateChallenge, verify, disconnect } = useMerchantDomain();
+  const [input, setInput] = useState("");
+  const d = domain && !domain.released && domain.flow_version === 2 ? domain : null;
+  const owned = !!d?.ownership_verified_at;
+  const expired = !!d && !owned && !!d.verification_expires_at && new Date(d.verification_expires_at) < new Date();
+  const provider = d?.last_result?.provider ?? null;
+  const nameservers = d?.detected_nameservers ?? [];
+  const checked = !!d?.last_dns_check;
+  const records = overview?.records ?? [];
+  const connected = isCustomDomainConnected(d);
 
-  const validateDomain = (value: string): boolean => {
-    // Remove http:// or https://
-    let cleaned = value.replace(/^https?:\/\//, '');
-    // Remove trailing slashes and paths
-    cleaned = cleaned.split('/')[0];
-    // Check if it's a valid domain format
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/;
-    return domainRegex.test(cleaned);
-  };
-
-  const cleanDomain = (value: string): string => {
-    let cleaned = value.replace(/^https?:\/\//, '');
-    cleaned = cleaned.split('/')[0];
-    cleaned = cleaned.replace(/\s/g, '');
-    return cleaned.toLowerCase();
-  };
-
-  const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDomainInput(cleanDomain(e.target.value));
-  };
-
-  const handleSaveDomain = async () => {
-    if (!validateDomain(domainInput)) {
-      toast.error('Por favor, insira um domínio válido (ex: seudominio.com.br)');
-      return;
-    }
-
-    await addDomain.mutateAsync({ domain: domainInput, domainType });
-    setStep('provider');
-  };
-
-  const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(key);
-    toast.success('Copiado!');
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const handleVerifyDns = async () => {
-    await verifyDns.mutateAsync();
-    setStep('verify');
-  };
-
-  const handleActivate = async () => {
-    await activateDomain.mutateAsync(redirectOldLink);
-    onOpenChange(false);
-  };
-
-  const handleDeactivate = async () => {
-    await deactivateDomain.mutateAsync();
-  };
-
-  const handleRemove = async () => {
-    if (confirm('Tem certeza que deseja remover o domínio? Esta ação não pode ser desfeita.')) {
-      await removeDomain.mutateAsync();
-      setStep('domain');
-      setDomainInput('');
-    }
-  };
-
-  const resetWizard = () => {
-    setStep('domain');
-    setDomainInput('');
-    setSelectedProvider(null);
-  };
-
-  const getStepTitle = () => {
-    switch (step) {
-      case 'domain': return 'Configurar Domínio';
-      case 'provider': return 'Escolher Provedor';
-      case 'tutorial': return `Tutorial - ${selectedProvider?.provider_name}`;
-      case 'verify': return 'Verificar DNS';
-      case 'activate': return 'Ativar Domínio';
-      case 'manage': return 'Gerenciar Domínio';
-      default: return 'Domínio Próprio';
-    }
-  };
-
-  const renderStepContent = () => {
-    switch (step) {
-      case 'domain':
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="domain">Seu domínio</Label>
-              <Input
-                id="domain"
-                value={domainInput}
-                onChange={handleDomainChange}
-                placeholder="seudominio.com.br"
-                className="font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                Não inclua http:// ou https://
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Tipo de configuração</Label>
-              <RadioGroup
-                value={domainType}
-                onValueChange={(v) => setDomainType(v as 'subdomain' | 'root')}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <RadioGroupItem value="subdomain" id="subdomain" />
-                  <div className="flex-1">
-                    <Label htmlFor="subdomain" className="font-medium cursor-pointer">
-                      Subdomínio (www)
-                      <Badge variant="secondary" className="ml-2">Recomendado</Badge>
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Exemplo: www.seudominio.com.br
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <RadioGroupItem value="root" id="root" />
-                  <div className="flex-1">
-                    <Label htmlFor="root" className="font-medium cursor-pointer">
-                      Domínio raiz
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Exemplo: seudominio.com.br (sem www)
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <Button
-              onClick={handleSaveDomain}
-              disabled={!domainInput || addDomain.isPending}
-              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-              className="w-full"
-            >
-              {addDomain.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Salvar domínio
-            </Button>
-          </div>
-        );
-
-      case 'provider':
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Selecione onde você registrou seu domínio para ver as instruções específicas:
-            </p>
-            
-            <div className="grid grid-cols-2 gap-2">
-              {tutorials?.map((tutorial) => (
-                <Button
-                  key={tutorial.id}
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedProvider(tutorial);
-                    setStep('tutorial');
-                  }}
-                  className="h-auto py-3 justify-start"
-                >
-                  {tutorial.provider_name}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              variant="ghost"
-              onClick={() => setStep('domain')}
-              className="w-full"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-          </div>
-        );
-
-      case 'tutorial':
-        return (
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-6">
-              {/* DNS Records to Copy */}
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium">Registros DNS necessários:</h4>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 bg-background rounded border">
-                    <div>
-                      <p className="text-xs text-muted-foreground">CNAME (www)</p>
-                      <p className="font-mono text-sm">{domain?.expected_cname || 'cname.vm-dns.com'}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy(domain?.expected_cname || 'cname.vm-dns.com', 'cname')}
-                    >
-                      {copied === 'cname' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2 bg-background rounded border">
-                    <div>
-                      <p className="text-xs text-muted-foreground">A (@)</p>
-                      <p className="font-mono text-sm">{domain?.expected_ip || '185.158.133.1'}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy(domain?.expected_ip || '185.158.133.1', 'a')}
-                    >
-                      {copied === 'a' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tutorial Steps */}
-              <div className="space-y-4">
-                {selectedProvider?.tutorial_content.steps.map((tutorialStep, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="flex items-center justify-center w-6 h-6 rounded-full text-white text-sm font-medium"
-                        style={{ backgroundColor: buttonBgColor }}
-                      >
-                        {index + 1}
-                      </div>
-                      <h4 className="font-medium">{tutorialStep.title}</h4>
-                    </div>
-                    <p className="text-sm text-muted-foreground ml-8 whitespace-pre-line">
-                      {tutorialStep.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Propagation Warning */}
-              <div className="flex items-start gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">Importante</p>
-                  <p className="text-xs">
-                    As alterações de DNS podem levar até 48 horas para propagar completamente. 
-                    Após configurar, aguarde alguns minutos e clique em "Verificar DNS".
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep('provider')}
-                  className="flex-1"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar
-                </Button>
-                <Button
-                  onClick={handleVerifyDns}
-                  disabled={verifyDns.isPending}
-                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                  className="flex-1"
-                >
-                  {verifyDns.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Verificar DNS
-                </Button>
-              </div>
-            </div>
-          </ScrollArea>
-        );
-
-      case 'verify':
-        return (
-          <div className="space-y-6">
-            {domain?.status === 'verifying' && (
-              <div className="flex flex-col items-center gap-4 py-8">
-                <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-                <p className="text-center text-muted-foreground">
-                  Verificando configurações DNS...
-                </p>
-              </div>
-            )}
-
-            {domain?.status === 'dns_error' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-red-600">
-                  <AlertCircle className="h-8 w-8" />
-                  <div>
-                    <p className="font-medium">Erro na verificação DNS</p>
-                    <p className="text-sm">{domain.dns_error_message}</p>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setStep('tutorial')}
-                  className="w-full"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Revisar configurações
-                </Button>
-
-                <Button
-                  onClick={handleVerifyDns}
-                  disabled={verifyDns.isPending}
-                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Tentar novamente
-                </Button>
-              </div>
-            )}
-
-            {(domain?.status === 'ssl_provisioning' || domain?.ssl_status === 'provisioning') && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-green-600">
-                  <CheckCircle2 className="h-8 w-8" />
-                  <div>
-                    <p className="font-medium">DNS verificado com sucesso!</p>
-                    <p className="text-sm text-muted-foreground">Provisionando certificado SSL...</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => setStep('activate')}
-                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                  className="w-full"
-                >
-                  Continuar para ativação
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-
-      case 'activate':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 text-green-600">
-              <CheckCircle2 className="h-8 w-8" />
-              <div>
-                <p className="font-medium">Tudo pronto!</p>
-                <p className="text-sm text-muted-foreground">
-                  Seu domínio está pronto para ser ativado.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 border rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="redirect">Redirecionar link antigo</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Redireciona o link virtual-market-craft.lovable.app para seu domínio (301)
-                  </p>
-                </div>
-                <Switch
-                  id="redirect"
-                  checked={redirectOldLink}
-                  onCheckedChange={setRedirectOldLink}
-                />
-              </div>
-            </div>
-
-            <Button
-              onClick={handleActivate}
-              disabled={activateDomain.isPending}
-              style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-              className="w-full"
-            >
-              {activateDomain.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Power className="h-4 w-4 mr-2" />
-              )}
-              Ativar domínio
-            </Button>
-          </div>
-        );
-
-      case 'manage':
-        return (
-          <div className="space-y-6">
-            {/* Domain Info */}
-            <div className="p-4 border rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Domínio:</span>
-                <span className="font-mono font-medium">{domain?.domain}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Tipo:</span>
-                <Badge variant="secondary">
-                  {domain?.domain_type === 'subdomain' ? 'Subdomínio (www)' : 'Domínio raiz'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status:</span>
-                <Badge variant={domain?.is_active ? 'default' : 'secondary'}>
-                  {domain?.is_active ? 'Ativo' : 'Inativo'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">SSL:</span>
-                <Badge variant={domain?.ssl_status === 'active' ? 'default' : 'outline'}>
-                  {domain?.ssl_status === 'active' ? 'Ativo' : domain?.ssl_status}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-2">
-              {domain?.is_active ? (
-                <Button
-                  variant="outline"
-                  onClick={handleDeactivate}
-                  disabled={deactivateDomain.isPending}
-                  className="w-full"
-                >
-                  <PowerOff className="h-4 w-4 mr-2" />
-                  Desativar domínio
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => setStep('activate')}
-                  style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-                  className="w-full"
-                >
-                  <Power className="h-4 w-4 mr-2" />
-                  Ativar domínio
-                </Button>
-              )}
-
-              <Button
-                variant="outline"
-                onClick={handleVerifyDns}
-                disabled={verifyDns.isPending}
-                className="w-full"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reverificar DNS
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={resetWizard}
-                className="w-full"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                Alterar domínio
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={handleRemove}
-                disabled={removeDomain.isPending}
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Remover domínio
-              </Button>
-            </div>
-          </div>
-        );
-    }
+  const submit = () => {
+    const n = normalizeCustomDomain(input);
+    if (!n.ok) { toast.error(n.reason === "reserved" ? "Este domínio é reservado e não pode ser usado." : "Informe um domínio válido, por exemplo: seudominio.com.br"); return; }
+    claimDomain.mutate(n.domain, { onSuccess: () => setInput("") });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Globe className="h-5 w-5" style={{ color: buttonBgColor }} />
-            <DialogTitle>{getStepTitle()}</DialogTitle>
-          </div>
-          <DialogDescription>
-            {step === 'domain' && 'Configure um domínio próprio para sua loja'}
-            {step === 'provider' && 'Selecione seu provedor de domínio para ver as instruções'}
-            {step === 'tutorial' && 'Siga as instruções para configurar o DNS'}
-            {step === 'verify' && 'Verificando suas configurações de DNS'}
-            {step === 'activate' && 'Finalize a ativação do seu domínio'}
-            {step === 'manage' && 'Gerencie as configurações do seu domínio'}
-          </DialogDescription>
+          <DialogTitle>Domínio próprio</DialogTitle>
+          <DialogDescription>{d ? customDomainStateLabel(d.state) : "Informe o domínio que deseja conectar à sua loja."}</DialogDescription>
         </DialogHeader>
 
-        {renderStepContent()}
+        <div className="space-y-4">
+          <Step n={1} title="Informe seu domínio" done={!!d}>
+            {d ? (
+              <p className="font-mono text-sm">{d.domain}</p>
+            ) : (
+              <div className="flex gap-2">
+                <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="seudominio.com.br" className="font-mono" />
+                <Button onClick={submit} disabled={!input || claimDomain.isPending}>
+                  {claimDomain.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
+                </Button>
+              </div>
+            )}
+          </Step>
+
+          {d && (
+            <Step n={2} title="Confirmar propriedade" done={owned}>
+              {owned ? (
+                <p className="text-sm text-muted-foreground">Propriedade confirmada.</p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Crie este registro TXT no painel onde o DNS do seu domínio é administrado:</p>
+                  <CopyRow label="Tipo" value="TXT" />
+                  {d.txt_host && <CopyRow label="Nome / Host" value={d.txt_host} />}
+                  {d.txt_value && <CopyRow label="Valor" value={d.txt_value} />}
+                  {d.last_result?.ownership === "mismatch" && <p className="text-sm text-destructive">Encontramos um TXT, mas o valor não confere. Copie o valor novamente.</p>}
+                  {d.last_result?.ownership === "missing" && checked && <p className="text-sm text-muted-foreground">Propriedade ainda não verificada. Se acabou de criar o registro, aguarde a propagação.</p>}
+                  {expired && (
+                    <div className="flex items-center justify-between gap-2 rounded bg-muted p-2 text-sm">
+                      <span>O código expirou. Gere um novo para continuar.</span>
+                      <Button size="sm" variant="outline" onClick={() => regenerateChallenge.mutate()} disabled={regenerateChallenge.isPending}>Gerar novo código</Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </Step>
+          )}
+
+          {d && (
+            <Step n={3} title="Configurar DNS" done={!!d.dns_verified_at}>
+              {checked ? (
+                provider ? (
+                  <div className="space-y-1">
+                    <p className="text-sm">Detectamos que o DNS deste domínio é administrado por: <strong>{provider.name}</strong>.</p>
+                    <p className="text-xs text-muted-foreground">Mesmo que o domínio tenha sido comprado em outra empresa, faça as alterações no painel que administra estes nameservers.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm">Não conseguimos identificar automaticamente onde seu DNS é administrado. Selecione abaixo o painel onde você altera os registros DNS do domínio.</p>
+                )
+              ) : (
+                <p className="text-sm text-muted-foreground">Clique em "Verificar novamente" para detectarmos onde o DNS do seu domínio é administrado.</p>
+              )}
+              {nameservers.length > 0 && <p className="text-xs text-muted-foreground font-mono">Nameservers: {nameservers.join(", ")}</p>}
+
+              {overview?.ingress_ready && records.length > 0 ? (
+                <div className="space-y-2">
+                  {records.map((r) => r.value && (
+                    <div key={r.purpose} className="grid gap-2 sm:grid-cols-3">
+                      <CopyRow label="Tipo" value={r.type} />
+                      <CopyRow label="Nome / Host" value={r.host} />
+                      <CopyRow label="Valor" value={r.value} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 rounded bg-muted p-2 text-sm">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>Os registros de apontamento serão exibidos aqui quando a conexão segura de domínios estiver disponível. Por enquanto, faça apenas a confirmação de propriedade.</span>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2 rounded border border-dashed p-2 text-xs">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>{EMAIL_PRESERVATION_NOTICE}</span>
+              </div>
+
+              <p className="text-sm font-medium pt-1">Onde o DNS do seu domínio é administrado?</p>
+              <Accordion type="single" collapsible defaultValue={provider?.slug}>
+                {tutorials?.map((t) => (
+                  <AccordionItem key={t.id} value={t.provider_slug}>
+                    <AccordionTrigger className="text-sm">{t.provider_name}</AccordionTrigger>
+                    <AccordionContent>
+                      <ol className="list-decimal space-y-2 pl-5 text-sm">
+                        {t.tutorial_content.steps.map((s, i) => (
+                          <li key={i}><strong>{s.title}.</strong> <span className="whitespace-pre-line text-muted-foreground">{s.content}</span></li>
+                        ))}
+                      </ol>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </Step>
+          )}
+
+          {d && (
+            <Step n={4} title="Verificar e conectar" done={connected}>
+              <p className="text-sm">{customDomainStateLabel(d.state)}</p>
+              {d.last_dns_check && <p className="text-xs text-muted-foreground">Última verificação: {new Date(d.last_dns_check).toLocaleString("pt-BR")}</p>}
+              {d.last_result?.notes?.includes("ns_resolver_unavailable") && <p className="text-xs text-muted-foreground">O serviço de consulta DNS não respondeu. Isso não indica erro na sua configuração — tente novamente.</p>}
+              {connected && <p className="flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4" /> Domínio conectado com SSL ativo.</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => verify.mutate()} disabled={verify.isPending}>
+                  {verify.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Verificar novamente
+                </Button>
+                <Button variant="outline" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+                  {connected ? "Desconectar domínio" : "Cancelar este domínio"}
+                </Button>
+              </div>
+            </Step>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
