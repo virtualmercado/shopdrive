@@ -1,5 +1,10 @@
 # Roadmap
 
+## Imagem opcional nas campanhas
+- [x] Verificar Biblioteca Master, URLs permanentes e isolamento de assets.
+- [x] Integrar seleção, persistência, prévia e proteção de referências históricas.
+- [x] Validar regras e fluxo sem envio real; relatar resultados.
+
 ## Etapa 3 — Comunicação → Campanhas de E-mail
 - [x] Migration: `email_campaigns` + `email_campaign_recipients` (grants, RLS admin-only, índices)
 - [x] Trigger: email_queue status → atualiza recipient + counters + conclusão automática

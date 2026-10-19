@@ -24,8 +24,10 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send } from "lucide-react";
+import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send, Image as ImageIcon, Trash2 } from "lucide-react";
 import { validCampaignInformation, validCampaignContent, validCampaignAudienceDates } from "@/lib/emailCampaignValidation";
+import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
+import { CampaignMedia, campaignImageError, validCampaignImageLink } from "@/lib/campaignImage";
 
 type CampaignStatus = "draft" | "ready" | "processing" | "completed" | "completed_with_errors" | "cancelled";
 type RecipientStatus = "pending" | "queued" | "sent" | "failed" | "suppressed" | "cancelled";
@@ -128,6 +130,8 @@ interface CampaignRow {
 interface CampaignDetail extends CampaignRow {
   content: string; cta_label: string | null; cta_url: string | null; pending: number;
   updated_at: string; started_at: string | null;
+  media_id: string | null; image_url: string | null; image_alt: string | null;
+  image_link_url: string | null; image_name: string | null;
 }
 
 interface RecipientRow {
@@ -396,6 +400,10 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   const [content, setContent] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [image, setImage] = useState<CampaignMedia | null>(null);
+  const [imageAlt, setImageAlt] = useState("");
+  const [imageLink, setImageLink] = useState("");
+  const [mediaOpen, setMediaOpen] = useState(false);
   const [filters, setFilters] = useState<AudienceFilters>(EMPTY_FILTERS);
   const [audience, setAudience] = useState<AudienceCount | null>(null);
   const [counting, setCounting] = useState(false);
@@ -412,6 +420,7 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   useEffect(() => {
     if (!open) return;
     setStep(0); setPreviewHtml(""); setAudience(null);
+    setImage(null); setImageAlt(""); setImageLink(""); setMediaOpen(false);
     if (!campaignId) {
       setId(null); setName(""); setSubject(""); setContent(""); setCtaLabel(""); setCtaUrl(""); setFilters(EMPTY_FILTERS);
       return;
@@ -422,6 +431,12 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
       const c = data as unknown as CampaignDetail;
       setId(c.id); setName(c.name); setSubject(c.subject); setContent(c.content);
       setCtaLabel(c.cta_label || ""); setCtaUrl(c.cta_url || "");
+      setImageAlt(c.image_alt || ""); setImageLink(c.image_link_url || "");
+      if (c.media_id) {
+        const { data: media, error: mediaError } = await supabase.from("media_files").select("*").eq("id", c.media_id).single();
+        if (mediaError || !media) { toast.error("Erro ao carregar a imagem da Biblioteca Master"); onCloseRef.current(); return; }
+        setImage(media);
+      }
       setFilters({ ...EMPTY_FILTERS, ...(c.audience_filters as Partial<AudienceFilters>) });
     })();
   }, [open, campaignId]);
@@ -451,11 +466,13 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
   }, [open, step, filters, countAudience]);
 
   const validStep0 = validCampaignInformation(name, subject);
-  const validStep2 = validCampaignContent(content, ctaLabel, ctaUrl);
+  const validImage = !image || (!campaignImageError(image) && imageAlt.length <= 200 && validCampaignImageLink(imageLink));
+  const validStep2 = validCampaignContent(content, ctaLabel, ctaUrl) && validImage;
   const validAudience = validCampaignAudienceDates(filters.date_from, filters.date_to)
     && !counting && !!audience && audience.eligible > 0;
 
   const save = async (): Promise<string | null> => {
+    if (!validImage) { toast.error("Revise a imagem e o link HTTPS da imagem."); return null; }
     setSaving(true);
     try {
       const { data, error } = await supabase.rpc("admin_save_email_campaign", {
@@ -466,6 +483,9 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
         p_cta_label: ctaLabel.trim() || null,
         p_cta_url: ctaLabel.trim() ? ctaUrl.trim() : null,
         p_filters: filtersToPayload(filters),
+        p_media_id: image?.id || null,
+        p_image_alt: image ? imageAlt.trim() || null : null,
+        p_image_link_url: image ? imageLink.trim() || null : null,
       });
       if (error) throw error;
       const newId = data as string;
@@ -497,6 +517,8 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
       const { data, error } = await supabase.rpc("admin_preview_email_campaign", {
         p_subject: subject.trim(), p_content: content,
         p_cta_label: ctaLabel.trim() || null, p_cta_url: ctaLabel.trim() ? ctaUrl.trim() : null,
+        p_media_id: image?.id || null, p_image_alt: image ? imageAlt.trim() || null : null,
+        p_image_link_url: image ? imageLink.trim() || null : null,
       });
       if (error) { toast.error("Erro ao gerar prévia"); return; }
       setPreviewHtml(data as string);
@@ -654,6 +676,27 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
             {ctaLabel.trim() && !/^https:\/\/[^\s"<>]+$/.test(ctaUrl.trim()) && (
               <p className="text-xs text-destructive">A URL do botão deve começar com https://</p>
             )}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Imagem da campanha <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                <Button variant="outline" size="sm" onClick={() => setMediaOpen(true)}>
+                  <ImageIcon className="h-4 w-4 mr-2" />{image ? "Trocar imagem" : "Selecionar da Biblioteca"}
+                </Button>
+              </div>
+              {image && <>
+                <div className="flex items-center gap-3 min-w-0">
+                  <img src={image.url} alt={imageAlt || subject} className="w-24 h-20 object-contain border rounded-md bg-muted" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium break-words">{image.name}</p>
+                    <p className="text-xs text-muted-foreground">{image.width && image.height ? `${image.width} × ${image.height} px · ` : ""}{(image.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <Button variant="ghost" size="icon" title="Remover imagem" aria-label="Remover imagem" onClick={() => { setImage(null); setImageAlt(""); setImageLink(""); }}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+                <div><Label htmlFor="campaign-image-alt">Texto alternativo da imagem</Label><Input id="campaign-image-alt" value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} maxLength={200} placeholder={subject} /></div>
+                <div><Label htmlFor="campaign-image-link">Ao clicar na imagem, abrir:</Label><Input id="campaign-image-link" value={imageLink} onChange={(e) => setImageLink(e.target.value)} maxLength={2000} placeholder="https://..." /></div>
+                {!validCampaignImageLink(imageLink) && <p className="text-xs text-destructive">O link da imagem deve ser um endereço HTTPS válido.</p>}
+              </>}
+            </div>
           </div>
         )}
 
@@ -684,6 +727,9 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
                 </>
               )}
               {ctaLabel.trim() && <p><span className="text-muted-foreground">Botão:</span> {ctaLabel} → {ctaUrl}</p>}
+              <p className="break-words"><span className="text-muted-foreground">Imagem:</span> {image?.name || "Nenhuma"}</p>
+              {image && <img src={image.url} alt={imageAlt || subject} className="w-32 h-24 object-contain" />}
+              {image && imageLink.trim() && <p className="break-all"><span className="text-muted-foreground">Link da imagem:</span> {imageLink.trim()}</p>}
             </Card>
             <Card className="p-4">
               <p className="text-muted-foreground mb-1">Conteúdo:</p>
@@ -713,6 +759,8 @@ const CampaignWizard = ({ open, campaignId, onClose, onSaved }: WizardProps) => 
             )}
           </div>
         </DialogFooter>
+
+        <MediaSelectorModal isOpen={mediaOpen} onClose={() => setMediaOpen(false)} onSelect={(file) => { setImage(file); setPreviewHtml(""); }} campaignImagesOnly title="Imagem da campanha — Biblioteca Master" />
 
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
@@ -800,6 +848,8 @@ const CampaignDetailDialog = ({ campaignId, onClose, onChanged }: DetailProps) =
       const { data, error } = await supabase.rpc("admin_preview_email_campaign", {
         p_subject: campaign.subject, p_content: campaign.content,
         p_cta_label: campaign.cta_label, p_cta_url: campaign.cta_url,
+        p_media_id: campaign.media_id, p_image_alt: campaign.image_alt,
+        p_image_link_url: campaign.image_link_url,
       });
       if (error) { toast.error("Erro ao gerar prévia"); return; }
       setPreviewHtml(data as string);
@@ -838,6 +888,9 @@ const CampaignDetailDialog = ({ campaignId, onClose, onChanged }: DetailProps) =
               {campaign.completed_at && <p><span className="text-muted-foreground">Concluída em:</span> {fmtDate(campaign.completed_at)}</p>}
               {campaign.cancelled_at && <p><span className="text-muted-foreground">Cancelada em:</span> {fmtDate(campaign.cancelled_at)}</p>}
               {campaign.cta_label && <p><span className="text-muted-foreground">Botão:</span> {campaign.cta_label} → {campaign.cta_url}</p>}
+              <p className="break-words"><span className="text-muted-foreground">Imagem:</span> {campaign.image_name || "Nenhuma"}</p>
+              {campaign.image_url && <img src={campaign.image_url} alt={campaign.image_alt || campaign.subject} className="w-32 h-24 object-contain" />}
+              {campaign.image_link_url && <p className="break-all"><span className="text-muted-foreground">Link da imagem:</span> {campaign.image_link_url}</p>}
             </Card>
 
             <div>

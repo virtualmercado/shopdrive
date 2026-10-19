@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { CAMPAIGN_IMAGE_MAX_BYTES, CAMPAIGN_IMAGE_MIMES, campaignImageError, isMasterCampaignImage } from "@/lib/campaignImage";
 
 type FileType = "image" | "pdf";
 type FilterType = "all" | "images" | "pdfs" | "recent";
@@ -38,6 +39,7 @@ interface MediaSelectorModalProps {
   onSelect: (file: MediaFile) => void;
   allowedTypes?: FileType[];
   title?: string;
+  campaignImagesOnly?: boolean;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -51,7 +53,8 @@ export const MediaSelectorModal = ({
   onClose,
   onSelect,
   allowedTypes = ["image"],
-  title = "Selecionar Mídia"
+  title = "Selecionar Mídia",
+  campaignImagesOnly = false
 }: MediaSelectorModalProps) => {
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,12 +63,14 @@ export const MediaSelectorModal = ({
 
   // Fetch media files from database
   const { data: files = [], isLoading, refetch } = useQuery({
-    queryKey: ["media-files-selector"],
+    queryKey: ["media-files-selector", campaignImagesOnly ? "campaign-master" : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("media_files")
         .select("*")
         .order("created_at", { ascending: false });
+      if (campaignImagesOnly) query = query.eq("file_type", "image").in("mime_type", CAMPAIGN_IMAGE_MIMES).like("file_path", "uploads/%");
+      const { data, error } = await query;
       
       if (error) {
         console.error("Error fetching media files:", error);
@@ -89,6 +94,7 @@ export const MediaSelectorModal = ({
   });
 
   const filteredFiles = files.filter(file => {
+    if (campaignImagesOnly && !isMasterCampaignImage(file)) return false;
     // Filter by allowed types
     if (!allowedTypes.includes(file.file_type)) {
       return false;
@@ -116,6 +122,8 @@ export const MediaSelectorModal = ({
 
   const handleConfirm = () => {
     if (selectedFile) {
+      const error = campaignImagesOnly ? campaignImageError(selectedFile) : null;
+      if (error) { toast.error(error); return; }
       onSelect(selectedFile);
       setSelectedFile(null);
       onClose();
@@ -137,13 +145,17 @@ export const MediaSelectorModal = ({
   };
 
   const handleFileUpload = async (uploadedFiles: File[]) => {
-    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+    const validTypes = campaignImagesOnly ? CAMPAIGN_IMAGE_MIMES : ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
     
     setIsUploading(true);
     
     for (const file of uploadedFiles) {
+      if (campaignImagesOnly && file.size > CAMPAIGN_IMAGE_MAX_BYTES) {
+        toast.error("Esta imagem é muito grande para campanhas de e-mail. Utilize uma versão otimizada.");
+        continue;
+      }
       if (!validTypes.includes(file.type)) {
-        toast.error(`Arquivo "${file.name}" não é suportado. Use JPG, PNG, WEBP ou SVG.`);
+        toast.error(`Arquivo "${file.name}" não é suportado. Use ${campaignImagesOnly ? "JPG, PNG ou WEBP" : "JPG, PNG, WEBP ou SVG"}.`);
         continue;
       }
 
@@ -174,16 +186,19 @@ export const MediaSelectorModal = ({
         let height: number | null = null;
 
         try {
-          const img = await loadImage(URL.createObjectURL(file));
-          width = img.width;
-          height = img.height;
+          const objectUrl = URL.createObjectURL(file);
+          try {
+            const img = await loadImage(objectUrl);
+            width = img.width;
+            height = img.height;
+          } finally { URL.revokeObjectURL(objectUrl); }
         } catch (e) {
           console.error("Error getting image dimensions:", e);
         }
 
         const { data: { user } } = await supabase.auth.getUser();
 
-        const { error: dbError } = await supabase
+        const { data: inserted, error: dbError } = await supabase
           .from("media_files")
           .insert({
             name: file.name,
@@ -195,7 +210,7 @@ export const MediaSelectorModal = ({
             height,
             mime_type: file.type,
             uploaded_by: user?.id || null,
-          });
+          }).select("*").single();
 
         if (dbError) {
           toast.error(`Erro ao salvar metadados de "${file.name}"`);
@@ -203,6 +218,9 @@ export const MediaSelectorModal = ({
         }
 
         toast.success(`"${file.name}" enviado com sucesso!`);
+        if (campaignImagesOnly && inserted) {
+          setSelectedFile({ ...inserted, file_type: "image" });
+        }
       } catch (error) {
         toast.error(`Erro ao enviar "${file.name}"`);
       }
@@ -272,8 +290,8 @@ export const MediaSelectorModal = ({
               <label>
                 <input
                   type="file"
-                  multiple
-                  accept=".jpg,.jpeg,.png,.webp,.svg"
+                  multiple={!campaignImagesOnly}
+                  accept={campaignImagesOnly ? ".jpg,.jpeg,.png,.webp" : ".jpg,.jpeg,.png,.webp,.svg"}
                   className="hidden"
                   onChange={handleInputChange}
                   disabled={isUploading}
@@ -320,7 +338,11 @@ export const MediaSelectorModal = ({
                 {filteredFiles.map((file) => (
                   <div
                     key={file.id}
-                    onClick={() => setSelectedFile(file)}
+                    onClick={() => {
+                      const error = campaignImagesOnly ? campaignImageError(file) : null;
+                      if (error) { toast.error(error); return; }
+                      setSelectedFile(file);
+                    }}
                     className={`
                       relative bg-gray-50 rounded-lg overflow-hidden border-2 cursor-pointer transition-all
                       ${selectedFile?.id === file.id 
@@ -350,6 +372,7 @@ export const MediaSelectorModal = ({
                       <p className="text-xs text-muted-foreground">
                         {formatFileSize(file.size)}
                       </p>
+                      {campaignImagesOnly && file.width && file.height && <p className="text-xs text-muted-foreground">{file.width} × {file.height} px</p>}
                     </div>
 
                     {/* Selected indicator */}
