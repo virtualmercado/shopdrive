@@ -1,5 +1,10 @@
 # Roadmap
 
+## Gestão segura das campanhas
+- [ ] Exclusão, arquivamento, restauração e auditoria administrativa no servidor.
+- [ ] Filtro independente e paginação padrão de 50 registros na interface.
+- [ ] Testes transacionais e fluxo Master sem envio; relatório final.
+
 ## Refinamento visual das imagens de campanhas
 - [x] Orientação e aviso informativo por proporção na Etapa 3.
 - [x] Limites visuais no renderer compartilhado, sem alterar histórico ou biblioteca.
