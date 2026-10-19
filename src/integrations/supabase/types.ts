@@ -1922,6 +1922,8 @@ export type Database = {
       }
       email_campaigns: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           audience_filters: Json
           cancelled_at: string | null
           completed_at: string | null
@@ -1935,6 +1937,7 @@ export type Database = {
           image_alt: string | null
           image_link_url: string | null
           image_url: string | null
+          is_archived: boolean
           media_id: string | null
           name: string
           started_at: string | null
@@ -1948,6 +1951,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           audience_filters?: Json
           cancelled_at?: string | null
           completed_at?: string | null
@@ -1961,6 +1966,7 @@ export type Database = {
           image_alt?: string | null
           image_link_url?: string | null
           image_url?: string | null
+          is_archived?: boolean
           media_id?: string | null
           name: string
           started_at?: string | null
@@ -1974,6 +1980,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           audience_filters?: Json
           cancelled_at?: string | null
           completed_at?: string | null
@@ -1987,6 +1995,7 @@ export type Database = {
           image_alt?: string | null
           image_link_url?: string | null
           image_url?: string | null
+          is_archived?: boolean
           media_id?: string | null
           name?: string
           started_at?: string | null
@@ -7614,10 +7623,13 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _campaign_has_activity: { Args: { p_id: string }; Returns: boolean }
+      _campaign_has_pending: { Args: { p_id: string }; Returns: boolean }
       _campaign_image_display_width: {
         Args: { p_height: number; p_width: number }
         Returns: number
       }
+      _campaign_management_flags: { Args: { p_id: string }; Returns: Json }
       _campaign_master_image: {
         Args: { p_alt: string; p_link: string; p_media_id: string }
         Returns: {
@@ -7693,6 +7705,10 @@ export type Database = {
           used_24h: number
         }[]
       }
+      admin_archive_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
       admin_assign_brand_template: {
         Args: { p_brand_account_id: string; p_template_id: string }
         Returns: undefined
@@ -7727,6 +7743,10 @@ export type Database = {
       admin_delete_contract_draft: {
         Args: { p_version_id: string }
         Returns: undefined
+      }
+      admin_delete_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
       }
       admin_end_plan_trial: {
         Args: { p_reason?: string; p_trial_id: string }
@@ -7786,6 +7806,18 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_managed_email_campaigns: {
+        Args: {
+          p_archive?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       admin_list_subscribers: {
         Args: {
           p_contact?: string
@@ -7830,6 +7862,10 @@ export type Database = {
       admin_publish_contract_version: {
         Args: { p_set_current?: boolean; p_version_id: string }
         Returns: string
+      }
+      admin_restore_email_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: Json
       }
       admin_save_email_campaign:
         | {
