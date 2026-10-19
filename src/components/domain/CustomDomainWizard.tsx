@@ -58,7 +58,7 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
 
   const submit = () => {
     const n = normalizeCustomDomain(input);
-    if (!n.ok) { toast.error(n.reason === "reserved" ? "Este domínio é reservado e não pode ser usado." : "Informe um domínio válido, por exemplo: seudominio.com.br"); return; }
+    if ("reason" in n) { toast.error(n.reason === "reserved" ? "Este domínio é reservado e não pode ser usado." : "Informe um domínio válido, por exemplo: seudominio.com.br"); return; }
     claimDomain.mutate(n.domain, { onSuccess: () => setInput("") });
   };
 
