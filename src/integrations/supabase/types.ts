@@ -7614,6 +7614,10 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _campaign_image_display_width: {
+        Args: { p_height: number; p_width: number }
+        Returns: number
+      }
       _campaign_master_image: {
         Args: { p_alt: string; p_link: string; p_media_id: string }
         Returns: {
