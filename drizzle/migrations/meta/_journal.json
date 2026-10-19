@@ -358,6 +358,13 @@
       "when": 1792432432741,
       "tag": "0050_custom_domains_v2_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792432718933,
+      "tag": "0051_custom_domains_v2_log_types",
+      "breakpoints": true
     }
   ]
 }
