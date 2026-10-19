@@ -316,6 +316,13 @@
       "when": 1792207225961,
       "tag": "0044_email_campaigns_commercial_email_partial_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792372194262,
+      "tag": "0045_email_campaign_master_image",
+      "breakpoints": true
     }
   ]
 }

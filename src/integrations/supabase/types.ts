@@ -1932,6 +1932,10 @@ export type Database = {
           cta_label: string | null
           cta_url: string | null
           id: string
+          image_alt: string | null
+          image_link_url: string | null
+          image_url: string | null
+          media_id: string | null
           name: string
           started_at: string | null
           status: string
@@ -1954,6 +1958,10 @@ export type Database = {
           cta_label?: string | null
           cta_url?: string | null
           id?: string
+          image_alt?: string | null
+          image_link_url?: string | null
+          image_url?: string | null
+          media_id?: string | null
           name: string
           started_at?: string | null
           status?: string
@@ -1976,6 +1984,10 @@ export type Database = {
           cta_label?: string | null
           cta_url?: string | null
           id?: string
+          image_alt?: string | null
+          image_link_url?: string | null
+          image_url?: string | null
+          media_id?: string | null
           name?: string
           started_at?: string | null
           status?: string
@@ -1987,7 +1999,15 @@ export type Database = {
           total_suppressed?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media_files"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_logs: {
         Row: {
@@ -7594,6 +7614,30 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _campaign_master_image: {
+        Args: { p_alt: string; p_link: string; p_media_id: string }
+        Returns: {
+          created_at: string
+          file_path: string
+          file_type: string
+          height: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          size: number
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+          usage_count: number
+          width: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "media_files"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _campaign_resolve_audience: {
         Args: { p_filters: Json }
         Returns: {
@@ -7757,31 +7801,60 @@ export type Database = {
         Args: { p_count: number; p_filters: Json; p_format: string }
         Returns: undefined
       }
-      admin_preview_email_campaign: {
-        Args: {
-          p_content: string
-          p_cta_label: string
-          p_cta_url: string
-          p_subject: string
-        }
-        Returns: string
-      }
+      admin_preview_email_campaign:
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_subject: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_image_alt: string
+              p_image_link_url: string
+              p_media_id: string
+              p_subject: string
+            }
+            Returns: string
+          }
       admin_publish_contract_version: {
         Args: { p_set_current?: boolean; p_version_id: string }
         Returns: string
       }
-      admin_save_email_campaign: {
-        Args: {
-          p_content: string
-          p_cta_label: string
-          p_cta_url: string
-          p_filters: Json
-          p_id: string
-          p_name: string
-          p_subject: string
-        }
-        Returns: string
-      }
+      admin_save_email_campaign:
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_filters: Json
+              p_id: string
+              p_name: string
+              p_subject: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_filters: Json
+              p_id: string
+              p_image_alt: string
+              p_image_link_url: string
+              p_media_id: string
+              p_name: string
+              p_subject: string
+            }
+            Returns: string
+          }
       admin_set_current_contract_version: {
         Args: { p_version_id: string }
         Returns: undefined
@@ -7858,6 +7931,10 @@ export type Database = {
       }
       brand_template_has_history: {
         Args: { p_template_id: string }
+        Returns: boolean
+      }
+      campaign_master_asset_mutable: {
+        Args: { p_path: string }
         Returns: boolean
       }
       cancel_account_deletion_request: {
@@ -8284,16 +8361,30 @@ export type Database = {
         }
         Returns: Json
       }
-      render_email_campaign_html: {
-        Args: {
-          p_content: string
-          p_cta_label: string
-          p_cta_url: string
-          p_subject: string
-          p_unsubscribe_url: string
-        }
-        Returns: string
-      }
+      render_email_campaign_html:
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_subject: string
+              p_unsubscribe_url: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_cta_label: string
+              p_cta_url: string
+              p_image_alt: string
+              p_image_link_url: string
+              p_media_id: string
+              p_subject: string
+              p_unsubscribe_url: string
+            }
+            Returns: string
+          }
       reorder_product_images: {
         Args: { p_ids: string[]; p_product_id: string }
         Returns: undefined
