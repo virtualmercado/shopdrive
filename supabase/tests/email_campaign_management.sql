@@ -2,23 +2,23 @@
 BEGIN;
 SELECT set_config('request.jwt.claim.sub',(SELECT user_id::text FROM public.user_roles WHERE role='admin' ORDER BY user_id LIMIT 1),true);
 DO $$
-DECLARE c uuid; d uuid; q uuid; m uuid; i integer; j jsonb; original jsonb; failed boolean; admin_id text:=auth.uid()::text; before_campaigns jsonb; before_queue jsonb; before_logs jsonb; before_rec jsonb;
+DECLARE c uuid; d uuid; q uuid; m uuid; i integer; j jsonb; original jsonb; failed boolean; admin_id text:=current_setting('request.jwt.claim.sub'); before_campaigns jsonb; before_queue jsonb; before_logs jsonb; before_rec jsonb;
 BEGIN
  SELECT jsonb_agg(to_jsonb(t) ORDER BY id) INTO before_campaigns FROM public.email_campaigns t;
  SELECT jsonb_agg(to_jsonb(t) ORDER BY id) INTO before_queue FROM public.email_queue t;
  SELECT jsonb_agg(to_jsonb(t) ORDER BY id) INTO before_logs FROM public.email_logs t;
  SELECT jsonb_agg(to_jsonb(t) ORDER BY id) INTO before_rec FROM public.email_campaign_recipients t;
- c:=public.admin_save_email_campaign(NULL,'__management_test_delete','Test','',NULL,NULL,'{}');
+ c:=public.admin_save_email_campaign(NULL,'__management_test_delete','Test','Message',NULL,NULL,'{}');
  PERFORM public.admin_delete_email_campaign(c);
  IF EXISTS(SELECT 1 FROM public.email_campaigns WHERE id=c) THEN RAISE EXCEPTION 'draft_delete'; END IF;
- IF NOT EXISTS(SELECT 1 FROM public.audit_logs WHERE entity_id=c AND action='email_campaign_delete' AND user_id=auth.uid() AND metadata=jsonb_build_object('status','draft')) THEN RAISE EXCEPTION 'minimal_delete_audit'; END IF;
- c:=public.admin_save_email_campaign(NULL,'__management_test_cancel','Test','',NULL,NULL,'{}');
+ IF NOT EXISTS(SELECT 1 FROM public.audit_logs WHERE entity_id=c AND action='email_campaign_delete' AND user_id=current_setting('request.jwt.claim.sub')::uuid AND metadata=jsonb_build_object('status','draft')) THEN RAISE EXCEPTION 'minimal_delete_audit'; END IF;
+ c:=public.admin_save_email_campaign(NULL,'__management_test_cancel','Test','Message',NULL,NULL,'{}');
  PERFORM public.admin_cancel_email_campaign(c); PERFORM public.admin_delete_email_campaign(c);
  IF EXISTS(SELECT 1 FROM public.email_campaigns WHERE id=c) THEN RAISE EXCEPTION 'cancel_empty_delete'; END IF;
- c:=public.admin_save_email_campaign(NULL,'__management_test_ready','Test','',NULL,NULL,'{}');
+ c:=public.admin_save_email_campaign(NULL,'__management_test_ready','Test','Message',NULL,NULL,'{}');
  UPDATE public.email_campaigns SET status='ready' WHERE id=c;
  PERFORM public.admin_delete_email_campaign(c);
- c:=public.admin_save_email_campaign(NULL,'__management_test_history','Test','',NULL,NULL,'{}');
+ c:=public.admin_save_email_campaign(NULL,'__management_test_history','Test','Message',NULL,NULL,'{}');
  INSERT INTO public.email_campaign_recipients(campaign_id,store_id,email,status) VALUES(c,gen_random_uuid(),'fixture@example.invalid','cancelled');
  failed:=false; BEGIN PERFORM public.admin_delete_email_campaign(c); EXCEPTION WHEN check_violation THEN failed:=true; END;
  IF NOT failed THEN RAISE EXCEPTION 'recipient_delete_allowed'; END IF;
@@ -39,12 +39,12 @@ BEGIN
  SELECT id INTO m FROM public.media_files WHERE file_path ~ '^uploads/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$' AND mime_type IN ('image/jpeg','image/png','image/webp') AND size<=1572864 LIMIT 1;
  IF m IS NULL THEN RAISE EXCEPTION 'master_image_fixture_required'; END IF;
  -- Populate image on a new draft using the canonical resolver, then make it terminal.
- d:=public.admin_save_email_campaign(NULL,'__management_test_image','Test','',NULL,NULL,'{}',m,NULL,NULL);
+ d:=public.admin_save_email_campaign(NULL,'__management_test_image','Test','Message',NULL,NULL,'{}',m,NULL,NULL);
  UPDATE public.email_campaigns SET status='completed_with_errors' WHERE id=d;
  SELECT to_jsonb(t)-'is_archived'-'archived_at'-'archived_by' INTO original FROM public.email_campaigns t WHERE id=d;
  PERFORM public.admin_archive_email_campaign(d);
  IF original IS DISTINCT FROM (SELECT to_jsonb(t)-'is_archived'-'archived_at'-'archived_by' FROM public.email_campaigns t WHERE id=d) THEN RAISE EXCEPTION 'archive_changed_content'; END IF;
- IF NOT (SELECT archived_by=auth.uid() AND archived_at IS NOT NULL FROM public.email_campaigns WHERE id=d) THEN RAISE EXCEPTION 'archive_actor'; END IF;
+ IF NOT (SELECT archived_by=current_setting('request.jwt.claim.sub')::uuid AND archived_at IS NOT NULL FROM public.email_campaigns WHERE id=d) THEN RAISE EXCEPTION 'archive_actor'; END IF;
  PERFORM public.admin_restore_email_campaign(d);
  IF NOT (SELECT status='completed_with_errors' AND NOT is_archived AND archived_at IS NULL AND archived_by IS NULL AND media_id=m FROM public.email_campaigns WHERE id=d) THEN RAISE EXCEPTION 'restore_metadata'; END IF;
  PERFORM public.admin_archive_email_campaign(c);
@@ -58,23 +58,23 @@ BEGIN
  failed:=false; BEGIN PERFORM public.admin_archive_email_campaign(c); EXCEPTION WHEN OTHERS THEN failed:=true; END;
  IF NOT failed THEN RAISE EXCEPTION 'pending_queue_archive_allowed'; END IF;
  UPDATE public.email_queue SET status='failed' WHERE id=q;
- d:=public.admin_save_email_campaign(NULL,'__management_test_queue_only','Test','',NULL,NULL,'{}');
+ d:=public.admin_save_email_campaign(NULL,'__management_test_queue_only','Test','Message',NULL,NULL,'{}');
  INSERT INTO public.email_queue(to_email,subject,template,status,payload,category) VALUES('fixture@example.invalid','Test','test','failed',jsonb_build_object('campaign_id',d),'marketing');
  failed:=false; BEGIN PERFORM public.admin_delete_email_campaign(d); EXCEPTION WHEN check_violation THEN failed:=true; END;
  IF NOT failed THEN RAISE EXCEPTION 'queue_only_delete_allowed'; END IF;
- d:=public.admin_save_email_campaign(NULL,'__management_test_audit_only','Test','',NULL,NULL,'{}');
+ d:=public.admin_save_email_campaign(NULL,'__management_test_audit_only','Test','Message',NULL,NULL,'{}');
  INSERT INTO public.audit_logs(action,entity_type,entity_id) VALUES('email_campaign_confirm','email_campaign',d);
  failed:=false; BEGIN PERFORM public.admin_delete_email_campaign(d); EXCEPTION WHEN check_violation THEN failed:=true; END;
  IF NOT failed THEN RAISE EXCEPTION 'audit_only_delete_allowed'; END IF;
- d:=public.admin_save_email_campaign(NULL,'__management_test_media_delete','Test','',NULL,NULL,'{}',m,NULL,NULL);
+ d:=public.admin_save_email_campaign(NULL,'__management_test_media_delete','Test','Message',NULL,NULL,'{}',m,NULL,NULL);
  PERFORM public.admin_delete_email_campaign(d);
  IF NOT EXISTS(SELECT 1 FROM public.media_files WHERE id=m) THEN RAISE EXCEPTION 'media_deleted'; END IF;
- d:=public.admin_save_email_campaign(NULL,'__management_test_terminal_empty','Test','',NULL,NULL,'{}');
+ d:=public.admin_save_email_campaign(NULL,'__management_test_terminal_empty','Test','Message',NULL,NULL,'{}');
  UPDATE public.email_campaigns SET status='completed' WHERE id=d;
  failed:=false; BEGIN DELETE FROM public.email_campaigns WHERE id=d; EXCEPTION WHEN check_violation THEN failed:=true; END;
  IF NOT failed THEN RAISE EXCEPTION 'direct_delete_bypass'; END IF;
  FOR i IN 1..154 LOOP
- INSERT INTO public.email_campaigns(name,subject,content,status,is_archived,created_at) VALUES('__management_page_'||lpad(i::text,3,'0'),'Pagination','',CASE WHEN i<=30 THEN 'completed' ELSE 'draft' END,i<=30,'2026-01-01'::timestamptz+i*interval '1 minute');
+ INSERT INTO public.email_campaigns(name,subject,content,status,is_archived,created_at) VALUES('__management_page_'||lpad(i::text,3,'0'),'Pagination','Message',CASE WHEN i<=30 THEN 'completed' ELSE 'draft' END,i<=30,'2026-01-01'::timestamptz+i*interval '1 minute');
  END LOOP;
  j:=public.admin_list_managed_email_campaigns('__management_page_','all',NULL,NULL,50,0,'all');
  IF (j->>'total')::int<>154 OR jsonb_array_length(j->'rows')<>50 OR j->'rows'->0->>'name'<>'__management_page_154' OR j->'rows'->49->>'name'<>'__management_page_105' THEN RAISE EXCEPTION 'page_one_50_total'; END IF;
