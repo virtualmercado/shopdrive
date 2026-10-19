@@ -273,12 +273,12 @@ export const EmailCampaignsTab = () => {
       </div>
 
       <Card className="p-4">
-        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
-          <div className="flex-1">
+        <div className="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:items-end">
+          <div className="flex-1 min-w-48">
             <Label>Buscar</Label>
             <Input placeholder="Nome ou assunto da campanha" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="w-full lg:w-56">
+          <div className="w-full lg:w-56 shrink-0">
             <Label>Status</Label>
             <Select value={statusFilter} onValueChange={(v) => { setPage(1); setStatusFilter(v); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -290,7 +290,7 @@ export const EmailCampaignsTab = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-full lg:w-48">
+          <div className="w-full lg:w-48 shrink-0">
             <Label>Exibição</Label>
             <Select value={archiveFilter} onValueChange={(v) => { setPage(1); setArchiveFilter(v); }}>
               <SelectTrigger aria-label="Exibição"><SelectValue /></SelectTrigger>

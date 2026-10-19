@@ -36,7 +36,7 @@ BEGIN
  IF NOT failed THEN RAISE EXCEPTION 'completed_delete_allowed'; END IF;
  INSERT INTO public.email_queue(to_email,subject,template,html,status,payload,idempotency_key,category) VALUES('fixture@example.invalid','Test','test','test','failed',jsonb_build_object('campaign_id',c),'campaign:'||c||':store:test','marketing') RETURNING id INTO q;
  INSERT INTO public.email_logs(queue_id,category,template,destinatario,status) VALUES(q,'marketing','test','fixture@example.invalid','error');
- SELECT id INTO m FROM public.media_files WHERE file_path ~ '^uploads/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$' AND mime_type IN ('image/jpeg','image/png','image/webp') AND size<=1572864 LIMIT 1;
+ SELECT mf.id INTO m FROM public.media_files mf JOIN storage.objects o ON o.bucket_id='media-library' AND o.name=mf.file_path WHERE mf.file_path ~ '^uploads/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$' AND mf.file_type='image' AND mf.mime_type IN ('image/jpeg','image/png','image/webp') AND mf.size BETWEEN 1 AND 1572864 AND o.metadata->>'mimetype' IN ('image/jpeg','image/png','image/webp') AND (o.metadata->>'size')::bigint BETWEEN 1 AND 1572864 LIMIT 1;
  IF m IS NULL THEN RAISE EXCEPTION 'master_image_fixture_required'; END IF;
  -- Populate image on a new draft using the canonical resolver, then make it terminal.
  d:=public.admin_save_email_campaign(NULL,'__management_test_image','Test','Message',NULL,NULL,'{}',m,NULL,NULL);
