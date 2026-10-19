@@ -21,10 +21,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { ADMIN_PAGE_SIZE, getPageRange, getTotalPages } from "@/lib/adminPagination";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Mail, Plus, RefreshCw, Eye, Ban, Pencil, Send, Image as ImageIcon, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { validCampaignInformation, validCampaignContent, validCampaignAudienceDates } from "@/lib/emailCampaignValidation";
 import MediaSelectorModal from "@/components/admin/MediaSelectorModal";
 import { CampaignMedia, campaignImageError, validCampaignImageLink, campaignImageAspectWarning } from "@/lib/campaignImage";
@@ -122,6 +124,8 @@ const fmtDate = (d: string | null | undefined) =>
 
 interface CampaignRow {
   id: string; name: string; subject: string; status: CampaignStatus;
+  is_archived: boolean; archived_at: string | null; archived_by: string | null;
+  can_delete: boolean; can_archive: boolean; can_restore: boolean;
   audience_filters: Record<string, unknown>; creator_email: string | null;
   created_at: string; confirmed_at: string | null; completed_at: string | null; cancelled_at: string | null;
   total_recipients: number; total_queued: number; total_sent: number; total_failed: number; total_suppressed: number;
@@ -153,6 +157,10 @@ export const EmailCampaignsTab = () => {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [archiveFilter, setArchiveFilter] = useState("active");
+  const [managementTarget, setManagementTarget] = useState<{ campaign: CampaignRow; action: "delete" | "archive" | "restore" } | null>(null);
+  const [managing, setManaging] = useState(false);
+  const listGeneration = useRef(0);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -163,35 +171,39 @@ export const EmailCampaignsTab = () => {
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    const t = setTimeout(() => { setPage(1); setDebouncedSearch(search); }, 350);
     return () => clearTimeout(t);
   }, [search]);
 
   const fetchCampaigns = useCallback(async (p = page) => {
+    const generation = ++listGeneration.current;
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("admin_list_email_campaigns", {
+      const { data, error } = await supabase.rpc("admin_list_managed_email_campaigns", {
         p_search: debouncedSearch || null,
         p_status: statusFilter,
         p_date_from: dateFrom ? new Date(dateFrom + "T00:00:00").toISOString() : null,
         p_date_to: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
-        p_limit: 50,
-        p_offset: (p - 1) * 50,
+        p_limit: ADMIN_PAGE_SIZE,
+        p_offset: getPageRange(p).from,
+        p_archive: archiveFilter,
       });
       if (error) throw error;
+      if (generation !== listGeneration.current) return;
       const result = data as unknown as { total: number; counts: Record<string, number>; rows: CampaignRow[] };
       setRows(result.rows || []);
       setCounts(result.counts || {});
       setTotal(result.total || 0);
+      if (p > getTotalPages(result.total || 0)) setPage(getTotalPages(result.total || 0));
     } catch (err) {
+      if (generation !== listGeneration.current) return;
       console.error("Erro ao listar campanhas:", err);
       toast.error("Erro ao carregar campanhas");
     } finally {
-      setLoading(false);
+      if (generation === listGeneration.current) setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo]);
+  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, archiveFilter]);
 
-  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, dateFrom, dateTo]);
   useEffect(() => { void fetchCampaigns(page); }, [fetchCampaigns, page]);
 
   // Atualiza enquanto houver campanha em processamento.
@@ -222,6 +234,24 @@ export const EmailCampaignsTab = () => {
     }
   };
 
+  const handleManagement = async () => {
+    if (!managementTarget || managing) return;
+    setManaging(true);
+    const { campaign, action } = managementTarget;
+    try {
+      const rpc = { delete: "admin_delete_email_campaign", archive: "admin_archive_email_campaign", restore: "admin_restore_email_campaign" } as const;
+      const { error } = await supabase.rpc(rpc[action], { p_campaign_id: campaign.id });
+      if (error) throw error;
+      toast.success({ delete: "Campanha excluída", archive: "Campanha arquivada", restore: "Campanha restaurada" }[action]);
+      setManagementTarget(null);
+      await fetchCampaigns(page);
+    } catch (err) {
+      const message = typeof err === "object" && err !== null && "message" in err ? String(err.message) : "";
+      toast.error(message.startsWith("Esta campanha") ? message : "Não foi possível atualizar a campanha. Atualize a lista e tente novamente.");
+      void fetchCampaigns(page);
+    } finally { setManaging(false); }
+  };
+
   const totalAll = Object.values(counts).reduce((a, b) => a + b, 0);
   const cards = [
     { label: "Total", value: totalAll },
@@ -250,7 +280,7 @@ export const EmailCampaignsTab = () => {
           </div>
           <div className="w-full lg:w-56">
             <Label>Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => { setPage(1); setStatusFilter(v); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -260,13 +290,24 @@ export const EmailCampaignsTab = () => {
               </SelectContent>
             </Select>
           </div>
+          <div className="w-full lg:w-48">
+            <Label>Exibição</Label>
+            <Select value={archiveFilter} onValueChange={(v) => { setPage(1); setArchiveFilter(v); }}>
+              <SelectTrigger aria-label="Exibição"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Não arquivadas</SelectItem>
+                <SelectItem value="archived">Arquivadas</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>De</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => { setPage(1); setDateFrom(e.target.value); }} />
           </div>
           <div>
             <Label>Até</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => { setPage(1); setDateTo(e.target.value); }} />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={() => void fetchCampaigns(page)} aria-label="Atualizar">
@@ -315,7 +356,7 @@ export const EmailCampaignsTab = () => {
                     </button>
                     <p className="text-xs text-muted-foreground truncate max-w-[260px]">{c.subject}</p>
                   </TableCell>
-                  <TableCell><Badge className={st.color}>{st.label}</Badge></TableCell>
+                  <TableCell><Badge className={st.color}>{st.label}</Badge>{c.is_archived && <Badge variant="outline" className="ml-1">Arquivada</Badge>}</TableCell>
                   <TableCell className="text-right">{c.total_recipients}</TableCell>
                   <TableCell className="text-right">{c.total_sent}</TableCell>
                   <TableCell className="text-right">{c.total_failed}</TableCell>
@@ -326,16 +367,30 @@ export const EmailCampaignsTab = () => {
                       <Button variant="ghost" size="icon" onClick={() => setDetailId(c.id)} aria-label="Ver detalhes">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {(c.status === "draft" || c.status === "ready") && (
+                      {!c.is_archived && (c.status === "draft" || c.status === "ready") && (
                         <Button variant="ghost" size="icon" onClick={() => openEdit(c)} aria-label="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      {(c.status === "draft" || c.status === "ready" || c.status === "processing") && (
+                      {!c.is_archived && (c.status === "draft" || c.status === "ready" || c.status === "processing") && (
                         <Button variant="ghost" size="icon" onClick={() => setCancelTarget(c)} aria-label="Cancelar campanha">
                           <Ban className="h-4 w-4 text-destructive" />
                         </Button>
                       )}
+                      {([
+                        { action: "delete", allowed: c.can_delete, label: "Excluir definitivamente", Icon: Trash2 },
+                        { action: "archive", allowed: c.can_archive, label: "Arquivar", Icon: Archive },
+                        { action: "restore", allowed: c.can_restore, label: "Restaurar da lista arquivada", Icon: ArchiveRestore },
+                      ] as const).filter((a) => a.allowed).map(({ action, label, Icon }) => (
+                        <Tooltip key={action}>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" aria-label={label} onClick={() => setManagementTarget({ campaign: c, action })} disabled={managing}>
+                              <Icon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{label}</TooltipContent>
+                        </Tooltip>
+                      ))}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -376,6 +431,26 @@ export const EmailCampaignsTab = () => {
             <AlertDialogAction onClick={handleCancel} disabled={cancelling}>
               {cancelling ? "Cancelando..." : "Confirmar cancelamento"}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!managementTarget} onOpenChange={(o) => { if (!o && !managing) setManagementTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{managementTarget?.action === "delete" ? "Excluir esta campanha?" : managementTarget?.action === "archive" ? "Arquivar campanha?" : "Restaurar da lista arquivada?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {managementTarget?.action === "delete"
+                ? "Esta campanha ainda não possui histórico de envio e será removida permanentemente. Esta ação não poderá ser desfeita."
+                : managementTarget?.action === "archive"
+                  ? "A campanha será removida da listagem principal, mas todo o histórico de destinatários e envios continuará preservado e poderá ser consultado posteriormente."
+                  : "A campanha voltará à listagem principal, mantendo seu status e histórico. Nenhum e-mail será reenviado."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={managing}>Cancelar</AlertDialogCancel>
+            <Button variant={managementTarget?.action === "delete" ? "destructive" : "default"} onClick={() => void handleManagement()} disabled={managing}>
+              {managing ? "Aguarde…" : managementTarget?.action === "delete" ? "Excluir campanha" : managementTarget?.action === "archive" ? "Arquivar" : "Restaurar"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -873,6 +948,7 @@ const CampaignDetailDialog = ({ campaignId, onClose, onChanged }: DetailProps) =
           <DialogTitle className="flex items-center gap-2">
             {campaign?.name || "Campanha"}
             {st && <Badge className={st.color}>{st.label}</Badge>}
+            {campaign?.is_archived && <Badge variant="outline">Arquivada</Badge>}
           </DialogTitle>
           <DialogDescription>{campaign?.subject}</DialogDescription>
         </DialogHeader>
@@ -894,6 +970,7 @@ const CampaignDetailDialog = ({ campaignId, onClose, onChanged }: DetailProps) =
               {campaign.confirmed_at && <p><span className="text-muted-foreground">Confirmada em:</span> {fmtDate(campaign.confirmed_at)}</p>}
               {campaign.completed_at && <p><span className="text-muted-foreground">Concluída em:</span> {fmtDate(campaign.completed_at)}</p>}
               {campaign.cancelled_at && <p><span className="text-muted-foreground">Cancelada em:</span> {fmtDate(campaign.cancelled_at)}</p>}
+              {campaign.archived_at && <p><span className="text-muted-foreground">Arquivada em:</span> {fmtDate(campaign.archived_at)}</p>}
               {campaign.cta_label && <p><span className="text-muted-foreground">Botão:</span> {campaign.cta_label} → {campaign.cta_url}</p>}
               <p className="break-words"><span className="text-muted-foreground">Imagem:</span> {campaign.image_name || "Nenhuma"}</p>
               {campaign.image_url && <img src={campaign.image_url} alt={campaign.image_alt || campaign.subject} className="w-32 h-24 object-contain" />}

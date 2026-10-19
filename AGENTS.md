@@ -17,3 +17,5 @@
 - Campaign wizard stage checks use `src/lib/emailCampaignValidation.ts`; final confirmation repeats validation server-side. Why: partial drafts must remain saveable without weakening send authorization.
 - Campaign images use the existing Master MediaSelectorModal in campaign-only mode and campaignImage validators, storing only the global media reference through admin RPCs. Why: tenant media and arbitrary image URLs must never enter marketing campaigns.
 - Campaign aspect-ratio advice is informational in campaignImage; responsive display widths are resolved only inside the shared server HTML renderer from existing media dimensions, with a legacy fallback for unknown dimensions. Why: preview and outgoing HTML must stay identical without transforming assets or rewriting processed history.
+
+- Campaign management uses admin RPCs, row locks, delete guards and server-derived actions. Why: archive visibility preserves history; deletion never trusts frontend counters.
