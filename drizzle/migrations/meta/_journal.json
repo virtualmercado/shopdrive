@@ -344,6 +344,13 @@
       "when": 1792375981305,
       "tag": "0048_campaign_safe_management",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792375999511,
+      "tag": "0049_campaign_draft_audit_classification",
+      "breakpoints": true
     }
   ]
 }
