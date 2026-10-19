@@ -351,6 +351,13 @@
       "when": 1792375999511,
       "tag": "0049_campaign_draft_audit_classification",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792432432741,
+      "tag": "0050_custom_domains_v2_foundation",
+      "breakpoints": true
     }
   ]
 }

@@ -1485,6 +1485,109 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_domain_platform_config: {
+        Row: {
+          challenge_ttl_hours: number
+          dns_strategy: string
+          domain_purchase_url: string | null
+          feature_enabled: boolean
+          id: boolean
+          infrastructure_provider: string | null
+          ingress_hostname: string | null
+          ingress_ips: string[]
+          ingress_ready: boolean
+          revalidation_failure_threshold: number
+          root_record_type: string
+          root_record_value: string | null
+          txt_host_prefix: string
+          txt_value_prefix: string
+          updated_at: string
+          www_record_type: string
+          www_record_value: string | null
+        }
+        Insert: {
+          challenge_ttl_hours?: number
+          dns_strategy?: string
+          domain_purchase_url?: string | null
+          feature_enabled?: boolean
+          id?: boolean
+          infrastructure_provider?: string | null
+          ingress_hostname?: string | null
+          ingress_ips?: string[]
+          ingress_ready?: boolean
+          revalidation_failure_threshold?: number
+          root_record_type?: string
+          root_record_value?: string | null
+          txt_host_prefix?: string
+          txt_value_prefix?: string
+          updated_at?: string
+          www_record_type?: string
+          www_record_value?: string | null
+        }
+        Update: {
+          challenge_ttl_hours?: number
+          dns_strategy?: string
+          domain_purchase_url?: string | null
+          feature_enabled?: boolean
+          id?: boolean
+          infrastructure_provider?: string | null
+          ingress_hostname?: string | null
+          ingress_ips?: string[]
+          ingress_ready?: boolean
+          revalidation_failure_threshold?: number
+          root_record_type?: string
+          root_record_value?: string | null
+          txt_host_prefix?: string
+          txt_value_prefix?: string
+          updated_at?: string
+          www_record_type?: string
+          www_record_value?: string | null
+        }
+        Relationships: []
+      }
+      custom_domain_v2_access: {
+        Row: {
+          enabled: boolean
+          store_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          store_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          store_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domain_v2_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_domain_v2_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_domain_v2_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_addresses: {
         Row: {
           address_type: string | null
@@ -1802,31 +1905,37 @@ export type Database = {
       domain_verification_logs: {
         Row: {
           created_at: string
+          details: Json | null
           domain_id: string
           error_message: string | null
           expected_value: string | null
           found_value: string | null
           id: string
+          source: string | null
           status: string
           verification_type: string
         }
         Insert: {
           created_at?: string
+          details?: Json | null
           domain_id: string
           error_message?: string | null
           expected_value?: string | null
           found_value?: string | null
           id?: string
+          source?: string | null
           status: string
           verification_type: string
         }
         Update: {
           created_at?: string
+          details?: Json | null
           domain_id?: string
           error_message?: string | null
           expected_value?: string | null
           found_value?: string | null
           id?: string
+          source?: string | null
           status?: string
           verification_type?: string
         }
@@ -3276,64 +3385,118 @@ export type Database = {
       }
       merchant_domains: {
         Row: {
+          activated_at: string | null
+          consecutive_dns_failures: number
           created_at: string
+          detected_nameservers: string[]
+          disconnected_at: string | null
           dns_a_verified: boolean
           dns_cname_verified: boolean
           dns_error_message: string | null
+          dns_provider: string | null
+          dns_verified_at: string | null
           domain: string
           domain_type: string
           expected_cname: string | null
           expected_ip: string | null
+          external_hostname_id: string | null
+          flow_version: number
           id: string
+          infrastructure_provider: string | null
           is_active: boolean
           last_dns_check: string | null
           last_ssl_check: string | null
+          last_verification_result: Json | null
           merchant_id: string
+          needs_reverification: boolean
+          normalized_domain: string | null
+          ownership_verified_at: string | null
           redirect_old_link: boolean
+          released_at: string | null
+          routing_status: string
           ssl_error_message: string | null
           ssl_status: string | null
           status: string
           updated_at: string
+          v2_state: string | null
+          verification_expires_at: string | null
+          verification_token: string | null
         }
         Insert: {
+          activated_at?: string | null
+          consecutive_dns_failures?: number
           created_at?: string
+          detected_nameservers?: string[]
+          disconnected_at?: string | null
           dns_a_verified?: boolean
           dns_cname_verified?: boolean
           dns_error_message?: string | null
+          dns_provider?: string | null
+          dns_verified_at?: string | null
           domain: string
           domain_type?: string
           expected_cname?: string | null
           expected_ip?: string | null
+          external_hostname_id?: string | null
+          flow_version?: number
           id?: string
+          infrastructure_provider?: string | null
           is_active?: boolean
           last_dns_check?: string | null
           last_ssl_check?: string | null
+          last_verification_result?: Json | null
           merchant_id: string
+          needs_reverification?: boolean
+          normalized_domain?: string | null
+          ownership_verified_at?: string | null
           redirect_old_link?: boolean
+          released_at?: string | null
+          routing_status?: string
           ssl_error_message?: string | null
           ssl_status?: string | null
           status?: string
           updated_at?: string
+          v2_state?: string | null
+          verification_expires_at?: string | null
+          verification_token?: string | null
         }
         Update: {
+          activated_at?: string | null
+          consecutive_dns_failures?: number
           created_at?: string
+          detected_nameservers?: string[]
+          disconnected_at?: string | null
           dns_a_verified?: boolean
           dns_cname_verified?: boolean
           dns_error_message?: string | null
+          dns_provider?: string | null
+          dns_verified_at?: string | null
           domain?: string
           domain_type?: string
           expected_cname?: string | null
           expected_ip?: string | null
+          external_hostname_id?: string | null
+          flow_version?: number
           id?: string
+          infrastructure_provider?: string | null
           is_active?: boolean
           last_dns_check?: string | null
           last_ssl_check?: string | null
+          last_verification_result?: Json | null
           merchant_id?: string
+          needs_reverification?: boolean
+          normalized_domain?: string | null
+          ownership_verified_at?: string | null
           redirect_old_link?: boolean
+          released_at?: string | null
+          routing_status?: string
           ssl_error_message?: string | null
           ssl_status?: string | null
           status?: string
           updated_at?: string
+          v2_state?: string | null
+          verification_expires_at?: string | null
+          verification_token?: string | null
         }
         Relationships: [
           {
@@ -7663,6 +7826,11 @@ export type Database = {
         }[]
       }
       _catalog_editorial_allowed: { Args: { _uid: string }; Returns: boolean }
+      _custom_domain_access_state: { Args: { p_store: string }; Returns: Json }
+      _disconnect_custom_domain: {
+        Args: { p_domain_id: string; p_source: string }
+        Returns: undefined
+      }
       _ecr_escape: { Args: { p: string }; Returns: string }
       _ecr_refresh_campaign_counters: {
         Args: { p_campaign_id: string }
@@ -7746,6 +7914,10 @@ export type Database = {
       }
       admin_delete_email_campaign: {
         Args: { p_campaign_id: string }
+        Returns: Json
+      }
+      admin_disconnect_custom_domain: {
+        Args: { p_store_id: string }
         Returns: Json
       }
       admin_end_plan_trial: {
@@ -7911,6 +8083,10 @@ export type Database = {
         Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
       }
+      admin_set_store_custom_domains_v2: {
+        Args: { p_enabled: boolean; p_store_id: string }
+        Returns: Json
+      }
       admin_unassign_brand_template: {
         Args: { p_template_id: string }
         Returns: undefined
@@ -7991,6 +8167,7 @@ export type Database = {
         Args: { p_queue_id: string }
         Returns: Json
       }
+      claim_custom_domain: { Args: { p_domain: string }; Returns: Json }
       claim_email_queue_batch: {
         Args: {
           p_limit?: number
@@ -8127,6 +8304,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      disconnect_custom_domain: { Args: never; Returns: Json }
       enqueue_brand_network_report: {
         Args: { p_html: string; p_max_attempts?: number; p_run_id: string }
         Returns: Json
@@ -8249,6 +8427,7 @@ export type Database = {
       }
       get_my_catalog_editorial_access: { Args: never; Returns: boolean }
       get_my_current_catalog_state: { Args: never; Returns: Json }
+      get_my_custom_domain_v2: { Args: never; Returns: Json }
       get_my_marca_offer: { Args: never; Returns: Json }
       get_my_marca_upgrade: { Args: never; Returns: Json }
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
@@ -8307,6 +8486,10 @@ export type Database = {
         Args: { p_quote_id: string }
         Returns: boolean
       }
+      is_reserved_custom_domain: {
+        Args: { p_domain: string }
+        Returns: boolean
+      }
       link_template_to_profile: {
         Args: { p_profile_id: string; p_template_id: string }
         Returns: boolean
@@ -8341,6 +8524,7 @@ export type Database = {
         Args: { _message: string; _ticket_id: string }
         Returns: string
       }
+      normalize_custom_domain: { Args: { p_input: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       order_items_unchanged: {
@@ -8401,6 +8585,7 @@ export type Database = {
         }
         Returns: Json
       }
+      regenerate_custom_domain_challenge: { Args: never; Returns: Json }
       render_email_campaign_html:
         | {
             Args: {
@@ -8464,6 +8649,13 @@ export type Database = {
           catalog_updated_at: string
           catalog_url: string
           store_name: string
+          store_slug: string
+        }[]
+      }
+      resolve_public_store_by_domain: {
+        Args: { p_hostname: string }
+        Returns: {
+          store_id: string
           store_slug: string
         }[]
       }
