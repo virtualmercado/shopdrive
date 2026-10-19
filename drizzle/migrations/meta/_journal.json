@@ -323,6 +323,13 @@
       "when": 1792372194262,
       "tag": "0045_email_campaign_master_image",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792372375371,
+      "tag": "0046_campaign_image_fail_closed_metadata",
+      "breakpoints": true
     }
   ]
 }
