@@ -1,28 +1,43 @@
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export interface MerchantDomain {
+// Custom Domains V2: every write goes through server RPCs / the verify edge function.
+// The browser never decides DNS, routing or SSL status.
+
+export interface CustomDomainRecord { purpose: "root" | "www"; type: string; host: string; value: string | null }
+
+export interface CustomDomainV2 {
   id: string;
-  merchant_id: string;
   domain: string;
-  domain_type: 'subdomain' | 'root';
-  status: 'pending' | 'verifying' | 'dns_error' | 'ssl_provisioning' | 'ssl_error' | 'active' | 'inactive';
-  is_active: boolean;
-  redirect_old_link: boolean;
-  dns_cname_verified: boolean;
-  dns_a_verified: boolean;
-  ssl_status: 'pending' | 'provisioning' | 'active' | 'error';
+  flow_version: number;
+  state: string | null;
+  txt_host: string | null;
+  txt_value: string | null;
+  verification_expires_at: string | null;
+  ownership_verified_at: string | null;
+  dns_verified_at: string | null;
+  dns_provider: string | null;
+  detected_nameservers: string[];
+  routing_status: string;
+  ssl_status: string;
   last_dns_check: string | null;
-  last_ssl_check: string | null;
-  dns_error_message: string | null;
-  ssl_error_message: string | null;
-  expected_cname: string;
-  expected_ip: string;
-  created_at: string;
-  updated_at: string;
+  last_result: {
+    ownership?: string; root?: string; www?: string; notes?: string[];
+    provider?: { slug: string; name: string } | null; nameservers?: string[];
+  } | null;
+  needs_reverification: boolean;
+  released: boolean;
+  active: boolean;
+}
+
+export interface CustomDomainOverview {
+  available: boolean;
+  ingress_ready: boolean;
+  purchase_url: string | null;
+  records: CustomDomainRecord[];
+  domain: CustomDomainV2 | null;
 }
 
 export interface DomainProviderTutorial {
@@ -31,392 +46,180 @@ export interface DomainProviderTutorial {
   provider_slug: string;
   display_order: number;
   is_active: boolean;
-  tutorial_content: {
-    steps: Array<{
-      title: string;
-      content: string;
-    }>;
-  };
+  tutorial_content: { steps: Array<{ title: string; content: string }> };
+}
+
+const ERRORS: Record<string, string> = {
+  feature_unavailable: "Domínio próprio temporariamente indisponível.",
+  invalid_domain: "Informe um domínio válido, por exemplo: seudominio.com.br",
+  reserved_domain: "Este domínio é reservado e não pode ser usado.",
+  domain_taken: "Este domínio já está vinculado a outra loja da ShopDrive.",
+  disconnect_active_domain_first: "Desconecte o domínio atual antes de cadastrar outro.",
+  ownership_already_verified: "A propriedade deste domínio já foi confirmada.",
+  infrastructure_removal_required: "Este domínio precisa ser removido da infraestrutura antes de desconectar.",
+  domain_not_found: "Nenhum domínio cadastrado.",
+  store_not_found: "Loja não encontrada.",
+};
+
+export const customDomainErrorMessage = (e: unknown) => {
+  const raw = (e as { message?: string })?.message ?? "";
+  const key = Object.keys(ERRORS).find((k) => raw.includes(k));
+  return key ? ERRORS[key] : "Não foi possível concluir. Tente novamente.";
+};
+
+async function invokeVerify(storeId?: string) {
+  const { data, error } = await supabase.functions.invoke("verify-custom-domain-dns", { body: storeId ? { store_id: storeId } : {} });
+  if (error) {
+    let code = "";
+    try { code = (await (error as { context?: Response }).context?.json())?.error ?? ""; } catch { /* ignore */ }
+    throw new Error(code || error.message);
+  }
+  return data;
 }
 
 export const useMerchantDomain = () => {
-  const { user: authUser } = useAuthContext();
-  const authUserId = authUser?.id ?? null;
-  const queryClient = useQueryClient();
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
+  const qc = useQueryClient();
+  const key = ["custom-domain-v2", userId];
 
-  const { data: domain, isLoading, refetch } = useQuery({
-    queryKey: ['merchant-domain', authUserId],
-    enabled: !!authUserId,
+  const overview = useQuery({
+    queryKey: key,
+    enabled: !!userId,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from('merchant_domains')
-        .select('*')
-        .eq('merchant_id', user.id)
-        .maybeSingle();
-
+      const { data, error } = await supabase.rpc("get_my_custom_domain_v2");
       if (error) throw error;
-      return data as MerchantDomain | null;
+      return data as unknown as CustomDomainOverview;
     },
   });
 
-  const { data: tutorials } = useQuery({
-    queryKey: ['domain-tutorials'],
+  const tutorials = useQuery({
+    queryKey: ["domain-tutorials"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('domain_provider_tutorials')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
-
+      const { data, error } = await supabase.from("domain_provider_tutorials").select("*").eq("is_active", true).order("display_order");
       if (error) throw error;
-      return (data || []).map(item => ({
-        ...item,
-        tutorial_content: item.tutorial_content as unknown as DomainProviderTutorial['tutorial_content'],
-      })) as DomainProviderTutorial[];
+      return (data ?? []) as unknown as DomainProviderTutorial[];
     },
   });
 
-  const addDomain = useMutation({
-    mutationFn: async ({ domain, domainType }: { domain: string; domainType: 'subdomain' | 'root' }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+  const refresh = () => qc.invalidateQueries({ queryKey: key });
+  const onError = (e: unknown) => toast.error(customDomainErrorMessage(e));
 
-      // Check if domain already exists for this merchant
-      const { data: existing } = await supabase
-        .from('merchant_domains')
-        .select('id')
-        .eq('merchant_id', user.id)
-        .maybeSingle();
-
-      if (existing) {
-        // Update existing domain
-        const { data, error } = await supabase
-          .from('merchant_domains')
-          .update({
-            domain,
-            domain_type: domainType,
-            status: 'pending',
-            is_active: false,
-            dns_cname_verified: false,
-            dns_a_verified: false,
-            ssl_status: 'pending',
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert new domain
-        const { data, error } = await supabase
-          .from('merchant_domains')
-          .insert({
-            merchant_id: user.id,
-            domain,
-            domain_type: domainType,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-      toast.success('Domínio salvo com sucesso!');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erro ao salvar domínio');
-    },
-  });
-
-  const verifyDns = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      // Simulate DNS verification (in production, this would call an edge function)
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          status: 'verifying',
-          last_dns_check: new Date().toISOString(),
-        })
-        .eq('id', domain.id);
-
-      if (error) throw error;
-
-      // Simulate verification result (in production, this would be async)
-      setTimeout(async () => {
-        const isSuccess = Math.random() > 0.3; // 70% success rate for demo
-        
-        await supabase
-          .from('merchant_domains')
-          .update({
-            status: isSuccess ? 'ssl_provisioning' : 'dns_error',
-            dns_cname_verified: isSuccess,
-            dns_a_verified: isSuccess,
-            dns_error_message: isSuccess ? null : 'Registros DNS não encontrados. Verifique as configurações.',
-          })
-          .eq('id', domain.id);
-
-        queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-      }, 3000);
-    },
-    onSuccess: () => {
-      toast.info('Verificando DNS... Isso pode levar alguns segundos.');
-      queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erro ao verificar DNS');
-    },
-  });
-
-  const activateDomain = useMutation({
-    mutationFn: async (redirectOldLink: boolean) => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          is_active: true,
-          status: 'active',
-          ssl_status: 'active',
-          redirect_old_link: redirectOldLink,
-        })
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-      toast.success('Domínio ativado com sucesso!');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erro ao ativar domínio');
-    },
-  });
-
-  const deactivateDomain = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          is_active: false,
-          status: 'inactive',
-        })
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-      toast.success('Domínio desativado');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erro ao desativar domínio');
-    },
-  });
-
-  const removeDomain = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .delete()
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-domain'] });
-      toast.success('Domínio removido');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erro ao remover domínio');
-    },
-  });
-
-  return {
-    domain,
-    tutorials,
-    isLoading,
-    refetch,
-    addDomain,
-    verifyDns,
-    activateDomain,
-    deactivateDomain,
-    removeDomain,
-  };
-};
-
-// Hook for admin panel
-export const useAdminDomains = (storeId?: string) => {
-  const queryClient = useQueryClient();
-
-  const { data: domain, isLoading, refetch } = useQuery({
-    queryKey: ['admin-store-domain', storeId],
-    queryFn: async () => {
-      if (!storeId) return null;
-
-      const { data, error } = await supabase
-        .from('merchant_domains')
-        .select('*')
-        .eq('merchant_id', storeId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as MerchantDomain | null;
-    },
-    enabled: !!storeId,
-  });
-
-  const { data: logs } = useQuery({
-    queryKey: ['admin-domain-logs', domain?.id],
-    queryFn: async () => {
-      if (!domain?.id) return [];
-
-      const { data, error } = await supabase
-        .from('domain_verification_logs')
-        .select('*')
-        .eq('domain_id', domain.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
+  const claimDomain = useMutation({
+    mutationFn: async (domain: string) => {
+      const { data, error } = await supabase.rpc("claim_custom_domain", { p_domain: domain });
       if (error) throw error;
       return data;
     },
-    enabled: !!domain?.id,
+    onSuccess: () => { refresh(); toast.success("Domínio cadastrado. Agora confirme a propriedade."); },
+    onError,
   });
 
-  const forceVerifyDns = useMutation({
+  const regenerateChallenge = useMutation({
     mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      // Log the verification attempt
-      await supabase.from('domain_verification_logs').insert({
-        domain_id: domain.id,
-        verification_type: 'dns',
-        status: 'checking',
-        expected_value: `CNAME: ${domain.expected_cname}, A: ${domain.expected_ip}`,
-      });
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          status: 'verifying',
-          last_dns_check: new Date().toISOString(),
-        })
-        .eq('id', domain.id);
-
+      const { error } = await supabase.rpc("regenerate_custom_domain_challenge");
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-domain-logs'] });
-      toast.success('Verificação DNS iniciada');
-    },
+    onSuccess: () => { refresh(); toast.success("Novo código de verificação gerado."); },
+    onError,
   });
 
-  const reprocessSsl = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      await supabase.from('domain_verification_logs').insert({
-        domain_id: domain.id,
-        verification_type: 'ssl',
-        status: 'provisioning',
-      });
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          ssl_status: 'provisioning',
-          last_ssl_check: new Date().toISOString(),
-        })
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-domain-logs'] });
-      toast.success('Reprocessamento SSL iniciado');
-    },
+  const verify = useMutation({
+    mutationFn: () => invokeVerify(),
+    onSuccess: () => refresh(),
+    onError,
   });
 
-  const adminDeactivateDomain = useMutation({
+  const disconnect = useMutation({
     mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          is_active: false,
-          status: 'inactive',
-        })
-        .eq('id', domain.id);
-
+      const { error } = await supabase.rpc("disconnect_custom_domain");
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
-      toast.success('Domínio desativado');
-    },
-  });
-
-  const adminRemoveDomain = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .delete()
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
-      toast.success('Domínio removido');
-    },
-  });
-
-  const toggleRedirect = useMutation({
-    mutationFn: async () => {
-      if (!domain) throw new Error('Nenhum domínio configurado');
-
-      const { error } = await supabase
-        .from('merchant_domains')
-        .update({
-          redirect_old_link: !domain.redirect_old_link,
-        })
-        .eq('id', domain.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-store-domain'] });
-      toast.success('Redirecionamento atualizado');
-    },
+    onSuccess: () => { refresh(); toast.success("Domínio desconectado. Sua loja segue no endereço ShopDrive."); },
+    onError,
   });
 
   return {
-    domain,
-    logs,
-    isLoading,
-    refetch,
-    forceVerifyDns,
-    reprocessSsl,
-    adminDeactivateDomain,
-    adminRemoveDomain,
-    toggleRedirect,
+    overview: overview.data,
+    domain: overview.data?.domain ?? null,
+    isLoading: overview.isLoading,
+    loadError: overview.error,
+    tutorials: tutorials.data,
+    claimDomain,
+    regenerateChallenge,
+    verify,
+    disconnect,
   };
+};
+
+export const useAdminDomains = (storeId?: string) => {
+  const qc = useQueryClient();
+
+  const domainQ = useQuery({
+    queryKey: ["admin-store-domain", storeId],
+    enabled: !!storeId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("merchant_domains").select("*").eq("merchant_id", storeId!)
+        .order("updated_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const domain = domainQ.data;
+
+  const accessQ = useQuery({
+    queryKey: ["admin-store-domain-access", storeId],
+    enabled: !!storeId,
+    queryFn: async () => {
+      const [{ data: a }, { data: c }] = await Promise.all([
+        supabase.from("custom_domain_v2_access").select("enabled").eq("store_id", storeId!).maybeSingle(),
+        supabase.from("custom_domain_platform_config").select("feature_enabled, ingress_ready, infrastructure_provider").eq("id", true).maybeSingle(),
+      ]);
+      return { storeEnabled: !!a?.enabled, featureEnabled: !!c?.feature_enabled, ingressReady: !!c?.ingress_ready && !!c?.infrastructure_provider, provider: c?.infrastructure_provider ?? null };
+    },
+  });
+
+  const logsQ = useQuery({
+    queryKey: ["admin-domain-logs", domain?.id],
+    enabled: !!domain?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("domain_verification_logs").select("*").eq("domain_id", domain!.id)
+        .order("created_at", { ascending: false }).limit(30);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-store-domain", storeId] });
+    qc.invalidateQueries({ queryKey: ["admin-domain-logs"] });
+    qc.invalidateQueries({ queryKey: ["admin-store-domain-access", storeId] });
+  };
+  const onError = (e: unknown) => toast.error(customDomainErrorMessage(e));
+
+  const verifyDns = useMutation({
+    mutationFn: () => invokeVerify(storeId),
+    onSuccess: () => { invalidate(); toast.success("Verificação DNS real concluída"); },
+    onError,
+  });
+
+  const disconnect = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("admin_disconnect_custom_domain", { p_store_id: storeId! });
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Domínio desconectado"); },
+    onError,
+  });
+
+  const setPilotAccess = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase.rpc("admin_set_store_custom_domains_v2", { p_store_id: storeId!, p_enabled: enabled });
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Liberação atualizada"); },
+    onError,
+  });
+
+  return { domain, logs: logsQ.data, access: accessQ.data, isLoading: domainQ.isLoading, verifyDns, disconnect, setPilotAccess };
 };
