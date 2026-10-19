@@ -27,3 +27,8 @@
 - [x] Centralizar destinatário comercial válido → conta válida → inelegível, somente marketing.
 - [x] Permitir rascunho parcial e exigir validação no conteúdo/prévia/confirmação.
 - [x] Executar testes sem envio real e relatar resultados sem secrets.
+
+## Custom Domains V2 (fundação)
+- [x] Remover simulação, flag fail-closed, exclusividade global, TXT, DNS real, tutoriais, Master.
+- [ ] BLOQUEADO (externo): provisionamento automático de hostname + SSL + roteamento — hospedagem atual não oferece API.
+- [ ] Rotina periódica de revalidação agendada — aguarda infraestrutura (sem domínios V2 ativos).
