@@ -1,5 +1,10 @@
 # Roadmap
 
+## Refinamento visual das imagens de campanhas
+- [ ] Orientação e aviso informativo por proporção na Etapa 3.
+- [ ] Limites visuais no renderer compartilhado, sem alterar histórico ou biblioteca.
+- [ ] Validar regras, desktop/mobile e regressões sem enviar e-mails.
+
 ## Imagem opcional nas campanhas
 - [x] Verificar Biblioteca Master, URLs permanentes e isolamento de assets.
 - [x] Integrar seleção, persistência, prévia e proteção de referências históricas.
