@@ -1,5 +1,10 @@
 # Roadmap
 
+## Atalho Última página — prévia do catálogo
+- [x] Auditar navegação, indexação e atualização do total existente.
+- [ ] Acrescentar somente o atalho acessível e preservar controles e geração.
+- [ ] Validar 74 páginas, total atualizado, retorno, zoom e telas menores; relatar resultados.
+
 ## Gestão segura das campanhas
 - [x] Exclusão, arquivamento, restauração e auditoria administrativa no servidor.
 - [x] Filtro independente e paginação padrão de 50 registros na interface.
