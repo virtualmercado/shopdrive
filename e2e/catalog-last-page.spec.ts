@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 // Mount the real configurator and PDF engines with fictitious local data only.
 // No account credentials, real backend requests, uploads or publication are allowed.
 test.beforeEach(async ({ page }) => {
+  page.on("pageerror", (error) => console.error("Navigation fixture:", error.message));
+  page.on("console", (message) => { if (message.type() === "error") console.error("Navigation fixture:", message.text()); });
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.origin !== "http://localhost:8080") {
@@ -11,7 +13,7 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname === "/__catalog-navigation-test") {
       await route.fulfill({ contentType: "text/html", body: `
-        <html><body style="margin:0"><div id="root"></div>
+        <html><head><meta charset="UTF-8"></head><body style="margin:0"><div id="root"></div>
         <script type="module">
           import RefreshRuntime from '/@react-refresh';
           RefreshRuntime.injectIntoGlobalHook(window);
