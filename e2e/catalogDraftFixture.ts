@@ -45,7 +45,7 @@ export async function installDraftFixture(context: BrowserContext) {
       return route.fulfill({ contentType: "application/json", body: JSON.stringify({ data, error }) });
     }
     if (url.pathname === "/__catalog-draft-test") return route.fulfill({ contentType: "text/html", body: `
-      <html><body style="margin:0"><div id="root"></div>
+      <html><head><meta charset="UTF-8"></head><body style="margin:0"><div id="root"></div>
       <script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;</script>
       <script type="module">
         import React from '/node_modules/.vite/deps/react.js';import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
