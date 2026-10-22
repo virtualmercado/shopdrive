@@ -72,9 +72,9 @@ test.beforeEach(async ({ page }) => {
       // Navigation regression tests isolate persistence; dedicated persistence
       // tests below exercise the real hook with a local per-store server double.
       await route.fulfill({ contentType: "application/javascript", body: `
-        import {useState} from '/node_modules/.vite/deps/react.js';
+        import React from '/node_modules/.vite/deps/react.js';
         export function useCatalogDraftPersistence(storeId, config) {
-          const [record,setRecord]=useState(null);
+          const [record,setRecord]=React.useState(null);
           const result=()=>({config,draft_revision:0,source_revision:0,preview:record?.preview??null,stale:false});
           return {ready:true,record,status:'saved',loadError:false,flush:async()=>true,checkCurrent:async()=>result(),getRevision:()=>0,setRecord,retryLoad:()=>{}};
         }` });
