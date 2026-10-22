@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ChevronsRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle, Send, Copy, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronsLeft, ChevronRight, ChevronsRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle, Send, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { buildCanonicalCatalogUrl } from "@/lib/catalogShareLink";
@@ -846,6 +846,14 @@ const EditorialCatalogConfigurator = () => {
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 basis-60 items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" aria-label="Ir para a primeira página" disabled={!Number.isInteger(pageCount) || pageCount <= 0 || page <= 1} onClick={() => { if (Number.isInteger(pageCount) && pageCount > 0) setPage(1); }}>
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ir para a primeira página</TooltipContent>
+                </Tooltip>
                 <Button size="icon" variant="outline" aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
                 <span className="min-w-0 flex-1 text-center text-sm">Página {page} de {pageCount}</span>
                 <Button size="icon" variant="outline" aria-label="Próxima página" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-4 w-4" /></Button>

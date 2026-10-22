@@ -44,7 +44,8 @@ test.beforeEach(async ({ page }) => {
         export async function loadCatalogSource() {
           const source = fixtureStoreB(216);
           source.profile.store_logo_url = null;
-          source.products.forEach((p,i) => {p.image_url = i < 30 ? '/placeholder.svg' : null;});
+           const imageProducts = Number(new URLSearchParams(window.location.search).get('imageProducts') ?? 30);
+           source.products.forEach((p,i) => {p.image_url = i < imageProducts ? '/placeholder.svg' : null;});
           return source;
         }
       ` });
@@ -125,12 +126,104 @@ test("jumps 1 → 74 and 5 → 74; returns, zooms, downloads and uses a regenera
   expect(errors).toEqual([]);
 });
 
+test("jumps 49 → 1 and 74 → 1 directly; preserves keyboard, zoom, adjacent pages and a new 68-page total", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("http://localhost:8080/__catalog-navigation-test?imageProducts=198");
+  const first = page.getByRole("button", { name: "Ir para a primeira página", exact: true });
+  const last = page.getByRole("button", { name: "Ir para a última página", exact: true });
+  const previous = page.getByRole("button", { name: "Página anterior", exact: true });
+  const next = page.getByRole("button", { name: "Próxima página", exact: true });
+  await expect(first).toHaveCount(0);
+  await page.getByRole("button", { name: "Gerar prévia", exact: true }).click();
+  await canvasPage(page, 1, 74);
+  await expect(first).toBeDisabled();
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+  await expect(last).toBeEnabled();
+  await last.click();
+  await canvasPage(page, 74, 74);
+  await expect(first).toBeEnabled();
+  await expect(previous).toBeEnabled();
+  await expect(next).toBeDisabled();
+  await expect(last).toBeDisabled();
+  await page.evaluate("window.catalogRenderedPages = []");
+  await first.focus();
+  await expect(page.getByRole("tooltip")).toContainText("Ir para a primeira página");
+  await page.keyboard.press("Enter");
+  await canvasPage(page, 1, 74);
+  expect(await page.evaluate("window.catalogRenderedPages")).toEqual([[1]]);
+
+  await last.click();
+  await canvasPage(page, 74, 74);
+  for (let current = 73; current >= 49; current--) {
+    await previous.click();
+    await canvasPage(page, current, 74);
+  }
+  await page.evaluate("window.catalogRenderedPages = []");
+  await first.click();
+  await canvasPage(page, 1, 74);
+  expect(await page.evaluate("window.catalogRenderedPages")).toEqual([[1]]);
+  for (let current = 2; current <= 10; current++) {
+    await next.click();
+    await canvasPage(page, current, 74);
+  }
+  await previous.click();
+  await canvasPage(page, 9, 74);
+  await next.click();
+  await canvasPage(page, 10, 74);
+  await last.click();
+  await canvasPage(page, 74, 74);
+  await page.getByRole("button", { name: "Ampliar", exact: true }).click();
+  await canvasPage(page, 74, 74);
+  await first.click();
+  await canvasPage(page, 1, 74);
+  await page.getByRole("button", { name: "Reduzir", exact: true }).click();
+  await canvasPage(page, 1, 74);
+  await page.getByRole("checkbox", { name: /Deixar esses produtos fora/ }).check();
+  await page.getByRole("button", { name: "Atualizar prévia", exact: true }).click();
+  await canvasPage(page, 1, 68);
+  await expect(first).toBeDisabled();
+  await last.click();
+  await canvasPage(page, 68, 68);
+  await first.click();
+  await canvasPage(page, 1, 68);
+  await expect(previous).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Baixar PDF", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Publicar catálogo", exact: true })).toBeEnabled();
+  expect(errors).toEqual([]);
+});
+
+test("a one-page PDF disables all navigation without errors", async ({ page }) => {
+  // A real single-page jsPDF document tests this boundary without changing the catalog composer.
+  await page.route("**/src/lib/catalog-v2/editorial/generateEditorialPdf.ts", async (route) => {
+    await route.fulfill({ contentType: "application/javascript", body: `
+      import {jsPDF} from '/node_modules/.vite/deps/jspdf.js';
+      export async function generateEditorialPdf() {
+        const pdf = new jsPDF();
+        pdf.text('Single page navigation fixture', 20, 20);
+        return {bytes:pdf.output('arraybuffer'),pageCount:pdf.getNumberOfPages(),issues:[]};
+      }
+    ` });
+  });
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("http://localhost:8080/__catalog-navigation-test");
+  await page.getByRole("button", { name: "Gerar prévia", exact: true }).click();
+  await canvasPage(page, 1, 1);
+  for (const name of ["Ir para a primeira página", "Página anterior", "Próxima página", "Ir para a última página"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
+  }
+  expect(errors).toEqual([]);
+});
+
 for (const width of [1280, 1024, 768, 390, 320]) {
   test(`navigation fits ${width}px without overflow, preserving touch targets and zoom`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1800 });
     await page.goto("http://localhost:8080/__catalog-navigation-test");
     await page.getByRole("button", { name: "Gerar prévia", exact: true }).click();
     await canvasPage(page, 1, 74);
+    const first = page.getByRole("button", { name: "Ir para a primeira página", exact: true });
     const last = page.getByRole("button", { name: "Ir para a última página", exact: true });
     await last.click();
     await canvasPage(page, 74, 74);
@@ -140,24 +233,32 @@ for (const width of [1280, 1024, 768, 390, 320]) {
     await canvasPage(page, 73, 74);
     await page.getByRole("button", { name: "Reduzir", exact: true }).click();
     await canvasPage(page, 73, 74);
-    const geometry = await last.evaluate((element) => {
+    await first.click();
+    await canvasPage(page, 1, 74);
+    await page.getByRole("button", { name: "Próxima página", exact: true }).click();
+    await canvasPage(page, 2, 74);
+    await page.getByRole("button", { name: "Página anterior", exact: true }).click();
+    await canvasPage(page, 1, 74);
+    const geometry = await first.evaluate((element) => {
       const toolbar = element.parentElement?.parentElement;
       const rect = element.getBoundingClientRect();
       const controls = toolbar ? Array.from(toolbar.querySelectorAll("button, span.text-sm")) : [];
       const bounds = controls.map((control) => control.getBoundingClientRect());
       const overlaps = bounds.some((a, i) => bounds.slice(i + 1).some((b) =>
         a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top));
-      return { width: rect.width, height: rect.height, overlaps,
+      const firstAfterPrevious = element.nextElementSibling?.getAttribute("aria-label") !== "Página anterior";
+      return { width: rect.width, height: rect.height, overlaps, firstAfterPrevious,
         overflow: toolbar ? toolbar.scrollWidth > toolbar.clientWidth : true,
         pageOverflow: document.documentElement.scrollWidth > window.innerWidth };
     });
     expect(geometry.width).toBeGreaterThanOrEqual(40);
     expect(geometry.height).toBeGreaterThanOrEqual(40);
+    expect(geometry.firstAfterPrevious).toBe(false);
     expect(geometry.overlaps).toBe(false);
     expect(geometry.overflow).toBe(false);
     expect(geometry.pageOverflow).toBe(false);
     await page.getByRole("heading", { name: "7. Pré-visualização" }).locator("../..").screenshot({
-      path: `/tmp/browser/catalog-last-page/preview-${width}.png`,
+      path: `/tmp/browser/catalog-first-page/preview-${width}.png`,
     });
   });
 }

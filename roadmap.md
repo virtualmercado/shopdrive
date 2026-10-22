@@ -1,5 +1,10 @@
 # Roadmap
 
+## Atalho Primeira página — prévia do catálogo
+- [x] Auditar estado one-based e reutilizar a navegação existente.
+- [x] Acrescentar somente o atalho acessível antes de Página anterior.
+- [x] Validar saltos diretos 49→1 e 74→1, total atualizado 68, página única, zoom e cinco larguras; relatório técnico concluído.
+
 ## Atalho Última página — prévia do catálogo
 - [x] Auditar navegação, indexação e atualização do total existente.
 - [x] Acrescentar somente o atalho acessível e preservar controles e geração.
