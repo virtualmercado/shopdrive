@@ -10,8 +10,10 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.getByRole("heading", { name: "Configurar catálogo Editorial" })).toBeVisible();
+  console.log("Editor ready (local fixture), ms:",await page.evaluate(()=>Math.round(performance.now())));
   await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
-  await page.locator("#ed-title").fill("Persistência teste 20");
+  await page.locator("#ed-title").fill("");
+  await page.locator("#ed-title").pressSequentially("Persistência teste 20",{delay:20});
   await expect(page.getByRole("status")).toContainText("Alterações salvas");
   expect(s.saves).toBeLessThan(4);
   await page.getByRole("button", { name: "Gerar prévia", exact: true }).click();
@@ -93,6 +95,15 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
   await expect(fresh.locator("#ed-c-payment")).toHaveValue("PIX de teste");
   expect(parseDraftConfig(s.config,1).typography.title).toEqual({fontFamily:"lato",fontWeight:700,color:"#135790"});
   expect(s.generations).toBe(0);expect(s.published).toBe("A");await other.close();
+  s.count=4;s.source_revision++;
+  await page.getByRole("button",{name:"Gerar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toBeVisible();
+  await page.getByRole("button",{name:"Ir para a última página",exact:true}).click();
+  await page.getByRole("button",{name:"Publicar catálogo",exact:true}).click();
+  await page.getByRole("button",{name:"Publicar",exact:true}).click();
+  await expect(page.getByText("Publicado. O link da sua loja já abre este catálogo:",{exact:true})).toBeVisible();
+  expect(s.published).toBe("B");
+  await page.getByRole("heading",{name:"7. Pré-visualização"}).locator("../..").screenshot({path:"/tmp/browser/catalog-persistence/mobile-edit-publish.png"});
 });
 
 test("explicit refresh uses changed prices, paused/deleted products and new all-mode products without changing manual intent",async({page,context})=>{
@@ -133,11 +144,16 @@ test("save failure keeps local edit and preview; retry saves; concurrent revisio
   const s = await installDraftFixture(context);
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.getByRole("heading", { name: "Configurar catálogo Editorial" })).toBeVisible();
+  await page.getByRole("button",{name:"Gerar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 74");
   await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   s.failSave = true;
   await page.locator("#ed-title").fill("Local preservado");
   await expect(page.getByRole("status")).toContainText("Não foi possível salvar");
   await expect(page.locator("#ed-title")).toHaveValue("Local preservado");
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 74");
+  await page.getByRole("link",{name:"Outro menu",exact:true}).click();
+  await expect(page.getByRole("heading",{name:"Configurar catálogo Editorial"})).toBeVisible();
   s.failSave = false;
   await page.getByRole("button", { name: "Tentar novamente", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Alterações salvas");
