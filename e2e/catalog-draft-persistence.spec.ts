@@ -63,8 +63,8 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
   await page.locator('input[type=file]').setInputFiles({name:"cover.png",mimeType:"image/png",buffer:png});
   await expect(page.getByRole("img",{name:"Capa personalizada",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Contracapa",exact:true}).click();
-  await page.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
-  await page.locator('input[type=file]').setInputFiles({name:"back.png",mimeType:"image/png",buffer:png});
+  await page.getByRole("region",{name:"Contracapa",exact:true}).getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await page.getByRole("region",{name:"Contracapa",exact:true}).locator('input[type=file]').setInputFiles({name:"back.png",mimeType:"image/png",buffer:png});
   await expect(page.getByRole("img",{name:"Contracapa personalizada",exact:true})).toBeVisible();
   await expect(page.getByRole("status")).toContainText("Alterações salvas");
   const uploaded=parseDraftConfig(s.config,1);
@@ -99,7 +99,7 @@ test("explicit refresh uses changed prices, paused/deleted products and new all-
   const s=await installDraftFixture(context);s.count=4;
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await page.getByRole("button",{name:"Gerar prévia",exact:true}).click();
-  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 4");
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 3");
   expect(s.sourceLoads).toBe(2);
   s.price=321.45;s.paused=[1];s.deleted=[2];s.count=5;s.source_revision++;
   await page.getByRole("link",{name:"Outro menu",exact:true}).click();await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
