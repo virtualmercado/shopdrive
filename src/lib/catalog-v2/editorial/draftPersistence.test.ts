@@ -61,6 +61,11 @@ describe("persistent Editorial draft rules", () => {
     expect(draftEditorialInput(doc, c).featured?.productIds).toEqual([s.products[1].id]);
     expect(c.featured).toHaveLength(3); expect(s.products).toHaveLength(4);
   });
+  it("an all-no-image catalog never falls back to every product when exclusion is enabled", () => {
+    const s=fixtureStoreB();s.products.forEach(p=>{p.image_url=null;});
+    expect(buildDraftDocument(s,parseDraftConfig({excludeNoImage:true},1))).toBeNull();
+    expect(s.products).toHaveLength(4);
+  });
 });
 
 describe("revision-checked serial saving", () => {
