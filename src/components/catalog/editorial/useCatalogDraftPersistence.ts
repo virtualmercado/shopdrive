@@ -32,7 +32,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     if (!storeId) return;
     let active = true;
     let maySave = true;
-    void supabase.rpc("get_my_catalog_draft").then(({ data, error }) => {
+    void Promise.resolve(supabase.rpc("get_my_catalog_draft")).then(({ data, error }) => {
       if (!active || ownerRef.current !== storeId) return;
       try {
         if (error || !data) throw error ?? new Error("missing draft response");
