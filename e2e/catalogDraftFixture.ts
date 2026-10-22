@@ -57,10 +57,10 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
     }
     if (url.pathname === "/src/lib/catalog-v2/editorial/pdfPreview.ts") {
       const response = await route.fetch();
-      const body = (await response.text()).replace("function renderPdfPreview(", "function renderUnderlyingPreview(");
+      const body = (await response.text()).replace("function renderPdfPreview(", "function renderUnderlyingPreview(").replace("const pdf = await pdfjs.getDocument", "window.catalogPdfjs = pdfjs; const pdf = await pdfjs.getDocument");
       return route.fulfill({response,body:body+`
         export async function renderPdfPreview(bytes,opts){
-          window.readCatalogText=async()=>{const pdfjs=await import('pdfjs-dist');const worker=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');pdfjs.GlobalWorkerOptions.workerSrc=worker.default;const pdf=await pdfjs.getDocument({data:new Uint8Array(bytes.slice(0)),isEvalSupported:false}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);text+=(await p.getTextContent()).items.map(x=>x.str).join(' ');p.cleanup();}await pdf.destroy();return text;};
+          window.readCatalogText=async()=>{const pdfjs=window.catalogPdfjs;const pdf=await pdfjs.getDocument({data:new Uint8Array(bytes.slice(0)),isEvalSupported:false}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);text+=(await p.getTextContent()).items.map(x=>x.str).join(' ');p.cleanup();}await pdf.destroy();return text;};
           return renderUnderlyingPreview(bytes,opts);
         }`});
     }
