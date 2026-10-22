@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { UNSAFE_NavigationContext } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createDraftSaveQueue, type DraftSaveStatus } from "@/lib/catalog-v2/editorial/draftSaveQueue";
 import { registerCatalogSaveGuard } from "@/lib/catalog-v2/editorial/navigationSave";
 import { DRAFT_SAVE_DEBOUNCE_MS, DRAFT_SCHEMA_VERSION, draftConfigKey, parseDraftConfig, type CatalogDraftConfig, type CatalogDraftRecord } from "@/lib/catalog-v2/editorial/draftConfig";
 
 export function useCatalogDraftPersistence(storeId: string | undefined, config: CatalogDraftConfig, hydrate: (config: CatalogDraftConfig, record: CatalogDraftRecord) => void) {
+  const navigation = useContext(UNSAFE_NavigationContext);
   const [ready, setReady] = useState(false);
   const [record, setRecord] = useState<CatalogDraftRecord | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -121,6 +123,55 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     document.addEventListener("click", onLink, true);
     return () => { unregister(); window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", onLink, true); };
   }, [ready, flush, setRecovery]);
+
+  useEffect(() => {
+    if (!ready || !navigation) return;
+    const navigator = navigation.navigator;
+    const originalPush = navigator.push;
+    const originalReplace = navigator.replace;
+    let active = true;
+    let knownIndex = window.history.state?.idx as number | undefined;
+    let restoring = false;
+    let resume = false;
+    let targetIndex: number | undefined;
+    let targetDelta = 0;
+    let busy = false;
+    const dirty = () => { queue.current?.update(configRef.current); return !!queue.current?.dirty(); };
+    const protect = (method: typeof originalPush): typeof originalPush => (...args) => {
+      if (!dirty()) { method.apply(navigator, args); knownIndex = window.history.state?.idx; return; }
+      if (busy) return;
+      busy = true;
+      void flush().then((ok) => { if (active && ok) { method.apply(navigator, args); knownIndex = window.history.state?.idx; } }).finally(() => { busy = false; });
+    };
+    const push = protect(originalPush);
+    const replace = protect(originalReplace);
+    navigator.push = push; navigator.replace = replace;
+    const onPop = (event: PopStateEvent) => {
+      const next = event.state?.idx as number | undefined;
+      if (restoring) {
+        event.stopImmediatePropagation(); restoring = false;
+        void flush().then((ok) => {
+          if (active && ok) { resume = true; window.history.go(targetDelta); }
+          else { busy = false; targetIndex = undefined; }
+        });
+        return;
+      }
+      if (resume) { resume = false; busy = false; knownIndex = next; targetIndex = undefined; return; }
+      if (busy) { event.stopImmediatePropagation(); if (next !== knownIndex && typeof next === "number" && typeof knownIndex === "number") window.history.go(knownIndex - next); return; }
+      if (!dirty() || typeof next !== "number" || typeof knownIndex !== "number" || next === knownIndex) { knownIndex = next; return; }
+      event.stopImmediatePropagation();
+      setRecovery(queue.current?.getCurrent() ?? configRef.current);
+      busy = true; restoring = true; targetIndex = next; targetDelta = targetIndex - knownIndex;
+      window.history.go(-targetDelta);
+    };
+    window.addEventListener("popstate", onPop, true);
+    return () => {
+      active = false;
+      if (navigator.push === push) navigator.push = originalPush;
+      if (navigator.replace === replace) navigator.replace = originalReplace;
+      window.removeEventListener("popstate", onPop, true);
+    };
+  }, [ready, navigation, flush, setRecovery]);
 
   const checkCurrent = useCallback(async () => {
     const { data, error } = await supabase.rpc("get_my_catalog_draft");
