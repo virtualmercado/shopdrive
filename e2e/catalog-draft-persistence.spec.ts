@@ -8,7 +8,7 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.getByRole("heading", { name: "Configurar catálogo Editorial" })).toBeVisible();
-  await page.getByRole("button", { name: "2. Capa", exact: true }).click();
+  await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   await page.locator("#ed-title").fill("Persistência teste 20");
   await expect(page.getByRole("status")).toContainText("Alterações salvas");
   expect(s.saves).toBeLessThan(4);
@@ -23,7 +23,7 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   expect(s.generations).toBe(1);
   await page.reload();
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
-  await page.getByRole("button", { name: "2. Capa", exact: true }).click();
+  await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   await expect(page.locator("#ed-title")).toHaveValue("Persistência teste 20");
   await expect(page.getByRole("button", { name: "Publicar catálogo", exact: true })).toBeEnabled();
   // No browser storage transfer; the server double supplies the saved draft/PDF.
@@ -51,7 +51,7 @@ async function installDraftFixtureShared(context: import("@playwright/test").Bro
   const page = await context.newPage();
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
-  await page.getByRole("button", { name: "2. Capa", exact: true }).click();
+  await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   await expect(page.locator("#ed-title")).toHaveValue("Persistência teste 20");
   await page.getByRole("button", { name: "Ir para a última página", exact: true }).click();
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 74 de 74");
@@ -62,7 +62,7 @@ test("save failure keeps local edit and preview; retry saves; concurrent revisio
   const s = await installDraftFixture(context);
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.getByRole("heading", { name: "Configurar catálogo Editorial" })).toBeVisible();
-  await page.getByRole("button", { name: "2. Capa", exact: true }).click();
+  await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   s.failSave = true;
   await page.locator("#ed-title").fill("Local preservado");
   await expect(page.getByRole("status")).toContainText("Não foi possível salvar");

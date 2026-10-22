@@ -30,6 +30,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     setReady(false); setReadyOwner(undefined); setRecord(null); setStatus("saved"); setLoadError(false); queue.current = null;
     if (!storeId) return;
     let active = true;
+    let maySave = true;
     void supabase.rpc("get_my_catalog_draft").then(({ data, error }) => {
       if (!active || ownerRef.current !== storeId) return;
       try {
@@ -37,10 +38,11 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
         const result = data as unknown as CatalogDraftRecord;
         const initial = result.config === null ? parseDraftConfig({}, DRAFT_SCHEMA_VERSION) : parseDraftConfig(result.config, result.schema_version);
         const recovery = recoveryKey ? sessionStorage.getItem(recoveryKey) : null;
-        const buffer = recovery ? JSON.parse(recovery) as { config: unknown; revision: number } : null;
+        let buffer = recovery ? JSON.parse(recovery) as { config: unknown; revision: number } : null;
+        if (buffer && draftConfigKey(buffer.config) === draftConfigKey(initial)) { buffer = null; setRecovery(null); }
         queue.current = createDraftSaveQueue({ initial, revision: buffer?.revision ?? result.draft_revision, needsInitialSave: result.config === null,
           save: async (value, revision) => {
-            if (!active || ownerRef.current !== storeId) throw new Error("catalog identity changed");
+            if (!maySave || ownerRef.current !== storeId) throw new Error("catalog identity changed");
             const { data: saved, error: saveError } = await supabase.rpc("save_my_catalog_draft", { _expected_revision: revision, _schema_version: DRAFT_SCHEMA_VERSION, _config: JSON.parse(JSON.stringify(value)) });
             if (saveError || !saved) throw saveError ?? new Error("missing save response");
             const next = saved as unknown as CatalogDraftRecord;
@@ -66,8 +68,10 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
       if (pending?.dirty()) {
         // Covers browser history/programmatic exits without saving under a changed identity.
         setRecovery(pending.getCurrent());
-        if (ownerRef.current === storeId) { active = true; void pending.flush().finally(() => { active = false; }); }
+        if (ownerRef.current === storeId) void pending.flush().finally(() => { maySave = false; });
+        else maySave = false;
       }
+      else maySave = false;
       queue.current = null;
     };
   }, [storeId, reloadKey, recoveryKey, setRecovery]);
