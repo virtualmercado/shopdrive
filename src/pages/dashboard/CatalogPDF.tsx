@@ -1636,7 +1636,7 @@ const CatalogPDF = () => {
               ["editorial", "Personalizado", "Catálogo profissional com páginas personalizadas, apresentação da loja e produtos organizados."],
             ] as const).map(([value, label, desc]) => (
               <button key={value} type="button" role="radio" aria-checked={catalogMode === value}
-                onClick={() => { setCatalogMode(value); if (value === "editorial") setEditorialMounted(true); }}
+                onClick={async () => { if (value === "classic") { const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave"); if (!await flushCatalogBeforeLeave()) return; } setCatalogMode(value); if (value === "editorial") setEditorialMounted(true); }}
                 className={`text-left rounded-lg border p-4 transition-colors ${catalogMode === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
                 <p className="font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground mt-1">{desc}</p>
@@ -1647,7 +1647,7 @@ const CatalogPDF = () => {
 
         {editorialAllowed && editorialMounted && !pdfGenerated && (
           <div className={isEditorial ? "" : "hidden"}>
-            <EditorialCatalogConfigurator />
+            <EditorialCatalogConfigurator key={user?.id} />
           </div>
         )}
 

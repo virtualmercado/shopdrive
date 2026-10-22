@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createDraftSaveQueue, type DraftSaveStatus } from "@/lib/catalog-v2/editorial/draftSaveQueue";
 import { registerCatalogSaveGuard } from "@/lib/catalog-v2/editorial/navigationSave";
-import { DRAFT_SAVE_DEBOUNCE_MS, DRAFT_SCHEMA_VERSION, parseDraftConfig, type CatalogDraftConfig, type CatalogDraftRecord } from "@/lib/catalog-v2/editorial/draftConfig";
+import { DRAFT_SAVE_DEBOUNCE_MS, DRAFT_SCHEMA_VERSION, draftConfigKey, parseDraftConfig, type CatalogDraftConfig, type CatalogDraftRecord } from "@/lib/catalog-v2/editorial/draftConfig";
 
 export function useCatalogDraftPersistence(storeId: string | undefined, config: CatalogDraftConfig, hydrate: (config: CatalogDraftConfig, record: CatalogDraftRecord) => void) {
   const [ready, setReady] = useState(false);
@@ -48,7 +48,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
             return next;
           },
           onStatus: (next) => { if (active && ownerRef.current === storeId) setStatus(next); },
-          onSaved: (value) => { if (active && ownerRef.current === storeId && JSON.stringify(value) === JSON.stringify(queue.current?.getCurrent())) setRecovery(null); },
+          onSaved: (value) => { if (active && ownerRef.current === storeId && draftConfigKey(value) === draftConfigKey(queue.current?.getCurrent())) setRecovery(null); },
         });
         let restored = initial;
         // Recovery is only an unsaved emergency buffer, never authoritative saved state.
@@ -63,7 +63,11 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     return () => {
       active = false; mounted.current = false;
       const pending = queue.current;
-      if (pending?.dirty()) setRecovery(pending.getCurrent());
+      if (pending?.dirty()) {
+        // Covers browser history/programmatic exits without saving under a changed identity.
+        setRecovery(pending.getCurrent());
+        if (ownerRef.current === storeId) { active = true; void pending.flush().finally(() => { active = false; }); }
+      }
       queue.current = null;
     };
   }, [storeId, reloadKey, recoveryKey, setRecovery]);

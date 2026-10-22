@@ -63,6 +63,18 @@ test.beforeEach(async ({ page }) => {
       ` });
       return;
     }
+    if (url.pathname === "/src/components/catalog/editorial/useCatalogDraftPersistence.ts") {
+      // Navigation regression tests isolate persistence; dedicated persistence
+      // tests below exercise the real hook with a local per-store server double.
+      await route.fulfill({ contentType: "application/javascript", body: `
+        import {useState} from '/node_modules/.vite/deps/react.js';
+        export function useCatalogDraftPersistence(storeId, config) {
+          const [record,setRecord]=useState(null);
+          const result=()=>({config,draft_revision:0,source_revision:0,preview:record?.preview??null,stale:false});
+          return {ready:true,record,status:'saved',loadError:false,flush:async()=>true,checkCurrent:async()=>result(),getRevision:()=>0,setRecord,retryLoad:()=>{}};
+        }` });
+      return;
+    }
     if (url.pathname === "/src/lib/catalog-v2/editorial/pdfPreview.ts") {
       const response = await route.fetch();
       const body = (await response.text()).replace("function renderPdfPreview(", "function renderUnderlyingPreview(");

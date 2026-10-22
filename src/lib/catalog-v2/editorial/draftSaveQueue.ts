@@ -1,3 +1,5 @@
+import { draftConfigKey } from "./draftConfig";
+
 export type DraftSaveStatus = "saved" | "pending" | "saving" | "error" | "conflict";
 export interface SaveResult { draft_revision: number }
 
@@ -10,7 +12,7 @@ export function createDraftSaveQueue<T>(options: {
   needsInitialSave?: boolean;
 }) {
   let current = options.initial;
-  let currentKey = JSON.stringify(current);
+  let currentKey = draftConfigKey(current);
   let savedKey = options.needsInitialSave ? "" : currentKey;
   let revision = options.revision;
   let running: Promise<boolean> | null = null;
@@ -42,7 +44,7 @@ export function createDraftSaveQueue<T>(options: {
     return running;
   };
   return {
-    update(config: T) { current = config; currentKey = JSON.stringify(config); if (dirty()) options.onStatus(conflict ? "conflict" : "pending"); },
+    update(config: T) { current = config; currentKey = draftConfigKey(config); if (dirty()) options.onStatus(conflict ? "conflict" : "pending"); },
     flush, dirty, getRevision: () => revision, getCurrent: () => current,
   };
 }

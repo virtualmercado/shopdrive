@@ -420,12 +420,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Link
                   key={item.path}
                   to={getNavPath(item.path)}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     if (mobileNavLocked) {
                       e.preventDefault();
                       return;
                     }
                     e.preventDefault();
+                    const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave");
+                    if (!await flushCatalogBeforeLeave()) return;
                     setMobileNavLocked(true);
 
                     if (window.innerWidth < 768) {
