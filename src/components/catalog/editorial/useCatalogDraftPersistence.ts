@@ -53,7 +53,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
             return next;
           },
           onStatus: (next) => { if (active && ownerRef.current === storeId) setStatus(next); },
-          onSaved: (value) => { if (active && ownerRef.current === storeId && draftConfigKey(value) === draftConfigKey(queue.current?.getCurrent())) setRecovery(null); },
+          onSaved: () => { if (active && ownerRef.current === storeId) setRecovery(queue.current?.dirty() ? queue.current.getCurrent() : null); },
         });
         let restored = initial;
         // Recovery is only an unsaved emergency buffer, never authoritative saved state.

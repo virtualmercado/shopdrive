@@ -50,7 +50,7 @@ import { featuredInDocument, sectionImagesInDocument, type EditorialSelectionMod
 import { BACK_TEXT_ELEMENTS, COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type BackTextKey, type BackTypographyInput, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
 import { SEPARATOR_BAND } from "@/lib/catalog-v2/editorial/renderSeparator";
-import { buildDraftDocument, draftConfigKey, draftEditorialInput, effectiveDraftSelection, PREVIEW_BUCKET, type CatalogDraftConfig, type CatalogDraftRecord, type PreviewReservation } from "@/lib/catalog-v2/editorial/draftConfig";
+import { buildDraftDocument, draftConfigKey, draftEditorialInput, effectiveDraftSelection, parseDraftConfig, PREVIEW_BUCKET, type CatalogDraftConfig, type CatalogDraftRecord, type PreviewReservation } from "@/lib/catalog-v2/editorial/draftConfig";
 import { useCatalogDraftPersistence } from "./useCatalogDraftPersistence";
 
 // Recomendação derivada da faixa real do renderer (mm → px).
@@ -224,7 +224,7 @@ const EditorialCatalogConfigurator = () => {
     setShowPrices(c.showPrices); setExcludeNoImage(c.excludeNoImage);
     setInstEnabled(c.instEnabled); setInstTitle(c.instTitle); setInstText(c.instText); setInstImage(c.instImage); setInstMode(c.instMode);
     setComEnabled(c.comEnabled); setCom(c.com); setFeatEnabled(c.featEnabled); setFeatured(c.featured); setFeatPolicy(c.featPolicy);
-    setLastKey(saved.config === null ? null : draftConfigKey(c));
+    setLastKey(saved.config === null ? null : draftConfigKey(parseDraftConfig(saved.config, saved.schema_version)));
   }, []);
   const persistence = useCatalogDraftPersistence(user?.id, draftConfig, hydrateDraft);
   const [previewLoading, setPreviewLoading] = useState(false);
