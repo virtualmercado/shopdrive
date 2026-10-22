@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Persistência segura do Catálogo Editorial
-- [ ] Auditar configurações, prévia, publicação, produtos e isolamento existentes antes de alterar código ou banco.
+- [x] Auditar configurações, prévia, publicação, produtos e isolamento existentes antes de alterar código ou banco.
 - [ ] Implementar rascunho versionado, autosave seguro e última prévia privada sem modificar a versão pública.
 - [ ] Recuperar configurações/prévia ao retornar e atualizar explicitamente com produtos atuais.
 - [ ] Validar isolamento, concorrência, erros, persistência, produtos e navegação em desktop/mobile; entregar relatório e rollback.
