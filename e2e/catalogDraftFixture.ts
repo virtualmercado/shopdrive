@@ -13,11 +13,6 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
     const url = new URL(route.request().url());
     if (url.origin !== "http://localhost:8080") return route.abort();
     const js = (body: string) => route.fulfill({ contentType: "application/javascript", body });
-    if (url.pathname === "/src/components/catalog/editorial/useCatalogDraftPersistence.ts") {
-      const response = await route.fetch();
-      const body = (await response.text()).replace("if (!ready || !navigation) return;", "console.log('draft guard install',ready,!!navigation,window.history.state); if (!ready || !navigation) return;").replace("const onPop = (event) => {", "const onPop = (event) => {console.log('draft guard pop',knownIndex,event.state,dirty());");
-      return route.fulfill({response,body});
-    }
     if (url.pathname === "/__draft-api") {
       const { name, args } = route.request().postDataJSON();
       const response = (data: unknown, error: unknown = null, changeIdentity = false) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ data, error, changeIdentity }) });

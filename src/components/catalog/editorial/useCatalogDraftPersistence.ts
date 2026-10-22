@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UNSAFE_NavigationContext } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createDraftSaveQueue, type DraftSaveStatus } from "@/lib/catalog-v2/editorial/draftSaveQueue";
-import { registerCatalogSaveGuard } from "@/lib/catalog-v2/editorial/navigationSave";
+import { registerCatalogHistoryGuard, registerCatalogSaveGuard } from "@/lib/catalog-v2/editorial/navigationSave";
 import { DRAFT_SAVE_DEBOUNCE_MS, DRAFT_SCHEMA_VERSION, draftConfigKey, parseDraftConfig, type CatalogDraftConfig, type CatalogDraftRecord } from "@/lib/catalog-v2/editorial/draftConfig";
 
 export function useCatalogDraftPersistence(storeId: string | undefined, config: CatalogDraftConfig, hydrate: (config: CatalogDraftConfig, record: CatalogDraftRecord) => void) {
@@ -164,12 +164,12 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
       busy = true; restoring = true; targetIndex = next; targetDelta = targetIndex - knownIndex;
       window.history.go(-targetDelta);
     };
-    window.addEventListener("popstate", onPop, true);
+    const unregisterHistory = registerCatalogHistoryGuard(onPop);
     return () => {
       active = false;
       if (navigator.push === push) navigator.push = originalPush;
       if (navigator.replace === replace) navigator.replace = originalReplace;
-      window.removeEventListener("popstate", onPop, true);
+      unregisterHistory();
     };
   }, [ready, navigation, flush, setRecovery]);
 
