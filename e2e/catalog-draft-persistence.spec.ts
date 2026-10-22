@@ -25,8 +25,10 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   await page.getByRole("link", { name: "Voltar ao catálogo", exact: true }).click();
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
   expect(s.generations).toBe(1);
+  const restoredAt = Date.now();
   await page.reload();
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
+  console.log("Saved editor and 74-page preview restored locally, ms:",Date.now()-restoredAt);
   await page.getByRole("button", { name: "2. Capa e identidade", exact: true }).click();
   await expect(page.locator("#ed-title")).toHaveValue("Persistência teste 20");
   await expect(page.getByRole("button", { name: "Publicar catálogo", exact: true })).toBeEnabled();
@@ -141,6 +143,45 @@ test("browser Back and programmatic navigation wait for saves, block failure and
   expect(parseDraftConfig(s.config,1).title).toBe("Back salvo");
 });
 
+test("institutional and section image references survive default mode, disabled branches and reload",async({page,context})=>{
+  const s=await installDraftFixture(context);s.count=4;
+  await page.setViewportSize({width:390,height:1800});
+  await page.goto("http://localhost:8080/__catalog-draft-test");
+  const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jYfQAAAAASUVORK5CYII=","base64");
+  await page.getByRole("button",{name:"4. Apresentação institucional",exact:true}).click();
+  await page.getByRole("checkbox",{name:"Incluir apresentação da loja",exact:true}).check();
+  const institutional=page.getByRole("region",{name:"4. Apresentação institucional",exact:true});
+  await institutional.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await institutional.locator('input[type=file]').setInputFiles({name:"about.png",mimeType:"image/png",buffer:png});
+  await expect(page.getByRole("img",{name:"Imagem da apresentação",exact:true})).toBeVisible();
+  await institutional.getByRole("radio",{name:"Padrão",exact:true}).click();
+  await page.getByRole("checkbox",{name:"Incluir apresentação da loja",exact:true}).uncheck();
+  await page.getByRole("button",{name:"3. Organização e layout",exact:true}).click();
+  await page.getByRole("radio",{name:"Categoria",exact:true}).click();
+  await page.getByRole("radio",{name:/^Completa/}).click();
+  const section=page.getByText("Masculino",{exact:false}).filter({hasText:"produtos"}).locator("..");
+  await section.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  const chooser=page.waitForEvent("filechooser");
+  await section.getByRole("button",{name:"Enviar imagem",exact:true}).click();
+  await (await chooser).setFiles({name:"section.png",mimeType:"image/png",buffer:png});
+  await expect(page.getByRole("img",{name:"Imagem da seção Masculino",exact:true})).toBeVisible();
+  await section.getByRole("radio",{name:"Padrão",exact:true}).click();
+  await expect(page.getByRole("status")).toContainText("Alterações salvas");
+  const saved=parseDraftConfig(s.config,1);
+  expect(saved.instEnabled).toBe(false);expect(saved.instMode).toBe("default");expect(saved.instImage).toContain("/catalog-institutional/");
+  expect(saved.sectionCustom["category:b-cat-1"]).toBe(false);
+  expect(Object.values(saved.sectionImages)[0]).toContain("/catalog-sections/");
+  await page.reload();
+  await page.getByRole("button",{name:"4. Apresentação institucional",exact:true}).click();
+  await page.getByRole("checkbox",{name:"Incluir apresentação da loja",exact:true}).check();
+  await institutional.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Imagem da apresentação",exact:true})).toHaveJSProperty("naturalWidth",1);
+  await page.getByRole("button",{name:"3. Organização e layout",exact:true}).click();
+  await section.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Imagem da seção Masculino",exact:true})).toHaveJSProperty("naturalWidth",1);
+  expect(s.generations).toBe(0);expect(s.publications).toBe(0);
+});
+
 test("identity change between publication requests stops before upload and confirmation",async({page,context})=>{
   const s=await installDraftFixture(context);s.count=4;
   await page.goto("http://localhost:8080/__catalog-draft-test");
@@ -149,6 +190,7 @@ test("identity change between publication requests stops before upload and confi
   s.changeIdentityOnPublish=true;
   await page.getByRole("button",{name:"Publicar catálogo",exact:true}).click();
   await page.getByRole("button",{name:"Publicar",exact:true}).click();
+  await expect.poll(()=>s.publications).toBe(1);
   await expect(page.getByRole("heading",{name:"Configurar catálogo Editorial",exact:true})).not.toBeVisible();
   expect(s.publications).toBe(1);expect(s.published).toBe("A");
   expect([...s.files.keys()].some(path=>path.startsWith("public/"))).toBe(false);

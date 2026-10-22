@@ -2,9 +2,10 @@
 
 ## Persistência segura do Catálogo Editorial
 - [x] Auditar configurações, prévia, publicação, produtos e isolamento existentes antes de alterar código ou banco.
-- [ ] Implementar rascunho versionado, autosave seguro e última prévia privada sem modificar a versão pública.
-- [ ] Recuperar configurações/prévia ao retornar e atualizar explicitamente com produtos atuais.
-- [ ] Validar isolamento, concorrência, erros, persistência, produtos e navegação em desktop/mobile; entregar relatório e rollback.
+- [x] Implementar rascunho versionado, autosave seguro e última prévia privada sem modificar a versão pública.
+- [x] Recuperar configurações/prévia ao retornar e atualizar explicitamente com produtos atuais.
+- [x] Validar isolamento, concorrência, erros, persistência, produtos e navegação com fixtures locais desktop/mobile; entregar relatório e procedimento de rollback não destrutivo.
+- [ ] BLOQUEADO: homologação autenticada com uma loja autorizada — testes atuais não podem usar credenciais reais nem alterar lojas reais; AROMA/SHARON permanecem intocadas.
 
 ## Atalho Primeira página — prévia do catálogo
 - [x] Auditar estado one-based e reutilizar a navegação existente.
