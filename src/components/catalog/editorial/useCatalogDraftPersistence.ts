@@ -62,12 +62,14 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
           queue.current.update(restored);
         }
         hydrateRef.current(restored, result);
+        if (queue.current.dirty()) setStatus("pending");
         setRecord(result); setReadyOwner(storeId); setReady(true);
       } catch { setLoadError(true); }
-    });
+    }).catch(() => { if (active && ownerRef.current === storeId) setLoadError(true); });
     return () => {
       active = false; mounted.current = false;
       const pending = queue.current;
+      if (pending && ownerRef.current === storeId && !discardRecovery.current) pending.update(configRef.current);
       if (pending?.dirty() && !discardRecovery.current) {
         // Covers browser history/programmatic exits without saving under a changed identity.
         setRecovery(pending.getCurrent());
@@ -101,6 +103,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     if (!ready) return;
     const unregister = registerCatalogSaveGuard(flush);
     const beforeUnload = (event: BeforeUnloadEvent) => {
+      queue.current?.update(configRef.current);
       if (!queue.current?.dirty()) return;
       setRecovery(queue.current.getCurrent());
       void flush(); event.preventDefault(); event.returnValue = "";

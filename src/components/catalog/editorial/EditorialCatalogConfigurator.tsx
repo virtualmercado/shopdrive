@@ -379,8 +379,10 @@ const EditorialCatalogConfigurator = () => {
     } catch (e) {
       console.warn("[CatalogPreview] update failed; keeping last valid preview");
       if (reservation && stillCurrent()) {
-        await supabase.rpc("discard_my_catalog_preview", { _preview_id: reservation.id });
-        await supabase.storage.from(PREVIEW_BUCKET).remove([reservation.path]);
+        try {
+          await supabase.rpc("discard_my_catalog_preview", { _preview_id: reservation.id });
+          await supabase.storage.from(PREVIEW_BUCKET).remove([reservation.path]);
+        } catch { console.warn("[CatalogPreview] failed reservation cleanup postponed"); }
       }
       if (!stillCurrent()) return;
       setGenError(e instanceof EditorialConfigError ? "Há campos inválidos. Corrija os itens destacados." : "Não foi possível atualizar a prévia. A última prévia válida foi preservada. Tente novamente.");
