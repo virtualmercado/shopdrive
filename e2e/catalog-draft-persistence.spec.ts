@@ -40,7 +40,7 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   s.failUpload = false;
   await page.getByRole("button", { name: "Publicar catálogo", exact: true }).click();
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
-  await expect(page.getByText("Catálogo publicado!", { exact: false })).toBeVisible();
+  await expect(page.getByText("Publicado. O link da sua loja já abre este catálogo:", { exact: true })).toBeVisible();
   expect(s.published).toBe("B"); expect(s.publications).toBe(1); expect(errors).toEqual([]);
   await page.getByRole("heading", { name: "7. Pré-visualização" }).locator("../..").screenshot({ path: "/tmp/browser/catalog-persistence/desktop.png" });
 });

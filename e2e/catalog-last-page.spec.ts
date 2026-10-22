@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // Mount the real configurator and PDF engines with fictitious local data only.
-// No account credentials, backend requests, uploads or publication are allowed.
+// No account credentials, real backend requests, uploads or publication are allowed.
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
@@ -53,12 +53,15 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname === "/src/integrations/supabase/client.ts") {
       await route.fulfill({ contentType: "application/javascript", body: `
+        let seq=0,pending=null;
         export const supabase = {
-          rpc: async name => {
-            if (name !== 'get_my_current_catalog_state') throw new Error('Test forbids writes');
-            return {data:{updated_at:null,has_current:false},error:null};
+          rpc: async (name,args) => {
+            if(name==='begin_my_catalog_preview'){pending={id:'local-'+(++seq),path:'fixture-store-b/local-'+seq+'.pdf',publication_baseline:{updatedAt:null,hasCurrent:false}};return {data:pending,error:null};}
+            if(name==='complete_my_catalog_preview')return {data:{preview:{...pending,page_count:args._page_count,generated_at:new Date().toISOString()},stale:false},error:null};
+            if(name==='discard_my_catalog_preview')return {data:null,error:null};
+            throw new Error('Test forbids production/publication calls');
           },
-          storage: {from: () => {throw new Error('Test forbids uploads');}}
+          storage: {from: () => ({upload:async()=>({error:null}),list:async()=>({data:[]}),remove:async()=>({error:null})})}
         };
       ` });
       return;
