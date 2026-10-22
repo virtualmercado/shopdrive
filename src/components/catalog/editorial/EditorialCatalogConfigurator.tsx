@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle, Send, Copy, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsRight, Download, Loader2, RefreshCw, Search, ZoomIn, ZoomOut, AlertTriangle, Send, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { buildCanonicalCatalogUrl } from "@/lib/catalogShareLink";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -843,11 +844,21 @@ const EditorialCatalogConfigurator = () => {
           {generating && !bytes && <div className="aspect-[210/297] rounded-md border border-border flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
           {bytes && (
             <>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 basis-60 items-center gap-1">
                 <Button size="icon" variant="outline" aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-sm">Página {page} de {pageCount}</span>
+                <span className="min-w-0 flex-1 text-center text-sm">Página {page} de {pageCount}</span>
                 <Button size="icon" variant="outline" aria-label="Próxima página" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
-                <div className="flex gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" aria-label="Ir para a última página" disabled={!Number.isInteger(pageCount) || pageCount <= 0 || page >= pageCount} onClick={() => { if (Number.isInteger(pageCount) && pageCount > 0) setPage(pageCount); }}>
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ir para a última página</TooltipContent>
+                </Tooltip>
+                </div>
+                <div className="ml-auto flex shrink-0 gap-1">
                   <Button size="icon" variant="ghost" aria-label="Reduzir" disabled={zoom <= 1} onClick={() => setZoom((z) => z - 0.5)}><ZoomOut className="h-4 w-4" /></Button>
                   <Button size="icon" variant="ghost" aria-label="Ampliar" disabled={zoom >= 2} onClick={() => setZoom((z) => z + 0.5)}><ZoomIn className="h-4 w-4" /></Button>
                 </div>

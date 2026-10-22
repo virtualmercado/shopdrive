@@ -7,6 +7,7 @@
 - Catálogo PDF clássico: texto, links públicos e imagens passam por `src/lib/catalogPdfClassic.ts` (compartilhado por prévia e PDF). Why: evita divergência e vazamento do host de preview nos PDFs.
 
 - Catálogo PDF 2.0 vive isolado em `src/lib/catalog-v2/` (loader → normalizer → CatalogDocument → `composePages` → renderer jsPDF → preview pdf.js dos mesmos bytes); `CatalogPDF.tsx` só monta `src/components/catalog/editorial/` (estado e handlers próprios, sem publicar/compartilhar). Why: paginação única e preview fiel, sem regressão do Clássico.
+- Editorial preview navigation stays in the existing configurator and renders only the selected one-based page from current PDF bytes; navigation tests mount that real configurator with local fixtures and block backend writes. Why: direct jumps must not introduce a second renderer or touch tenant/publication data.
 - Subdiretórios têm `AGENTS.md` próprio (ex.: `src/lib/catalog-v2/`); leia antes de alterar arquivos ali.
 - Auth/roles state only accepts responses for the current user via `createUserScopedLoader` (`src/lib/authIdentity.ts`); lookup error never means "no store"; onboarding only writes the store address when it is still empty. Why: a delayed lookup from the previous account sent existing merchants to "Crie sua loja".
 - Campaign wizard stage checks use `src/lib/emailCampaignValidation.ts`; final confirmation repeats validation server-side. Why: partial drafts must remain saveable without weakening send authorization.
