@@ -3,6 +3,9 @@ import type { BrowserContext, Route } from "@playwright/test";
 // Local server double: state lives in this test process, not browser storage.
 // ALL non-localhost traffic is blocked, including production storage/auth.
 export async function installDraftFixture(context: BrowserContext, shared?: DraftFixtureState) {
+  const hook = await context.request.get("http://localhost:8080/src/components/catalog/editorial/useCatalogDraftPersistence.ts");
+  const routerModule = (await hook.text()).match(/from "([^\"]*react-router-dom\.js[^\"]*)"/)?.[1];
+  if (!routerModule) throw new Error("fixture router import unavailable");
   const state: DraftFixtureState = shared ?? { config: null, draft_revision: 0, source_revision: 0, preview: null, saves: 0, generations: 0, sourceLoads: 0, failSave: false, failUpload: false, failPublish: false, published: "A", publications: 0, files: new Map<string, number[]>(), count: 216, price: 199.9, paused: [], deleted: [] };
   let pending: any = null;
   const record = () => ({ config: state.config, schema_version: 1, draft_revision: state.draft_revision, source_revision: state.source_revision, draft_updated_at: new Date().toISOString(), preview: state.preview, stale: !!state.preview && (state.preview.draft_revision !== state.draft_revision || state.preview.source_revision !== state.source_revision) });
@@ -69,7 +72,7 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
       <script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;</script>
       <script type="module">
         import React from '/node_modules/.vite/deps/react.js';import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
-        import {BrowserRouter,Link,useLocation,useNavigate} from '/node_modules/.vite/deps/react-router-dom.js';
+        import {BrowserRouter,Link,useLocation,useNavigate} from '${routerModule}';
         import {TooltipProvider} from '/src/components/ui/tooltip.tsx';import C from '/src/components/catalog/editorial/EditorialCatalogConfigurator.tsx';import '/src/index.css';
         function App(){const show=!useLocation().pathname.endsWith('/other');const navigate=useNavigate();return React.createElement(React.Fragment,null,React.createElement(Link,{to:show?'/__catalog-draft-test/other':'/__catalog-draft-test'},show?'Outro menu':'Voltar ao catálogo'),show?React.createElement(React.Fragment,null,React.createElement('button',{onClick:()=>navigate('/__catalog-draft-test/other')},'Saída programática'),React.createElement(C)):React.createElement('p',null,'Outro menu aberto'));}
         ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(TooltipProvider,null,React.createElement(App))));

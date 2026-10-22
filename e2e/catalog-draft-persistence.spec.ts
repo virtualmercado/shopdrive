@@ -83,6 +83,7 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
   await backRegion.getByRole("radio",{name:"Padrão",exact:true}).isChecked().then(value=>expect(value).toBe(true));
   await backRegion.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
   await expect(page.getByRole("img",{name:"Contracapa personalizada",exact:true})).toHaveJSProperty("naturalWidth",1);
+  await expect(page.getByRole("status")).toContainText("Alterações salvas");
   // Inactive fields are retained as raw saved intent, even when their UI is hidden.
   s.config={...uploaded,instEnabled:true,instTitle:"Nossa oficina",instText:"Texto institucional preservado",comEnabled:true,com:{...uploaded.com,payment:"PIX de teste"},featEnabled:true,featured:["fixture-store-b-p000"],typography:{title:{fontFamily:"lato",fontWeight:700,color:"#135790"}}};s.draft_revision++;
   await page.reload();
@@ -148,7 +149,7 @@ test("identity change between publication requests stops before upload and confi
   s.changeIdentityOnPublish=true;
   await page.getByRole("button",{name:"Publicar catálogo",exact:true}).click();
   await page.getByRole("button",{name:"Publicar",exact:true}).click();
-  await expect(page.getByText("Carregando configurações salvas…",{exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Configurar catálogo Editorial",exact:true})).not.toBeVisible();
   expect(s.publications).toBe(1);expect(s.published).toBe("A");
   expect([...s.files.keys()].some(path=>path.startsWith("public/"))).toBe(false);
 });
