@@ -74,6 +74,15 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
   expect(uploaded.backImage).toContain("/fixture-store-b/catalog-backcovers/");
   expect(uploaded.coverImage).not.toMatch(/^(blob:|data:)/);
   expect(s.files.size).toBe(2);
+  const backRegion = page.getByRole("region", {name:"Contracapa",exact:true});
+  await backRegion.getByRole("radio",{name:"Padrão",exact:true}).click();
+  await expect(page.getByRole("status")).toContainText("Alterações salvas");
+  expect(parseDraftConfig(s.config,1).backImage).toBe(uploaded.backImage);
+  await page.reload();
+  await page.getByRole("button",{name:"Contracapa",exact:true}).click();
+  await backRegion.getByRole("radio",{name:"Padrão",exact:true}).isChecked().then(value=>expect(value).toBe(true));
+  await backRegion.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Contracapa personalizada",exact:true})).toHaveJSProperty("naturalWidth",1);
   // Inactive fields are retained as raw saved intent, even when their UI is hidden.
   s.config={...uploaded,instEnabled:true,instTitle:"Nossa oficina",instText:"Texto institucional preservado",comEnabled:true,com:{...uploaded.com,payment:"PIX de teste"},featEnabled:true,featured:["fixture-store-b-p000"],typography:{title:{fontFamily:"lato",fontWeight:700,color:"#135790"}}};s.draft_revision++;
   await page.reload();
@@ -104,6 +113,44 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
   await expect(page.getByText("Publicado. O link da sua loja já abre este catálogo:",{exact:true})).toBeVisible();
   expect(s.published).toBe("B");
   await page.getByRole("heading",{name:"7. Pré-visualização"}).locator("../..").screenshot({path:"/tmp/browser/catalog-persistence/mobile-edit-publish.png"});
+});
+
+test("browser Back and programmatic navigation wait for saves, block failure and recover without losing edits",async({page,context})=>{
+  const s=await installDraftFixture(context);s.count=4;
+  await page.goto("http://localhost:8080/__catalog-draft-test/other");
+  await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
+  await page.getByRole("button",{name:"2. Capa e identidade",exact:true}).click();
+  s.failSave=true;
+  await page.locator("#ed-title").fill("Back preservado");
+  await page.evaluate(()=>window.history.back());
+  await expect(page.getByRole("status")).toContainText("Não foi possível salvar");
+  await expect(page).toHaveURL("http://localhost:8080/__catalog-draft-test");
+  await expect(page.locator("#ed-title")).toHaveValue("Back preservado");
+  await page.getByRole("button",{name:"Saída programática",exact:true}).click();
+  await expect(page.locator("#ed-title")).toHaveValue("Back preservado");
+  s.failSave=false;
+  await page.getByRole("button",{name:"Saída programática",exact:true}).click();
+  await expect(page.getByText("Outro menu aberto",{exact:true})).toBeVisible();
+  expect(parseDraftConfig(s.config,1).title).toBe("Back preservado");
+  await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
+  await page.getByRole("button",{name:"2. Capa e identidade",exact:true}).click();
+  await page.locator("#ed-title").fill("Back salvo");
+  await page.evaluate(()=>window.history.back());
+  await expect(page.getByText("Outro menu aberto",{exact:true})).toBeVisible();
+  expect(parseDraftConfig(s.config,1).title).toBe("Back salvo");
+});
+
+test("identity change between publication requests stops before upload and confirmation",async({page,context})=>{
+  const s=await installDraftFixture(context);s.count=4;
+  await page.goto("http://localhost:8080/__catalog-draft-test");
+  await page.getByRole("button",{name:"Gerar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toBeVisible();
+  s.changeIdentityOnPublish=true;
+  await page.getByRole("button",{name:"Publicar catálogo",exact:true}).click();
+  await page.getByRole("button",{name:"Publicar",exact:true}).click();
+  await expect(page.getByText("Carregando configurações salvas…",{exact:true})).toBeVisible();
+  expect(s.publications).toBe(1);expect(s.published).toBe("A");
+  expect([...s.files.keys()].some(path=>path.startsWith("public/"))).toBe(false);
 });
 
 test("explicit refresh uses changed prices, paused/deleted products and new all-mode products without changing manual intent",async({page,context})=>{

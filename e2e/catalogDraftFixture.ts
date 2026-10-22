@@ -12,7 +12,7 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
     const js = (body: string) => route.fulfill({ contentType: "application/javascript", body });
     if (url.pathname === "/__draft-api") {
       const { name, args } = route.request().postDataJSON();
-      const response = (data: unknown, error: unknown = null) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ data, error }) });
+      const response = (data: unknown, error: unknown = null, changeIdentity = false) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ data, error, changeIdentity }) });
       if (name === "get_my_catalog_draft") return response(record());
       if (name === "save_my_catalog_draft") {
         if (state.failSave) return response(null, { message: "controlled offline" });
@@ -32,7 +32,7 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
         return response(record());
       }
       if (name === "discard_my_catalog_preview") { pending = null; return response(null); }
-      if (name === "begin_editorial_catalog_publication") { state.publications++; return response({ publication_id: "publish-1", storage_path: "public/publish-1.pdf", status: "pending" }); }
+      if (name === "begin_editorial_catalog_publication") { state.publications++; return response({ publication_id: "publish-1", storage_path: "public/publish-1.pdf", status: "pending" },null,state.changeIdentityOnPublish); }
       if (name === "publish_editorial_catalog") { if (state.failPublish) return response(null, {message:"controlled publication failure"}); state.published = "B"; return response({ status: "published", share_code: "fixtureabcdefgh" }); }
       throw new Error(`unhandled fixture RPC ${name}`);
     }
@@ -64,22 +64,23 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
           return renderUnderlyingPreview(bytes,opts);
         }`});
     }
-    if (url.pathname === "/__catalog-draft-test") return route.fulfill({ contentType: "text/html", body: `
+    if (url.pathname.startsWith("/__catalog-draft-test")) return route.fulfill({ contentType: "text/html", body: `
       <html><head><meta charset="UTF-8"></head><body style="margin:0"><div id="root"></div>
       <script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;</script>
       <script type="module">
         import React from '/node_modules/.vite/deps/react.js';import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
+        import {BrowserRouter,Link,useLocation,useNavigate} from '/node_modules/.vite/deps/react-router-dom.js';
         import {TooltipProvider} from '/src/components/ui/tooltip.tsx';import C from '/src/components/catalog/editorial/EditorialCatalogConfigurator.tsx';import '/src/index.css';
-        function App(){const [show,setShow]=React.useState(true);return React.createElement(React.Fragment,null,React.createElement('a',{href:show?'#other':'#catalog',onClick:()=>setShow(!show)},show?'Outro menu':'Voltar ao catálogo'),show?React.createElement(C):React.createElement('p',null,'Outro menu aberto'));}
-        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(TooltipProvider,null,React.createElement(App)));
+        function App(){const show=!useLocation().pathname.endsWith('/other');const navigate=useNavigate();return React.createElement(React.Fragment,null,React.createElement(Link,{to:show?'/__catalog-draft-test/other':'/__catalog-draft-test'},show?'Outro menu':'Voltar ao catálogo'),show?React.createElement(React.Fragment,null,React.createElement('button',{onClick:()=>navigate('/__catalog-draft-test/other')},'Saída programática'),React.createElement(C)):React.createElement('p',null,'Outro menu aberto'));}
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter,null,React.createElement(TooltipProvider,null,React.createElement(App))));
       </script></body></html>` });
-    if (url.pathname === "/src/hooks/useAuth.tsx") return js(`const user={id:'fixture-store-b'};export const useAuth=()=>({user});`);
+    if (url.pathname === "/src/hooks/useAuth.tsx") return js(`import React from '/node_modules/.vite/deps/react.js';export const useAuth=()=>{const [user,setUser]=React.useState({id:'fixture-store-b'});React.useEffect(()=>{const fn=()=>setUser(undefined);window.addEventListener('fixture-identity-change',fn);return()=>window.removeEventListener('fixture-identity-change',fn);},[]);return {user};};`);
     if (url.pathname === "/src/lib/catalog-v2/catalogLoader.ts") {
       return js(`import {fixtureStoreB} from '/src/lib/catalog-v2/editorial/editorialFixtures.ts';export async function loadCatalogSource(){const d=await(await fetch('/__draft-source-load')).json();const s=fixtureStoreB(d.count);s.profile.store_logo_url=null;s.products.forEach((p,i)=>{p.image_url='/placeholder.svg';if(i===0){p.price=d.price;p.promotional_price=null;}if(d.paused.includes(i))p.is_active=false;});s.products=s.products.filter((p,i)=>!d.deleted.includes(i));return s;}`);
     }
     if (url.pathname === "/__draft-source-load") { state.sourceLoads++; return route.fulfill({contentType:"application/json",body:JSON.stringify({count:state.count,price:state.price,paused:state.paused,deleted:state.deleted})}); }
     if (url.pathname === "/src/integrations/supabase/client.ts") return js(`
-      const api=async(name,args)=>{const r=await fetch('/__draft-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,args})});return r.json();};
+      const api=async(name,args)=>{const r=await fetch('/__draft-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,args})});const result=await r.json();if(result.changeIdentity){window.dispatchEvent(new Event('fixture-identity-change'));await new Promise(resolve=>setTimeout(resolve,40));}return result;};
       const storage=async(operation,path,bytes)=>{const r=await fetch('/__draft-storage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation,path,bytes})});return r.json();};
       export const supabase={rpc:api,storage:{from:bucket=>({upload:async(path,blob)=>storage('upload',path,[...new Uint8Array(await blob.arrayBuffer())]),download:async(path)=>{const r=await storage('download',path);return {...r,data:r.data?new Blob([new Uint8Array(r.data)],{type:'application/pdf'}):null};},list:async()=>storage('list'),remove:async(paths)=>storage('remove',paths[0]),getPublicUrl:path=>({data:{publicUrl:'http://localhost:8080/storage/v1/object/public/'+bucket+'/'+path}})})}};
     `);
@@ -93,4 +94,5 @@ export interface DraftFixtureState {
   saves: number; generations: number; sourceLoads: number; failSave: boolean;
   failUpload: boolean; failPublish: boolean; published: string; publications: number;
   files: Map<string, number[]>; count: number; price: number; paused: number[]; deleted: number[];
+  changeIdentityOnPublish?: boolean;
 }
