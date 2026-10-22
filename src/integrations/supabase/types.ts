@@ -1107,6 +1107,7 @@ export type Database = {
           pending_draft_revision: number | null
           pending_preview_id: string | null
           pending_preview_path: string | null
+          pending_publication_baseline: Json | null
           pending_source_revision: number | null
           pending_started_at: string | null
           preview_draft_revision: number | null
@@ -1128,6 +1129,7 @@ export type Database = {
           pending_draft_revision?: number | null
           pending_preview_id?: string | null
           pending_preview_path?: string | null
+          pending_publication_baseline?: Json | null
           pending_source_revision?: number | null
           pending_started_at?: string | null
           preview_draft_revision?: number | null
@@ -1149,6 +1151,7 @@ export type Database = {
           pending_draft_revision?: number | null
           pending_preview_id?: string | null
           pending_preview_path?: string | null
+          pending_publication_baseline?: Json | null
           pending_source_revision?: number | null
           pending_started_at?: string | null
           preview_draft_revision?: number | null

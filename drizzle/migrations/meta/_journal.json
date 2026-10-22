@@ -372,6 +372,13 @@
       "when": 1792642572190,
       "tag": "0052_catalog_editorial_persistent_draft_private_preview",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792642902298,
+      "tag": "0053_catalog_editorial_preview_binding_hardening",
+      "breakpoints": true
     }
   ]
 }
