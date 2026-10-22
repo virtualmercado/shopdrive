@@ -379,6 +379,13 @@
       "when": 1792642902298,
       "tag": "0053_catalog_editorial_preview_binding_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792644312403,
+      "tag": "0054_catalog_editorial_draft_explicit_privileges",
+      "breakpoints": true
     }
   ]
 }
