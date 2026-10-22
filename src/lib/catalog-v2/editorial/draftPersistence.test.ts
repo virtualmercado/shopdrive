@@ -13,6 +13,16 @@ describe("persistent Editorial draft rules", () => {
   it("rejects unknown draft versions without resetting saved intent", () => {
     expect(() => parseDraftConfig({ title: "kept" }, 2)).toThrow("unsupported");
   });
+  it("keeps default-mode image references dormant without rendering or deleting them", () => {
+    const s = fixtureStoreB();
+    const c = parseDraftConfig({coverMode:"default",coverImage:"saved-cover",backMode:"default",backImage:"saved-back",instEnabled:true,instMode:"default",instImage:"saved-about",sectionImages:{[s.categories[0].id]:"saved-section"},sectionCustom:{[s.categories[0].id]:false}},1);
+    const doc = buildDraftDocument(s,c);
+    if (!doc) throw new Error("missing document");
+    const render = draftEditorialInput(doc,c);
+    expect(render.cover.imageUrl).toBeNull(); expect(render.backCover?.imageUrl).toBeNull(); expect(render.institutional?.imageUrl).toBeNull(); expect(render.sectionImages).toEqual({});
+    expect(c.coverImage).toBe("saved-cover"); expect(c.backImage).toBe("saved-back"); expect(c.instImage).toBe("saved-about");
+    expect(draftEditorialInput(doc,{...c,coverMode:"custom"}).cover.imageUrl).toBe("saved-cover");
+  });
   it("uses a 1000ms debounce within the requested 800–1500ms interval", () => {
     expect(DRAFT_SAVE_DEBOUNCE_MS).toBe(1000);
   });

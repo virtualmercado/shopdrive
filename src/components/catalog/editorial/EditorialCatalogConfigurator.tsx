@@ -138,7 +138,7 @@ const EditorialCatalogConfigurator = () => {
     finally { setBusy(false); }
   };
   const LOW_RES = "Esta imagem possui resolução baixa e poderá perder qualidade no PDF.";
-  const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverWarn(low ? LOW_RES : null); });
+  const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverMode("custom"); setCoverWarn(low ? LOW_RES : null); });
   const [showYear, setShowYear] = useState(true);
   const [showCount, setShowCount] = useState(true);
   const [typography, setTypography] = useState<CoverTypographyInput>({});
@@ -151,7 +151,7 @@ const EditorialCatalogConfigurator = () => {
   const [backUploading, setBackUploading] = useState(false);
   const [backWarn, setBackWarn] = useState<string | null>(null);
   const backInput = useRef<HTMLInputElement>(null);
-  const uploadBack = (file: File) => uploadEditorialImage(file, BACK_COVER_FOLDER, { w: 1240, h: 1754 }, setBackUploading, (url, low) => { setBackImage(url); setBackWarn(low ? LOW_RES : null); });
+  const uploadBack = (file: File) => uploadEditorialImage(file, BACK_COVER_FOLDER, { w: 1240, h: 1754 }, setBackUploading, (url, low) => { setBackImage(url); setBackMode("custom"); setBackWarn(low ? LOW_RES : null); });
   const [backTypography, setBackTypography] = useState<BackTypographyInput>({});
   const [backHexDraft, setBackHexDraft] = useState<Partial<Record<BackTextKey, string>>>({});
   const setBackTypo = (key: BackTextKey, patch: Partial<CoverTextStyle>) => setBackTypography((t) => ({ ...t, [key]: { ...t[key], ...patch } }));
@@ -165,12 +165,12 @@ const EditorialCatalogConfigurator = () => {
   const sectionInput = useRef<HTMLInputElement>(null);
   const sectionTarget = useRef<string | null>(null);
   const setSectionDefault = (sid: string) => {
-    setSectionImages((m) => { const n = { ...m }; delete n[sid]; return n; });
     setSectionCustom((m) => ({ ...m, [sid]: false }));
     setSectionWarn((m) => ({ ...m, [sid]: null }));
   };
   const uploadSection = (sid: string, file: File) => uploadEditorialImage(file, SECTION_FOLDER, SEC_MIN, (b) => setSectionBusy(b ? sid : null), (url, low) => {
     setSectionImages((m) => ({ ...m, [sid]: url }));
+    setSectionCustom((m) => ({ ...m, [sid]: true }));
     setSectionWarn((m) => ({ ...m, [sid]: low ? "Esta imagem possui resolução baixa e poderá perder qualidade no PDF." : null }));
   });
   const [showPrices, setShowPrices] = useState(true);
@@ -183,7 +183,7 @@ const EditorialCatalogConfigurator = () => {
   const [instUploading, setInstUploading] = useState(false);
   const [instWarn, setInstWarn] = useState<string | null>(null);
   const instInput = useRef<HTMLInputElement>(null);
-  const uploadInst = (file: File) => uploadEditorialImage(file, INSTITUTIONAL_FOLDER, INST_MIN, setInstUploading, (url, low) => { setInstImage(url); setInstWarn(low ? LOW_RES : null); });
+  const uploadInst = (file: File) => uploadEditorialImage(file, INSTITUTIONAL_FOLDER, INST_MIN, setInstUploading, (url, low) => { setInstImage(url); setInstMode("custom"); setInstWarn(low ? LOW_RES : null); });
   // Comercial
   const [comEnabled, setComEnabled] = useState(false);
   const [com, setCom] = useState({ title: "", intro: "", payment: "", delivery: "", minimumOrder: "", notes: "" });
@@ -243,6 +243,8 @@ const EditorialCatalogConfigurator = () => {
     restoredPreviewId.current = null;
   }, [user?.id]);
 
+  useEffect(() => () => { currentOwner.current = undefined; reqId.current++; renderId.current++; }, []);
+
   useEffect(() => {
     const metadata = persistence.record?.preview;
     if (!persistence.ready || !metadata || restoredPreviewId.current === metadata.id) return;
@@ -294,16 +296,8 @@ const EditorialCatalogConfigurator = () => {
 
   const editorialInput: EditorialConfigInput | null = useMemo(() => {
     if (!doc) return null;
-    return {
-      cover: { title, subtitle, imageUrl: coverImage || null, showYear, showCount, typography },
-      institutional: instEnabled ? { enabled: true, title: instTitle, text: instText, useStoreAbout: false, imageUrl: instImage || null } : undefined,
-      commercial: comEnabled ? { enabled: true, ...com } : undefined,
-      separators,
-      sectionImages: sectionImagesInDocument(doc, sectionImages),
-      featured: featEnabled ? { productIds: featuredInDocument(doc, featured), policy: featPolicy } : undefined,
-      backCover: { imageUrl: backImage || null, typography: backTypography },
-    };
-  }, [doc, title, subtitle, coverImage, showYear, showCount, typography, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy, backImage, backTypography]);
+    return draftEditorialInput(doc, draftConfig);
+  }, [doc, draftConfig]);
 
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
@@ -422,6 +416,8 @@ const EditorialCatalogConfigurator = () => {
 
   const publish = async () => {
     if (!bytes || stale || !baseline || !publishKey || publishing) return;
+    const owner = user?.id;
+    const assertCurrentOwner = () => { if (!owner || currentOwner.current !== owner) throw new Error("catalog identity changed"); };
     setConfirmOpen(false);
     setPublishing(true);
     setPublishError(null);
@@ -432,20 +428,24 @@ const EditorialCatalogConfigurator = () => {
       if (checked.stale || checked.preview?.id !== restoredPreviewId.current) { setPublishError("Há alterações desde a última prévia. Atualize a prévia antes de publicar."); return; }
       const outcome = await publishEditorialCatalog(bytes, publishKey, baseline.updatedAt, {
         begin: async (key, expected) => {
+          assertCurrentOwner();
           const { data, error } = await supabase.rpc("begin_editorial_catalog_publication", { _idempotency_key: key, _expected_updated_at: expected as string });
           if (error) throw error;
           return data as { publication_id: string; storage_path: string; status: string };
         },
         upload: async (path, b) => {
+          assertCurrentOwner();
           const { error } = await supabase.storage.from("product-images").upload(path, new Blob([b], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
           if (error) throw error;
         },
         publish: async (pid) => {
+          assertCurrentOwner();
           const { data, error } = await supabase.rpc("publish_editorial_catalog", { _publication_id: pid });
           if (error) throw error;
           return data as { status: string; share_code?: string | null; replayed?: boolean };
         },
-      }, (s) => setProgress(STEP_LABEL[s]));
+      }, (s) => { if (currentOwner.current === owner) setProgress(STEP_LABEL[s]); });
+      assertCurrentOwner();
       if ("shareCode" in outcome) {
         const url = buildCanonicalCatalogUrl(outcome.shareCode);
         setPublishedUrl(url);
@@ -457,6 +457,7 @@ const EditorialCatalogConfigurator = () => {
       }
     } catch {
       console.warn("[CatalogPublication] confirmation failed");
+      if (currentOwner.current !== owner) return;
       setPublishError("Não foi possível confirmar a publicação. O catálogo público anterior foi preservado.");
     } finally {
       setPublishing(false);
@@ -544,11 +545,11 @@ const EditorialCatalogConfigurator = () => {
                 </div>
                 <div className="space-y-1">
                   <Label>Imagem da capa</Label>
-                  <RadioGroup value={coverImage ? "custom" : coverMode} onValueChange={(v) => { if (v === "default") { setCoverImage(""); setCoverWarn(null); } setCoverMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                  <RadioGroup value={coverMode} onValueChange={(v) => setCoverMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                   </RadioGroup>
-                  {(coverImage ? "custom" : coverMode) === "default" ? (
+                  {coverMode === "default" ? (
                     <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja centralizada.</p>
                   ) : (
                     <div className="space-y-2">
@@ -634,11 +635,11 @@ const EditorialCatalogConfigurator = () => {
                 <p className="text-xs text-muted-foreground">Logo, nome, contatos (WhatsApp, loja online, e-mail e endereço cadastrados) e QR Code da sua loja ficam sempre nas mesmas posições.</p>
                 <div className="space-y-1">
                   <Label>Fundo da contracapa</Label>
-                  <RadioGroup value={backImage ? "custom" : backMode} onValueChange={(v) => { if (v === "default") { setBackImage(""); setBackWarn(null); } setBackMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                  <RadioGroup value={backMode} onValueChange={(v) => setBackMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                   </RadioGroup>
-                  {(backImage ? "custom" : backMode) === "default" ? (
+                  {backMode === "default" ? (
                     <p className="text-xs text-muted-foreground">Fundo branco com detalhes discretos na cor da loja.</p>
                   ) : (
                     <div className="space-y-2">
@@ -746,7 +747,7 @@ const EditorialCatalogConfigurator = () => {
                           <input ref={sectionInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; const sid = sectionTarget.current; if (f && sid) void uploadSection(sid, f); }} />
                           {full.map((s) => {
                             const url = sectionImages[s.id] ?? "";
-                            const custom = !!url || !!sectionCustom[s.id];
+                            const custom = sectionCustom[s.id] ?? !!url;
                             const busy = sectionBusy === s.id;
                             const pick = () => { sectionTarget.current = s.id; sectionInput.current?.click(); };
                             return (
@@ -763,7 +764,7 @@ const EditorialCatalogConfigurator = () => {
                                     <img src={url} alt={`Imagem da seção ${s.title}`} className="h-16 object-cover rounded-md border border-border" style={{ aspectRatio: `${SEPARATOR_BAND.w}/${SEPARATOR_BAND.h}` }} />
                                     <div className="flex flex-col gap-2">
                                       <Button type="button" size="sm" variant="outline" disabled={busy} onClick={pick}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Trocar imagem</Button>
-                                      <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setSectionDefault(s.id)}>Remover imagem</Button>
+                                      <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setSectionImages((m) => { const next = { ...m }; delete next[s.id]; return next; }); setSectionDefault(s.id); }}>Remover imagem</Button>
                                     </div>
                                   </div>
                                 ) : (
@@ -818,11 +819,11 @@ const EditorialCatalogConfigurator = () => {
                     </div>
                     <div className="space-y-1">
                       <Label>Imagem da apresentação</Label>
-                      <RadioGroup value={instImage ? "custom" : instMode} onValueChange={(v) => { if (v === "default") { setInstImage(""); setInstWarn(null); } setInstMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                      <RadioGroup value={instMode} onValueChange={(v) => setInstMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                         <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                         <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                       </RadioGroup>
-                      {(instImage ? "custom" : instMode) === "default" ? (
+                      {instMode === "default" ? (
                         <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja discreta no canto superior esquerdo.</p>
                       ) : (
                         <div className="space-y-2">

@@ -97,11 +97,11 @@ export function buildDraftDocument(source: CatalogSource, config: CatalogDraftCo
 
 export function draftEditorialInput(doc: NonNullable<ReturnType<typeof buildDraftDocument>>, c: CatalogDraftConfig): EditorialConfigInput {
   return {
-    cover: { title: c.title, subtitle: c.subtitle, imageUrl: c.coverImage || null, showYear: c.showYear, showCount: c.showCount, typography: c.typography as CoverTypographyInput },
-    institutional: c.instEnabled ? { enabled: true, title: c.instTitle, text: c.instText, useStoreAbout: false, imageUrl: c.instImage || null } : undefined,
+    cover: { title: c.title, subtitle: c.subtitle, imageUrl: c.coverMode === "custom" ? c.coverImage || null : null, showYear: c.showYear, showCount: c.showCount, typography: c.typography as CoverTypographyInput },
+    institutional: c.instEnabled ? { enabled: true, title: c.instTitle, text: c.instText, useStoreAbout: false, imageUrl: c.instMode === "custom" ? c.instImage || null : null } : undefined,
     commercial: c.comEnabled ? { enabled: true, ...c.com } : undefined,
-    separators: c.separators, sectionImages: sectionImagesInDocument(doc, c.sectionImages),
+    separators: c.separators, sectionImages: sectionImagesInDocument(doc, Object.fromEntries(Object.entries(c.sectionImages).filter(([id]) => c.sectionCustom[id] !== false))),
     featured: c.featEnabled ? { productIds: featuredInDocument(doc, c.featured), policy: c.featPolicy } : undefined,
-    backCover: { imageUrl: c.backImage || null, typography: c.backTypography as BackTypographyInput },
+    backCover: { imageUrl: c.backMode === "custom" ? c.backImage || null : null, typography: c.backTypography as BackTypographyInput },
   };
 }
