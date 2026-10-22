@@ -38,16 +38,21 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
   expect(s.generations).toBe(1); expect(s.published).toBe("A");
   s.failUpload = false;
+  s.failPublish = true;
+  await page.getByRole("button", { name: "Publicar catálogo", exact: true }).click();
+  await page.getByRole("button", { name: "Publicar", exact: true }).click();
+  await expect(page.getByText("Não foi possível confirmar a publicação.", { exact: false })).toBeVisible();
+  expect(s.published).toBe("A");
+  s.failPublish = false;
   await page.getByRole("button", { name: "Publicar catálogo", exact: true }).click();
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(page.getByText("Publicado. O link da sua loja já abre este catálogo:", { exact: true })).toBeVisible();
-  expect(s.published).toBe("B"); expect(s.publications).toBe(1); expect(errors).toEqual([]);
+  expect(s.published).toBe("B"); expect(s.publications).toBe(2); expect(errors).toEqual([]);
   await page.getByRole("heading", { name: "7. Pré-visualização" }).locator("../..").screenshot({ path: "/tmp/browser/catalog-persistence/desktop.png" });
 });
 
 async function installDraftFixtureShared(context: import("@playwright/test").BrowserContext, source: Awaited<ReturnType<typeof installDraftFixture>>) {
-  const remote = await installDraftFixture(context);
-  Object.assign(remote, source);
+  await installDraftFixture(context, source);
   const page = await context.newPage();
   await page.goto("http://localhost:8080/__catalog-draft-test");
   await expect(page.locator("canvas")).toHaveAttribute("aria-label", "Página 1 de 74");
@@ -76,4 +81,9 @@ test("save failure keeps local edit and preview; retry saves; concurrent revisio
   await expect(page.getByRole("status")).toContainText("outra aba");
   expect((s.config as { title: string }).title).toBe("Local preservado");
   await expect(page.locator("#ed-title")).toHaveValue("Conflito preservado");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", {name:"Carregar rascunho salvo",exact:true}).click();
+  await page.getByRole("button", {name:"2. Capa e identidade",exact:true}).click();
+  await expect(page.locator("#ed-title")).toHaveValue("Local preservado");
+  await expect(page.getByRole("status")).toContainText("Alterações salvas");
 });
