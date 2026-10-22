@@ -1098,6 +1098,94 @@ export type Database = {
           },
         ]
       }
+      catalog_editorial_drafts: {
+        Row: {
+          config: Json | null
+          created_at: string
+          draft_revision: number
+          draft_updated_at: string | null
+          pending_draft_revision: number | null
+          pending_preview_id: string | null
+          pending_preview_path: string | null
+          pending_source_revision: number | null
+          pending_started_at: string | null
+          preview_draft_revision: number | null
+          preview_generated_at: string | null
+          preview_id: string | null
+          preview_page_count: number | null
+          preview_path: string | null
+          preview_publication_baseline: Json | null
+          preview_source_revision: number | null
+          schema_version: number
+          source_revision: number
+          store_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          draft_revision?: number
+          draft_updated_at?: string | null
+          pending_draft_revision?: number | null
+          pending_preview_id?: string | null
+          pending_preview_path?: string | null
+          pending_source_revision?: number | null
+          pending_started_at?: string | null
+          preview_draft_revision?: number | null
+          preview_generated_at?: string | null
+          preview_id?: string | null
+          preview_page_count?: number | null
+          preview_path?: string | null
+          preview_publication_baseline?: Json | null
+          preview_source_revision?: number | null
+          schema_version?: number
+          source_revision?: number
+          store_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          draft_revision?: number
+          draft_updated_at?: string | null
+          pending_draft_revision?: number | null
+          pending_preview_id?: string | null
+          pending_preview_path?: string | null
+          pending_source_revision?: number | null
+          pending_started_at?: string | null
+          preview_draft_revision?: number | null
+          preview_generated_at?: string | null
+          preview_id?: string | null
+          preview_page_count?: number | null
+          preview_path?: string | null
+          preview_publication_baseline?: Json | null
+          preview_source_revision?: number | null
+          schema_version?: number
+          source_revision?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_editorial_drafts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_editorial_drafts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_editorial_drafts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_pdf_clicks: {
         Row: {
           created_at: string
@@ -7727,6 +7815,10 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_catalog_draft_config: {
+        Args: { _config: Json; _uid: string }
+        Returns: undefined
+      }
       _assert_email_campaign_content: {
         Args: {
           p_content: string
@@ -7786,6 +7878,7 @@ export type Database = {
         }[]
       }
       _bnr_eligibility: { Args: { p_brand_account_id: string }; Returns: Json }
+      _bump_catalog_source: { Args: { _store: string }; Returns: undefined }
       _campaign_has_activity: { Args: { p_id: string }; Returns: boolean }
       _campaign_has_pending: { Args: { p_id: string }; Returns: boolean }
       _campaign_image_display_width: {
@@ -7825,7 +7918,12 @@ export type Database = {
           store_name: string
         }[]
       }
+      _catalog_draft_json: { Args: { _store: string }; Returns: Json }
       _catalog_editorial_allowed: { Args: { _uid: string }; Returns: boolean }
+      _catalog_preview_file_allowed: {
+        Args: { _operation: string; _path: string }
+        Returns: boolean
+      }
       _custom_domain_access_state: { Args: { p_store: string }; Returns: Json }
       _disconnect_custom_domain: {
         Args: { p_domain_id: string; p_source: string }
@@ -8141,6 +8239,10 @@ export type Database = {
         Args: { _expected_updated_at: string; _idempotency_key: string }
         Returns: Json
       }
+      begin_my_catalog_preview: {
+        Args: { _expected_revision: number }
+        Returns: Json
+      }
       bind_marca_upgrade_target: {
         Args: { p_subscription_id: string; p_upgrade_id: string }
         Returns: boolean
@@ -8230,6 +8332,14 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
       }
+      complete_my_catalog_preview: {
+        Args: {
+          _page_count: number
+          _preview_id: string
+          _publication_baseline: Json
+        }
+        Returns: Json
+      }
       compute_brand_network_metrics: {
         Args: {
           p_bucket?: string
@@ -8303,6 +8413,10 @@ export type Database = {
           p_template_id?: string
         }
         Returns: boolean
+      }
+      discard_my_catalog_preview: {
+        Args: { _preview_id: string }
+        Returns: undefined
       }
       disconnect_custom_domain: { Args: never; Returns: Json }
       enqueue_brand_network_report: {
@@ -8425,6 +8539,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_my_catalog_draft: { Args: never; Returns: Json }
       get_my_catalog_editorial_access: { Args: never; Returns: boolean }
       get_my_current_catalog_state: { Args: never; Returns: Json }
       get_my_custom_domain_v2: { Args: never; Returns: Json }
@@ -8662,6 +8777,14 @@ export type Database = {
       restore_order_variant_stock: {
         Args: { p_order_id: string; p_reason: string }
         Returns: number
+      }
+      save_my_catalog_draft: {
+        Args: {
+          _config: Json
+          _expected_revision: number
+          _schema_version: number
+        }
+        Returns: Json
       }
       save_product_variant_matrix: {
         Args: {
