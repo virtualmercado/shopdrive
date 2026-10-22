@@ -41,7 +41,7 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   s.failPublish = true;
   await page.getByRole("button", { name: "Publicar catálogo", exact: true }).click();
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
-  await expect(page.getByText("Não foi possível confirmar a publicação.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Não foi possível publicar. O catálogo atual continua o mesmo. Tente novamente.", { exact: true })).toBeVisible();
   expect(s.published).toBe("A");
   s.failPublish = false;
   await page.getByRole("button", { name: "Publicar catálogo", exact: true }).click();

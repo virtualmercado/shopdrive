@@ -55,6 +55,15 @@ export async function installDraftFixture(context: BrowserContext, shared?: Draf
       const body = (await response.text()).replace('return u.replace(/\\/+$/, "");', 'return "http://localhost:8080";');
       return route.fulfill({response,body});
     }
+    if (url.pathname === "/src/lib/catalog-v2/editorial/pdfPreview.ts") {
+      const response = await route.fetch();
+      const body = (await response.text()).replace("function renderPdfPreview(", "function renderUnderlyingPreview(");
+      return route.fulfill({response,body:body+`
+        export async function renderPdfPreview(bytes,opts){
+          window.readCatalogText=async()=>{const pdfjs=await import('/node_modules/.vite/deps/pdfjs-dist.js');const pdf=await pdfjs.getDocument({data:new Uint8Array(bytes.slice(0)),isEvalSupported:false}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);text+=(await p.getTextContent()).items.map(x=>x.str).join(' ');p.cleanup();}await pdf.destroy();return text;};
+          return renderUnderlyingPreview(bytes,opts);
+        }`});
+    }
     if (url.pathname === "/__catalog-draft-test") return route.fulfill({ contentType: "text/html", body: `
       <html><head><meta charset="UTF-8"></head><body style="margin:0"><div id="root"></div>
       <script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;</script>
