@@ -14,11 +14,11 @@ test.beforeEach(async ({ page }) => {
         <html><body style="margin:0"><div id="root"></div>
         <script type="module">
           import React from '/node_modules/.vite/deps/react.js';
-          import {createRoot} from '/node_modules/.vite/deps/react-dom_client.js';
+          import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
           import {TooltipProvider} from '/src/components/ui/tooltip.tsx';
           import Configurator from '/src/components/catalog/editorial/EditorialCatalogConfigurator.tsx';
           import '/src/index.css';
-          createRoot(document.getElementById('root')).render(
+          ReactDOM.createRoot(document.getElementById('root')).render(
             React.createElement(TooltipProvider, null, React.createElement(Configurator))
           );
         </script></body></html>` });
@@ -54,6 +54,17 @@ test.beforeEach(async ({ page }) => {
       ` });
       return;
     }
+    if (url.pathname === "/src/lib/catalog-v2/editorial/pdfPreview.ts") {
+      const response = await route.fetch();
+      const body = (await response.text()).replace("function renderPdfPreview(", "function renderUnderlyingPreview(");
+      await route.fulfill({ response, body: body + `
+        export async function renderPdfPreview(bytes, opts) {
+          (window.catalogRenderedPages ??= []).push(opts.pages);
+          return renderUnderlyingPreview(bytes, opts);
+        }
+      ` });
+      return;
+    }
     await route.continue();
   });
 });
@@ -70,10 +81,12 @@ test("jumps 1 → 74 and 5 → 74; returns, zooms, downloads and uses a regenera
   await expect(last).toHaveCount(0);
   await page.getByRole("button", { name: "Gerar prévia", exact: true }).click();
   await canvasPage(page, 1, 74);
+  await page.evaluate("window.catalogRenderedPages = []");
   await last.focus();
   await expect(page.getByRole("tooltip")).toContainText("Ir para a última página");
   await page.keyboard.press("Enter");
   await canvasPage(page, 74, 74);
+  expect(await page.evaluate("window.catalogRenderedPages")).toEqual([[74]]);
   await expect(last).toBeDisabled();
   await expect(page.getByRole("button", { name: "Próxima página", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Página anterior", exact: true }).click();
