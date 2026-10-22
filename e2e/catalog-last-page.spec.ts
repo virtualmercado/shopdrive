@@ -33,7 +33,8 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname === "/src/hooks/useAuth.tsx") {
       await route.fulfill({ contentType: "application/javascript", body: `
-        export const useAuth = () => ({user:{id:'fixture-store-b'}});
+        const user = {id:'fixture-store-b'};
+        export const useAuth = () => ({user});
       ` });
       return;
     }
