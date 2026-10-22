@@ -354,6 +354,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const handleLogout = async () => {
+    const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave");
+    if (!await flushCatalogBeforeLeave()) return;
     if (isTemplateEditorMode) {
       await handleExitTemplateMode();
     } else {
@@ -417,13 +419,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               return (
                 <Link
                   key={item.path}
+                  data-catalog-save-handled="true"
                   to={getNavPath(item.path)}
-                  onClick={(e) => {
+                  onClick={async (e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                     if (mobileNavLocked) {
                       e.preventDefault();
                       return;
                     }
                     e.preventDefault();
+                    const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave");
+                    if (!await flushCatalogBeforeLeave()) return;
                     setMobileNavLocked(true);
 
                     if (window.innerWidth < 768) {

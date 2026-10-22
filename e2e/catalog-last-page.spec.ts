@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 // Mount the real configurator and PDF engines with fictitious local data only.
-// No account credentials, backend requests, uploads or publication are allowed.
+// No account credentials, real backend requests, uploads or publication are allowed.
 test.beforeEach(async ({ page }) => {
+  page.on("pageerror", (error) => console.error("Navigation fixture:", error.message));
+  page.on("console", (message) => { if (message.type() === "error") console.error("Navigation fixture:", message.text()); });
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.origin !== "http://localhost:8080") {
@@ -11,7 +13,7 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname === "/__catalog-navigation-test") {
       await route.fulfill({ contentType: "text/html", body: `
-        <html><body style="margin:0"><div id="root"></div>
+        <html><head><meta charset="UTF-8"></head><body style="margin:0"><div id="root"></div>
         <script type="module">
           import RefreshRuntime from '/@react-refresh';
           RefreshRuntime.injectIntoGlobalHook(window);
@@ -53,14 +55,29 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname === "/src/integrations/supabase/client.ts") {
       await route.fulfill({ contentType: "application/javascript", body: `
+        let seq=0,pending=null;
         export const supabase = {
-          rpc: async name => {
-            if (name !== 'get_my_current_catalog_state') throw new Error('Test forbids writes');
-            return {data:{updated_at:null,has_current:false},error:null};
+          rpc: async (name,args) => {
+            if(name==='begin_my_catalog_preview'){pending={id:'local-'+(++seq),path:'fixture-store-b/local-'+seq+'.pdf',publication_baseline:{updatedAt:null,hasCurrent:false}};return {data:pending,error:null};}
+            if(name==='complete_my_catalog_preview')return {data:{preview:{...pending,page_count:args._page_count,generated_at:new Date().toISOString()},stale:false},error:null};
+            if(name==='discard_my_catalog_preview')return {data:null,error:null};
+            throw new Error('Test forbids production/publication calls');
           },
-          storage: {from: () => {throw new Error('Test forbids uploads');}}
+          storage: {from: () => ({upload:async()=>({error:null}),list:async()=>({data:[]}),remove:async()=>({error:null})})}
         };
       ` });
+      return;
+    }
+    if (url.pathname === "/src/components/catalog/editorial/useCatalogDraftPersistence.ts") {
+      // Navigation regression tests isolate persistence; dedicated persistence
+      // tests below exercise the real hook with a local per-store server double.
+      await route.fulfill({ contentType: "application/javascript", body: `
+        import React from '/node_modules/.vite/deps/react.js';
+        export function useCatalogDraftPersistence(storeId, config) {
+          const [record,setRecord]=React.useState(null);
+          const result=()=>({config,draft_revision:0,source_revision:0,preview:record?.preview??null,stale:false});
+          return {ready:true,record,status:'saved',loadError:false,flush:async()=>true,checkCurrent:async()=>result(),getRevision:()=>0,setRecord,retryLoad:()=>{}};
+        }` });
       return;
     }
     if (url.pathname === "/src/lib/catalog-v2/editorial/pdfPreview.ts") {

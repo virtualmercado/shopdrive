@@ -365,6 +365,27 @@
       "when": 1792432718933,
       "tag": "0051_custom_domains_v2_log_types",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792642572190,
+      "tag": "0052_catalog_editorial_persistent_draft_private_preview",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792642902298,
+      "tag": "0053_catalog_editorial_preview_binding_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792644312403,
+      "tag": "0054_catalog_editorial_draft_explicit_privileges",
+      "breakpoints": true
     }
   ]
 }

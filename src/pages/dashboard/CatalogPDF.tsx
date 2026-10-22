@@ -108,8 +108,17 @@ const CatalogPDF = () => {
   // Fase 5A: modalidade (Clássico padrão). Editorial só com acesso autorizado no servidor.
   const { allowed: editorialAllowed } = useEditorialCatalogAccess();
   const [catalogMode, setCatalogMode] = useState<"classic" | "editorial">("classic");
-  const [editorialMounted, setEditorialMounted] = useState(false);
+  const chosenModeOwner = useRef<string | undefined>();
   const isEditorial = editorialAllowed && catalogMode === "editorial";
+  useEffect(() => {
+    if (!editorialAllowed || !user) return;
+    let active = true;
+    void supabase.rpc("get_my_catalog_draft").then(({ data, error }) => {
+      if (!active || error || !data) return;
+      if (chosenModeOwner.current !== user.id && (data as { config?: unknown }).config) setCatalogMode("editorial");
+    });
+    return () => { active = false; };
+  }, [editorialAllowed, user?.id]);
   useEffect(() => {
     if (user) {
       fetchData();
@@ -1627,7 +1636,7 @@ const CatalogPDF = () => {
               ["editorial", "Personalizado", "Catálogo profissional com páginas personalizadas, apresentação da loja e produtos organizados."],
             ] as const).map(([value, label, desc]) => (
               <button key={value} type="button" role="radio" aria-checked={catalogMode === value}
-                onClick={() => { setCatalogMode(value); if (value === "editorial") setEditorialMounted(true); }}
+                onClick={async () => { if (value === "classic") { const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave"); if (!await flushCatalogBeforeLeave()) return; } chosenModeOwner.current = user?.id; setCatalogMode(value); }}
                 className={`text-left rounded-lg border p-4 transition-colors ${catalogMode === value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
                 <p className="font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground mt-1">{desc}</p>
@@ -1636,9 +1645,9 @@ const CatalogPDF = () => {
           </div>
         )}
 
-        {editorialAllowed && editorialMounted && !pdfGenerated && (
-          <div className={isEditorial ? "" : "hidden"}>
-            <EditorialCatalogConfigurator />
+        {isEditorial && !pdfGenerated && (
+          <div>
+            <EditorialCatalogConfigurator key={user?.id} />
           </div>
         )}
 

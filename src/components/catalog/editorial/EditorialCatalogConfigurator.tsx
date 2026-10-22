@@ -46,10 +46,12 @@ import {
   productsWithoutImage,
   type PublishStep,
 } from "@/lib/catalog-v2/editorial";
-import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
+import { featuredInDocument, sectionImagesInDocument, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
 import { BACK_TEXT_ELEMENTS, COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type BackTextKey, type BackTypographyInput, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
 import { SEPARATOR_BAND } from "@/lib/catalog-v2/editorial/renderSeparator";
+import { buildDraftDocument, draftConfigKey, draftEditorialInput, effectiveDraftSelection, parseDraftConfig, PREVIEW_BUCKET, type CatalogDraftConfig, type CatalogDraftRecord, type PreviewReservation } from "@/lib/catalog-v2/editorial/draftConfig";
+import { useCatalogDraftPersistence } from "./useCatalogDraftPersistence";
 
 // Recomendação derivada da faixa real do renderer (mm → px).
 const mmToPx = (mm: number, dpi: number) => Math.round((mm / 25.4) * dpi);
@@ -113,6 +115,7 @@ const EditorialCatalogConfigurator = () => {
   /** Upload compartilhado (capa e apresentação): mesma validação, bucket e pasta isolada por loja. */
   const uploadEditorialImage = async (file: File, folder: EditorialUploadFolder, min: { w: number; h: number }, setBusy: (b: boolean) => void, onDone: (url: string, lowRes: boolean) => void) => {
     if (!user) return;
+    const owner = user.id;
     const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[file.type];
     if (!ext) { toast.error("Formato não permitido. Use JPG, PNG ou WebP."); return; }
     if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo excede o limite de 10 MB."); return; }
@@ -123,17 +126,19 @@ const EditorialCatalogConfigurator = () => {
       im.src = u;
     });
     if (!dims || !dims.w || !dims.h) { toast.error("Arquivo de imagem inválido."); return; }
+    if (currentOwner.current !== owner) return;
     setBusy(true);
     try {
       const path = coverStoragePath(user.id, ext, folder);
       const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
+      if (currentOwner.current !== owner) return;
       onDone(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl, dims.w < min.w || dims.h < min.h);
     } catch { toast.error("Não foi possível enviar a imagem. Tente novamente."); }
     finally { setBusy(false); }
   };
   const LOW_RES = "Esta imagem possui resolução baixa e poderá perder qualidade no PDF.";
-  const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverWarn(low ? LOW_RES : null); });
+  const uploadCover = (file: File) => uploadEditorialImage(file, COVER_FOLDER, { w: 1240, h: 1754 }, setCoverUploading, (url, low) => { setCoverImage(url); setCoverMode("custom"); setCoverWarn(low ? LOW_RES : null); });
   const [showYear, setShowYear] = useState(true);
   const [showCount, setShowCount] = useState(true);
   const [typography, setTypography] = useState<CoverTypographyInput>({});
@@ -146,7 +151,7 @@ const EditorialCatalogConfigurator = () => {
   const [backUploading, setBackUploading] = useState(false);
   const [backWarn, setBackWarn] = useState<string | null>(null);
   const backInput = useRef<HTMLInputElement>(null);
-  const uploadBack = (file: File) => uploadEditorialImage(file, BACK_COVER_FOLDER, { w: 1240, h: 1754 }, setBackUploading, (url, low) => { setBackImage(url); setBackWarn(low ? LOW_RES : null); });
+  const uploadBack = (file: File) => uploadEditorialImage(file, BACK_COVER_FOLDER, { w: 1240, h: 1754 }, setBackUploading, (url, low) => { setBackImage(url); setBackMode("custom"); setBackWarn(low ? LOW_RES : null); });
   const [backTypography, setBackTypography] = useState<BackTypographyInput>({});
   const [backHexDraft, setBackHexDraft] = useState<Partial<Record<BackTextKey, string>>>({});
   const setBackTypo = (key: BackTextKey, patch: Partial<CoverTextStyle>) => setBackTypography((t) => ({ ...t, [key]: { ...t[key], ...patch } }));
@@ -160,12 +165,12 @@ const EditorialCatalogConfigurator = () => {
   const sectionInput = useRef<HTMLInputElement>(null);
   const sectionTarget = useRef<string | null>(null);
   const setSectionDefault = (sid: string) => {
-    setSectionImages((m) => { const n = { ...m }; delete n[sid]; return n; });
     setSectionCustom((m) => ({ ...m, [sid]: false }));
     setSectionWarn((m) => ({ ...m, [sid]: null }));
   };
   const uploadSection = (sid: string, file: File) => uploadEditorialImage(file, SECTION_FOLDER, SEC_MIN, (b) => setSectionBusy(b ? sid : null), (url, low) => {
     setSectionImages((m) => ({ ...m, [sid]: url }));
+    setSectionCustom((m) => ({ ...m, [sid]: true }));
     setSectionWarn((m) => ({ ...m, [sid]: low ? "Esta imagem possui resolução baixa e poderá perder qualidade no PDF." : null }));
   });
   const [showPrices, setShowPrices] = useState(true);
@@ -178,7 +183,7 @@ const EditorialCatalogConfigurator = () => {
   const [instUploading, setInstUploading] = useState(false);
   const [instWarn, setInstWarn] = useState<string | null>(null);
   const instInput = useRef<HTMLInputElement>(null);
-  const uploadInst = (file: File) => uploadEditorialImage(file, INSTITUTIONAL_FOLDER, INST_MIN, setInstUploading, (url, low) => { setInstImage(url); setInstWarn(low ? LOW_RES : null); });
+  const uploadInst = (file: File) => uploadEditorialImage(file, INSTITUTIONAL_FOLDER, INST_MIN, setInstUploading, (url, low) => { setInstImage(url); setInstMode("custom"); setInstWarn(low ? LOW_RES : null); });
   // Comercial
   const [comEnabled, setComEnabled] = useState(false);
   const [com, setCom] = useState({ title: "", intro: "", payment: "", delivery: "", minimumOrder: "", notes: "" });
@@ -209,6 +214,64 @@ const EditorialCatalogConfigurator = () => {
   const renderId = useRef(0);
   const canvasHost = useRef<HTMLDivElement>(null);
 
+  const draftConfig = useMemo<CatalogDraftConfig>(() => ({ mode, categoryIds, brandIds, productIds, title, subtitle, coverImage, coverMode, showYear, showCount, typography, backImage, backMode, backTypography, grouping, separators, sectionImages, sectionCustom, showPrices, instEnabled, instTitle, instText, instImage, instMode, comEnabled, com, featEnabled, featured, featPolicy, excludeNoImage }), [mode, categoryIds, brandIds, productIds, title, subtitle, coverImage, coverMode, showYear, showCount, typography, backImage, backMode, backTypography, grouping, separators, sectionImages, sectionCustom, showPrices, instEnabled, instTitle, instText, instImage, instMode, comEnabled, com, featEnabled, featured, featPolicy, excludeNoImage]);
+  const hydrateDraft = useCallback((c: CatalogDraftConfig, saved: CatalogDraftRecord) => {
+    setMode(c.mode); setCategoryIds(c.categoryIds); setBrandIds(c.brandIds); setProductIds(c.productIds);
+    setTitle(c.title); setSubtitle(c.subtitle); setCoverImage(c.coverImage); setCoverMode(c.coverMode);
+    setShowYear(c.showYear); setShowCount(c.showCount); setTypography(c.typography);
+    setBackImage(c.backImage); setBackMode(c.backMode); setBackTypography(c.backTypography);
+    setGrouping(c.grouping); setSeparators(c.separators); setSectionImages(c.sectionImages); setSectionCustom(c.sectionCustom);
+    setShowPrices(c.showPrices); setExcludeNoImage(c.excludeNoImage);
+    setInstEnabled(c.instEnabled); setInstTitle(c.instTitle); setInstText(c.instText); setInstImage(c.instImage); setInstMode(c.instMode);
+    setComEnabled(c.comEnabled); setCom(c.com); setFeatEnabled(c.featEnabled); setFeatured(c.featured); setFeatPolicy(c.featPolicy);
+    setLastKey(saved.config === null ? null : draftConfigKey(parseDraftConfig(saved.config, saved.schema_version)));
+  }, []);
+  const persistence = useCatalogDraftPersistence(user?.id, draftConfig, hydrateDraft);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewLoadAttempt, setPreviewLoadAttempt] = useState(0);
+  const restoredPreviewId = useRef<string | null>(null);
+  const generationLock = useRef(false);
+  const currentOwner = useRef(user?.id);
+  currentOwner.current = user?.id;
+  const [freshnessError, setFreshnessError] = useState(false);
+
+  useEffect(() => {
+    reqId.current++; renderId.current++;
+    setBytes(null); setPageCount(0); setPage(1); setSource(null);
+    setLastKey(null); setBaseline(null); setPublishKey(null); setPublishedUrl(null);
+    setGenerating(false); setPreviewLoading(false); setGenError(null); setLoadError(null);
+    restoredPreviewId.current = null;
+  }, [user?.id]);
+
+  useEffect(() => () => { currentOwner.current = undefined; reqId.current++; renderId.current++; }, []);
+
+  useEffect(() => {
+    const metadata = persistence.record?.preview;
+    if (!persistence.ready || !metadata || restoredPreviewId.current === metadata.id) return;
+    let active = true;
+    setPreviewLoading(true);
+    void supabase.storage.from(PREVIEW_BUCKET).download(metadata.path).then(async ({ data, error }) => {
+      if (error || !data) throw error ?? new Error("preview unavailable");
+      const restored = await data.arrayBuffer();
+      if (!active) return;
+      setBytes(restored); setPageCount(metadata.page_count); setPage(1);
+      setBaseline(metadata.publication_baseline); setPublishKey(crypto.randomUUID());
+      restoredPreviewId.current = metadata.id;
+      setGenError(null);
+    }).catch(() => { if (active) setGenError("Não foi possível carregar a última prévia. Tente novamente."); })
+      .finally(() => { if (active) setPreviewLoading(false); });
+    return () => { active = false; };
+  }, [persistence.ready, persistence.record?.preview?.id, previewLoadAttempt]);
+
+  useEffect(() => {
+    if (!persistence.ready) return;
+    let active = true;
+    const check = () => { if (document.visibilityState !== "visible") return; void persistence.checkCurrent().then(() => { if (active) setFreshnessError(false); }).catch(() => { if (active) setFreshnessError(true); }); };
+    window.addEventListener("focus", check);
+    const timer = window.setInterval(check, 30000);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("focus", check); };
+  }, [persistence.ready, persistence.checkCurrent]);
+
   useEffect(() => {
     if (!user) return;
     let alive = true;
@@ -218,7 +281,7 @@ const EditorialCatalogConfigurator = () => {
     return () => { alive = false; };
   }, [user]);
 
-  const selection = useMemo(() => toCatalogSelection({ mode, categoryIds, brandIds, productIds }), [mode, categoryIds, brandIds, productIds]);
+  const selection = useMemo(() => source ? effectiveDraftSelection(source, draftConfig) : null, [source, draftConfig]);
 
   const fullDoc = useMemo(() => {
     if (!source || !selection) return null;
@@ -227,66 +290,101 @@ const EditorialCatalogConfigurator = () => {
   const noImageIds = useMemo(() => (fullDoc ? productsWithoutImage(fullDoc) : []), [fullDoc]);
   // Exclusão só da composição deste catálogo; o cadastro do produto não é tocado.
   const doc = useMemo(() => {
-    if (!fullDoc || !source || !selection || !excludeNoImage || noImageIds.length === 0) return fullDoc;
-    const skip = new Set(noImageIds);
-    return buildCatalogDocument({ ...source, products: source.products.filter((p) => !skip.has(p.id)) }, { selection: { ...selection, productIds: selection.productIds?.filter((id) => !skip.has(id)) }, presentation: { grouping, showPrices } });
-  }, [fullDoc, source, selection, excludeNoImage, noImageIds, grouping, showPrices]);
+    if (!fullDoc || !source || !excludeNoImage || noImageIds.length === 0) return fullDoc;
+    return buildDraftDocument(source, draftConfig);
+  }, [fullDoc, source, excludeNoImage, noImageIds, draftConfig]);
 
   const editorialInput: EditorialConfigInput | null = useMemo(() => {
     if (!doc) return null;
-    return {
-      cover: { title, subtitle, imageUrl: coverImage || null, showYear, showCount, typography },
-      institutional: instEnabled ? { enabled: true, title: instTitle, text: instText, useStoreAbout: false, imageUrl: instImage || null } : undefined,
-      commercial: comEnabled ? { enabled: true, ...com } : undefined,
-      separators,
-      sectionImages: sectionImagesInDocument(doc, sectionImages),
-      featured: featEnabled ? { productIds: featuredInDocument(doc, featured), policy: featPolicy } : undefined,
-      backCover: { imageUrl: backImage || null, typography: backTypography },
-    };
-  }, [doc, title, subtitle, coverImage, showYear, showCount, typography, instEnabled, instTitle, instText, instImage, comEnabled, com, separators, sectionImages, featEnabled, featured, featPolicy, backImage, backTypography]);
+    return draftEditorialInput(doc, draftConfig);
+  }, [doc, draftConfig]);
 
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
   const blocking = [...blockingIssues(issues), ...issues.filter((i) => i.code === "empty")];
-  const configKey = useMemo(() => JSON.stringify({ selection, grouping, showPrices, editorialInput, excludeNoImage }), [selection, grouping, showPrices, editorialInput, excludeNoImage]);
-  const stale = !!bytes && lastKey !== configKey;
+  const configKey = useMemo(() => draftConfigKey(draftConfig), [draftConfig]);
+  const stale = !!bytes && (lastKey !== configKey || !!persistence.record?.stale || freshnessError || persistence.record?.preview?.id !== restoredPreviewId.current);
 
 
   const refreshPreview = useCallback(async () => {
-    if (!doc || !editorialInput || blocking.length || doc.products.length === 0) return;
+    if (!user || !persistence.ready || generationLock.current || blocking.length || !doc?.products.length) return;
+    generationLock.current = true;
     const id = ++reqId.current;
     const key = configKey;
+    const savedConfig = draftConfig;
+    const stillCurrent = () => id === reqId.current && user.id === currentOwner.current;
     setGenerating(true);
     setGenError(null);
     setPublishError(null);
     setPublishedUrl(null);
-    setProgress(`Preparando ${doc.products.length} produtos…`);
+    setProgress("Salvando configurações…");
+    let reservation: PreviewReservation | null = null;
     try {
-      const r = await generateEditorialPdf(doc, {
+      if (!await persistence.flush()) throw new Error("draft save failed");
+      if (!stillCurrent()) return;
+      // The captured render must agree with the actually flushed editor intent.
+      const checked = await persistence.checkCurrent();
+      if (draftConfigKey(checked.config) !== key) throw new Error("catalog changed before preview");
+      if (!stillCurrent()) return;
+      const { data: pending, error: beginError } = await supabase.rpc("begin_my_catalog_preview", { _expected_revision: persistence.getRevision() });
+      if (beginError || !pending) throw beginError ?? new Error("preview reservation failed");
+      reservation = pending as unknown as PreviewReservation;
+      if (!stillCurrent()) return;
+      const freshSource = await loadCatalogSource(supabase, user.id);
+      if (!stillCurrent()) return;
+      const freshDoc = buildDraftDocument(freshSource, savedConfig);
+      if (!freshDoc?.products.length) throw new Error("no eligible catalog products");
+      const freshInput = draftEditorialInput(freshDoc, savedConfig);
+      const validation = normalizeEditorialConfig(freshDoc, freshInput).issues;
+      if (blockingIssues(validation).length || validation.some((i) => i.code === "empty")) throw new EditorialConfigError(validation);
+      setSource(freshSource);
+      setProgress(`Preparando ${freshDoc.products.length} produtos…`);
+      const r = await generateEditorialPdf(freshDoc, {
         resolveImage: createBrowserImageResolver(),
-        editorial: editorialInput,
+        editorial: freshInput,
         onProgress: (p, t) => id === reqId.current && setProgress(`Processando imagens e gerando página ${p} de ${t}…`),
       });
-      if (id !== reqId.current) return; // resultado obsoleto
+      if (!stillCurrent()) return; // resultado obsoleto
       const fallback = r.issues.filter((i) => i.code === "font_fallback");
       if (r.issues.some((i) => i.code === "image_failed")) toast.warning("Não foi possível carregar a imagem de uma seção; foi usada a abertura Padrão.");
       if (fallback.length) toast.warning(`Não foi possível carregar a fonte ${fallback.map((i) => (i as { font: string }).font).join(", ")}; foi usada a fonte padrão do catálogo.`);
-      const { data: st } = await supabase.rpc("get_my_current_catalog_state");
-      if (id !== reqId.current) return;
-      const state = (st ?? {}) as { updated_at?: string | null; has_current?: boolean };
-      setBaseline({ updatedAt: state.updated_at ?? null, hasCurrent: !!state.has_current });
+      setProgress("Salvando última prévia…");
+      const { error: uploadError } = await supabase.storage.from(PREVIEW_BUCKET).upload(reservation.path, new Blob([r.bytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+      if (uploadError) throw uploadError;
+      if (!stillCurrent()) return;
+      const { data: completed, error: completeError } = await supabase.rpc("complete_my_catalog_preview", { _preview_id: reservation.id, _page_count: r.pageCount, _publication_baseline: reservation.publication_baseline });
+      if (completeError || !completed) throw completeError ?? new Error("preview persistence failed");
+      if (!stillCurrent()) return;
+      const saved = completed as unknown as CatalogDraftRecord;
+      restoredPreviewId.current = reservation.id;
+      persistence.setRecord(saved);
+      setBaseline(reservation.publication_baseline);
       setPublishKey(crypto.randomUUID());
       setBytes(r.bytes);
       setPageCount(r.pageCount);
       setPage(1);
       setLastKey(key);
+      setFreshnessError(false);
+      // Private objects only: current/reserved files are protected by server policies.
+      void supabase.storage.from(PREVIEW_BUCKET).list(user.id, { limit: 1000 }).then(async ({ data }) => {
+        const obsolete = (data ?? []).filter((file) => file.name.endsWith(".pdf") && `${user.id}/${file.name}` !== reservation?.path).map((file) => `${user.id}/${file.name}`);
+        for (const path of obsolete) await supabase.storage.from(PREVIEW_BUCKET).remove([path]);
+      }).catch(() => console.warn("[CatalogPreview] cleanup postponed"));
     } catch (e) {
-      if (id !== reqId.current) return;
-      setGenError(e instanceof EditorialConfigError ? "Há campos inválidos. Corrija os itens destacados." : "Não foi possível gerar a prévia. Tente novamente.");
+      console.warn("[CatalogPreview] update failed; keeping last valid preview");
+      if (reservation && stillCurrent()) {
+        try {
+          await supabase.rpc("discard_my_catalog_preview", { _preview_id: reservation.id });
+          await supabase.storage.from(PREVIEW_BUCKET).remove([reservation.path]);
+        } catch { console.warn("[CatalogPreview] failed reservation cleanup postponed"); }
+      }
+      if (!stillCurrent()) return;
+      setGenError(e instanceof EditorialConfigError ? "Há campos inválidos. Corrija os itens destacados." : "Não foi possível atualizar a prévia. A última prévia válida foi preservada. Tente novamente.");
     } finally {
+      generationLock.current = false;
       if (id === reqId.current) { setGenerating(false); setProgress(null); }
     }
-  }, [doc, editorialInput, blocking.length, configKey]);
+  }, [user, doc, blocking.length, configKey, draftConfig, persistence]);
 
   // Renderiza a página atual a partir dos bytes reais do PDF (pdf.js).
   useEffect(() => {
@@ -318,26 +416,36 @@ const EditorialCatalogConfigurator = () => {
 
   const publish = async () => {
     if (!bytes || stale || !baseline || !publishKey || publishing) return;
+    const owner = user?.id;
+    const assertCurrentOwner = () => { if (!owner || currentOwner.current !== owner) throw new Error("catalog identity changed"); };
     setConfirmOpen(false);
     setPublishing(true);
     setPublishError(null);
     try {
+      if (!await persistence.flush()) { setPublishError("Salve as alterações antes de publicar."); return; }
+      const checked = await persistence.checkCurrent();
+      if (currentOwner.current !== user?.id) return;
+      if (checked.stale || checked.preview?.id !== restoredPreviewId.current) { setPublishError("Há alterações desde a última prévia. Atualize a prévia antes de publicar."); return; }
       const outcome = await publishEditorialCatalog(bytes, publishKey, baseline.updatedAt, {
         begin: async (key, expected) => {
+          assertCurrentOwner();
           const { data, error } = await supabase.rpc("begin_editorial_catalog_publication", { _idempotency_key: key, _expected_updated_at: expected as string });
           if (error) throw error;
           return data as { publication_id: string; storage_path: string; status: string };
         },
         upload: async (path, b) => {
+          assertCurrentOwner();
           const { error } = await supabase.storage.from("product-images").upload(path, new Blob([b], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
           if (error) throw error;
         },
         publish: async (pid) => {
+          assertCurrentOwner();
           const { data, error } = await supabase.rpc("publish_editorial_catalog", { _publication_id: pid });
           if (error) throw error;
           return data as { status: string; share_code?: string | null; replayed?: boolean };
         },
-      }, (s) => setProgress(STEP_LABEL[s]));
+      }, (s) => { if (currentOwner.current === owner) setProgress(STEP_LABEL[s]); });
+      assertCurrentOwner();
       if ("shareCode" in outcome) {
         const url = buildCanonicalCatalogUrl(outcome.shareCode);
         setPublishedUrl(url);
@@ -347,6 +455,10 @@ const EditorialCatalogConfigurator = () => {
         setPublishError((outcome as { message: string }).message);
         if ((outcome as { reason: string }).reason === "stale") setBaseline(null);
       }
+    } catch {
+      console.warn("[CatalogPublication] confirmation failed");
+      if (currentOwner.current !== owner) return;
+      setPublishError("Não foi possível confirmar a publicação. O catálogo público anterior foi preservado.");
     } finally {
       setPublishing(false);
       setProgress(null);
@@ -354,7 +466,8 @@ const EditorialCatalogConfigurator = () => {
   };
 
   if (loadError) return <Card><CardContent className="py-10 text-center text-sm text-destructive">{loadError}</CardContent></Card>;
-  if (!source) return <Card><CardContent className="py-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>;
+  if (persistence.loadError) return <Card><CardContent className="py-10 space-y-3 text-center"><p className="text-sm text-destructive">Não foi possível carregar as configurações salvas. Nenhuma configuração foi substituída.</p><Button variant="outline" onClick={persistence.retryLoad}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button></CardContent></Card>;
+  if (!source || !persistence.ready) return <Card><CardContent className="py-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>;
 
   const activeProducts = source.products.filter((p) => p.is_active && p.user_id === source.storeId);
   const hasUncategorized = activeProducts.some((p) => !p.category_id);
@@ -373,6 +486,14 @@ const EditorialCatalogConfigurator = () => {
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle className="text-lg">Configurar catálogo Editorial</CardTitle>
+          <div role="status" aria-live="polite" className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{persistence.status === "saved" ? "Alterações salvas" : persistence.status === "saving" ? "Salvando…" : persistence.status === "pending" ? "Alterações pendentes" : persistence.status === "conflict" ? "Este rascunho foi alterado em outra aba. Suas alterações locais foram preservadas." : "Não foi possível salvar as alterações."}</span>
+            {persistence.status === "error" && <Button size="sm" variant="outline" onClick={() => void persistence.flush()}><RefreshCw className="mr-1 h-3 w-3" />Tentar novamente</Button>}
+            {persistence.status === "conflict" && <>
+              <Button size="sm" variant="outline" onClick={() => { const url = URL.createObjectURL(new Blob([JSON.stringify(draftConfig, null, 2)], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = "catalogo-alteracoes-locais.json"; a.click(); URL.revokeObjectURL(url); }}><Download className="mr-1 h-3 w-3" />Guardar alterações locais</Button>
+              <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Carregar o rascunho salvo na outra aba? Guarde suas alterações locais antes de continuar; elas não serão aplicadas.")) persistence.reloadSaved(); }}>Carregar rascunho salvo</Button>
+            </>}
+          </div>
           <p className="text-sm text-muted-foreground">{doc ? `${doc.products.length} produto(s) selecionado(s)` : "Selecione ao menos um item."}</p>
         </CardHeader>
         <CardContent>
@@ -424,11 +545,11 @@ const EditorialCatalogConfigurator = () => {
                 </div>
                 <div className="space-y-1">
                   <Label>Imagem da capa</Label>
-                  <RadioGroup value={coverImage ? "custom" : coverMode} onValueChange={(v) => { if (v === "default") { setCoverImage(""); setCoverWarn(null); } setCoverMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                  <RadioGroup value={coverMode} onValueChange={(v) => setCoverMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                   </RadioGroup>
-                  {(coverImage ? "custom" : coverMode) === "default" ? (
+                  {coverMode === "default" ? (
                     <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja centralizada.</p>
                   ) : (
                     <div className="space-y-2">
@@ -514,11 +635,11 @@ const EditorialCatalogConfigurator = () => {
                 <p className="text-xs text-muted-foreground">Logo, nome, contatos (WhatsApp, loja online, e-mail e endereço cadastrados) e QR Code da sua loja ficam sempre nas mesmas posições.</p>
                 <div className="space-y-1">
                   <Label>Fundo da contracapa</Label>
-                  <RadioGroup value={backImage ? "custom" : backMode} onValueChange={(v) => { if (v === "default") { setBackImage(""); setBackWarn(null); } setBackMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                  <RadioGroup value={backMode} onValueChange={(v) => setBackMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                     <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                   </RadioGroup>
-                  {(backImage ? "custom" : backMode) === "default" ? (
+                  {backMode === "default" ? (
                     <p className="text-xs text-muted-foreground">Fundo branco com detalhes discretos na cor da loja.</p>
                   ) : (
                     <div className="space-y-2">
@@ -626,7 +747,7 @@ const EditorialCatalogConfigurator = () => {
                           <input ref={sectionInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; const sid = sectionTarget.current; if (f && sid) void uploadSection(sid, f); }} />
                           {full.map((s) => {
                             const url = sectionImages[s.id] ?? "";
-                            const custom = !!url || !!sectionCustom[s.id];
+                            const custom = sectionCustom[s.id] ?? !!url;
                             const busy = sectionBusy === s.id;
                             const pick = () => { sectionTarget.current = s.id; sectionInput.current?.click(); };
                             return (
@@ -643,7 +764,7 @@ const EditorialCatalogConfigurator = () => {
                                     <img src={url} alt={`Imagem da seção ${s.title}`} className="h-16 object-cover rounded-md border border-border" style={{ aspectRatio: `${SEPARATOR_BAND.w}/${SEPARATOR_BAND.h}` }} />
                                     <div className="flex flex-col gap-2">
                                       <Button type="button" size="sm" variant="outline" disabled={busy} onClick={pick}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Trocar imagem</Button>
-                                      <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setSectionDefault(s.id)}>Remover imagem</Button>
+                                      <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setSectionImages((m) => { const next = { ...m }; delete next[s.id]; return next; }); setSectionDefault(s.id); }}>Remover imagem</Button>
                                     </div>
                                   </div>
                                 ) : (
@@ -698,11 +819,11 @@ const EditorialCatalogConfigurator = () => {
                     </div>
                     <div className="space-y-1">
                       <Label>Imagem da apresentação</Label>
-                      <RadioGroup value={instImage ? "custom" : instMode} onValueChange={(v) => { if (v === "default") { setInstImage(""); setInstWarn(null); } setInstMode(v as "default" | "custom"); }} className="grid grid-cols-2 gap-2">
+                      <RadioGroup value={instMode} onValueChange={(v) => setInstMode(v as "default" | "custom")} className="grid grid-cols-2 gap-2">
                         <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="default" />Padrão</Label>
                         <Label className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer text-sm font-normal"><RadioGroupItem value="custom" />Imagem personalizada</Label>
                       </RadioGroup>
-                      {(instImage ? "custom" : instMode) === "default" ? (
+                      {instMode === "default" ? (
                         <p className="text-xs text-muted-foreground">Fundo branco com a logo da loja discreta no canto superior esquerdo.</p>
                       ) : (
                         <div className="space-y-2">
@@ -787,9 +908,9 @@ const EditorialCatalogConfigurator = () => {
         <CardHeader className="space-y-3">
           <CardTitle className="text-lg">7. Pré-visualização</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={refreshPreview} disabled={generating || !doc || doc.products.length === 0 || blocking.length > 0} className="gap-2">
+            <Button onClick={refreshPreview} disabled={generating || previewLoading || persistence.status === "conflict" || !doc || doc.products.length === 0 || blocking.length > 0} className="gap-2">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {bytes ? "Atualizar prévia" : "Gerar prévia"}
+              {bytes || persistence.record?.preview ? "Atualizar prévia" : "Gerar prévia"}
             </Button>
             <Button variant="outline" onClick={downloadTest} disabled={!bytes || stale || generating} className="gap-2">
               <Download className="h-4 w-4" /> Baixar PDF
@@ -835,8 +956,12 @@ const EditorialCatalogConfigurator = () => {
             </AlertDialogContent>
           </AlertDialog>
           {blocking.length > 0 && <p className="text-xs text-destructive flex gap-1"><AlertTriangle className="h-4 w-4 shrink-0" />Corrija os campos destacados para gerar a prévia.</p>}
-          {stale && <p className="text-xs text-muted-foreground">As configurações mudaram — clique em “Atualizar prévia”.</p>}
+          {stale && <p className="text-xs text-muted-foreground">Há alterações desde a última prévia. Atualize a prévia para visualizar as alterações mais recentes.</p>}
+          {freshnessError && <p className="text-xs text-destructive">Não foi possível verificar as alterações dos produtos. Atualize a prévia antes de publicar.</p>}
           {genError && <p className="text-xs text-destructive">{genError}</p>}
+          {persistence.record?.preview && !bytes && !previewLoading && <Button size="sm" variant="outline" onClick={() => setPreviewLoadAttempt((n) => n + 1)}>Carregar última prévia</Button>}
+          {previewLoading && <p className="text-xs text-muted-foreground">Carregando última prévia…</p>}
+          {persistence.record?.preview && <p className="text-xs text-muted-foreground">Última prévia: {new Date(persistence.record.preview.generated_at).toLocaleString("pt-BR")}</p>}
           <p className="text-xs text-muted-foreground">Prévia e download não alteram o catálogo público. Só “Publicar catálogo” atualiza o link da loja.</p>
         </CardHeader>
         <CardContent className="space-y-3">
