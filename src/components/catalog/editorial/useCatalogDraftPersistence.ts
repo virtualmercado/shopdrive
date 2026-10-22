@@ -19,6 +19,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
   hydrateRef.current = hydrate;
   const configRef = useRef(config);
   configRef.current = config;
+  const discardRecovery = useRef(false);
   const recoveryKey = storeId ? `shopdrive_catalog_pending:${storeId}` : null;
   const setRecovery = useCallback((value: CatalogDraftConfig | null) => {
     if (!recoveryKey) return;
@@ -37,7 +38,8 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
         if (error || !data) throw error ?? new Error("missing draft response");
         const result = data as unknown as CatalogDraftRecord;
         const initial = result.config === null ? parseDraftConfig({}, DRAFT_SCHEMA_VERSION) : parseDraftConfig(result.config, result.schema_version);
-        const recovery = recoveryKey ? sessionStorage.getItem(recoveryKey) : null;
+        let recovery: string | null = null;
+        try { recovery = recoveryKey ? sessionStorage.getItem(recoveryKey) : null; } catch { /* cloud draft is still available */ }
         let buffer = recovery ? JSON.parse(recovery) as { config: unknown; revision: number } : null;
         if (buffer && draftConfigKey(buffer.config) === draftConfigKey(initial)) { buffer = null; setRecovery(null); }
         queue.current = createDraftSaveQueue({ initial, revision: buffer?.revision ?? result.draft_revision, needsInitialSave: result.config === null,
@@ -45,6 +47,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
             if (!maySave || ownerRef.current !== storeId) throw new Error("catalog identity changed");
             const { data: saved, error: saveError } = await supabase.rpc("save_my_catalog_draft", { _expected_revision: revision, _schema_version: DRAFT_SCHEMA_VERSION, _config: JSON.parse(JSON.stringify(value)) });
             if (saveError || !saved) throw saveError ?? new Error("missing save response");
+            if (!maySave || ownerRef.current !== storeId) throw new Error("catalog identity changed");
             const next = saved as unknown as CatalogDraftRecord;
             if (active && ownerRef.current === storeId) setRecord(next);
             return next;
@@ -65,13 +68,14 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     return () => {
       active = false; mounted.current = false;
       const pending = queue.current;
-      if (pending?.dirty()) {
+      if (pending?.dirty() && !discardRecovery.current) {
         // Covers browser history/programmatic exits without saving under a changed identity.
         setRecovery(pending.getCurrent());
         if (ownerRef.current === storeId) void pending.flush().finally(() => { maySave = false; });
         else maySave = false;
       }
       else maySave = false;
+      discardRecovery.current = false;
       queue.current = null;
     };
   }, [storeId, reloadKey, recoveryKey, setRecovery]);
@@ -105,6 +109,7 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
       if (!queue.current?.dirty() || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!(target instanceof HTMLAnchorElement) || target.target === "_blank" || target.hasAttribute("download")) return;
+      if (target.dataset.catalogSaveHandled === "true") return;
       if (new URL(target.href).href === window.location.href) return;
       event.preventDefault(); event.stopImmediatePropagation();
       void flush().then((ok) => { if (ok) target.click(); });
@@ -122,5 +127,6 @@ export function useCatalogDraftPersistence(storeId: string | undefined, config: 
     return current;
   }, [storeId]);
 
-  return { ready: ready && readyOwner === storeId, record, status, loadError, flush, checkCurrent, retryLoad: () => setReloadKey((n) => n + 1), getRevision: () => queue.current?.getRevision() ?? 0, setRecord };
+  const reloadSaved = () => { discardRecovery.current = true; setRecovery(null); setReloadKey((n) => n + 1); };
+  return { ready: ready && readyOwner === storeId, record, status, loadError, flush, checkCurrent, retryLoad: () => setReloadKey((n) => n + 1), reloadSaved, getRevision: () => queue.current?.getRevision() ?? 0, setRecord };
 }

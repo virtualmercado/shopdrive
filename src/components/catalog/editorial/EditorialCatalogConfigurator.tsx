@@ -115,6 +115,7 @@ const EditorialCatalogConfigurator = () => {
   /** Upload compartilhado (capa e apresentação): mesma validação, bucket e pasta isolada por loja. */
   const uploadEditorialImage = async (file: File, folder: EditorialUploadFolder, min: { w: number; h: number }, setBusy: (b: boolean) => void, onDone: (url: string, lowRes: boolean) => void) => {
     if (!user) return;
+    const owner = user.id;
     const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[file.type];
     if (!ext) { toast.error("Formato não permitido. Use JPG, PNG ou WebP."); return; }
     if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo excede o limite de 10 MB."); return; }
@@ -125,11 +126,13 @@ const EditorialCatalogConfigurator = () => {
       im.src = u;
     });
     if (!dims || !dims.w || !dims.h) { toast.error("Arquivo de imagem inválido."); return; }
+    if (currentOwner.current !== owner) return;
     setBusy(true);
     try {
       const path = coverStoragePath(user.id, ext, folder);
       const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
+      if (currentOwner.current !== owner) return;
       onDone(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl, dims.w < min.w || dims.h < min.h);
     } catch { toast.error("Não foi possível enviar a imagem. Tente novamente."); }
     finally { setBusy(false); }
@@ -260,9 +263,11 @@ const EditorialCatalogConfigurator = () => {
 
   useEffect(() => {
     if (!persistence.ready) return;
-    const check = () => { void persistence.checkCurrent().then(() => setFreshnessError(false)).catch(() => setFreshnessError(true)); };
+    let active = true;
+    const check = () => { if (document.visibilityState !== "visible") return; void persistence.checkCurrent().then(() => { if (active) setFreshnessError(false); }).catch(() => { if (active) setFreshnessError(true); }); };
     window.addEventListener("focus", check);
-    return () => window.removeEventListener("focus", check);
+    const timer = window.setInterval(check, 30000);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("focus", check); };
   }, [persistence.ready, persistence.checkCurrent]);
 
   useEffect(() => {
@@ -372,6 +377,7 @@ const EditorialCatalogConfigurator = () => {
         for (const path of obsolete) await supabase.storage.from(PREVIEW_BUCKET).remove([path]);
       }).catch(() => console.warn("[CatalogPreview] cleanup postponed"));
     } catch (e) {
+      console.warn("[CatalogPreview] update failed; keeping last valid preview");
       if (reservation && stillCurrent()) {
         await supabase.rpc("discard_my_catalog_preview", { _preview_id: reservation.id });
         await supabase.storage.from(PREVIEW_BUCKET).remove([reservation.path]);
@@ -420,6 +426,7 @@ const EditorialCatalogConfigurator = () => {
     try {
       if (!await persistence.flush()) { setPublishError("Salve as alterações antes de publicar."); return; }
       const checked = await persistence.checkCurrent();
+      if (currentOwner.current !== user?.id) return;
       if (checked.stale || checked.preview?.id !== restoredPreviewId.current) { setPublishError("Há alterações desde a última prévia. Atualize a prévia antes de publicar."); return; }
       const outcome = await publishEditorialCatalog(bytes, publishKey, baseline.updatedAt, {
         begin: async (key, expected) => {
@@ -447,6 +454,7 @@ const EditorialCatalogConfigurator = () => {
         if ((outcome as { reason: string }).reason === "stale") setBaseline(null);
       }
     } catch {
+      console.warn("[CatalogPublication] confirmation failed");
       setPublishError("Não foi possível confirmar a publicação. O catálogo público anterior foi preservado.");
     } finally {
       setPublishing(false);
@@ -480,7 +488,7 @@ const EditorialCatalogConfigurator = () => {
             {persistence.status === "error" && <Button size="sm" variant="outline" onClick={() => void persistence.flush()}><RefreshCw className="mr-1 h-3 w-3" />Tentar novamente</Button>}
             {persistence.status === "conflict" && <>
               <Button size="sm" variant="outline" onClick={() => { const url = URL.createObjectURL(new Blob([JSON.stringify(draftConfig, null, 2)], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = "catalogo-alteracoes-locais.json"; a.click(); URL.revokeObjectURL(url); }}><Download className="mr-1 h-3 w-3" />Guardar alterações locais</Button>
-              <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Carregar o rascunho salvo na outra aba? Guarde suas alterações locais antes de continuar; elas não serão aplicadas.")) { if (user) sessionStorage.removeItem(`shopdrive_catalog_pending:${user.id}`); persistence.retryLoad(); } }}>Carregar rascunho salvo</Button>
+              <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Carregar o rascunho salvo na outra aba? Guarde suas alterações locais antes de continuar; elas não serão aplicadas.")) persistence.reloadSaved(); }}>Carregar rascunho salvo</Button>
             </>}
           </div>
           <p className="text-sm text-muted-foreground">{doc ? `${doc.products.length} produto(s) selecionado(s)` : "Selecione ao menos um item."}</p>

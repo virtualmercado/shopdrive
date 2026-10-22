@@ -419,8 +419,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               return (
                 <Link
                   key={item.path}
+                  data-catalog-save-handled="true"
                   to={getNavPath(item.path)}
                   onClick={async (e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                     if (mobileNavLocked) {
                       e.preventDefault();
                       return;
