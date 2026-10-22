@@ -153,7 +153,7 @@ test("institutional and section image references survive default mode, disabled 
   const institutional=page.getByRole("region",{name:"4. Apresentação institucional",exact:true});
   await institutional.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
   await institutional.locator('input[type=file]').setInputFiles({name:"about.png",mimeType:"image/png",buffer:png});
-  await expect(page.getByRole("img",{name:"Imagem institucional",exact:true})).toBeVisible();
+  await expect(page.getByRole("img",{name:"Imagem da apresentação",exact:true})).toBeVisible();
   await institutional.getByRole("radio",{name:"Padrão",exact:true}).click();
   await page.getByRole("checkbox",{name:"Incluir apresentação da loja",exact:true}).uncheck();
   await page.getByRole("button",{name:"3. Organização e layout",exact:true}).click();
@@ -175,7 +175,7 @@ test("institutional and section image references survive default mode, disabled 
   await page.getByRole("button",{name:"4. Apresentação institucional",exact:true}).click();
   await page.getByRole("checkbox",{name:"Incluir apresentação da loja",exact:true}).check();
   await institutional.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
-  await expect(page.getByRole("img",{name:"Imagem institucional",exact:true})).toHaveJSProperty("naturalWidth",1);
+  await expect(page.getByRole("img",{name:"Imagem da apresentação",exact:true})).toHaveJSProperty("naturalWidth",1);
   await page.getByRole("button",{name:"3. Organização e layout",exact:true}).click();
   await section.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
   await expect(page.getByRole("img",{name:"Imagem da seção Masculino",exact:true})).toHaveJSProperty("naturalWidth",1);
