@@ -2,8 +2,8 @@
 
 ## Atalho Primeira página — prévia do catálogo
 - [x] Auditar estado one-based e reutilizar a navegação existente.
-- [ ] Acrescentar somente o atalho acessível antes de Página anterior.
-- [ ] Validar saltos diretos, total atualizado, página única, zoom e telas menores; relatar resultados.
+- [x] Acrescentar somente o atalho acessível antes de Página anterior.
+- [x] Validar saltos diretos 49→1 e 74→1, total atualizado 68, página única, zoom e cinco larguras; relatório técnico concluído.
 
 ## Atalho Última página — prévia do catálogo
 - [x] Auditar navegação, indexação e atualização do total existente.
