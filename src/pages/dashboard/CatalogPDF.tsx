@@ -111,6 +111,15 @@ const CatalogPDF = () => {
   const [editorialMounted, setEditorialMounted] = useState(false);
   const isEditorial = editorialAllowed && catalogMode === "editorial";
   useEffect(() => {
+    if (!editorialAllowed || !user) return;
+    let active = true;
+    void supabase.rpc("get_my_catalog_draft").then(({ data, error }) => {
+      if (!active || error || !data) return;
+      if ((data as { config?: unknown }).config) { setCatalogMode("editorial"); setEditorialMounted(true); }
+    });
+    return () => { active = false; };
+  }, [editorialAllowed, user?.id]);
+  useEffect(() => {
     if (user) {
       fetchData();
     }

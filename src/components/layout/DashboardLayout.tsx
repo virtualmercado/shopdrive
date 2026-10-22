@@ -354,6 +354,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const handleLogout = async () => {
+    const { flushCatalogBeforeLeave } = await import("@/lib/catalog-v2/editorial/navigationSave");
+    if (!await flushCatalogBeforeLeave()) return;
     if (isTemplateEditorMode) {
       await handleExitTemplateMode();
     } else {
