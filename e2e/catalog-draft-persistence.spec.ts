@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { installDraftFixture } from "./catalogDraftFixture";
+import { parseDraftConfig } from "../src/lib/catalog-v2/editorial/draftConfig";
+import { Buffer } from "node:buffer";
 
 test.setTimeout(90000);
 test("real editor saves, restores across menu/reload/new browser, retains 74-page PDF and only explicitly publishes", async ({ page, context, browser }) => {
@@ -49,6 +51,70 @@ test("real editor saves, restores across menu/reload/new browser, retains 74-pag
   await expect(page.getByText("Publicado. O link da sua loja já abre este catálogo:", { exact: true })).toBeVisible();
   expect(s.published).toBe("B"); expect(s.publications).toBe(2); expect(errors).toEqual([]);
   await page.getByRole("heading", { name: "7. Pré-visualização" }).locator("../..").screenshot({ path: "/tmp/browser/catalog-persistence/desktop.png" });
+});
+
+test("mobile image uploads, disabled branches and typography restore from cloud fixture after reload and a new session", async ({page,context,browser}) => {
+  await page.setViewportSize({width:390,height:1800});
+  const s=await installDraftFixture(context);
+  await page.goto("http://localhost:8080/__catalog-draft-test");
+  await page.getByRole("button",{name:"2. Capa e identidade",exact:true}).click();
+  const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jYfQAAAAASUVORK5CYII=","base64");
+  await page.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await page.locator('input[type=file]').setInputFiles({name:"cover.png",mimeType:"image/png",buffer:png});
+  await expect(page.getByRole("img",{name:"Capa personalizada",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Contracapa",exact:true}).click();
+  await page.getByRole("radio",{name:"Imagem personalizada",exact:true}).click();
+  await page.locator('input[type=file]').setInputFiles({name:"back.png",mimeType:"image/png",buffer:png});
+  await expect(page.getByRole("img",{name:"Contracapa personalizada",exact:true})).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Alterações salvas");
+  const uploaded=parseDraftConfig(s.config,1);
+  expect(uploaded.coverImage).toContain("/fixture-store-b/catalog-covers/");
+  expect(uploaded.backImage).toContain("/fixture-store-b/catalog-backcovers/");
+  expect(uploaded.coverImage).not.toMatch(/^(blob:|data:)/);
+  expect(s.files.size).toBe(2);
+  // Inactive fields are retained as raw saved intent, even when their UI is hidden.
+  s.config={...uploaded,instEnabled:true,instTitle:"Nossa oficina",instText:"Texto institucional preservado",comEnabled:true,com:{...uploaded.com,payment:"PIX de teste"},featEnabled:true,featured:["fixture-store-b-p000"],typography:{title:{fontFamily:"lato",fontWeight:700,color:"#135790"}}};s.draft_revision++;
+  await page.reload();
+  await page.getByRole("button",{name:"2. Capa e identidade",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Capa personalizada",exact:true})).toHaveJSProperty("naturalWidth",1);
+  await page.getByRole("button",{name:"Contracapa",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Contracapa personalizada",exact:true})).toHaveJSProperty("naturalWidth",1);
+  await page.getByRole("button",{name:"4. Apresentação institucional",exact:true}).click();
+  await expect(page.locator("#ed-itx")).toHaveValue("Texto institucional preservado");
+  await page.locator("#ed-itx").fill("Editado no celular");
+  // Click immediately: the mounted editor flushes before leaving, without timers.
+  await page.getByRole("link",{name:"Outro menu",exact:true}).click();
+  await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
+  await page.getByRole("button",{name:"4. Apresentação institucional",exact:true}).click();
+  await expect(page.locator("#ed-itx")).toHaveValue("Editado no celular");
+  const other=await browser.newContext({viewport:{width:390,height:1800}});await installDraftFixture(other,s);const fresh=await other.newPage();
+  await fresh.goto("http://localhost:8080/__catalog-draft-test");
+  await fresh.getByRole("button",{name:"5. Condições comerciais",exact:true}).click();
+  await expect(fresh.locator("#ed-c-payment")).toHaveValue("PIX de teste");
+  expect(parseDraftConfig(s.config,1).typography.title).toEqual({fontFamily:"lato",fontWeight:700,color:"#135790"});
+  expect(s.generations).toBe(0);expect(s.published).toBe("A");await other.close();
+});
+
+test("explicit refresh uses changed prices, paused/deleted products and new all-mode products without changing manual intent",async({page,context})=>{
+  const s=await installDraftFixture(context);s.count=4;
+  await page.goto("http://localhost:8080/__catalog-draft-test");
+  await page.getByRole("button",{name:"Gerar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 4");
+  expect(s.sourceLoads).toBe(2);
+  s.price=321.45;s.paused=[1];s.deleted=[2];s.count=5;s.source_revision++;
+  await page.getByRole("link",{name:"Outro menu",exact:true}).click();await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Publicar catálogo",exact:true})).toBeDisabled();
+  await page.getByRole("button",{name:"Atualizar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 3");
+  const text=await page.evaluate(async()=>await (window as any).readCatalogText());
+  expect(text).toContain("321,45");expect(text).not.toContain("Tênis Casual Branco Feminino 2");expect(text).not.toContain("Sapatênis Camurça Bordô 3");expect(text).toContain("Tênis Urbano Couro Caramelo 5");
+  const saved=parseDraftConfig(s.config,1);s.config={...saved,mode:"products",productIds:["fixture-store-b-p000","fixture-store-b-p001","deleted"]};s.draft_revision++;
+  await page.reload();await page.getByRole("button",{name:"Atualizar prévia",exact:true}).click();
+  await expect(page.locator("canvas")).toHaveAttribute("aria-label","Página 1 de 3");
+  const manual=await page.evaluate(async()=>await (window as any).readCatalogText());
+  expect(manual).toContain("321,45");expect(manual).not.toContain("Tênis Urbano Couro Caramelo 5");
+  expect(parseDraftConfig(s.config,1).productIds).toEqual(["fixture-store-b-p000","fixture-store-b-p001","deleted"]);
+  expect(s.published).toBe("A");expect(s.publications).toBe(0);
 });
 
 async function installDraftFixtureShared(context: import("@playwright/test").BrowserContext, source: Awaited<ReturnType<typeof installDraftFixture>>) {
