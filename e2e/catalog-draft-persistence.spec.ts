@@ -117,6 +117,7 @@ test("mobile image uploads, disabled branches and typography restore from cloud 
 });
 
 test("browser Back and programmatic navigation wait for saves, block failure and recover without losing edits",async({page,context})=>{
+  page.on("console",m=>console.log("Guard fixture:",m.text()));
   const s=await installDraftFixture(context);s.count=4;
   await page.goto("http://localhost:8080/__catalog-draft-test/other");
   await page.getByRole("link",{name:"Voltar ao catálogo",exact:true}).click();
