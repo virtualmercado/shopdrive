@@ -7,17 +7,18 @@ export function createDraftSaveQueue<T>(options: {
   save: (config: T, revision: number) => Promise<SaveResult>;
   onStatus: (status: DraftSaveStatus) => void;
   onSaved?: (config: T, result: SaveResult) => void;
+  needsInitialSave?: boolean;
 }) {
   let current = options.initial;
   let currentKey = JSON.stringify(current);
-  let savedKey = currentKey;
+  let savedKey = options.needsInitialSave ? "" : currentKey;
   let revision = options.revision;
   let running: Promise<boolean> | null = null;
   let conflict = false;
   const dirty = () => currentKey !== savedKey;
   const flush = (): Promise<boolean> => {
     if (conflict) return Promise.resolve(false);
-    if (running) return running;
+    if (running) return running.then((ok) => ok && dirty() ? flush() : ok);
     if (!dirty()) return Promise.resolve(true);
     running = (async () => {
       try {

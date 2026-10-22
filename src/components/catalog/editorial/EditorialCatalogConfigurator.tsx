@@ -46,11 +46,11 @@ import {
   productsWithoutImage,
   type PublishStep,
 } from "@/lib/catalog-v2/editorial";
-import { featuredInDocument, sectionImagesInDocument, toCatalogSelection, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
+import { featuredInDocument, sectionImagesInDocument, type EditorialSelectionMode } from "@/lib/catalog-v2/editorial/uiSelection";
 import { BACK_TEXT_ELEMENTS, COVER_FONTS, COVER_TEXT_ELEMENTS, COVER_WEIGHTS, isValidHex, type BackTextKey, type BackTypographyInput, type CoverTextKey, type CoverTextStyle, type CoverTypographyInput } from "@/lib/catalog-v2/editorial/coverTypography";
 import { INSTITUTIONAL_BAND } from "@/lib/catalog-v2/editorial/renderInstitutional";
 import { SEPARATOR_BAND } from "@/lib/catalog-v2/editorial/renderSeparator";
-import { buildDraftDocument, draftEditorialInput, effectiveDraftSelection, PREVIEW_BUCKET, type CatalogDraftConfig, type CatalogDraftRecord, type PreviewReservation } from "@/lib/catalog-v2/editorial/draftConfig";
+import { buildDraftDocument, draftConfigKey, draftEditorialInput, effectiveDraftSelection, PREVIEW_BUCKET, type CatalogDraftConfig, type CatalogDraftRecord, type PreviewReservation } from "@/lib/catalog-v2/editorial/draftConfig";
 import { useCatalogDraftPersistence } from "./useCatalogDraftPersistence";
 
 // Recomendação derivada da faixa real do renderer (mm → px).
@@ -221,13 +221,24 @@ const EditorialCatalogConfigurator = () => {
     setShowPrices(c.showPrices); setExcludeNoImage(c.excludeNoImage);
     setInstEnabled(c.instEnabled); setInstTitle(c.instTitle); setInstText(c.instText); setInstImage(c.instImage); setInstMode(c.instMode);
     setComEnabled(c.comEnabled); setCom(c.com); setFeatEnabled(c.featEnabled); setFeatured(c.featured); setFeatPolicy(c.featPolicy);
-    setLastKey(saved.config === null ? null : JSON.stringify(saved.config));
+    setLastKey(saved.config === null ? null : draftConfigKey(c));
   }, []);
   const persistence = useCatalogDraftPersistence(user?.id, draftConfig, hydrateDraft);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewLoadAttempt, setPreviewLoadAttempt] = useState(0);
   const restoredPreviewId = useRef<string | null>(null);
   const generationLock = useRef(false);
+  const currentOwner = useRef(user?.id);
+  currentOwner.current = user?.id;
+  const [freshnessError, setFreshnessError] = useState(false);
+
+  useEffect(() => {
+    reqId.current++; renderId.current++;
+    setBytes(null); setPageCount(0); setPage(1); setSource(null);
+    setLastKey(null); setBaseline(null); setPublishKey(null); setPublishedUrl(null);
+    setGenerating(false); setPreviewLoading(false); setGenError(null); setLoadError(null);
+    restoredPreviewId.current = null;
+  }, [user?.id]);
 
   useEffect(() => {
     const metadata = persistence.record?.preview;
@@ -249,7 +260,7 @@ const EditorialCatalogConfigurator = () => {
 
   useEffect(() => {
     if (!persistence.ready) return;
-    const check = () => { void persistence.checkCurrent().catch(() => setGenError("Não foi possível verificar as alterações da prévia. Tente novamente.")); };
+    const check = () => { void persistence.checkCurrent().then(() => setFreshnessError(false)).catch(() => setFreshnessError(true)); };
     window.addEventListener("focus", check);
     return () => window.removeEventListener("focus", check);
   }, [persistence.ready, persistence.checkCurrent]);
@@ -292,8 +303,8 @@ const EditorialCatalogConfigurator = () => {
   const issues = useMemo(() => (doc && editorialInput ? normalizeEditorialConfig(doc, editorialInput).issues : []), [doc, editorialInput]);
   const errorOf = (field: string) => { const i = issues.find((x) => x.field === field && x.code !== "unauthorized_image"); return i ? issueMessage(i) : undefined; };
   const blocking = [...blockingIssues(issues), ...issues.filter((i) => i.code === "empty")];
-  const configKey = useMemo(() => JSON.stringify(draftConfig), [draftConfig]);
-  const stale = !!bytes && (lastKey !== configKey || !!persistence.record?.stale);
+  const configKey = useMemo(() => draftConfigKey(draftConfig), [draftConfig]);
+  const stale = !!bytes && (lastKey !== configKey || !!persistence.record?.stale || freshnessError || persistence.record?.preview?.id !== restoredPreviewId.current);
 
 
   const refreshPreview = useCallback(async () => {
@@ -302,6 +313,7 @@ const EditorialCatalogConfigurator = () => {
     const id = ++reqId.current;
     const key = configKey;
     const savedConfig = draftConfig;
+    const stillCurrent = () => id === reqId.current && user.id === currentOwner.current;
     setGenerating(true);
     setGenError(null);
     setPublishError(null);
@@ -310,10 +322,17 @@ const EditorialCatalogConfigurator = () => {
     let reservation: PreviewReservation | null = null;
     try {
       if (!await persistence.flush()) throw new Error("draft save failed");
+      if (!stillCurrent()) return;
+      // The captured render must agree with the actually flushed editor intent.
+      const checked = await persistence.checkCurrent();
+      if (draftConfigKey(checked.config) !== key) throw new Error("catalog changed before preview");
+      if (!stillCurrent()) return;
       const { data: pending, error: beginError } = await supabase.rpc("begin_my_catalog_preview", { _expected_revision: persistence.getRevision() });
       if (beginError || !pending) throw beginError ?? new Error("preview reservation failed");
       reservation = pending as unknown as PreviewReservation;
+      if (!stillCurrent()) return;
       const freshSource = await loadCatalogSource(supabase, user.id);
+      if (!stillCurrent()) return;
       const freshDoc = buildDraftDocument(freshSource, savedConfig);
       if (!freshDoc?.products.length) throw new Error("no eligible catalog products");
       const freshInput = draftEditorialInput(freshDoc, savedConfig);
@@ -326,15 +345,17 @@ const EditorialCatalogConfigurator = () => {
         editorial: freshInput,
         onProgress: (p, t) => id === reqId.current && setProgress(`Processando imagens e gerando página ${p} de ${t}…`),
       });
-      if (id !== reqId.current) return; // resultado obsoleto
+      if (!stillCurrent()) return; // resultado obsoleto
       const fallback = r.issues.filter((i) => i.code === "font_fallback");
       if (r.issues.some((i) => i.code === "image_failed")) toast.warning("Não foi possível carregar a imagem de uma seção; foi usada a abertura Padrão.");
       if (fallback.length) toast.warning(`Não foi possível carregar a fonte ${fallback.map((i) => (i as { font: string }).font).join(", ")}; foi usada a fonte padrão do catálogo.`);
       setProgress("Salvando última prévia…");
       const { error: uploadError } = await supabase.storage.from(PREVIEW_BUCKET).upload(reservation.path, new Blob([r.bytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
       if (uploadError) throw uploadError;
+      if (!stillCurrent()) return;
       const { data: completed, error: completeError } = await supabase.rpc("complete_my_catalog_preview", { _preview_id: reservation.id, _page_count: r.pageCount, _publication_baseline: reservation.publication_baseline });
       if (completeError || !completed) throw completeError ?? new Error("preview persistence failed");
+      if (!stillCurrent()) return;
       const saved = completed as unknown as CatalogDraftRecord;
       restoredPreviewId.current = reservation.id;
       persistence.setRecord(saved);
@@ -344,17 +365,18 @@ const EditorialCatalogConfigurator = () => {
       setPageCount(r.pageCount);
       setPage(1);
       setLastKey(key);
+      setFreshnessError(false);
       // Private objects only: current/reserved files are protected by server policies.
       void supabase.storage.from(PREVIEW_BUCKET).list(user.id, { limit: 1000 }).then(async ({ data }) => {
         const obsolete = (data ?? []).filter((file) => file.name.endsWith(".pdf") && `${user.id}/${file.name}` !== reservation?.path).map((file) => `${user.id}/${file.name}`);
         for (const path of obsolete) await supabase.storage.from(PREVIEW_BUCKET).remove([path]);
       }).catch(() => console.warn("[CatalogPreview] cleanup postponed"));
     } catch (e) {
-      if (reservation) {
+      if (reservation && stillCurrent()) {
         await supabase.rpc("discard_my_catalog_preview", { _preview_id: reservation.id });
         await supabase.storage.from(PREVIEW_BUCKET).remove([reservation.path]);
       }
-      if (id !== reqId.current) return;
+      if (!stillCurrent()) return;
       setGenError(e instanceof EditorialConfigError ? "Há campos inválidos. Corrija os itens destacados." : "Não foi possível atualizar a prévia. A última prévia válida foi preservada. Tente novamente.");
     } finally {
       generationLock.current = false;
@@ -924,6 +946,7 @@ const EditorialCatalogConfigurator = () => {
           </AlertDialog>
           {blocking.length > 0 && <p className="text-xs text-destructive flex gap-1"><AlertTriangle className="h-4 w-4 shrink-0" />Corrija os campos destacados para gerar a prévia.</p>}
           {stale && <p className="text-xs text-muted-foreground">Há alterações desde a última prévia. Atualize a prévia para visualizar as alterações mais recentes.</p>}
+          {freshnessError && <p className="text-xs text-destructive">Não foi possível verificar as alterações dos produtos. Atualize a prévia antes de publicar.</p>}
           {genError && <p className="text-xs text-destructive">{genError}</p>}
           {persistence.record?.preview && !bytes && !previewLoading && <Button size="sm" variant="outline" onClick={() => setPreviewLoadAttempt((n) => n + 1)}>Carregar última prévia</Button>}
           {previewLoading && <p className="text-xs text-muted-foreground">Carregando última prévia…</p>}

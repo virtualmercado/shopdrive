@@ -38,7 +38,16 @@ export const draftConfigSchema = z.object({
   featEnabled: z.boolean().default(false), featured: ids,
   featPolicy: z.enum(["keep_in_section", "featured_only"]).default("keep_in_section"),
 });
-export type CatalogDraftConfig = z.infer<typeof draftConfigSchema>;
+export type CatalogDraftConfig = Omit<Required<z.infer<typeof draftConfigSchema>>, "com"> & {
+  com: { title: string; intro: string; payment: string; delivery: string; minimumOrder: string; notes: string };
+};
+
+// jsonb reorders keys; equality must not depend on insertion order.
+export function draftConfigKey(value: unknown): string {
+  const ordered = (item: unknown): unknown => Array.isArray(item) ? item.map(ordered) : item && typeof item === "object"
+    ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)).map(([key, v]) => [key, ordered(v)])) : item;
+  return JSON.stringify(ordered(value));
+}
 
 export interface CatalogPreviewMetadata {
   id: string; path: string; page_count: number; generated_at: string;
@@ -56,7 +65,7 @@ export interface PreviewReservation {
 
 export function parseDraftConfig(config: unknown, schemaVersion: number): CatalogDraftConfig {
   if (schemaVersion !== DRAFT_SCHEMA_VERSION) throw new Error("unsupported catalog draft version");
-  return draftConfigSchema.parse(config);
+  return draftConfigSchema.parse(config) as CatalogDraftConfig;
 }
 
 // Saved unavailable IDs are retained as intent but never passed to the strict
