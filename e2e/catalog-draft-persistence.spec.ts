@@ -190,6 +190,7 @@ test("identity change between publication requests stops before upload and confi
   s.changeIdentityOnPublish=true;
   await page.getByRole("button",{name:"Publicar catálogo",exact:true}).click();
   await page.getByRole("button",{name:"Publicar",exact:true}).click();
+  await expect.poll(()=>s.publications).toBe(1);
   await expect(page.getByRole("heading",{name:"Configurar catálogo Editorial",exact:true})).not.toBeVisible();
   expect(s.publications).toBe(1);expect(s.published).toBe("A");
   expect([...s.files.keys()].some(path=>path.startsWith("public/"))).toBe(false);
