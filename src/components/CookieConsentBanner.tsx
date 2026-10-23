@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -100,13 +100,33 @@ const CookieConsentBanner = () => {
     };
   }, []);
 
+  // Layout only: expose the banner height so fixed/bottom content can reserve space.
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const bannerShown = isVisible && !showSettings;
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = bannerRef.current;
+    if (!bannerShown || !el) {
+      root.style.setProperty("--cookie-banner-height", "0px");
+      return;
+    }
+    const update = () => root.style.setProperty("--cookie-banner-height", `${el.offsetHeight}px`);
+    update();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.setProperty("--cookie-banner-height", "0px");
+    };
+  }, [bannerShown]);
+
   if (!isVisible && !showSettings) return null;
 
   return (
     <>
       {/* Cookie Banner */}
       {isVisible && !showSettings && (
-        <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 md:p-6 bg-white border-t shadow-lg animate-in slide-in-from-bottom-4 duration-500">
+        <div ref={bannerRef} className="fixed bottom-0 left-0 right-0 z-[9999] p-4 md:p-6 bg-white border-t shadow-lg animate-in slide-in-from-bottom-4 duration-500">
           <div className="container mx-auto max-w-6xl">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               {/* Icon and Text */}
