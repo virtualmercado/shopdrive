@@ -42,8 +42,8 @@ describe("runGuardedSave", () => {
   it("exception thrown after the write in onSuccess does not re-run the write", async () => {
     const run = vi.fn(async () => {});
     const s = setup(run);
-    s.opts.onSuccess = () => { throw new Error("render"); };
-    await expect(runGuardedSave(s.opts)).rejects.toThrow("render");
+    const opts = { ...s.opts, onSuccess: () => { throw new Error("render"); } };
+    await expect(runGuardedSave(opts)).rejects.toThrow("render");
     expect(run).toHaveBeenCalledTimes(1);
     expect(s.loading).toEqual([true, false]);
   });
