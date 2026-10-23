@@ -38,6 +38,7 @@ const StorePreviewEnhanced = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const saveInFlightRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { buttonBgColor, buttonTextColor, primaryColor } = useTheme();
@@ -640,11 +641,13 @@ const StorePreviewEnhanced = () => {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const handleSave = () =>
+    runGuardedSave({
+      inFlight: saveInFlightRef,
+      setLoading: setSaving,
+      run: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("not_authenticated");
 
        // Não reintroduzir valores legados ao salvar outras configurações.
        // Os arrays de banners são a fonte da verdade.
@@ -671,23 +674,16 @@ const StorePreviewEnhanced = () => {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Configurações da loja atualizadas",
-      });
-    } catch (error: any) {
-      console.error("Error:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao salvar configurações",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        toast({ title: "Sucesso", description: SAVE_SUCCESS_MESSAGE });
+      },
+      onError: (error) => {
+        console.error("[MinhaLoja] save failed", sanitizeSaveError(error));
+        toast({ title: "Erro", description: SAVE_ERROR_MESSAGE, variant: "destructive" });
+      },
+    });
 
   const storeUrl = `${window.location.origin}/${storeData.store_slug}`;
 
@@ -1769,11 +1765,12 @@ const StorePreviewEnhanced = () => {
           <Button 
             onClick={handleSave} 
             disabled={saving || uploading} 
+            aria-busy={saving}
             className="flex-1 transition-all hover:opacity-90"
             style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
           >
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Todas as Configurações
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+            {saving ? "Salvando..." : "Salvar Todas as Configurações"}
           </Button>
           {storeData.store_slug && (
             <Button

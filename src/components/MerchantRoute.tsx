@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ProfileLoadError } from '@/components/ProfileLoadError';
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary';
 
 interface MerchantRouteProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface MerchantRouteProps {
 export const MerchantRoute = ({ children }: MerchantRouteProps) => {
   const { user, isMerchant, loading, profileStatus, refreshProfile } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const isTemplateEditorMode = searchParams.get('mode') === 'template-editor';
@@ -39,12 +41,12 @@ export const MerchantRoute = ({ children }: MerchantRouteProps) => {
   }
 
   if (isTemplateEditorMode) {
-    return <>{children}</>;
+    return <DashboardErrorBoundary key={location.pathname}>{children}</DashboardErrorBoundary>;
   }
 
   if (!user || !isMerchant) {
     return null;
   }
 
-  return <>{children}</>;
+  return <DashboardErrorBoundary key={location.pathname}>{children}</DashboardErrorBoundary>;
 };
