@@ -91,7 +91,8 @@ test("custom institutional pages and auth/account use store A", async ({ page })
   await mountRuntimeFixture(page, external);
   for (const path of ["/produtos", "/categoria/C", "/promocoes", "/marca/M", "/sobre-nos", "/trocas-e-devolucoes", "/auth"]) {
     await page.goto(`${external}${path}`);
-    await expect(page.locator("header")).toBeVisible();
+    if (path === "/marca/M") await expect(page.getByRole("heading", { name: "Marca não encontrada" })).toBeVisible();
+    else await expect(page.locator("header")).toBeVisible();
     const calls = await page.evaluate(() => (window as any).__calls.filter((c: any) => c.table === "public_store_profiles"));
     expect(calls.some((c: any) => c.filters.some(([k, v]: string[]) => k === "id" && v === STORE_A))).toBe(true);
   }

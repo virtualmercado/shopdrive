@@ -12,7 +12,7 @@ const A='${STORE_A}',B='${STORE_B}',P='${PRODUCT_A}',PB='${PRODUCT_B}',O='${ORDE
 window.__calls=[];window.__forbidden=[];
 const profile=(id,slug,name)=>({id,store_slug:slug,store_name:name,store_description:'Loja fictícia para teste controlado',primary_color:'#227744',secondary_color:'#ffffff',footer_text_color:'#222222',footer_bg_color:'#eeeeee',button_bg_color:'#227744',button_text_color:'#ffffff',store_layout:'classic',store_model:'catalogo_digital',delivery_option:'pickup_only',pickup_address:'Endereço fictício',whatsapp_number:'',banner_desktop_urls:[],banner_mobile_urls:[],selected_benefit_banners:[],about_us_title:'Sobre Loja A',about_us_text:'Institucional Loja A',return_policy_text:'Política Loja A'});
 const profiles=[profile(A,'loja-a','Loja A'),profile(B,'loja-b','Loja B')];
-const products=[{id:P,user_id:A,name:'Produto A',description:'Produto fictício A',price:10,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null,brand_id:null},{id:PB,user_id:B,name:'Produto B',description:'Produto fictício B',price:20,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null}];
+const products=[{id:P,user_id:A,store_slug:'loja-a',name:'Produto A',description:'Produto fictício A',price:10,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null,brand_id:null},{id:PB,user_id:B,store_slug:'loja-b',name:'Produto B',description:'Produto fictício B',price:20,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null}];
 const order={id:O,store_owner_id:A,order_number:'TESTE-001',created_at:'2026-10-26T00:00:00Z',customer_name:'Cliente Fictício',customer_phone:'00000000000',customer_address:'Retirada fictícia',delivery_method:'retirada',payment_method:'whatsapp',subtotal:10,delivery_fee:0,total_amount:10};
 let user=null;const listeners=new Set();
 class Query {
@@ -24,7 +24,7 @@ class Query {
  insert(){window.__forbidden.push(this.table);throw new Error('Fixture forbids table writes');}update(){return this.insert();}delete(){return this.insert();}upsert(){return this.insert();}
  then(resolve,reject){
   window.__calls.push({table:this.table,filters:this.filters});
-  let data=this.table==='public_store_profiles'?profiles:this.table==='products'?products:this.table==='orders'?[order]:this.table==='order_items'?[{order_id:O,product_name:'Produto A',quantity:1,product_price:10,subtotal:10}]:this.table==='payment_settings_public'?[{user_id:A,pix_enabled:false,credit_card_enabled:false,boleto_enabled:false}]:this.table==='customer_profiles'&&user?[{id:user.id,full_name:'Cliente Fictício',email:'fixture@example.invalid'}]:[];
+  let data=this.table==='public_store_profiles'?profiles:['products','public_store_products'].includes(this.table)?products:this.table==='orders'?[order]:this.table==='order_items'?[{order_id:O,product_name:'Produto A',quantity:1,product_price:10,subtotal:10}]:this.table==='payment_settings_public'?[{user_id:A,pix_enabled:false,credit_card_enabled:false,boleto_enabled:false}]:this.table==='customer_profiles'&&user?[{id:user.id,full_name:'Cliente Fictício',email:'fixture@example.invalid'}]:[];
   data=data.filter(row=>this.filters.every(([k,v])=>row[k]===v));
   return Promise.resolve({data:this.one?data[0]??null:data,error:null,count:data.length}).then(resolve,reject);
  }
