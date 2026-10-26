@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,6 +94,7 @@ export const CustomerColumn = ({
   storeSlug,
   pendingRequirements = [],
 }: CustomerColumnProps) => {
+  const storePath = useStorePath(storeSlug);
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const isPending = (key: string) =>
     !!touchedFields[key] && pendingRequirements.some((p) => p.key === key);
@@ -287,7 +289,7 @@ export const CustomerColumn = ({
             size="sm"
             className="mt-2 p-0"
             style={{ color: primaryColor }}
-            onClick={() => window.open(`/${storeSlug}/conta`, "_blank")}
+            onClick={() => window.open(storePath("/conta"), "_blank")}
           >
             <Edit className="h-3 w-3 mr-1" />
             Editar dados

@@ -74,8 +74,20 @@ export function buildStorePath(identity: Pick<PublicStoreIdentity, "mode" | "sto
 export function isCustomStorePath(path: string): boolean {
   if (!path.startsWith("/") || path.startsWith("//") || /[\\\u0000-\u0020]/.test(path)) return false;
   const pathname = path.split(/[?#]/)[0];
-  return /^\/$/.test(pathname) || /^\/(?:produtos|promocoes|checkout|buscar|auth|conta|sobre-nos|trocas-e-devolucoes)\/?$/.test(pathname) ||
-    /^\/(?:produto|categoria|marca|pedido-confirmado)\/[^/%]+\/?$/.test(pathname);
+  if (/^\/$/.test(pathname) || /^\/(?:produtos|promocoes|checkout|buscar|auth|conta|sobre-nos|trocas-e-devolucoes)\/?$/.test(pathname)) return true;
+  const match = /^\/(?:produto|categoria|marca|pedido-confirmado)\/([^/]+)\/?$/.exec(pathname);
+  if (!match) return false;
+  try {
+    const segment = decodeURIComponent(match[1]);
+    return !!segment && segment !== "." && segment !== ".." && !/[/%\\\u0000-\u0020]/.test(segment);
+  } catch { return false; }
+}
+
+export function storeContentPath(identity: Pick<PublicStoreIdentity, "mode" | "storeSlug">, target: string): string {
+  // Preserve configured legacy destinations on platform; custom hosts expose only existing store pages.
+  const platformPages: Record<string, string> = { sobre: "/sobre", trocas: "/trocas", contato: "/contato", termos: "/termos", privacidade: "/privacidade" };
+  const customPages: Record<string, string> = { sobre: "/sobre-nos", trocas: "/trocas-e-devolucoes" };
+  return buildStorePath(identity, (identity.mode === "custom-domain" ? customPages : platformPages)[target] || "/");
 }
 
 export function storeAuthRedirect(identity: Pick<PublicStoreIdentity, "mode" | "storeSlug">, requested: string | null): string {
@@ -90,6 +102,7 @@ export function adaptStoreInternalLink(identity: Pick<PublicStoreIdentity, "mode
   const prefix = `/${identity.storeSlug}`;
   // Relative own-store legacy CTA only; deliberately external URLs are untouched.
   if (url === prefix) return "/";
+  if (url.startsWith(`${prefix}?`) || url.startsWith(`${prefix}#`)) return `/${url.slice(prefix.length)}`;
   if (url.startsWith(`${prefix}/`)) {
     const stripped = url.slice(prefix.length);
     return isCustomStorePath(stripped) ? stripped : url;

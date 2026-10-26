@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { adaptStoreInternalLink, buildStorePath, effectiveStoreSlug, initialStoreRuntime, isPlatformHost, resolveStoreRuntime, storeAuthRedirect } from "./publicStoreRuntime";
+import { adaptStoreInternalLink, buildStorePath, effectiveStoreSlug, initialStoreRuntime, isPlatformHost, resolveStoreRuntime, storeAuthRedirect, storeContentPath } from "./publicStoreRuntime";
 
 const STORE_A = "11111111-1111-4111-8111-111111111111";
 const STORE_B = "22222222-2222-4222-8222-222222222222";
@@ -70,6 +70,23 @@ describe("store URL compatibility", () => {
   it("custom auth preserves only storefront intents", () => {
     expect(storeAuthRedirect(custom, "/conta?tab=pedidos&pedido=O")).toBe("/conta?tab=pedidos&pedido=O");
     for (const path of ["/loja-b/conta", "https://evil.exemplo", "//evil.exemplo", "/\\evil.exemplo", "/gestor", "/produto/%2f%2fevil.exemplo"]) expect(storeAuthRedirect(custom, path)).toBe("/conta");
+  });
+  it("preserves encoded single-segment internal categories", () => {
+    expect(storeAuthRedirect(custom, "/categoria/caf%C3%A9")).toBe("/categoria/caf%C3%A9");
+    expect(adaptStoreInternalLink(custom, "/loja-a/categoria/caf%C3%A9")).toBe("/categoria/caf%C3%A9");
+  });
+  it.each(["%2F", "%5C", "%00", "%252F", "%invalid", ".."])("rejects unsafe encoded segment %s", (segment) => {
+    expect(storeAuthRedirect(custom, `/produto/${segment}`)).toBe("/conta");
+  });
+  it("keeps home CTA query and fragment in custom mode", () => {
+    expect(adaptStoreInternalLink(custom, "/loja-a?src=banner")).toBe("/?src=banner");
+    expect(adaptStoreInternalLink(custom, "/loja-a#ofertas")).toBe("/#ofertas");
+  });
+  it("content CTAs use real custom pages without changing legacy platform destinations", () => {
+    expect(storeContentPath(custom, "sobre")).toBe("/sobre-nos");
+    expect(storeContentPath(custom, "trocas")).toBe("/trocas-e-devolucoes");
+    expect(storeContentPath(platform, "sobre")).toBe("/loja-a/sobre");
+    expect(storeContentPath(platform, "trocas")).toBe("/loja-a/trocas");
   });
   it("platform auth retains same-store intent", () => {
     expect(storeAuthRedirect(platform, "/loja-a/conta?tab=pedidos")).toBe("/loja-a/conta?tab=pedidos");
