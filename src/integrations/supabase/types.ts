@@ -8409,6 +8409,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_public_landing_ticket: {
+        Args: {
+          p_categoria: string
+          p_cpf_cnpj?: string
+          p_email: string
+          p_empresa?: string
+          p_loja_url_ou_nome?: string
+          p_mensagem: string
+          p_nome: string
+          p_tipo_problema?: string
+        }
+        Returns: Json
+      }
       create_store_referral: {
         Args: {
           p_inviter_store_id: string
