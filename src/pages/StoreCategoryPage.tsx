@@ -1,3 +1,4 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import PriceRangeFilter from "@/components/store/PriceRangeFilter";
@@ -139,7 +140,9 @@ const calculateSimilarity = (product: Product, search: string): number => {
 };
 
 const StoreCategoryPageContent = () => {
-  const { storeSlug, categoryId } = useParams<{ storeSlug: string; categoryId?: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
+  const { categoryId } = useParams<{ categoryId: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -168,7 +171,7 @@ const StoreCategoryPageContent = () => {
       const { data: store } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .single();
 
       if (!store) {

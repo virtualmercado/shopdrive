@@ -1,3 +1,4 @@
+import { useStoreInternalLink } from "@/contexts/PublicStoreRuntime";
 import { useState, useEffect, useCallback } from "react";
 import type { ContentBannerItem } from "@/components/customize/ContentBannerCard";
 
@@ -6,6 +7,7 @@ interface ContentBannerSectionProps {
 }
 
 const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
+  const internalLink = useStoreInternalLink();
   // Display requires only enabled + image. URL (click destination) is optional —
   // template-inherited banners may be purely informational.
   const activeBanners = banners.filter(
@@ -49,7 +51,7 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
             const hasLink = Boolean(banner.url);
             const Tag: any = hasLink ? "a" : "div";
             const linkProps = hasLink
-              ? { href: banner.url, target: "_blank", rel: "noopener noreferrer" }
+              ? { href: internalLink(banner.url), target: "_blank", rel: "noopener noreferrer" }
               : {};
             return (
             <Tag
@@ -113,7 +115,7 @@ const ContentBannerSection = ({ banners }: ContentBannerSectionProps) => {
             const hasLink = Boolean(banner.url);
             const Tag: any = hasLink ? "a" : "div";
             const linkProps = hasLink
-              ? { href: banner.url, target: "_blank", rel: "noopener noreferrer" }
+              ? { href: internalLink(banner.url), target: "_blank", rel: "noopener noreferrer" }
               : {};
             return (
             <Tag

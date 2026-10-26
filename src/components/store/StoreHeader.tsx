@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, User, ShoppingCart, Menu, X } from "lucide-react";
@@ -51,6 +52,7 @@ const StoreHeader = ({
   logoPosition = "left",
   onContactClick,
 }: StoreHeaderProps) => {
+  const storePath = useStorePath(storeSlug);
   const { openMiniCart } = useMiniCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -229,7 +231,7 @@ const StoreHeader = ({
         >
           {/* Logo */}
           <Link 
-            to={`/${storeSlug}`} 
+            to={storePath()} 
             className={`header-logo flex-shrink-0 ${
               logoPosition === "left" ? "justify-self-start" : 
               logoPosition === "center" ? "justify-self-center" : 
@@ -323,7 +325,7 @@ const StoreHeader = ({
             logoPosition === "right" ? "flex-row-reverse" : ""
           }`}>
             {/* Logo */}
-            <Link to={`/${storeSlug}`} className={`flex-shrink-0 ${
+            <Link to={storePath()} className={`flex-shrink-0 ${
               logoPosition === "center" ? "flex-1 flex justify-center" : ""
             }`}>
               {logoUrl ? (
@@ -412,7 +414,7 @@ const StoreHeader = ({
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-6 py-3 border-t overflow-x-auto">
           <Link
-            to={`/${storeSlug}/produtos`}
+            to={storePath(`/produtos`)}
             className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70"
             style={{ 
               color: selectedCategory === null ? accentColor : backgroundColor,
@@ -424,7 +426,7 @@ const StoreHeader = ({
           {categories.map((category) => (
             <Link
               key={category.id}
-              to={`/${storeSlug}/categoria/${category.id}`}
+              to={storePath(`/categoria/${category.id}`)}
               className="text-sm font-medium transition-colors whitespace-nowrap hover:opacity-70 inline-flex items-center gap-2"
               style={{ 
                 color: selectedCategory === category.id ? accentColor : backgroundColor,
@@ -450,7 +452,7 @@ const StoreHeader = ({
         <div className="md:hidden border-t" style={{ backgroundColor: secondaryColor }}>
           <nav className="container mx-auto px-4 py-4 space-y-4">
             <Link
-              to={`/${storeSlug}/produtos`}
+              to={storePath(`/produtos`)}
               onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-medium transition-colors w-full text-left hover:opacity-70"
               style={{ 
@@ -463,7 +465,7 @@ const StoreHeader = ({
             {categories.map((category) => (
               <Link
                 key={category.id}
-                to={`/${storeSlug}/categoria/${category.id}`}
+                to={storePath(`/categoria/${category.id}`)}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-2 text-sm font-medium transition-colors w-full text-left hover:opacity-70"
                 style={{ 
@@ -492,7 +494,7 @@ const StoreHeader = ({
                 onContactClick={onContactClick}
               />
               <div className="flex gap-4">
-                <Link to={`/${storeSlug}/conta`} className="flex-1">
+                <Link to={storePath(`/conta`)} className="flex-1">
                   <Button variant="outline" className="w-full hover:bg-black/5 transition-colors">
                     <User className="h-4 w-4 mr-2" />
                     Minha Conta

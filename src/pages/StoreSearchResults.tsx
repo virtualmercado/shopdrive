@@ -1,3 +1,4 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,13 +51,8 @@ const StoreSearchResultsContent = () => {
 
   const q = useMemo(() => (searchParams.get("q") || "").trim(), [searchParams]);
 
-  // Get storeSlug from multiple sources for reliability
-  const stateStoreSlug = (location.state as any)?.storeSlug as string | undefined;
-  const storeSlug = useMemo(() => {
-    const slug = stateStoreSlug || sessionStorage.getItem("vm_active_store_slug") || "";
-    console.log("[StoreSearchResults] storeSlug resolved:", slug, "| q:", q);
-    return slug;
-  }, [stateStoreSlug, q]);
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
 
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,7 +74,7 @@ const StoreSearchResultsContent = () => {
       const { data, error } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .maybeSingle();
 
       if (error || !data) {
@@ -210,7 +206,7 @@ const StoreSearchResultsContent = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             <Button variant="ghost" className="mb-3 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja

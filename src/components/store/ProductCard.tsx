@@ -1,9 +1,10 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useMiniCart } from "@/contexts/MiniCartContext";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
 import FavoriteButton from "./FavoriteButton";
 import ProductCountdownTimer from "./ProductCountdownTimer";
@@ -58,11 +59,11 @@ const ProductCard = ({
   priceColor = "#000000",
   titleColor = "#000000"
 }: ProductCardProps) => {
+  const storePath = useStorePath(storeSlug);
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
-  const { storeSlug: routeStoreSlug } = useParams<{ storeSlug: string }>();
   
   const aspectRatio = productImageFormat === 'rectangular' ? 'aspect-[3/4]' : 'aspect-square';
   const borderRadius = productBorderStyle === 'straight' ? 'rounded-none' : 'rounded-lg';
@@ -104,7 +105,7 @@ const ProductCard = ({
 
     // Products with per-combination inventory require choosing options on the product page.
     if ((product as any).inventory_mode === "variant" && storeSlug) {
-      navigate(`/${storeSlug}/produto/${product.id}`);
+      navigate(storePath(`/produto/${product.id}`));
       return;
     }
 
@@ -144,7 +145,7 @@ const ProductCard = ({
 
   const finalPrice = product.promotional_price || product.price;
 
-  const productLink = storeSlug ? `/${storeSlug}/produto/${product.id}` : '#';
+  const productLink = storeSlug ? storePath(`/produto/${product.id}`) : '#';
 
   return (
     <div 

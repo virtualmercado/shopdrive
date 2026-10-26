@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
@@ -20,6 +21,7 @@ const MiniCart = ({
   buttonBorderStyle = "rounded",
   primaryColor = "#6a1b9a",
 }: MiniCartProps) => {
+  const storePath = useStorePath(storeSlug);
   const { cart, updateQuantity, removeFromCart, getTotal } = useCart();
   const { isOpen, closeMiniCart } = useMiniCart();
   const navigate = useNavigate();
@@ -30,7 +32,7 @@ const MiniCart = ({
   const handleContinueShopping = () => closeMiniCart();
   const handleCheckout = () => {
     closeMiniCart();
-    navigate(`/${storeSlug}/checkout`);
+    navigate(storePath(`/checkout`));
   };
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) closeMiniCart();

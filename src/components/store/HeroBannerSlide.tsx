@@ -1,3 +1,4 @@
+import { useStoreInternalLink } from "@/contexts/PublicStoreRuntime";
 import { MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const HeroBannerSlide = ({
   interactive = true,
   onCtaClick,
 }: HeroBannerSlideProps) => {
+  const internalLink = useStoreInternalLink();
   const hasContent = hasStructuredBannerContent(content);
   const validCta = Boolean(content?.ctaText.trim() && isSafeBannerUrl(content.ctaUrl));
   const position = content?.contentPosition ?? "left";
@@ -50,7 +52,7 @@ const HeroBannerSlide = ({
     }
     if (onCtaClick && content) {
       event.preventDefault();
-      onCtaClick(content.ctaUrl);
+      onCtaClick(internalLink(content.ctaUrl));
     }
   };
 
@@ -95,7 +97,7 @@ const HeroBannerSlide = ({
                   color: getContrastingTextColor(content.buttonColor),
                 }}
               >
-                <a href={content.ctaUrl} onClick={handleClick} tabIndex={interactive ? 0 : -1}>
+                <a href={internalLink(content.ctaUrl)} onClick={handleClick} tabIndex={interactive ? 0 : -1}>
                   <span className="truncate">{content.ctaText}</span>
                 </a>
               </Button>

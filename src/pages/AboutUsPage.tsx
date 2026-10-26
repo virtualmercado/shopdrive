@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -43,7 +43,8 @@ interface StoreData {
 }
 
 const AboutUsPageContent = () => {
-  const { storeSlug } = useParams<{ storeSlug: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const { getItemCount } = useCart();
@@ -55,7 +56,7 @@ const AboutUsPageContent = () => {
       const { data: store } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .single();
 
       if (store) {

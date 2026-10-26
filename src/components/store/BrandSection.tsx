@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ export const BrandSection = ({
   primaryColor = "#6a1b9a",
   buttonBgColor = "#6a1b9a",
 }: BrandSectionProps) => {
+  const storePath = useStorePath(storeSlug);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -75,7 +77,7 @@ export const BrandSection = ({
   };
 
   const handleBrandClick = (brandId: string) => {
-    navigate(`/${storeSlug}/marca/${brandId}`);
+    navigate(storePath(`/marca/${brandId}`));
   };
 
   if (loading || brands.length === 0) {

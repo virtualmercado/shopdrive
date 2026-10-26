@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { Star, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,7 @@ interface StoreReviewsSectionProps {
 }
 
 const StoreReviewsSection = ({ storeOwnerId, storeSlug, primaryColor, sectionTitle }: StoreReviewsSectionProps) => {
+  const storePath = useStorePath(storeSlug);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [title, setTitle] = useState(sectionTitle || "Avaliações dos nossos clientes");
   const navigate = useNavigate();
@@ -108,10 +110,10 @@ const StoreReviewsSection = ({ storeOwnerId, storeSlug, primaryColor, sectionTit
             {review.product_id && getProductImage(review) && (
               <div
                 className="flex items-center gap-2 p-2 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors"
-                onClick={() => navigate(`/${storeSlug}/produto/${review.product_id}`)}
+                onClick={() => navigate(storePath(`/produto/${review.product_id}`))}
               >
                 <img
-                  src={getProductImage(review)!}
+                  src={getProductImage(review) || undefined}
                   alt={review.product?.name || ""}
                   className="w-10 h-10 object-cover rounded"
                 />

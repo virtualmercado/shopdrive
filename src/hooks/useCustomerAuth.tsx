@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplatePreviewSandbox } from '@/contexts/TemplatePreviewContext';
+import { useStorePath } from '@/contexts/PublicStoreRuntime';
 
 const PREVIEW_AUTH_ERROR = 'Autenticação desabilitada no preview do template.';
 
@@ -12,6 +13,7 @@ export const useCustomerAuth = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { isTemplatePreview } = useTemplatePreviewSandbox();
+  const storePath = useStorePath();
 
   useEffect(() => {
     if (isTemplatePreview) {
@@ -63,7 +65,8 @@ export const useCustomerAuth = () => {
       return { data: null, error: new Error(PREVIEW_AUTH_ERROR) };
     }
 
-    const redirectUrl = `${window.location.origin}/${storeSlug}/conta`;
+    const accountPath = storePath('/conta');
+    const redirectUrl = `${window.location.origin}${accountPath === '#' ? `/${storeSlug}/conta` : accountPath}`;
 
     const { data, error } = await supabase.auth.signUp({
       email,

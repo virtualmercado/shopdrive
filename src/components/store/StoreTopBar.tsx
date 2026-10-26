@@ -1,3 +1,5 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
+import { storeContentPath } from "@/lib/publicStoreRuntime";
 import { useNavigate } from "react-router-dom";
 
 interface StoreTopBarProps {
@@ -17,6 +19,8 @@ const StoreTopBar = ({
   linkTarget,
   storeSlug,
 }: StoreTopBarProps) => {
+  const identity = usePublicStoreIdentity();
+  const storePath = useStorePath(storeSlug);
   const navigate = useNavigate();
 
   // For "sale" type, linkTarget is not required - it navigates to a fixed route
@@ -27,24 +31,16 @@ const StoreTopBar = ({
 
     switch (linkType) {
       case "content_page":
-        // Navigate to content pages
-        const pageRoutes: Record<string, string> = {
-          sobre: `/${storeSlug}/sobre`,
-          trocas: `/${storeSlug}/trocas`,
-          contato: `/${storeSlug}/contato`,
-          termos: `/${storeSlug}/termos`,
-          privacidade: `/${storeSlug}/privacidade`,
-        };
-        const pageRoute = pageRoutes[linkTarget] || `/${storeSlug}`;
+        const pageRoute = storeContentPath({ ...identity, storeSlug: identity.isCustomDomain ? identity.storeSlug : storeSlug }, linkTarget || "");
         navigate(pageRoute);
         break;
 
       case "category":
-        navigate(`/${storeSlug}/categoria/${linkTarget}`);
+        navigate(storePath(`/categoria/${linkTarget}`));
         break;
 
       case "sale":
-        navigate(`/${storeSlug}/promocoes`);
+        navigate(storePath(`/promocoes`));
         break;
 
       case "section":

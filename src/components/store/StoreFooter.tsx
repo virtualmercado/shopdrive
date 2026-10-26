@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { Instagram, Facebook, Youtube, Phone, Mail, Home, MessageCircle, MapPin, CheckCircle2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -33,6 +34,7 @@ interface StoreFooterProps {
 }
 
 const StoreFooter = ({ storeData }: StoreFooterProps) => {
+  const storePath = useStorePath(storeData.store_slug);
   const currentYear = new Date().getFullYear();
   const { user } = useCustomerAuth();
   const navigate = useNavigate();
@@ -40,14 +42,14 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
   
   const getAccountLink = () => {
     if (user) {
-      return `/${storeData.store_slug}/conta`;
+      return storePath(`/conta`);
     }
-    return `/${storeData.store_slug}/auth`;
+    return storePath(`/auth`);
   };
 
   const handleHomeClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const storeHomePath = `/${storeData.store_slug}`;
+    const storeHomePath = storePath();
     
     if (location.pathname === storeHomePath) {
       // Already on home page, just scroll to top
@@ -203,13 +205,13 @@ const StoreFooter = ({ storeData }: StoreFooterProps) => {
                 >
                   Home
                 </a>
-                <Link to={`/${storeData.store_slug}/produtos`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={storePath(`/produtos`)} className="block text-sm hover:opacity-70 transition-opacity">
                   Produtos
                 </Link>
-                <Link to={`/${storeData.store_slug}/sobre-nos`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={storePath(`/sobre-nos`)} className="block text-sm hover:opacity-70 transition-opacity">
                   Sobre Nós
                 </Link>
-                <Link to={`/${storeData.store_slug}/trocas-e-devolucoes`} className="block text-sm hover:opacity-70 transition-opacity">
+                <Link to={storePath(`/trocas-e-devolucoes`)} className="block text-sm hover:opacity-70 transition-opacity">
                   Trocas e Devoluções
                 </Link>
                 <Link to={getAccountLink()} className="block text-sm hover:opacity-70 transition-opacity">
