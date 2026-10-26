@@ -1,5 +1,10 @@
 # Roadmap
 
+## Auditoria pré-piloto do roteamento por domínio — somente leitura
+- [x] Auditar resolução instalada por hostname, rotas/links, métodos HTTP e isolamento sem alterar aplicação ou dados.
+- [x] Conferir versão publicada, assets/SPA e domínio fictício no navegador, bloqueando toda gravação e preservando V2 desligado.
+- [x] Entregar relatório de 11 itens: NÃO PRONTO — integração de hostname/rotas e autorização necessárias antes do piloto; POST de telemetria documentado.
+
 ## Diagnóstico Cloudflare somente leitura
 - [x] Criar diagnóstico administrativo autenticado, limitado a GET e sem exposição de secrets.
 - [x] Validar bloqueio anônimo/inválido na função instalada, não-admin em teste controlado, leitura administrativa real da API (HTTP 200, zero hostnames) e V2 desligado sem alteração de lojas.
