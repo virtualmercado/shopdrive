@@ -1,5 +1,10 @@
 # Roadmap
 
+## Diagnóstico Cloudflare somente leitura
+- [ ] Criar diagnóstico administrativo autenticado, limitado a GET e sem exposição de secrets.
+- [ ] Validar bloqueio anônimo/não-admin, leitura real da API e preservação de V2 desligado e dados reais.
+- [ ] Entregar relatório sanitizado sem avançar para hostname piloto.
+
 ## Persistência segura do Catálogo Editorial
 - [x] Auditar configurações, prévia, publicação, produtos e isolamento existentes antes de alterar código ou banco.
 - [x] Implementar rascunho versionado, autosave seguro e última prévia privada sem modificar a versão pública.
