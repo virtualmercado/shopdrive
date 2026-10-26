@@ -64,6 +64,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { StoreSlugGuard, LegacyStoreRedirect } from "./components/StoreSlugGuard";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TemplatePreviewProvider } from "./contexts/TemplatePreviewContext";
+import { PublicStoreRuntime, usePublicStoreIdentity } from "@/contexts/PublicStoreRuntime";
+import CustomDomainRoutes from "@/components/store/CustomDomainRoutes";
 
 // Admin Panel Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -104,6 +106,12 @@ const PublicRuntime = () => (
   </QueryClientProvider>
 );
 
+const HostRoutes = ({ children }: { children: React.ReactNode }) => {
+  const { isCustomDomain } = usePublicStoreIdentity();
+  if (isCustomDomain) return <QueryClientProvider client={publicQueryClient}><CustomDomainRoutes /></QueryClientProvider>;
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <TooltipProvider>
@@ -111,7 +119,9 @@ function App() {
       <Sonner />
       <BrowserRouter>
         <TemplatePreviewProvider>
+          <PublicStoreRuntime>
           <CookieConsentBanner />
+          <HostRoutes>
           <Routes>
             <Route element={<AuthRuntime />}>
               <Route path="/login" element={<Login />} />
@@ -225,6 +235,8 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
+          </HostRoutes>
+          </PublicStoreRuntime>
         </TemplatePreviewProvider>
       </BrowserRouter>
     </TooltipProvider>

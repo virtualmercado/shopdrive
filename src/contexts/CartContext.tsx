@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
-import { useParams } from "react-router-dom";
+import { usePublicStoreIdentity } from "@/contexts/PublicStoreRuntime";
 
 export interface CartItem {
   id: string;
@@ -117,17 +117,18 @@ export const CartProvider = ({
   children: ReactNode;
   storeKey?: string;
 }) => {
-  const params = useParams<{ storeSlug?: string }>();
+  const identity = usePublicStoreIdentity();
   const storeKey = useMemo(() => {
+    if (identity.mode !== "platform") return identity.storeSlug || "";
     const fromProp = storeKeyProp?.trim();
     if (fromProp) return fromProp;
-    const fromRoute = params.storeSlug?.trim();
+    const fromRoute = identity.storeSlug?.trim();
     if (fromRoute) return fromRoute;
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("vm_active_store_slug")?.trim() || "";
     }
     return "";
-  }, [storeKeyProp, params.storeSlug]);
+  }, [storeKeyProp, identity.mode, identity.storeSlug]);
 
   const [cart, setCart] = useState<CartItem[]>(() => loadCart(storeKey));
   const [hydratedFor, setHydratedFor] = useState<string>(storeKey);
