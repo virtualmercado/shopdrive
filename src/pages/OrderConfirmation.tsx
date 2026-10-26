@@ -47,7 +47,7 @@ interface StoreData {
 const OrderConfirmation = () => {
   const { storeSlug, storeId } = usePublicStoreIdentity();
   const storePath = useStorePath();
-  const { orderId } = useParams<{ orderId: string }>(); orderId: string }>();
+  const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
@@ -65,16 +65,18 @@ const OrderConfirmation = () => {
         try {
           const cached = sessionStorage.getItem(`shopdrive_checkout_order:${orderId}`);
           cachedCheckoutOrder = cached ? JSON.parse(cached) : null;
+          if (storeId && cachedCheckoutOrder?.order?.store_owner_id !== storeId) cachedCheckoutOrder = null;
         } catch (cacheError) {
           console.warn("[OrderConfirmation] Não foi possível ler o cache local do pedido", cacheError);
         }
 
         // Fetch order
-        const { data: order, error: orderError } = await supabase
+        let orderQuery = supabase
           .from("orders")
           .select("*")
-          .eq("id", orderId)
-          .single();
+          .eq("id", orderId);
+        if (storeId) orderQuery = orderQuery.eq("store_owner_id", storeId);
+        const { data: order, error: orderError } = await orderQuery.single();
 
         if (orderError || !order) {
           if (cachedCheckoutOrder?.order) {
@@ -134,7 +136,7 @@ const OrderConfirmation = () => {
     };
 
     fetchOrderData();
-  }, [orderId]);
+  }, [orderId, storeId]);
 
   const primaryColor = storeData?.primary_color || null;
 

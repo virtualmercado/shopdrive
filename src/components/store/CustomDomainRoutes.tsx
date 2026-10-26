@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import OnlineStore from "@/pages/OnlineStore";
 import StoreCategoryPage from "@/pages/StoreCategoryPage";
 import StorePromotionsPage from "@/pages/StorePromotionsPage";
@@ -16,8 +16,9 @@ import { usePublicStoreIdentity } from "@/contexts/PublicStoreRuntime";
 
 export default function CustomDomainRoutes() {
   const { storeId, storeSlug } = usePublicStoreIdentity();
+  const { pathname } = useLocation();
   return <PublicStoreErrorBoundary storeSlug={storeSlug}>
-    <Routes key={storeId}>
+    <Routes key={`${storeId}:${pathname}`}>
       <Route path="/" element={<OnlineStore />} />
       <Route path="/produtos" element={<StoreCategoryPage />} />
       <Route path="/categoria/:categoryId" element={<StoreCategoryPage />} />

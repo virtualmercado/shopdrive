@@ -62,7 +62,7 @@ interface StoreData {
 const StoreBrandContent = () => {
   const { storeSlug, storeId } = usePublicStoreIdentity();
   const storePath = useStorePath();
-  const { brandId } = useParams<{ brandId: string }>(); brandId: string }>();
+  const { brandId } = useParams<{ brandId: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [products, setProducts] = useState<Product[]>([]);

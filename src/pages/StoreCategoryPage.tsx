@@ -142,7 +142,7 @@ const calculateSimilarity = (product: Product, search: string): number => {
 const StoreCategoryPageContent = () => {
   const { storeSlug, storeId } = usePublicStoreIdentity();
   const storePath = useStorePath();
-  const { categoryId } = useParams<{ categoryId: string }>(); categoryId?: string }>();
+  const { categoryId } = useParams<{ categoryId: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
