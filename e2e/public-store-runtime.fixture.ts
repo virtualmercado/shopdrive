@@ -14,7 +14,8 @@ const profile=(id,slug,name)=>({id,store_slug:slug,store_name:name,store_descrip
 const profiles=[profile(A,'loja-a','Loja A'),profile(B,'loja-b','Loja B')];
 const products=[{id:P,user_id:A,store_slug:'loja-a',name:'Produto A',description:'Produto fictício A',price:10,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null,brand_id:null},{id:PB,user_id:B,store_slug:'loja-b',name:'Produto B',description:'Produto fictício B',price:20,promotional_price:null,stock:5,images:[],image_url:'/placeholder.svg',variations:[],is_active:true,category_id:null}];
 const order={id:O,store_owner_id:A,customer_id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',order_number:'TESTE-001',status:'pendente',created_at:'2026-10-26T00:00:00Z',customer_name:'Cliente Fictício',customer_phone:'00000000000',customer_address:'Retirada fictícia',delivery_method:'retirada',payment_method:'whatsapp',subtotal:10,delivery_fee:0,total_amount:10};
-let user=null;const listeners=new Set();
+const fixtureUser={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',email:'fixture@example.invalid'};
+let user=sessionStorage.getItem('fixture-signed-in')?fixtureUser:null;const listeners=new Set();
 class Query {
  constructor(table){this.table=table;this.filters=[];this.one=false;this.head=false;}
  select(fields,opts){this.head=opts?.head??false;return this;}
@@ -50,8 +51,8 @@ export const supabase={
  auth:{
   getSession:async()=>({data:{session:user?{user}:null},error:null}),
   onAuthStateChange:callback=>{listeners.add(callback);return {data:{subscription:{unsubscribe:()=>listeners.delete(callback)}}};},
-  signInWithPassword:async()=>{user={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',email:'fixture@example.invalid'};listeners.forEach(cb=>cb('SIGNED_IN',{user}));return {data:{user,session:{user}},error:null};},
-  signOut:async()=>{user=null;listeners.forEach(cb=>cb('SIGNED_OUT',null));return {error:null};},
+  signInWithPassword:async()=>{user=fixtureUser;sessionStorage.setItem('fixture-signed-in','true');listeners.forEach(cb=>cb('SIGNED_IN',{user}));return {data:{user,session:{user}},error:null};},
+  signOut:async()=>{user=null;sessionStorage.removeItem('fixture-signed-in');listeners.forEach(cb=>cb('SIGNED_OUT',null));return {error:null};},
  },
  functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}},
 };`;
