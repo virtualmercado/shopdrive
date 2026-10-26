@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Hostname runtime — implementação estrutural sem ativação
-- [ ] Centralizar identidade por hostname com allowlist explícita e resolução fail-closed pela RPC existente.
-- [ ] Compartilhar páginas, isolamento e URLs internas entre modo plataforma e domínio próprio sem slug.
-- [ ] Validar rotas, troca de tenant bloqueada, busca, carrinho, produtos e checkout com mocks sem operações reais.
-- [ ] Entregar relatório, registrar lacunas de revogação/ingress/SEO/telemetria e decidir publicação conservadora.
+- [x] Centralizar identidade por hostname com allowlist explícita e resolução fail-closed pela RPC existente.
+- [x] Compartilhar páginas, isolamento e URLs internas entre modo plataforma e domínio próprio sem slug.
+- [x] Validar rotas, troca de tenant bloqueada, busca, carrinho, produtos e checkout com mocks sem operações reais — 368 testes unitários e 18 verificações de navegador aprovados.
+- [x] Entregar relatório, registrar lacunas de revogação/ingress/SEO/telemetria e decidir publicação conservadora — não publicado; pronto para homologação controlada, não para piloto real.
 
 ## Auditoria pré-piloto do roteamento por domínio — somente leitura
 - [x] Auditar resolução instalada por hostname, rotas/links, métodos HTTP e isolamento sem alterar aplicação ou dados.
