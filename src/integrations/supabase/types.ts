@@ -8598,7 +8598,12 @@ export type Database = {
       is_legacy_stock_order: { Args: { p_order_id: string }; Returns: boolean }
       is_plan_contract_ready: { Args: { p_plan_id: string }; Returns: boolean }
       is_plan_marca_enabled: { Args: never; Returns: boolean }
+      is_public_product_of_store: {
+        Args: { _product_id: string; _store_id: string }
+        Returns: boolean
+      }
       is_public_store: { Args: { store_user_id: string }; Returns: boolean }
+      is_public_store_active: { Args: { _store_id: string }; Returns: boolean }
       is_quote_owner: { Args: { p_quote_id: string }; Returns: boolean }
       is_quote_publicly_accessible: {
         Args: { p_quote_id: string }
