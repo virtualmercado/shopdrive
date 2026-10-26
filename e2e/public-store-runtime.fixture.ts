@@ -31,6 +31,7 @@ class Query {
 }
 export const supabase={
  from:table=>new Query(table),
+ channel:()=>({on(){return this;},subscribe(){return this;}}),removeChannel:()=>{},
  rpc:async(name,args)=>{
   window.__calls.push({rpc:name,args});
   if(name==='resolve_public_store_by_domain'){
