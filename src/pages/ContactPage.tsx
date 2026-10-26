@@ -119,21 +119,21 @@ const ContactPage = () => {
     
     setIsSubmitting(true);
     try {
-      // Insert into tickets_landing_page (new table with protocol generation)
-      const { data: ticketData, error } = await supabase.from("tickets_landing_page" as any).insert({
-        categoria: getCategoryFromType(type),
-        nome: data.name as string,
-        email: data.email as string,
-        loja_url_ou_nome: (data.store_url as string) || null,
-        tipo_problema: (data.problem_type as string) || null,
-        cpf_cnpj: (data.cpf_cnpj as string) || null,
-        empresa: (data.company as string) || null,
-        mensagem: data.message as string,
-      } as any).select('protocolo').single();
+      // Server-side creation: returns only the generated protocol (no public read of tickets)
+      const { data: ticketData, error } = await supabase.rpc("create_public_landing_ticket", {
+        p_categoria: getCategoryFromType(type),
+        p_nome: data.name as string,
+        p_email: data.email as string,
+        p_mensagem: data.message as string,
+        p_loja_url_ou_nome: (data.store_url as string) || undefined,
+        p_tipo_problema: (data.problem_type as string) || undefined,
+        p_cpf_cnpj: (data.cpf_cnpj as string) || undefined,
+        p_empresa: (data.company as string) || undefined,
+      });
 
       if (error) throw error;
 
-      const protocolo = (ticketData as any)?.protocolo || 'Gerado';
+      const protocolo = (ticketData as { protocol?: string } | null)?.protocol || 'Gerado';
       toast.success(
         <div className="space-y-1">
           <p className="font-medium">Mensagem enviada com sucesso!</p>
