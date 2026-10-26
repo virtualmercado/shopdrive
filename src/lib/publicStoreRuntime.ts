@@ -4,7 +4,7 @@ import { isReservedSlug } from "@/lib/reservedSlugs";
 export const PLATFORM_HOSTS = [
   "shopdrive.com.br", "www.shopdrive.com.br", "virtualmercado.lovable.app",
   "id-preview--9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovable.app",
-  "preview--virtualmercado.lovable.app", "localhost", "127.0.0.1", "[::1]",
+  "localhost", "127.0.0.1", "[::1]",
 ] as const;
 
 export type PublicStoreMode = "platform" | "custom-domain-loading" | "custom-domain" | "custom-domain-not-found" | "custom-domain-error";
