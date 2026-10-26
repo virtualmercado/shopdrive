@@ -1,5 +1,6 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +30,8 @@ const SLUG_TO_TAB: Record<string, TabType> = {
 };
 
 const CustomerAccount = () => {
-  const { storeSlug } = useParams<{ storeSlug: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading, signOut } = useCustomerAuth();
@@ -68,7 +70,7 @@ const CustomerAccount = () => {
     if (isTemplateMode) return;
     if (!authLoading && !user) {
       const intent = `${window.location.pathname}${window.location.search}`;
-      navigate(`/${storeSlug}/auth?redirect=${encodeURIComponent(intent)}`, { replace: true });
+      navigate(storePath(`/auth?redirect=${encodeURIComponent(intent)}`), { replace: true });
     }
   }, [user, authLoading, navigate, storeSlug, isTemplateMode]);
 
@@ -76,10 +78,10 @@ const CustomerAccount = () => {
     const fetchStoreProfile = async () => {
       if (!storeSlug) return;
 
-      const { data: store } = await supabase
-        .from('profiles')
+      const { data: store } = await (supabase as any)
+        .from('public_store_profiles')
         .select('*')
-        .eq('store_slug', storeSlug)
+        .eq(storeId ? 'id' : 'store_slug', storeId || storeSlug)
         .maybeSingle();
 
       if (store) setStoreProfile(store);
@@ -92,7 +94,7 @@ const CustomerAccount = () => {
   const handleLogout = async () => {
     if (isTemplateMode) return; // Never sign out in template mode
     await signOut();
-    navigate(`/${storeSlug}`);
+    navigate(storePath());
   };
 
   if (!isTemplateMode && (authLoading || loading)) {
@@ -140,7 +142,7 @@ const CustomerAccount = () => {
         }}
       >
         <div className="container mx-auto flex items-center justify-between">
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 
@@ -153,7 +155,7 @@ const CustomerAccount = () => {
           </Link>
           <div className="flex items-center gap-4">
             <Link 
-              to={`/${storeSlug}`} 
+              to={storePath()} 
               className="text-sm flex items-center gap-1 hover:underline hidden md:flex"
               style={{ color: storeProfile?.footer_text_color || '#000000' }}
             >
@@ -240,7 +242,7 @@ const CustomerAccount = () => {
                 </button>
               )}
               <Link 
-                to={`/${storeSlug}`} 
+                to={storePath()} 
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-muted-foreground hover:bg-gray-100"
               >
                 <ArrowLeft className="h-5 w-5" />

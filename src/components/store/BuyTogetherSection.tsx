@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -49,6 +50,7 @@ const BuyTogetherSection = ({
   productBorderStyle = "rounded",
   maxItems = 4,
 }: BuyTogetherSectionProps) => {
+  const storePath = useStorePath(storeSlug);
   const { addToCart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
   const [products, setProducts] = useState<BuyTogetherProduct[]>([]);
@@ -140,7 +142,7 @@ const BuyTogetherSection = ({
     e.stopPropagation();
     if (p.stock <= 0) return;
     if ((p as any).inventory_mode === "variant") {
-      window.location.assign(`/${storeSlug}/produto/${p.id}`);
+      window.location.assign(storePath(`/produto/${p.id}`));
       return;
     }
 
@@ -193,7 +195,7 @@ const BuyTogetherSection = ({
               key={p.id}
               className={`bg-card overflow-hidden ${cardRadius} border border-border flex flex-col`}
             >
-              <Link to={`/${storeSlug}/produto/${p.id}`} className="block aspect-square overflow-hidden bg-muted">
+              <Link to={storePath(`/produto/${p.id}`)} className="block aspect-square overflow-hidden bg-muted">
                 <img
                   src={getImage(p)}
                   alt={p.name}
@@ -202,7 +204,7 @@ const BuyTogetherSection = ({
                 />
               </Link>
               <div className="p-3 flex flex-col flex-1 gap-2">
-                <Link to={`/${storeSlug}/produto/${p.id}`}>
+                <Link to={storePath(`/produto/${p.id}`)}>
                   <h3 className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] hover:underline">
                     {p.name}
                   </h3>

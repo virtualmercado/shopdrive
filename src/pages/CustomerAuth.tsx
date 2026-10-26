@@ -1,9 +1,11 @@
+import { storeAuthRedirect } from "@/lib/publicStoreRuntime";
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +29,9 @@ const registerSchema = z.object({
 type AuthMode = 'login' | 'register' | 'recover';
 
 const CustomerAuth = () => {
-  const { storeSlug } = useParams<{ storeSlug: string }>();
+  const identity = usePublicStoreIdentity();
+  const { storeSlug, storeId } = identity;
+  const storePath = useStorePath();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,10 +49,7 @@ const CustomerAuth = () => {
 
   // Preserve navigation intent (e.g. ?tab=pedidos&pedido=...) only for same-store paths
   const rawRedirect = searchParams.get('redirect');
-  const redirectTarget =
-    rawRedirect && storeSlug && rawRedirect.startsWith(`/${storeSlug}/`)
-      ? rawRedirect
-      : `/${storeSlug}/conta`;
+  const redirectTarget = storeAuthRedirect(identity, rawRedirect);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,10 +61,10 @@ const CustomerAuth = () => {
   useEffect(() => {
     const fetchStoreProfile = async () => {
       if (!storeSlug) return;
-      const { data } = await supabase
-        .from('profiles')
+      const { data } = await (supabase as any)
+        .from('public_store_profiles')
         .select('*')
-        .eq('store_slug', storeSlug)
+        .eq(storeId ? 'id' : 'store_slug', storeId || storeSlug)
         .single();
       if (data) setStoreProfile(data);
     };
@@ -132,7 +133,7 @@ const CustomerAuth = () => {
           receive_promotions: validatedData.receivePromotions
         }).eq('id', data.user.id);
         
-        navigate(`/${storeSlug}/conta`);
+        navigate(storePath(`/conta`));
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -152,7 +153,7 @@ const CustomerAuth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/${storeSlug}/conta`;
+      const redirectUrl = `${window.location.origin}${storePath(`/conta`)}`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
@@ -453,7 +454,7 @@ const CustomerAuth = () => {
         }}
       >
         <div className="container mx-auto flex items-center justify-between">
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 
@@ -465,7 +466,7 @@ const CustomerAuth = () => {
             )}
           </Link>
           <Link 
-            to={`/${storeSlug}`} 
+            to={storePath()} 
             className="text-sm flex items-center gap-1 hover:underline"
             style={{ color: storeProfile?.footer_text_color || '#000000' }}
           >
@@ -478,7 +479,7 @@ const CustomerAuth = () => {
       <main className="flex-1 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md">
           {/* Logo clickable */}
-          <Link to={`/${storeSlug}`} className="block text-center mb-8">
+          <Link to={storePath()} className="block text-center mb-8">
             {storeProfile?.store_logo_url ? (
               <img 
                 src={storeProfile.store_logo_url} 

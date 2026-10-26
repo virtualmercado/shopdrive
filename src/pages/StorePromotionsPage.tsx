@@ -1,4 +1,5 @@
-import { useParams, Link } from "react-router-dom";
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -53,7 +54,8 @@ interface StoreData {
 }
 
 const StorePromotionsContent = () => {
-  const { storeSlug } = useParams<{ storeSlug: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ const StorePromotionsContent = () => {
       const { data: store, error: storeError } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .single();
 
       if (storeError || !store) {
@@ -172,7 +174,7 @@ const StorePromotionsContent = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Back button and title */}
         <div className="mb-8">
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja
@@ -207,7 +209,7 @@ const StorePromotionsContent = () => {
             <p className="text-muted-foreground mb-6">
               No momento não há produtos com desconto. Volte em breve!
             </p>
-            <Link to={`/${storeSlug}`}>
+            <Link to={storePath()}>
               <Button
                 style={{
                   backgroundColor: buttonBgColor,

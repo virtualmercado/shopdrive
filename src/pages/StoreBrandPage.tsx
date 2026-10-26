@@ -1,3 +1,4 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +60,9 @@ interface StoreData {
 }
 
 const StoreBrandContent = () => {
-  const { storeSlug, brandId } = useParams<{ storeSlug: string; brandId: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
+  const { brandId } = useParams<{ brandId: string }>(); brandId: string }>();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -74,7 +77,7 @@ const StoreBrandContent = () => {
       const { data: store, error: storeError } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .single();
 
       if (storeError || !store) {
@@ -162,7 +165,7 @@ const StoreBrandContent = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Marca não encontrada</h1>
           <p className="text-muted-foreground">A marca que você procura não existe.</p>
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             <Button className="mt-4">Voltar para a loja</Button>
           </Link>
         </div>
@@ -209,7 +212,7 @@ const StoreBrandContent = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Back button and title */}
         <div className="mb-8">
-          <Link to={`/${storeSlug}`}>
+          <Link to={storePath()}>
             <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent">
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar para a loja
@@ -252,7 +255,7 @@ const StoreBrandContent = () => {
             <p className="text-muted-foreground mb-6">
               Esta marca não possui produtos disponíveis no momento.
             </p>
-            <Link to={`/${storeSlug}`}>
+            <Link to={storePath()}>
               <Button
                 style={{
                   backgroundColor: buttonBgColor,

@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useState, MouseEvent } from "react";
 import { Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ const FavoriteButton = ({
   className,
   size = 18,
 }: FavoriteButtonProps) => {
+  const storePath = useStorePath(storeSlug);
   const { user } = useCustomerAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -62,7 +64,7 @@ const FavoriteButton = ({
         description: "Você precisa estar logado para salvar favoritos.",
         variant: "destructive",
       });
-      if (storeSlug) navigate(`/${storeSlug}/conta`);
+      if (storeSlug) navigate(storePath(`/conta`));
       return;
     }
 

@@ -1,3 +1,4 @@
+import { useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { User, Heart, Package, ChevronRight, LogOut } from "lucide-react";
@@ -32,6 +33,7 @@ const CustomerAccountDropdown = ({
   textColor,
   accentColor,
 }: CustomerAccountDropdownProps) => {
+  const storePath = useStorePath(storeSlug);
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -159,7 +161,7 @@ const CustomerAccountDropdown = ({
     >
       {/* Trigger */}
       <Link
-        to={`/${storeSlug}/conta`}
+        to={storePath(`/conta`)}
         className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-black/5 transition-colors cursor-pointer"
         onClick={(e) => {
           // On mobile, toggle dropdown instead of navigating
@@ -203,7 +205,7 @@ const CustomerAccountDropdown = ({
                 Faça login para ver seus favoritos e pedidos.
               </p>
               <Link
-                to={`/${storeSlug}/conta`}
+                to={storePath(`/conta`)}
                 className="block w-full text-center text-sm font-semibold py-2 rounded-md text-white transition-colors"
                 style={{ backgroundColor: accentColor }}
                 onClick={() => setIsOpen(false)}
@@ -238,7 +240,7 @@ const CustomerAccountDropdown = ({
                     {favorites.map((fav) => (
                       <Link
                         key={fav.id}
-                        to={`/${storeSlug}/produto/${fav.product_id}`}
+                        to={storePath(`/produto/${fav.product_id}`)}
                         className="flex items-center gap-2 hover:bg-gray-50 rounded p-1 transition-colors"
                         onClick={() => setIsOpen(false)}
                       >
@@ -261,7 +263,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/${storeSlug}/conta?tab=favoritos`}
+                      to={storePath(`/conta?tab=favoritos`)}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}
@@ -294,7 +296,7 @@ const CustomerAccountDropdown = ({
                     {orders.map((order) => (
                       <Link
                         key={order.id}
-                        to={`/${storeSlug}/conta?tab=pedidos&pedido=${order.id}`}
+                        to={storePath(`/conta?tab=pedidos&pedido=${order.id}`)}
                         aria-label={`Pedido ${order.order_number || order.id.slice(0, 6)} — ${formatCurrency(order.total_amount)}`}
                         className="block hover:bg-gray-50 rounded p-2 transition-colors focus-visible:outline focus-visible:outline-2"
                         onClick={() => setIsOpen(false)}
@@ -313,7 +315,7 @@ const CustomerAccountDropdown = ({
                       </Link>
                     ))}
                     <Link
-                      to={`/${storeSlug}/conta?tab=pedidos`}
+                      to={storePath(`/conta?tab=pedidos`)}
                       className="flex items-center justify-between text-xs font-medium pt-1"
                       style={{ color: accentColor }}
                       onClick={() => setIsOpen(false)}

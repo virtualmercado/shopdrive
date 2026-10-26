@@ -1,3 +1,4 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,9 @@ interface StoreData {
 }
 
 const OrderConfirmation = () => {
-  const { storeSlug, orderId } = useParams<{ storeSlug: string; orderId: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
+  const { orderId } = useParams<{ orderId: string }>(); orderId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
@@ -205,7 +208,7 @@ const OrderConfirmation = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Pedido não encontrado</h1>
-          <Button onClick={() => navigate(`/${storeSlug}`)}>
+          <Button onClick={() => navigate(storePath())}>
             Voltar para a loja
           </Button>
         </div>
@@ -587,7 +590,7 @@ const OrderConfirmation = () => {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
-            onClick={() => navigate(`/${storeSlug}`)}
+            onClick={() => navigate(storePath())}
             className="flex-1"
             size="lg"
             style={{ 

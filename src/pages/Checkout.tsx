@@ -1,5 +1,6 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +72,8 @@ const checkoutSchema = z.object({
 });
 
 const CheckoutContent = () => {
-  const { storeSlug } = useParams<{ storeSlug: string }>();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
   const navigate = useNavigate();
   const { cart, getTotal, clearCart, updateQuantity, removeFromCart } = useCart();
   const { user, signIn, signUp } = useCustomerAuth();
@@ -158,7 +160,7 @@ const CheckoutContent = () => {
       const { data } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .single();
 
       if (data) {
@@ -947,7 +949,7 @@ const CheckoutContent = () => {
             toast.info(paymentData.message || "Pagamento em processamento. Aguarde a confirmação.");
           }
           
-          navigate(`/${storeSlug}/pedido-confirmado/${order.id}`);
+          navigate(storePath(`/pedido-confirmado/${order.id}`));
           return;
 
         } catch (paymentError: any) {
@@ -1027,7 +1029,7 @@ const CheckoutContent = () => {
         try {
           toast.info("Você será direcionado para o checkout seguro da InfinitePay para concluir o pagamento.");
 
-          const redirectUrl = `${window.location.origin}/${storeSlug}/pedido-confirmado/${order.id}`;
+          const redirectUrl = `${window.location.origin}${storePath(`/pedido-confirmado/${order.id}`)}`;
 
           const ipResp = await supabase.functions.invoke("create-infinitepay-checkout", {
             body: {
@@ -1127,7 +1129,7 @@ const CheckoutContent = () => {
             // Track purchase event for conversion funnel
             if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
             // Navigate to confirmation page where boleto details will be shown
-            navigate(`/${storeSlug}/pedido-confirmado/${order.id}`);
+            navigate(storePath(`/pedido-confirmado/${order.id}`));
             return;
           } else {
             console.error("Boleto generation failed:", boletoResponse.data);
@@ -1153,7 +1155,7 @@ const CheckoutContent = () => {
       // Track purchase event for conversion funnel
       if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
       toast.success("Pedido realizado com sucesso!");
-      setTimeout(() => navigate(`/${storeSlug}/pedido-confirmado/${order.id}`), 1000);
+      setTimeout(() => navigate(storePath(`/pedido-confirmado/${order.id}`)), 1000);
     } catch (error: any) {
       console.error("Checkout error:", error);
       console.error("[Checkout] erro completo", error);
@@ -1178,7 +1180,7 @@ const CheckoutContent = () => {
     // Track purchase event for conversion funnel
     if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
     toast.success("Pagamento confirmado!");
-    navigate(`/${storeSlug}/pedido-confirmado/${createdOrderId}`);
+    navigate(storePath(`/pedido-confirmado/${createdOrderId}`));
   };
 
   const handlePixExpired = () => {
@@ -1206,7 +1208,7 @@ const CheckoutContent = () => {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Carrinho vazio</h1>
           <p className="text-muted-foreground">Adicione produtos ao carrinho para continuar</p>
-          <Button onClick={() => navigate(`/${storeSlug}`)}>Voltar para a loja</Button>
+          <Button onClick={() => navigate(storePath())}>Voltar para a loja</Button>
         </div>
       </div>
     );
@@ -1249,7 +1251,7 @@ const CheckoutContent = () => {
                 className="w-full"
                 onClick={() => {
                   setShowPixPayment(false);
-                  navigate(`/${storeSlug}`);
+                  navigate(storePath());
                 }}
               >
                 Cancelar e voltar para a loja
@@ -1268,7 +1270,7 @@ const CheckoutContent = () => {
         <div className="mb-4">
           <Button 
             variant="ghost" 
-            onClick={() => navigate(`/${storeSlug}`)}
+            onClick={() => navigate(storePath())}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

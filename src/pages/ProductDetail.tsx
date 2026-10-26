@@ -1,3 +1,4 @@
+import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +78,9 @@ interface StoreData {
 }
 
 const ProductDetailContent = () => {
-  const { storeSlug, productId } = useParams();
+  const { storeSlug, storeId } = usePublicStoreIdentity();
+  const storePath = useStorePath();
+  const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { addToCart, getItemCount, cart } = useCart();
   const { openMiniCart, setLastAddedItem } = useMiniCart();
@@ -140,7 +143,7 @@ const ProductDetailContent = () => {
       const { data: profileData } = await (supabase as any)
         .from("public_store_profiles")
         .select("*")
-        .eq("store_slug", storeSlug)
+        .eq(storeId ? "id" : "store_slug", storeId || storeSlug)
         .maybeSingle();
 
       if (profileData) {
@@ -323,7 +326,7 @@ const ProductDetailContent = () => {
         description: "Você precisa estar logado para salvar favoritos.",
         variant: "destructive",
       });
-      navigate(`/${storeSlug}/conta`);
+      navigate(storePath(`/conta`));
       return;
     }
 
@@ -721,7 +724,7 @@ const ProductDetailContent = () => {
       <div className="min-h-screen bg-background flex items-center justify-center" style={{ fontFamily, fontWeight }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Produto não encontrado</h1>
-          <Button onClick={() => navigate(`/${storeSlug}`)}>
+          <Button onClick={() => navigate(storePath())}>
             Voltar para a loja
           </Button>
         </div>
@@ -750,7 +753,7 @@ const ProductDetailContent = () => {
       <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">
         {/* Back Button */}
         <Link 
-          to={`/${storeSlug}`}
+          to={storePath()}
           className="inline-flex items-center gap-2 text-foreground/90 hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
