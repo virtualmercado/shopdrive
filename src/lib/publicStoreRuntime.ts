@@ -1,11 +1,14 @@
 import { isReservedSlug } from "@/lib/reservedSlugs";
 
-// Exact project hosts only. Preview zones are not platform-wide wildcards.
+// Published/local hosts stay exact; preview infrastructure is classified separately.
 export const PLATFORM_HOSTS = [
   "shopdrive.com.br", "www.shopdrive.com.br", "virtualmercado.lovable.app",
-  "id-preview--9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovable.app",
   "localhost", "127.0.0.1", "[::1]",
 ] as const;
+
+// This is the verified project identity, not an ephemeral shared-preview identifier.
+const PROJECT_RUNTIME_PREVIEW_HOST = "9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovableproject.com";
+const LOVABLE_SHARED_PREVIEW_HOST = /^id-preview--[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.lovable\.app$/;
 
 export type PublicStoreMode = "platform" | "custom-domain-loading" | "custom-domain" | "custom-domain-not-found" | "custom-domain-error";
 export interface PublicStoreIdentity {
@@ -19,8 +22,14 @@ export function normalizeRuntimeHostname(hostname: string): string {
   return hostname.toLowerCase().replace(/\.$/, "");
 }
 
+export function isTrustedLovablePreviewHost(hostname: string): boolean {
+  const normalized = normalizeRuntimeHostname(hostname);
+  // Do not trust arbitrary Lovable subdomains, other project origins or visitor flags.
+  return normalized === PROJECT_RUNTIME_PREVIEW_HOST || LOVABLE_SHARED_PREVIEW_HOST.test(normalized);
+}
+
 export function isPlatformHost(hostname: string): boolean {
-  return (PLATFORM_HOSTS as readonly string[]).includes(normalizeRuntimeHostname(hostname));
+  return (PLATFORM_HOSTS as readonly string[]).includes(normalizeRuntimeHostname(hostname)) || isTrustedLovablePreviewHost(hostname);
 }
 
 export function initialStoreRuntime(hostname: string): PublicStoreIdentity {
