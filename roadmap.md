@@ -1,5 +1,10 @@
 # Roadmap
 
+## Hotfix isolado — hostname da prévia Lovable
+- [ ] Diagnosticar hostname real da prévia e comparar com a classificação existente.
+- [ ] Ajustar somente a classificação central e testes, com padrão oficial estrito e sem wildcard Lovable.
+- [ ] Validar prévia, slug/produto/checkout, fail-closed, regressões e relatório; não publicar nem alterar infraestrutura.
+
 ## Hostname runtime — implementação estrutural sem ativação
 - [x] Centralizar identidade por hostname com allowlist explícita e resolução fail-closed pela RPC existente.
 - [x] Compartilhar páginas, isolamento e URLs internas entre modo plataforma e domínio próprio sem slug.
