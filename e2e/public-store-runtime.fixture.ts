@@ -58,7 +58,7 @@ export const supabase={
 };`;
 
 export async function mountRuntimeFixture(page: Page, origin: string, resolution = "valid") {
-  await page.route("**/*", async (route) => {
+  await page.context().route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.origin !== origin) { await route.abort(); return; }

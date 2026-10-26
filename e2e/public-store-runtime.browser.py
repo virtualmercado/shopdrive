@@ -19,7 +19,7 @@ async def fixture(browser,origin=EXT,resolution='valid',mobile=False):
   if req.is_navigation_request():
    body=(await response.text()).replace('<head>','<head><script>window.__resolution='+json.dumps(resolution)+";localStorage.setItem('vm_cookie_consent','true');</script>");await route.fulfill(response=response,body=body);return
   await route.fulfill(response=response)
- await page.route('**/*',route_handler);return context,page,errors
+ await context.route('**/*',route_handler);return context,page,errors
 async def visible(loc):await loc.wait_for(state='visible',timeout=15000)
 async def main():
  async with async_playwright() as pw:
