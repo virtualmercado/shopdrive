@@ -103,6 +103,18 @@ test("custom institutional pages and auth/account use store A", async ({ page })
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(page).toHaveURL(`${external}/conta?tab=pedidos`);
   await expect(page.getByRole("heading", { name: "Meus Pedidos", exact: true })).toBeVisible();
+  await expect(page.getByText("TESTE-001", { exact: true })).toBeVisible();
+  await page.getByText("TESTE-001", { exact: true }).click();
+  await expect(page.getByRole("dialog").getByText("Produto A", { exact: true })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.goto(`${external}/produto/${PRODUCT_A}`);
+  await page.getByRole("button", { name: "Adicionar ao Carrinho", exact: true }).click();
+  await page.getByRole("button", { name: "Finalizar Compra", exact: true }).click();
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "Editar dados", exact: true }).click();
+  const popup = await popupPromise;
+  await popup.waitForURL(`${external}/conta`, { waitUntil: "commit" });
+  await popup.close();
 });
 
 test("platform route, product, search, legacy redirect, cart and checkout stay slug-based", async ({ page }) => {
@@ -136,6 +148,7 @@ test("custom cart trusts runtime slug, keeps namespace and mobile links", async 
   expect(stored.storeKey).toBe("loja-a");
   expect(stored.items[0].id).toBe(PRODUCT_A);
   await expect(page.getByText("Produto B", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Carrinho de Compras" })).toBeVisible();
   await page.screenshot({ path: "/tmp/browser/hostname-runtime/mobile-cart.png" });
   await page.getByRole("button", { name: "Finalizar Compra", exact: true }).click();
   await expect(page).toHaveURL(`${external}/checkout`);
