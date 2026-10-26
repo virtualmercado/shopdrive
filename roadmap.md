@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Hotfix isolado — hostname da prévia Lovable
-- [ ] Diagnosticar hostname real da prévia e comparar com a classificação existente.
-- [ ] Ajustar somente a classificação central e testes, com padrão oficial estrito e sem wildcard Lovable.
-- [ ] Validar prévia, slug/produto/checkout, fail-closed, regressões e relatório; não publicar nem alterar infraestrutura.
+- [x] Diagnosticar hostname real pela telemetria do navegador: origem interna deste projeto em lovableproject.com, diferente do link compartilhável.
+- [x] Ajustar somente a classificação central e testes, com padrão oficial estrito e origem interna exata; sem wildcard Lovable.
+- [x] Validar com fixtures no hostname observado: 397 testes, 18 regressões e 7 verificações específicas; fail-closed preservado, sem publicação/infraestrutura; relatório entregue.
+- [ ] BLOQUEADO: confirmação integral na prévia gerenciada conectada e resultado separado de typecheck — navegador de teste é redirecionado ao login Lovable; ambiente só forneceu build OK, sem sinal independente de typecheck.
 
 ## Hostname runtime — implementação estrutural sem ativação
 - [x] Centralizar identidade por hostname com allowlist explícita e resolução fail-closed pela RPC existente.
