@@ -393,6 +393,13 @@
       "when": 1793047460407,
       "tag": "0055_harden_public_insert_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793048741415,
+      "tag": "0056_fix_public_landing_ticket_protocol",
+      "breakpoints": true
     }
   ]
 }
