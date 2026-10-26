@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { adaptStoreInternalLink, buildStorePath, effectiveStoreSlug, initialStoreRuntime, isPlatformHost, resolveStoreRuntime, storeAuthRedirect, storeContentPath } from "./publicStoreRuntime";
+import { adaptStoreInternalLink, buildStorePath, effectiveStoreSlug, initialStoreRuntime, isPlatformHost, isTrustedLovablePreviewHost, resolveStoreRuntime, storeAuthRedirect, storeContentPath } from "./publicStoreRuntime";
 
 const STORE_A = "11111111-1111-4111-8111-111111111111";
 const STORE_B = "22222222-2222-4222-8222-222222222222";
@@ -7,7 +7,7 @@ const platform = { mode: "platform" as const, hostname: "shopdrive.com.br", stor
 const custom = { mode: "custom-domain" as const, hostname: "loja-piloto.exemplo", storeId: STORE_A, storeSlug: "loja-a" };
 
 describe("explicit platform hosts", () => {
-  it.each(["shopdrive.com.br", "www.shopdrive.com.br", "virtualmercado.lovable.app", "id-preview--9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovable.app", "localhost", "127.0.0.1"])("accepts verified %s", (host) => expect(isPlatformHost(host)).toBe(true));
+  it.each(["shopdrive.com.br", "www.shopdrive.com.br", "virtualmercado.lovable.app", "id-preview--9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovable.app", "localhost", "127.0.0.1", "[::1]"])("accepts verified %s", (host) => expect(isPlatformHost(host)).toBe(true));
   it.each(["loja-piloto.exemplo", "evil.lovable.app", "shopdrive.com.br.evil.com", "other.shopdrive.com.br", "shopdrive.com.br:8080", "https://shopdrive.com.br"])("does not authorize %s", (host) => expect(isPlatformHost(host)).toBe(false));
   it("normalizes case and a trailing DNS dot without stripping www", () => {
     expect(initialStoreRuntime("WWW.SHOPDRIVE.COM.BR.").hostname).toBe("www.shopdrive.com.br");
@@ -17,6 +17,53 @@ describe("explicit platform hosts", () => {
     const resolver = vi.fn();
     expect(await resolveStoreRuntime("shopdrive.com.br", resolver)).toEqual({ mode: "platform", hostname: "shopdrive.com.br" });
     expect(resolver).not.toHaveBeenCalled();
+  });
+});
+
+describe("strict official preview infrastructure", () => {
+  const runtimeHost = "9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovableproject.com";
+  it.each([
+    runtimeHost,
+    "id-preview--9f6c1d8d-8e82-428c-a496-b3fa1dba56be.lovable.app",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app",
+    "ID-PREVIEW--22222222-2222-4222-8222-222222222222.LOVABLE.APP.",
+    runtimeHost.toUpperCase() + ".",
+  ])("recognizes %s without calling the domain resolver", async (hostname) => {
+    const resolver = vi.fn();
+    expect(isTrustedLovablePreviewHost(hostname)).toBe(true);
+    expect(initialStoreRuntime(hostname).mode).toBe("platform");
+    expect((await resolveStoreRuntime(hostname, resolver)).mode).toBe("platform");
+    expect(resolver).not.toHaveBeenCalled();
+  });
+  it.each([
+    "dominio-externo-desconhecido.com", "evil.lovable.app", "preview--11111111-1111-4111-8111-111111111111.lovable.app",
+    "id-preview--arbitrary.lovable.app", "id-preview--11111111111141118111111111111111.lovable.app",
+    "id-preview--11111111-1111-0111-8111-111111111111.lovable.app",
+    "id-preview--11111111-1111-4111-7111-111111111111.lovable.app",
+    "id-preview--gggggggg-1111-4111-8111-111111111111.lovable.app",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app.evil.com",
+    "sub.id-preview--11111111-1111-4111-8111-111111111111.lovable.app",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app:8080",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app/loja-a",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app?preview=true",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app#preview",
+    "https://id-preview--11111111-1111-4111-8111-111111111111.lovable.app",
+    " id-preview--11111111-1111-4111-8111-111111111111.lovable.app",
+    "id-preview--11111111-1111-4111-8111-111111111111.lovable.app..",
+    "11111111-1111-4111-8111-111111111111.lovableproject.com",
+    runtimeHost + ".evil.com", "sub." + runtimeHost, runtimeHost + ":8080", runtimeHost + "/loja-a",
+  ])("does not trust lookalike or unknown host %s", (hostname) => {
+    expect(isTrustedLovablePreviewHost(hostname)).toBe(false);
+    expect(isPlatformHost(hostname)).toBe(false);
+  });
+  it("unknown hostname cannot acquire platform identity from slug or stored search tenant", async () => {
+    const hostname = "dominio-externo-desconhecido.com";
+    const resolver = vi.fn(async () => ({ data: [], error: null }));
+    const identity = await resolveStoreRuntime(hostname, resolver);
+    expect(identity).toEqual({ hostname, mode: "custom-domain-not-found" });
+    expect(effectiveStoreSlug(identity, "loja-a", "loja-a")).toBeUndefined();
+    expect(buildStorePath(identity, "/loja-a?preview=true")).toBe("#");
+    expect(resolver).toHaveBeenCalledWith(hostname);
   });
 });
 
