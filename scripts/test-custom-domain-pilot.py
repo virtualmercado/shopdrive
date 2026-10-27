@@ -22,11 +22,17 @@ CREATE POLICY "Admins read custom domain access" ON public.custom_domain_v2_acce
 CREATE POLICY "Admins can view all domains" ON public.merchant_domains FOR SELECT USING(public.has_role(auth.uid(),'admin'));
 CREATE POLICY "Merchants can view their own domains" ON public.merchant_domains FOR SELECT USING(auth.uid()=merchant_id);
 """
-sql = (root / 'supabase/tests/custom-domain-pilot.fixture.sql').read_text()
+sql = (root / 'supabase/tests/custom-domain-pilot.fixture.sql').read_text() + '\n'
 sql += '\n'.join(helpers[k] for k in ['roles', 'admin', 'store_valid', 'reserved', 'normalize', 'setter'])
 sql += policies + Path(args.migration).read_text() + (root / 'supabase/tests/custom-domain-pilot.sql').read_text()
 # No managed connection credentials or settings reach this disposable local process.
 local_env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
 local_env['PGSSLMODE'] = 'disable'
-subprocess.run(['psql', '-X', '-h', '127.0.0.1', '-p', str(args.port), '-U', 'nobody', '-d', 'postgres',
+database = 'pilot_validation'
+base = ['psql', '-X', '-h', '127.0.0.1', '-p', str(args.port), '-U', 'nobody', '-v', 'ON_ERROR_STOP=1', '-q']
+subprocess.run(base + ['-d', 'postgres', '-c', f'DROP DATABASE IF EXISTS {database};'], check=True, env=local_env)
+subprocess.run(base + ['-d', 'postgres', '-c', f'CREATE DATABASE {database};'], check=True, env=local_env)
+for role in ['anon', 'authenticated', 'service_role']:
+    subprocess.run(base + ['-d', 'postgres', '-c', f'DROP ROLE IF EXISTS {role};'], check=True, env=local_env)
+subprocess.run(['psql', '-X', '-h', '127.0.0.1', '-p', str(args.port), '-U', 'nobody', '-d', database,
                 '-v', 'ON_ERROR_STOP=1', '-q'], input=sql, text=True, check=True, env=local_env)
