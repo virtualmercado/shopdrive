@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Piloto V2 — mecanismo estrutural sem ativação
-- [ ] Adicionar autorização administrativa exata store+hostname em custom_domain_v2_access, preservando RPC e unicidade canônica.
-- [ ] Endurecer resolvedor único com acesso individual, estados completos, revogação e exceção exata sem habilitação global.
-- [ ] Preparar verificação DNS somente do hostname piloto autorizado, preservando TXT ShopDrive e fluxo normal raiz+www.
+- [x] Adicionar autorização administrativa exata store+hostname em custom_domain_v2_access, preservando RPC e unicidade canônica.
+- [x] Endurecer resolvedor único com acesso individual, estados completos, revogação e exceção exata sem habilitação global.
+- [x] Preparar verificação DNS somente do hostname piloto autorizado, preservando TXT ShopDrive e fluxo normal raiz+www; persistência transacional e escopo preservado.
 - [ ] Executar testes locais/isolados e regressões, confirmar flags false e zero ativações; entregar relatório e rollback sem publicação.
 
 ## Hotfix isolado — hostname da prévia Lovable

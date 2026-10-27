@@ -12,7 +12,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', type=int, default=55439)
 parser.add_argument('--helpers', required=True)
-parser.add_argument('--migration', required=True)
+parser.add_argument('--migration', required=True, action='append')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 helpers = json.loads(Path(args.helpers).read_text())
@@ -24,7 +24,7 @@ CREATE POLICY "Merchants can view their own domains" ON public.merchant_domains 
 """
 sql = (root / 'supabase/tests/custom-domain-pilot.fixture.sql').read_text() + '\n'
 sql += '\n'.join(helpers[k].rstrip() + ';' for k in ['roles', 'admin', 'store_valid', 'reserved', 'normalize', 'setter'])
-sql += policies + Path(args.migration).read_text() + (root / 'supabase/tests/custom-domain-pilot.sql').read_text()
+sql += policies + '\n'.join(Path(p).read_text() for p in args.migration) + (root / 'supabase/tests/custom-domain-pilot.sql').read_text()
 # No managed connection credentials or settings reach this disposable local process.
 local_env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
 local_env['PGSSLMODE'] = 'disable'
