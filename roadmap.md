@@ -1,5 +1,9 @@
 # Roadmap
 
+## Piloto AROMA — verificação real sem ativação
+- [ ] Executar o mecanismo V2 real com TXT existente e CNAME exclusivo de www, sem exigir A da raiz.
+- [ ] Conferir os estados persistidos, travas false, ausência de ativação e resolvedor público vazio; informar resultado real.
+
 ## Piloto V2 — mecanismo estrutural sem ativação
 - [x] Adicionar autorização administrativa exata store+hostname em custom_domain_v2_access, preservando RPC e unicidade canônica.
 - [x] Endurecer resolvedor único com acesso individual, estados completos, revogação e exceção exata sem habilitação global.
