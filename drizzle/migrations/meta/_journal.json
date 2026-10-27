@@ -414,6 +414,13 @@
       "when": 1793135837470,
       "tag": "0058_custom_domain_exact_admin_pilot",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793135914166,
+      "tag": "0059_custom_domain_verification_transient_preservation",
+      "breakpoints": true
     }
   ]
 }
