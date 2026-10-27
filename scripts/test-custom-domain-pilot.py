@@ -23,7 +23,7 @@ CREATE POLICY "Admins can view all domains" ON public.merchant_domains FOR SELEC
 CREATE POLICY "Merchants can view their own domains" ON public.merchant_domains FOR SELECT USING(auth.uid()=merchant_id);
 """
 sql = (root / 'supabase/tests/custom-domain-pilot.fixture.sql').read_text() + '\n'
-sql += '\n'.join(helpers[k] for k in ['roles', 'admin', 'store_valid', 'reserved', 'normalize', 'setter'])
+sql += '\n'.join(helpers[k].rstrip() + ';' for k in ['roles', 'admin', 'store_valid', 'reserved', 'normalize', 'setter'])
 sql += policies + Path(args.migration).read_text() + (root / 'supabase/tests/custom-domain-pilot.sql').read_text()
 # No managed connection credentials or settings reach this disposable local process.
 local_env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
