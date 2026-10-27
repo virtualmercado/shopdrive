@@ -110,5 +110,43 @@ SELECT public.admin_set_store_custom_domains_v2('11111111-1111-4111-8111-1111111
 SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('www.redearoma.com.br')),'existing admin enabled RPC revokes pilot too');
 RESET ROLE;
 SELECT pg_temp.assert_rule((SELECT count(*)=2 FROM public.audit_logs WHERE action='custom_domain_pilot_set'),'pilot modifications audit actor and target');
+UPDATE public.profiles SET account_status='suspended' WHERE id='11111111-1111-4111-8111-111111111111';
+SET LOCAL ROLE authenticated;
+SELECT public.admin_set_store_custom_domain_pilot('11111111-1111-4111-8111-111111111111',NULL);
+SELECT pg_temp.assert_rule((SELECT pilot_hostname IS NULL FROM public.custom_domain_v2_access WHERE store_id='11111111-1111-4111-8111-111111111111'),'admin can revoke suspended store');
+RESET ROLE;
+UPDATE public.profiles SET account_status='active' WHERE id='11111111-1111-4111-8111-111111111111';
+UPDATE public.custom_domain_v2_access SET enabled=true,pilot_hostname='www.redearoma.com.br' WHERE store_id='11111111-1111-4111-8111-111111111111';
+DO $$
+DECLARE cfg jsonb; acc jsonb; domain_id uuid; stamp timestamptz; result jsonb; saved jsonb;
+BEGIN
+ SELECT to_jsonb(c) INTO cfg FROM public.custom_domain_platform_config c;
+ SELECT to_jsonb(a) INTO acc FROM public.custom_domain_v2_access a WHERE store_id='11111111-1111-4111-8111-111111111111';
+ SELECT id,updated_at INTO domain_id,stamp FROM public.merchant_domains WHERE merchant_id='11111111-1111-4111-8111-111111111111';
+ result:=jsonb_build_object('checkedAt',now(),'ownership','verified','root','not_required','www','ok','pilotHostname','www.redearoma.com.br',
+ 'nameservers',jsonb_build_array('romina.ns.cloudflare.com'),'provider',jsonb_build_object('slug','cloudflare'),'observed',jsonb_build_object('txt',1),'notes',jsonb_build_array('exact_pilot_hostname'));
+ UPDATE public.custom_domain_v2_access SET enabled=false WHERE store_id='11111111-1111-4111-8111-111111111111';
+ BEGIN
+  PERFORM public.apply_custom_domain_verification('22222222-2222-4222-8222-222222222222',domain_id,stamp,acc,cfg,result,'active','www.redearoma.com.br');
+  RAISE EXCEPTION 'revoked observation accepted';
+ EXCEPTION WHEN serialization_failure THEN RAISE NOTICE 'PASS: stale access snapshot cannot save verification'; END;
+ PERFORM pg_temp.assert_rule((SELECT count(*)=0 FROM public.domain_verification_logs),'stale snapshot writes no logs');
+ UPDATE public.custom_domain_v2_access SET enabled=true WHERE store_id='11111111-1111-4111-8111-111111111111';
+ SELECT to_jsonb(a) INTO acc FROM public.custom_domain_v2_access a WHERE store_id='11111111-1111-4111-8111-111111111111';
+ saved:=public.apply_custom_domain_verification('22222222-2222-4222-8222-222222222222',domain_id,stamp,acc,cfg,result,'active','www.redearoma.com.br');
+ PERFORM pg_temp.assert_rule(saved->>'state'='active','transactional exact-pilot verification saves');
+ PERFORM pg_temp.assert_rule((SELECT count(*)=3 FROM public.domain_verification_logs),'verification and three logs saved together');
+ PERFORM pg_temp.assert_rule((SELECT NOT dns_a_verified AND dns_cname_verified AND last_verification_result->>'pilotHostname'='www.redearoma.com.br' FROM public.merchant_domains WHERE id=domain_id),'pilot DNS never claims apex A verified');
+ BEGIN
+  PERFORM public.apply_custom_domain_verification('22222222-2222-4222-8222-222222222222',domain_id,stamp-interval '1 second',acc,cfg,result,'active','www.redearoma.com.br');
+  RAISE EXCEPTION 'stale domain accepted';
+ EXCEPTION WHEN serialization_failure THEN RAISE NOTICE 'PASS: stale domain snapshot rejected'; END;
+END $$;
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+ BEGIN PERFORM public.apply_custom_domain_verification(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+ RAISE EXCEPTION 'client applied DNS'; EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'PASS: verification apply restricted to service role'; END;
+END $$;
+RESET ROLE;
 SELECT pg_temp.assert_rule((SELECT NOT feature_enabled AND NOT ingress_ready FROM public.custom_domain_platform_config),'local false flags restored');
 ROLLBACK;
