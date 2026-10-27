@@ -1639,18 +1639,21 @@ export type Database = {
       custom_domain_v2_access: {
         Row: {
           enabled: boolean
+          pilot_hostname: string | null
           store_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           enabled?: boolean
+          pilot_hostname?: string | null
           store_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           enabled?: boolean
+          pilot_hostname?: string | null
           store_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -8184,6 +8187,10 @@ export type Database = {
         Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
       }
+      admin_set_store_custom_domain_pilot: {
+        Args: { p_hostname: string; p_store_id: string }
+        Returns: Json
+      }
       admin_set_store_custom_domains_v2: {
         Args: { p_enabled: boolean; p_store_id: string }
         Returns: Json
@@ -8209,6 +8216,19 @@ export type Database = {
       apply_confirmed_plan_downgrade: {
         Args: { p_new_plan: string; p_store_id: string }
         Returns: number
+      }
+      apply_custom_domain_verification: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_expected_access: Json
+          p_expected_config: Json
+          p_expected_updated_at: string
+          p_pilot_hostname: string
+          p_result: Json
+          p_state: string
+        }
+        Returns: Json
       }
       apply_template_to_existing_store: {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
@@ -8661,6 +8681,10 @@ export type Database = {
         Returns: string
       }
       normalize_custom_domain: { Args: { p_input: string }; Returns: string }
+      normalize_custom_domain_hostname: {
+        Args: { p_hostname: string }
+        Returns: string
+      }
       normalize_email: { Args: { p_email: string }; Returns: string }
       normalize_search_text: { Args: { input_text: string }; Returns: string }
       order_items_unchanged: {

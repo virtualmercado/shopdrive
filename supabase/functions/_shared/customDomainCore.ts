@@ -16,6 +16,24 @@ export const RESERVED_DOMAIN_SUFFIXES = [
 
 const LABELS = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(xn--[a-z0-9-]{2,59}|[a-z]{2,63})$/;
 
+/** Exact browser/admin hostname: no URL, whitespace, port, path or www removal. */
+export function normalizeExactDomainHostname(input: string): string | null {
+  const host = (input ?? "").toLowerCase().replace(/\.$/, "");
+  return host.length <= 253 && LABELS.test(host) && !isReservedDomain(host) ? host : null;
+}
+
+/** Pilot authority comes only from the protected access row, not request parameters. */
+export function getPilotVerificationHostname(opts: {
+  isAdmin: boolean; storeId: string; domainMerchantId: string; canonicalDomain: string;
+  access: { store_id: string; enabled: boolean; pilot_hostname: string | null } | null;
+}): string | null {
+  if (!opts.isAdmin || !opts.access?.enabled || opts.access.store_id !== opts.storeId || opts.domainMerchantId !== opts.storeId) return null;
+  const host = normalizeExactDomainHostname(opts.access.pilot_hostname ?? "");
+  if (!host || host !== opts.access.pilot_hostname) return null;
+  const canonical = normalizeCustomDomain(host);
+  return canonical.ok && canonical.domain === opts.canonicalDomain ? host : null;
+}
+
 export function isReservedDomain(domain: string): boolean {
   return RESERVED_DOMAIN_SUFFIXES.some((r) => domain === r || domain.endsWith(`.${r}`));
 }
@@ -99,7 +117,7 @@ export interface IngressConfig {
 }
 
 export type OwnershipStatus = "verified" | "missing" | "mismatch" | "expired" | "resolver_unavailable" | "already_verified";
-export type RecordStatus = "ok" | "wrong" | "missing" | "resolver_unavailable" | "not_configured";
+export type RecordStatus = "ok" | "wrong" | "missing" | "resolver_unavailable" | "not_configured" | "not_required";
 
 export interface VerificationResult {
   checkedAt: string;
@@ -110,6 +128,12 @@ export interface VerificationResult {
   www: RecordStatus;
   observed: { txt: number; root: string[]; www: string[] };
   notes: string[];
+  pilotHostname?: string;
+}
+
+export function areDnsRecordsVerified(result: VerificationResult): boolean {
+  if (result.pilotHostname) return normalizeExactDomainHostname(result.pilotHostname) === result.pilotHostname && result.root === "not_required" && result.www === "ok";
+  return result.root === "ok" && result.www === "ok";
 }
 
 async function checkRecord(resolve: Resolver, host: string, type: string, expected: string | null): Promise<{ s: RecordStatus; seen: string[] }> {
@@ -130,6 +154,8 @@ export async function verifyDomain(opts: {
   config: IngressConfig;
   resolve: Resolver;
   now?: Date;
+  /** Server-selected administrative scope. Never populated from the request body. */
+  pilotHostname?: string | null;
 }): Promise<VerificationResult> {
   const now = opts.now ?? new Date();
   const notes: string[] = [];
@@ -158,14 +184,28 @@ export async function verifyDomain(opts: {
   let www: RecordStatus = "not_configured";
   let rootSeen: string[] = [];
   let wwwSeen: string[] = [];
-  if (opts.config.ingressReady) {
+  const exact = normalizeExactDomainHostname(opts.pilotHostname ?? "");
+  const canonical = exact ? normalizeCustomDomain(exact) : null;
+  const pilotHostname = exact && exact === opts.pilotHostname && canonical?.ok && canonical.domain === opts.domain ? exact : null;
+  if (opts.pilotHostname && !pilotHostname) {
+    notes.push("invalid_pilot_scope");
+  } else if (pilotHostname) {
+    // Readiness is local to the protected host and fixed configured CNAME target; never global.
+    root = "not_required";
+    if (opts.config.wwwType.toUpperCase() === "CNAME") {
+      const w = await checkRecord(opts.resolve, pilotHostname, "CNAME", opts.config.wwwValue);
+      www = w.s; wwwSeen = w.seen;
+    }
+    notes.push("exact_pilot_hostname");
+  } else if (opts.config.ingressReady) {
     const r = await checkRecord(opts.resolve, opts.domain, opts.config.rootType, opts.config.rootValue);
     const w = await checkRecord(opts.resolve, `www.${opts.domain}`, opts.config.wwwType, opts.config.wwwValue);
     root = r.s; www = w.s; rootSeen = r.seen; wwwSeen = w.seen;
   } else {
     notes.push("ingress_not_configured");
   }
-  return { checkedAt: now.toISOString(), ownership, nameservers, provider, root, www, observed: { txt: txtCount, root: rootSeen, www: wwwSeen }, notes };
+  return { checkedAt: now.toISOString(), ownership, nameservers, provider, root, www, observed: { txt: txtCount, root: rootSeen, www: wwwSeen }, notes,
+    ...(pilotHostname ? { pilotHostname } : {}) };
 }
 
 export type V2State =
@@ -181,7 +221,7 @@ export interface StateInput {
 }
 
 /**
- * Decides the next V2 state. `active` requires ownership + both records + routing active + SSL active,
+ * Decides the next V2 state. `active` requires ownership + scoped DNS + routing active + SSL active,
  * all reported by real checks/infrastructure. A resolver outage never downgrades or upgrades the state.
  */
 export function nextV2State({ current, result, routingStatus, sslStatus }: StateInput): V2State {
@@ -197,6 +237,7 @@ export function nextV2State({ current, result, routingStatus, sslStatus }: State
   if (result.root === "not_configured" || result.www === "not_configured") return "dns_pending";
   if (result.root === "missing" || result.www === "missing") return "dns_pending";
   if (result.root === "wrong" || result.www === "wrong") return "dns_error";
+  if (!areDnsRecordsVerified(result)) return "dns_pending";
   if (routingStatus === "error") return "routing_error";
   if (routingStatus !== "active") return routingStatus === "provisioning" ? "routing_provisioning" : "dns_verified";
   if (sslStatus === "error") return "ssl_error";
