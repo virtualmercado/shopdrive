@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Piloto AROMA — verificação real sem ativação
-- [ ] Executar o mecanismo V2 real com TXT existente e CNAME exclusivo de www, sem exigir A da raiz.
-- [ ] Conferir os estados persistidos, travas false, ausência de ativação e resolvedor público vazio; informar resultado real.
+- [x] Executar o mecanismo V2 real: TXT existente confirmado e CNAME exclusivo www → domains.shopdrive.com.br confirmado; raiz not_required.
+- [x] Conferir persistência às 2026-10-27 22:06:42.548 UTC: propriedade/DNS verificados, v2_state=dns_verified, routing not_started, SSL pending, is_active=false, activated_at=NULL, travas false e resolvedor anônimo vazio para www/raiz/loja; nenhuma ativação ou publicação.
 
 ## Piloto V2 — mecanismo estrutural sem ativação
 - [x] Adicionar autorização administrativa exata store+hostname em custom_domain_v2_access, preservando RPC e unicidade canônica.
