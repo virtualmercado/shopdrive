@@ -37,6 +37,9 @@ BEGIN
     VALUES (p_store_id, false, v_host, auth.uid(), now())
     ON CONFLICT (store_id) DO UPDATE SET pilot_hostname = EXCLUDED.pilot_hostname,
       updated_by = EXCLUDED.updated_by, updated_at = now();
+  INSERT INTO public.audit_logs(user_id, action, entity_type, entity_id, metadata)
+    VALUES (auth.uid(), 'custom_domain_pilot_set', 'custom_domain_v2_access', p_store_id,
+      jsonb_build_object('pilot_hostname', v_host, 'revoked', v_host IS NULL));
   RETURN jsonb_build_object('ok', true, 'pilot_hostname', v_host);
 END $$;
 REVOKE ALL ON FUNCTION public.admin_set_store_custom_domain_pilot(uuid, text) FROM PUBLIC, anon;
