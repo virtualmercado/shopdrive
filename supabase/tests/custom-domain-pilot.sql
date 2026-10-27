@@ -137,6 +137,11 @@ BEGIN
  PERFORM pg_temp.assert_rule(saved->>'state'='active','transactional exact-pilot verification saves');
  PERFORM pg_temp.assert_rule((SELECT count(*)=3 FROM public.domain_verification_logs),'verification and three logs saved together');
  PERFORM pg_temp.assert_rule((SELECT NOT dns_a_verified AND dns_cname_verified AND last_verification_result->>'pilotHostname'='www.redearoma.com.br' FROM public.merchant_domains WHERE id=domain_id),'pilot DNS never claims apex A verified');
+ SELECT updated_at INTO stamp FROM public.merchant_domains WHERE id=domain_id;
+ result:=result||jsonb_build_object('ownership','already_verified','www','resolver_unavailable');
+ saved:=public.apply_custom_domain_verification('22222222-2222-4222-8222-222222222222',domain_id,stamp,acc,cfg,result,'active','www.redearoma.com.br');
+ PERFORM pg_temp.assert_rule(saved->>'state'='active','transient DNS timeout preserves existing active state');
+ PERFORM pg_temp.assert_rule((SELECT last_verification_result->>'www'='ok' FROM public.merchant_domains WHERE id=domain_id),'transient timeout preserves verified DNS scope');
  BEGIN
   PERFORM public.apply_custom_domain_verification('22222222-2222-4222-8222-222222222222',domain_id,stamp-interval '1 second',acc,cfg,result,'active','www.redearoma.com.br');
   RAISE EXCEPTION 'stale domain accepted';

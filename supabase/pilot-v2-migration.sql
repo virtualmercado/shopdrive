@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION public.apply_custom_domain_verification(
  p_expected_config jsonb,p_result jsonb,p_state text,p_pilot_hostname text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE c public.custom_domain_platform_config; a public.custom_domain_v2_access; d public.merchant_domains;
- v_admin boolean; v_pilot boolean; v_generic boolean; v_dns boolean; v_owned boolean; v_at timestamptz; v_source text;
+ v_admin boolean; v_pilot boolean; v_generic boolean; v_dns boolean; v_owned boolean; v_at timestamptz; v_source text; v_preserve boolean;
 BEGIN
  SELECT * INTO c FROM public.custom_domain_platform_config WHERE id=true FOR SHARE;
  IF NOT FOUND OR to_jsonb(c) IS DISTINCT FROM p_expected_config THEN RAISE EXCEPTION 'verification_context_changed' USING ERRCODE='40001'; END IF;
@@ -115,7 +115,13 @@ BEGIN
  v_dns := CASE WHEN v_pilot THEN p_result->>'root'='not_required' AND p_result->>'www'='ok'
    ELSE p_result->>'root'='ok' AND p_result->>'www'='ok' END;
  v_owned := p_result->>'ownership' IN ('verified','already_verified');
- IF p_state='active' AND NOT COALESCE((v_pilot OR v_generic) AND v_dns AND v_owned AND
+ v_preserve := COALESCE(d.v2_state='active' AND d.is_active AND NOT d.needs_reverification
+   AND d.ownership_verified_at IS NOT NULL AND d.dns_verified_at IS NOT NULL AND d.activated_at IS NOT NULL
+   AND (v_pilot OR v_generic) AND (d.last_verification_result->>'pilotHostname') IS NOT DISTINCT FROM p_pilot_hostname
+   AND (p_result->>'root'='resolver_unavailable' OR p_result->>'www'='resolver_unavailable' OR p_result->>'ownership'='resolver_unavailable')
+   AND p_result->>'root' NOT IN ('wrong','missing') AND p_result->>'www' NOT IN ('wrong','missing')
+   AND p_result->>'ownership' IN ('verified','already_verified','resolver_unavailable'),false);
+ IF p_state='active' AND NOT COALESCE((v_pilot OR v_generic) AND (v_dns AND v_owned OR v_preserve) AND
    d.routing_status='active' AND d.ssl_status='active' AND public.is_public_store_active(d.merchant_id),false) THEN
    RAISE EXCEPTION 'activation_not_authorized' USING ERRCODE='42501';
  END IF;
@@ -130,7 +136,7 @@ BEGIN
    UPDATE public.merchant_domains SET last_dns_check=v_at,last_verification_result=p_result,needs_reverification=true WHERE id=d.id;
    RETURN jsonb_build_object('legacy',true,'result',p_result);
  END IF;
- UPDATE public.merchant_domains SET last_dns_check=v_at,last_verification_result=p_result,v2_state=p_state,
+ UPDATE public.merchant_domains SET last_dns_check=v_at,last_verification_result=CASE WHEN v_preserve THEN last_verification_result ELSE p_result END,v2_state=p_state,
   detected_nameservers=ARRAY(SELECT jsonb_array_elements_text(p_result->'nameservers')),dns_provider=p_result->'provider'->>'slug',updated_at=now(),
   ownership_verified_at=CASE WHEN p_result->>'ownership'='verified' THEN v_at ELSE ownership_verified_at END,
   dns_verified_at=CASE WHEN v_dns AND (v_pilot OR v_generic) THEN v_at ELSE dns_verified_at END,
