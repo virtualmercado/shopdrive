@@ -69,7 +69,7 @@ BEGIN
       AND p.deleted_at IS NULL AND COALESCE(p.account_status, 'active') = 'active'
       AND (
         a.pilot_hostname = v_host
-        OR (c.feature_enabled AND c.ingress_ready AND c.infrastructure_provider IS NOT NULL)
+        OR (a.pilot_hostname IS NULL AND c.feature_enabled AND c.ingress_ready AND c.infrastructure_provider IS NOT NULL)
       );
 EXCEPTION WHEN others THEN
   RETURN;
