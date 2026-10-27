@@ -5,6 +5,7 @@ The helpers JSON must be captured by a read-only query; credentials/hosted data 
 """
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -24,6 +25,8 @@ CREATE POLICY "Merchants can view their own domains" ON public.merchant_domains 
 sql = (root / 'supabase/tests/custom-domain-pilot.fixture.sql').read_text()
 sql += '\n'.join(helpers[k] for k in ['roles', 'admin', 'store_valid', 'reserved', 'normalize', 'setter'])
 sql += policies + Path(args.migration).read_text() + (root / 'supabase/tests/custom-domain-pilot.sql').read_text()
-# Explicit localhost/port/user overrides prohibit inherited managed PG* connection settings.
+# No managed connection credentials or settings reach this disposable local process.
+local_env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
+local_env['PGSSLMODE'] = 'disable'
 subprocess.run(['psql', '-X', '-h', '127.0.0.1', '-p', str(args.port), '-U', 'nobody', '-d', 'postgres',
-                '-v', 'ON_ERROR_STOP=1', '-q'], input=sql, text=True, check=True)
+                '-v', 'ON_ERROR_STOP=1', '-q'], input=sql, text=True, check=True, env=local_env)
