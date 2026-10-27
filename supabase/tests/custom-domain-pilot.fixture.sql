@@ -15,7 +15,10 @@ CREATE TABLE public.custom_domain_v2_access(store_id uuid PRIMARY KEY REFERENCES
 CREATE TABLE public.merchant_domains(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), merchant_id uuid REFERENCES profiles(id),normalized_domain text,
  flow_version smallint DEFAULT 2,released_at timestamptz,v2_state text DEFAULT 'active',is_active boolean DEFAULT true,
  needs_reverification boolean DEFAULT false,ownership_verified_at timestamptz DEFAULT now(),dns_verified_at timestamptz DEFAULT now(),
- routing_status text DEFAULT 'active',ssl_status text DEFAULT 'active',activated_at timestamptz DEFAULT now());
+ routing_status text DEFAULT 'active',ssl_status text DEFAULT 'active',activated_at timestamptz DEFAULT now(),
+ last_verification_result jsonb,updated_at timestamptz DEFAULT now(),last_dns_check timestamptz,detected_nameservers text[],dns_provider text,
+ dns_a_verified boolean DEFAULT false,dns_cname_verified boolean DEFAULT false);
+CREATE TABLE public.domain_verification_logs(id uuid DEFAULT gen_random_uuid(),domain_id uuid,source text,verification_type text,status text,details jsonb);
 CREATE UNIQUE INDEX merchant_domains_normalized_domain_unique ON public.merchant_domains(normalized_domain) WHERE normalized_domain IS NOT NULL AND released_at IS NULL;
 GRANT SELECT ON public.custom_domain_platform_config,public.custom_domain_v2_access,public.merchant_domains TO authenticated;
 GRANT ALL ON public.custom_domain_platform_config,public.custom_domain_v2_access,public.merchant_domains,public.audit_logs TO service_role;

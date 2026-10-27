@@ -105,9 +105,9 @@ BEGIN
  END IF;
  v_admin := p_actor IS NOT NULL AND public.has_role(p_actor,'admin');
  IF p_actor IS NULL OR (p_actor<>d.merchant_id AND NOT v_admin) THEN RAISE EXCEPTION 'forbidden' USING ERRCODE='42501'; END IF;
- v_pilot := COALESCE(v_admin AND a.enabled AND a.store_id=d.merchant_id AND a.pilot_hostname=p_pilot_hostname
+ v_pilot := CASE WHEN p_pilot_hostname IS NULL THEN false ELSE COALESCE(v_admin AND a.enabled AND a.store_id=d.merchant_id AND a.pilot_hostname=p_pilot_hostname
    AND p_pilot_hostname=public.normalize_custom_domain_hostname(p_pilot_hostname)
-   AND public.normalize_custom_domain(p_pilot_hostname)=d.normalized_domain,false);
+   AND public.normalize_custom_domain(p_pilot_hostname)=d.normalized_domain,false) END;
  v_generic := COALESCE(a.enabled AND c.feature_enabled AND c.ingress_ready AND c.infrastructure_provider IS NOT NULL,false);
  IF p_pilot_hostname IS NOT NULL AND NOT v_pilot THEN RAISE EXCEPTION 'pilot_revoked' USING ERRCODE='42501'; END IF;
  IF NOT v_admin AND NOT COALESCE(a.enabled AND c.feature_enabled,false) THEN RAISE EXCEPTION 'feature_unavailable' USING ERRCODE='42501'; END IF;

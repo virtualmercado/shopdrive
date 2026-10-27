@@ -57,7 +57,12 @@ UPDATE public.custom_domain_platform_config SET ingress_ready=true,infrastructur
 SELECT pg_temp.assert_rule((SELECT count(*)=1 FROM public.resolve_public_store_by_domain('www.redearoma.com.br')),'future full generic release works');
 SELECT pg_temp.assert_rule((SELECT count(*)=1 FROM public.resolve_public_store_by_domain('redearoma.com.br')),'generic canonical root+www preserved');
 UPDATE public.custom_domain_v2_access SET pilot_hostname='www.redearoma.com.br';
+UPDATE public.merchant_domains SET last_verification_result='{"pilotHostname":"www.redearoma.com.br"}';
 SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('redearoma.com.br')),'pilot-only DNS does not widen on later global release');
+UPDATE public.custom_domain_v2_access SET pilot_hostname=NULL;
+SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('redearoma.com.br')),'removing pilot does not convert pilot DNS to root DNS');
+SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('www.redearoma.com.br')),'removing pilot blocks verified pilot even after future global release');
+UPDATE public.custom_domain_v2_access SET pilot_hostname='www.redearoma.com.br';
 UPDATE public.custom_domain_platform_config SET feature_enabled=false,ingress_ready=false,infrastructure_provider=NULL;
 SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('https://www.redearoma.com.br')),'URL is not browser hostname');
 SELECT pg_temp.assert_rule((SELECT count(*)=0 FROM public.resolve_public_store_by_domain('www.redearoma.com.br?store=pilot-fixture')),'query cannot choose store');
