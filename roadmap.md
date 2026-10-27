@@ -1,5 +1,10 @@
 # Roadmap
 
+## Piloto AROMA — routing/SSL reais sem ativação
+- [ ] Localizar Custom Hostname exato em leitura Cloudflare e confirmar ID/status/certificado reais.
+- [ ] Conferir HTTPS e identidade ShopDrive sem redirect para outro tenant; persistir apenas evidência suficiente e estados autorizados.
+- [ ] Confirmar domínio inativo, travas false, resolvedor vazio e nenhuma alteração externa; informar resultado.
+
 ## Piloto AROMA — verificação real sem ativação
 - [x] Executar o mecanismo V2 real: TXT existente confirmado e CNAME exclusivo www → domains.shopdrive.com.br confirmado; raiz not_required.
 - [x] Conferir persistência às 2026-10-27 22:06:42.548 UTC: propriedade/DNS verificados, v2_state=dns_verified, routing not_started, SSL pending, is_active=false, activated_at=NULL, travas false e resolvedor anônimo vazio para www/raiz/loja; nenhuma ativação ou publicação.
