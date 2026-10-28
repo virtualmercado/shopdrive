@@ -2,14 +2,16 @@
 
 ## Piloto AROMA — reteste final do Auth
 - [x] Leitura efetiva de produção confirma https://www.redearoma.com.br/conta na lista de 13 retornos, com Site URL legado e demais entradas preservados; nenhuma configuração alterada.
-- [ ] Verificar disponibilidade de acesso seguro de cliente controlado e, somente se disponível, login, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento contra outros clientes/lojas e query/path/sessionStorage, sem e-mails, pedidos, pagamentos, alterações ou publicação.
-- [ ] Conferir estado final preservado e relatar exatamente o que ficou não homologado.
+- [x] Conferida disponibilidade: nenhum acesso seguro de cliente controlado fornecido/disponível; sem credenciais controladas nas variáveis de teste e nenhum mecanismo documentado. Não usar sessão de lojista nem selecionar cliente real arbitrário.
+- [x] Navegador real em sessão nova sem login: /auth AROMA, /conta e pedido existente exigem login no www; query e sessionStorage adulterados mantêm somente UUID AROMA nas respostas observadas; path /lojadalulu/conta retorna página não encontrada. Zero erros JavaScript; gravações/telemetria bloqueadas pelo teste. Isso não comprova isolamento autenticado.
+- [ ] BLOQUEADO: login por senha de cliente controlado, Minha Conta autenticada, lista/detalhe próprios, refresh autenticado, logout/novo login e acesso negado a pedidos de outros clientes/lojas — falta identificação e acesso seguro à conta de teste autorizada.
+- [x] Segunda leitura efetiva confirma callback exato e Site URL/13 entradas preservados; estado final mantém piloto ativo, travas globais false, 179 pedidos totais/131 AROMA, zero pagamentos e #001222 existente. Nenhum e-mail/pedido/pagamento, alteração de código/configuração/infraestrutura ou publicação.
 
 ## Piloto AROMA — reteste controlado do Auth após inclusão manual
 - [x] Usuário informou inclusão manual exclusiva de https://www.redearoma.com.br/conta, preservando Site URL e demais retornos; reteste somente leitura, sem aplicação/publicação/e-mails/pedidos/pagamentos.
 - [x] Releitura hospedada do Auth em produção nesta etapa ainda apresenta as mesmas 12 URLs e não contém o callback exato www/conta; Site URL legado permanece preservado.
 - [x] Callback exato confirmado na configuração efetiva no reteste final de 28/10/2026; nenhuma correção automática.
-- [ ] BLOQUEADO: login de cliente controlado, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado — callback efetivo ausente e nenhum acesso seguro de cliente controlado disponibilizado; sessão de lojista não comprova login de cliente.
+- [ ] BLOQUEADO: login de cliente controlado, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado — callback confirmado no reteste final, mas nenhum acesso seguro de cliente controlado disponibilizado; sessão de lojista não comprova login de cliente.
 - [ ] BLOQUEADO: compatibilidade de templates de cadastro/recuperação segue não comprovada; não disparar e-mails para testar.
 
 ## Piloto AROMA — correção mínima do callback Auth
@@ -22,7 +24,7 @@
 ## Piloto AROMA — autenticação e área do cliente sem cobrança
 - [x] Sessão nova abriu home, /auth e formulário de cadastro no www sem slug e sem erros JavaScript; leitura da configuração de autenticação de produção confirmou www.redearoma.com.br ausente da lista de retornos autorizados; execução interrompida antes de login/cadastro/recuperação.
 - [x] Bloqueio do callback resolvido pela inclusão manual do usuário, confirmada na leitura efetiva no reteste final; endereço padrão legado preservado.
-- [ ] BLOQUEADO: login real, Minha Conta, endereços, favoritos, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado aguardam solução expressamente autorizada do callback e conta de cliente controlada; nenhuma credencial controlada disponível. Endereço original não retestado nesta etapa após a interrupção.
+- [ ] BLOQUEADO: login real, Minha Conta, endereços, favoritos, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado aguardam conta de cliente controlada com acesso seguro; callback já confirmado no reteste final. Endereço original não retestado nesta etapa.
 - [x] Estado final preservado: piloto ativo, feature_enabled=false, ingress_ready=false, 131 pedidos e três clientes registrados AROMA; #001222 mantido. Nenhum pagamento/e-mail/cadastro, mudança de aplicação/infraestrutura ou publicação; relatório entregue.
 
 ## Piloto AROMA — um pedido guest sem cobrança
