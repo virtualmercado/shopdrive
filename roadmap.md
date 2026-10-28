@@ -1,5 +1,10 @@
 # Roadmap
 
+## Piloto AROMA — ativação final exclusiva
+- [ ] Reconfirmar registro, evidências e acesso exato; ativar somente AROMA www com travas globais false.
+- [ ] Validar resolvedor exato e bloqueio de raiz/outros hostnames, navegação real e endereço ShopDrive original sem transações.
+- [ ] Reverter somente ativação se qualquer critério falhar; conferir preservação de dados/infraestrutura e relatar estado final.
+
 ## Piloto AROMA — routing/SSL reais sem ativação
 - [x] Cloudflare em GET confirmou um único www.redearoma.com.br, ID fd3cd405-657e-4da7-a2ce-6424dc865670, hostname active e SSL active com certificados emitidos.
 - [x] HTTPS real 200 manteve www, carregou ShopDrive e exibiu domínio indisponível sem selecionar tenant; registradas somente evidências de routing/SSL/ID/provedor e last_ssl_check às 2026-10-28 02:33:33.242718 UTC.
