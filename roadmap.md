@@ -1,5 +1,10 @@
 # Roadmap
 
+## Piloto AROMA — autenticação e área do cliente sem cobrança
+- [ ] Conferir conta controlada, callback autorizado e acesso real a cadastro/login em sessão nova no www; interromper sem alterações em bloqueio real.
+- [ ] Validar Minha Conta, dados, endereços, favoritos disponíveis, pedidos próprios/detalhe, refresh, logout e novo login, preservando hostname sem slug.
+- [ ] Validar isolamento de cliente/loja e query/path/sessionStorage; conferir endereço original, preservação do pedido #001222 e travas falsas; relatar sem correções/publicação.
+
 ## Piloto AROMA — um pedido guest sem cobrança
 - [x] Conferir fluxo WhatsApp existente sem cobrança e linha de base; nenhuma mudança na aplicação ou infraestrutura.
 - [x] Criado somente #001222 (0ada9acd-3633-487f-a9bc-2287591b7d31) às 03:02:47 UTC, guest TESTE, 2 Açaí × R$ 3,46, retirada grátis, aguardando_combinar; pedido e reserva de estoque preservados.
