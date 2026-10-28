@@ -1,11 +1,16 @@
 # Roadmap
 
+## Piloto AROMA — reativação e reteste final autorizados
+- [x] Pré-condições reais rechecadas; somente registro piloto reativado às 2026-10-28 02:46:19.465091 UTC, status/v2_state active, is_active=true, acesso www exato e travas globais false preservados.
+- [x] Sessão nova no www: 11 verificações passaram, incluindo Açaí obrigatório, mini-carrinho com um item isolado, checkout/refresh, categoria/refresh, busca/refresh e retorno interno; nenhum erro JavaScript ou transação.
+- [x] Resolvedor anônimo real aceitou somente UUID/slug AROMA no www e rejeitou sete hostnames; raiz e loja não resolvem publicamente. Endereço original passou dez verificações, perfis e nove outros domínios idênticos à linha de base, config/acesso/evidências preservados. Piloto mantido ativo; nenhuma publicação ou alteração externa.
+
 ## Piloto AROMA — ativação final exclusiva
 - [x] Reconfirmar condições e Cloudflare em GET; ativar somente o registro AROMA às 2026-10-28 02:37:58.613403 UTC com travas globais false.
 - [x] Resolvedor retornou UUID/slug exatos só para www, oito hostnames diferentes vazios; home/produto/refresh no piloto passaram. Validação parou no carrinho por opção de aroma obrigatória não selecionada no teste, sem defeito da loja demonstrado.
 - [x] Reverter imediatamente apenas ativação às 02:39:58.443456 UTC; estado dns_verified/is_active=false/activated_at=NULL, reserva e evidências preservadas, demais domínios/config/acessos inalterados, resolvedor público vazio e nenhum pedido/cobrança/publicação/alteração externa.
 - [x] Validar endereço ShopDrive original com Açaí selecionado: home, produto/refresh, carrinho, checkout/refresh, categoria/refresh e busca/refresh passaram sem erros ou transações.
-- [ ] BLOQUEADO: nova ativação e repetição integral do piloto com seleção de aroma correta — aguarda nova autorização após rollback; não reativar automaticamente.
+- [x] Nova ativação e repetição integral com seleção Açaí autorizadas em 28/10/2026; execução no reteste final acima.
 
 ## Piloto AROMA — routing/SSL reais sem ativação
 - [x] Cloudflare em GET confirmou um único www.redearoma.com.br, ID fd3cd405-657e-4da7-a2ce-6424dc865670, hostname active e SSL active com certificados emitidos.
