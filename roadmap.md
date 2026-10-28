@@ -2,7 +2,8 @@
 
 ## Piloto AROMA — correção mínima do callback Auth
 - [x] Releitura do Auth de produção: Site URL legado preservado, 12 URLs existentes e callback www/conta ausente; nenhuma alteração de configuração executada.
-- [ ] Auditar os retornos reais de cadastro/recuperação e fontes dos links nos templates, sem envio de e-mail.
+- [x] Cadastro/confirmação usam emailRedirectTo e recuperação usa redirectTo, ambos com window.location.origin + storePath('/conta'); /auth não é solicitado como callback por esses fluxos. Nenhuma mudança na aplicação.
+- [ ] BLOQUEADO: conferir os links dos templates Auth efetivos em More → Emails → Auth emails — não há templates/hook locais nem ferramenta disponível de leitura da configuração hospedada dos templates; compatibilidade com RedirectTo/ConfirmationURL não comprovada, nenhuma alteração automática.
 - [ ] BLOQUEADO: adicionar somente https://www.redearoma.com.br/conta preservando Site URL e todos os retornos existentes — alteração de Redirect URLs disponível apenas ao usuário em More → Users → Auth settings → Advanced.
 - [ ] BLOQUEADO: confirmar pela configuração hospedada que o destino exato passou a ser autorizado, após adição pelo usuário; nenhum cadastro/recuperação/login ou publicação nesta etapa.
 
