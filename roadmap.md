@@ -1,5 +1,10 @@
 # Roadmap
 
+## Piloto AROMA — um pedido guest sem cobrança
+- [ ] Conferir fluxo existente sem cobrança e linha de base; nenhuma mudança na aplicação ou infraestrutura.
+- [ ] Concluir no máximo um pedido TESTE como visitante no www com variações obrigatórias; parar e preservar evidência se houver falha.
+- [ ] Verificar pedido/cliente/itens/frete, painéis reais, confirmação/refresh, isolamento, travas e ausência de transação financeira; entregar resultado sem correções ou publicação.
+
 ## Piloto AROMA — reativação e reteste final autorizados
 - [x] Pré-condições reais rechecadas; somente registro piloto reativado às 2026-10-28 02:46:19.465091 UTC, status/v2_state active, is_active=true, acesso www exato e travas globais false preservados.
 - [x] Sessão nova no www: 11 verificações passaram, incluindo Açaí obrigatório, mini-carrinho com um item isolado, checkout/refresh, categoria/refresh, busca/refresh e retorno interno; nenhum erro JavaScript ou transação.
