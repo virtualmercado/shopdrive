@@ -1,5 +1,11 @@
 # Roadmap
 
+## Piloto AROMA — autenticação e área do cliente sem cobrança
+- [x] Sessão nova abriu home, /auth e formulário de cadastro no www sem slug e sem erros JavaScript; leitura da configuração de autenticação de produção confirmou www.redearoma.com.br ausente da lista de retornos autorizados; execução interrompida antes de login/cadastro/recuperação.
+- [ ] BLOQUEADO: cadastro/recuperação solicitam https://www.redearoma.com.br/conta, mas o hostname não está autorizado; endereço padrão atual https://virtualmercado.lovable.app. Nenhuma correção executada.
+- [ ] BLOQUEADO: login real, Minha Conta, endereços, favoritos, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado aguardam solução expressamente autorizada do callback e conta de cliente controlada; nenhuma credencial controlada disponível. Endereço original não retestado nesta etapa após a interrupção.
+- [x] Estado final preservado: piloto ativo, feature_enabled=false, ingress_ready=false, 131 pedidos e três clientes registrados AROMA; #001222 mantido. Nenhum pagamento/e-mail/cadastro, mudança de aplicação/infraestrutura ou publicação; relatório entregue.
+
 ## Piloto AROMA — um pedido guest sem cobrança
 - [x] Conferir fluxo WhatsApp existente sem cobrança e linha de base; nenhuma mudança na aplicação ou infraestrutura.
 - [x] Criado somente #001222 (0ada9acd-3633-487f-a9bc-2287591b7d31) às 03:02:47 UTC, guest TESTE, 2 Açaí × R$ 3,46, retirada grátis, aguardando_combinar; pedido e reserva de estoque preservados.
