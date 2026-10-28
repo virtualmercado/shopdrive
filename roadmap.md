@@ -1,9 +1,14 @@
 # Roadmap
 
+## Piloto AROMA — reteste final do Auth
+- [x] Leitura efetiva de produção confirma https://www.redearoma.com.br/conta na lista de 13 retornos, com Site URL legado e demais entradas preservados; nenhuma configuração alterada.
+- [ ] Verificar disponibilidade de acesso seguro de cliente controlado e, somente se disponível, login, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento contra outros clientes/lojas e query/path/sessionStorage, sem e-mails, pedidos, pagamentos, alterações ou publicação.
+- [ ] Conferir estado final preservado e relatar exatamente o que ficou não homologado.
+
 ## Piloto AROMA — reteste controlado do Auth após inclusão manual
 - [x] Usuário informou inclusão manual exclusiva de https://www.redearoma.com.br/conta, preservando Site URL e demais retornos; reteste somente leitura, sem aplicação/publicação/e-mails/pedidos/pagamentos.
 - [x] Releitura hospedada do Auth em produção nesta etapa ainda apresenta as mesmas 12 URLs e não contém o callback exato www/conta; Site URL legado permanece preservado.
-- [ ] BLOQUEADO: comprovar que o callback exato foi persistido na lista efetiva de produção — ausência atual impede homologação; não corrigir automaticamente.
+- [x] Callback exato confirmado na configuração efetiva no reteste final de 28/10/2026; nenhuma correção automática.
 - [ ] BLOQUEADO: login de cliente controlado, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado — callback efetivo ausente e nenhum acesso seguro de cliente controlado disponibilizado; sessão de lojista não comprova login de cliente.
 - [ ] BLOQUEADO: compatibilidade de templates de cadastro/recuperação segue não comprovada; não disparar e-mails para testar.
 
@@ -11,12 +16,12 @@
 - [x] Releitura do Auth de produção: Site URL legado preservado, 12 URLs existentes e callback www/conta ausente; nenhuma alteração de configuração executada.
 - [x] Cadastro/confirmação usam emailRedirectTo e recuperação usa redirectTo, ambos com window.location.origin + storePath('/conta'); /auth não é solicitado como callback por esses fluxos. Nenhuma mudança na aplicação.
 - [ ] BLOQUEADO: conferir os links dos templates Auth efetivos em More → Emails → Auth emails — não há templates/hook locais nem ferramenta disponível de leitura da configuração hospedada dos templates; compatibilidade com RedirectTo/ConfirmationURL não comprovada, nenhuma alteração automática.
-- [ ] BLOQUEADO: adicionar somente https://www.redearoma.com.br/conta preservando Site URL e todos os retornos existentes — alteração de Redirect URLs disponível apenas ao usuário em More → Users → Auth settings → Advanced.
-- [ ] BLOQUEADO: confirmar pela configuração hospedada que o destino exato passou a ser autorizado, após adição pelo usuário; nenhum cadastro/recuperação/login ou publicação nesta etapa.
+- [x] Usuário adicionou somente https://www.redearoma.com.br/conta; confirmação efetiva no reteste final preserva Site URL e demais retornos, sem alteração pelo agente.
+- [x] Destino exato confirmado pela configuração hospedada no reteste final; nenhum cadastro/recuperação/e-mail enviado.
 
 ## Piloto AROMA — autenticação e área do cliente sem cobrança
 - [x] Sessão nova abriu home, /auth e formulário de cadastro no www sem slug e sem erros JavaScript; leitura da configuração de autenticação de produção confirmou www.redearoma.com.br ausente da lista de retornos autorizados; execução interrompida antes de login/cadastro/recuperação.
-- [ ] BLOQUEADO: cadastro/recuperação solicitam https://www.redearoma.com.br/conta, mas o hostname não está autorizado; endereço padrão atual https://virtualmercado.lovable.app. Nenhuma correção executada.
+- [x] Bloqueio do callback resolvido pela inclusão manual do usuário, confirmada na leitura efetiva no reteste final; endereço padrão legado preservado.
 - [ ] BLOQUEADO: login real, Minha Conta, endereços, favoritos, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado aguardam solução expressamente autorizada do callback e conta de cliente controlada; nenhuma credencial controlada disponível. Endereço original não retestado nesta etapa após a interrupção.
 - [x] Estado final preservado: piloto ativo, feature_enabled=false, ingress_ready=false, 131 pedidos e três clientes registrados AROMA; #001222 mantido. Nenhum pagamento/e-mail/cadastro, mudança de aplicação/infraestrutura ou publicação; relatório entregue.
 
