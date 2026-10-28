@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Piloto AROMA — reativação e reteste final autorizados
-- [ ] Reconfirmar propriedade/DNS, routing/SSL ativos, acesso ao www exato e travas globais false; reativar somente o registro piloto.
-- [ ] Em sessão nova, validar home, produto com Açaí obrigatório, carrinho/mini-carrinho, checkout, categoria, busca, páginas internas e refresh sem transações.
-- [ ] Confirmar isolamento do www, bloqueio de raiz/subdomínios, endereço ShopDrive original e demais dados preservados; manter ativo se aprovado ou reverter apenas ativação diante de falha real.
+- [x] Pré-condições reais rechecadas; somente registro piloto reativado às 2026-10-28 02:46:19.465091 UTC, status/v2_state active, is_active=true, acesso www exato e travas globais false preservados.
+- [x] Sessão nova no www: 11 verificações passaram, incluindo Açaí obrigatório, mini-carrinho com um item isolado, checkout/refresh, categoria/refresh, busca/refresh e retorno interno; nenhum erro JavaScript ou transação.
+- [x] Resolvedor anônimo real aceitou somente UUID/slug AROMA no www e rejeitou sete hostnames; raiz e loja não resolvem publicamente. Endereço original passou dez verificações, perfis e nove outros domínios idênticos à linha de base, config/acesso/evidências preservados. Piloto mantido ativo; nenhuma publicação ou alteração externa.
 
 ## Piloto AROMA — ativação final exclusiva
 - [x] Reconfirmar condições e Cloudflare em GET; ativar somente o registro AROMA às 2026-10-28 02:37:58.613403 UTC com travas globais false.
