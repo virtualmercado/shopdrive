@@ -1,5 +1,12 @@
 # Roadmap
 
+## Piloto AROMA — reteste controlado do Auth após inclusão manual
+- [x] Usuário informou inclusão manual exclusiva de https://www.redearoma.com.br/conta, preservando Site URL e demais retornos; reteste somente leitura, sem aplicação/publicação/e-mails/pedidos/pagamentos.
+- [x] Releitura hospedada do Auth em produção nesta etapa ainda apresenta as mesmas 12 URLs e não contém o callback exato www/conta; Site URL legado permanece preservado.
+- [ ] BLOQUEADO: comprovar que o callback exato foi persistido na lista efetiva de produção — ausência atual impede homologação; não corrigir automaticamente.
+- [ ] BLOQUEADO: login de cliente controlado, Minha Conta, pedidos/detalhe, refresh, logout/novo login e isolamento autenticado — callback efetivo ausente e nenhum acesso seguro de cliente controlado disponibilizado; sessão de lojista não comprova login de cliente.
+- [ ] BLOQUEADO: compatibilidade de templates de cadastro/recuperação segue não comprovada; não disparar e-mails para testar.
+
 ## Piloto AROMA — correção mínima do callback Auth
 - [x] Releitura do Auth de produção: Site URL legado preservado, 12 URLs existentes e callback www/conta ausente; nenhuma alteração de configuração executada.
 - [x] Cadastro/confirmação usam emailRedirectTo e recuperação usa redirectTo, ambos com window.location.origin + storePath('/conta'); /auth não é solicitado como callback por esses fluxos. Nenhuma mudança na aplicação.
