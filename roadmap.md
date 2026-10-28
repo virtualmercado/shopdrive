@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Piloto AROMA — um pedido guest sem cobrança
-- [ ] Conferir fluxo existente sem cobrança e linha de base; nenhuma mudança na aplicação ou infraestrutura.
-- [ ] Concluir no máximo um pedido TESTE como visitante no www com variações obrigatórias; parar e preservar evidência se houver falha.
-- [ ] Verificar pedido/cliente/itens/frete, painéis reais, confirmação/refresh, isolamento, travas e ausência de transação financeira; entregar resultado sem correções ou publicação.
+- [x] Conferir fluxo WhatsApp existente sem cobrança e linha de base; nenhuma mudança na aplicação ou infraestrutura.
+- [x] Criado somente #001222 (0ada9acd-3633-487f-a9bc-2287591b7d31) às 03:02:47 UTC, guest TESTE, 2 Açaí × R$ 3,46, retirada grátis, aguardando_combinar; pedido e reserva de estoque preservados.
+- [x] Pedido/cliente persistidos e visíveis em painéis autenticados AROMA; itens/frete/isolamento conferidos no banco, confirmação e refresh com snapshot real passaram no www, flags false/acesso exclusivo preservados, nenhum pagamento criado; relatório entregue sem correções/publicação.
+- [ ] BLOQUEADO: comprovar recebimento no WhatsApp do pedido #001222 já existente — fluxo abre mensagem para envio manual, não envia automaticamente; nenhuma evidência de recebimento disponível. Não criar novo pedido.
 
 ## Piloto AROMA — reativação e reteste final autorizados
 - [x] Pré-condições reais rechecadas; somente registro piloto reativado às 2026-10-28 02:46:19.465091 UTC, status/v2_state active, is_active=true, acesso www exato e travas globais false preservados.
