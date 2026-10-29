@@ -7411,6 +7411,7 @@ export type Database = {
           mercadopago_enabled: boolean | null
           mercadopago_installments_free: number | null
           mercadopago_pix_discount: number | null
+          mercadopago_public_key: string | null
           pagbank_accepts_credit: boolean | null
           pagbank_accepts_pix: boolean | null
           pagbank_enabled: boolean | null
@@ -7443,6 +7444,7 @@ export type Database = {
           mercadopago_enabled?: boolean | null
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
+          mercadopago_public_key?: string | null
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_enabled?: boolean | null
@@ -7475,6 +7477,7 @@ export type Database = {
           mercadopago_enabled?: boolean | null
           mercadopago_installments_free?: number | null
           mercadopago_pix_discount?: number | null
+          mercadopago_public_key?: string | null
           pagbank_accepts_credit?: boolean | null
           pagbank_accepts_pix?: boolean | null
           pagbank_enabled?: boolean | null

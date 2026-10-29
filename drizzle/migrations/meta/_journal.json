@@ -421,6 +421,13 @@
       "when": 1793135914166,
       "tag": "0059_custom_domain_verification_transient_preservation",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793303398173,
+      "tag": "0060_payment_settings_public_add_mp_public_key",
+      "breakpoints": true
     }
   ]
 }
