@@ -50,6 +50,47 @@ Deno.serve(async (req) => {
       });
     }
 
+    // SSRF guard: only standard SMTP ports and public hostnames that resolve
+    // exclusively to public IP addresses.
+    const host = String(smtp_host).trim().toLowerCase();
+    const port = Number(smtp_port);
+    const ALLOWED_PORTS = [25, 465, 587, 2525];
+    const badRequest = (msg: string) => new Response(JSON.stringify({ error: msg }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+    if (!ALLOWED_PORTS.includes(port)) return badRequest("Porta SMTP não permitida (use 25, 465, 587 ou 2525)");
+    if (host.length > 253 || !/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host)) {
+      return badRequest("Host SMTP inválido");
+    }
+    const isPrivateIp = (ip: string): boolean => {
+      const v = ip.toLowerCase();
+      if (v.includes(":")) {
+        return v === "::1" || v === "::" || v.startsWith("fc") || v.startsWith("fd") ||
+          v.startsWith("fe8") || v.startsWith("fe9") || v.startsWith("fea") || v.startsWith("feb") ||
+          v.startsWith("::ffff:");
+      }
+      const o = v.split(".").map(Number);
+      if (o.length !== 4 || o.some((n) => isNaN(n))) return true;
+      return o[0] === 0 || o[0] === 10 || o[0] === 127 || o[0] >= 224 ||
+        (o[0] === 100 && o[1] >= 64 && o[1] <= 127) ||
+        (o[0] === 169 && o[1] === 254) ||
+        (o[0] === 172 && o[1] >= 16 && o[1] <= 31) ||
+        (o[0] === 192 && o[1] === 168) ||
+        (o[0] === 192 && o[1] === 0 && o[2] === 0) ||
+        (o[0] === 198 && (o[1] === 18 || o[1] === 19));
+    };
+    let resolved: string[] = [];
+    try {
+      const v4 = await Deno.resolveDns(host, "A").catch(() => [] as string[]);
+      const v6 = await Deno.resolveDns(host, "AAAA").catch(() => [] as string[]);
+      resolved = [...v4, ...v6];
+    } catch (_) { resolved = []; }
+    if (resolved.length === 0 || resolved.some(isPrivateIp)) {
+      return badRequest("Host SMTP não permitido");
+    }
+    // Connect to a vetted address (prevents DNS rebinding between check and connect).
+    const connectHost = resolved.find((ip) => !ip.includes(":")) ?? resolved[0];
+
     // Service-role client (also used to resolve stored password if not provided)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -69,8 +110,8 @@ Deno.serve(async (req) => {
 
     try {
       const conn = smtp_security === "ssl"
-        ? await Deno.connectTls({ hostname: smtp_host, port: smtp_port })
-        : await Deno.connect({ hostname: smtp_host, port: smtp_port });
+        ? await Deno.connectTls({ hostname: connectHost, port, serverName: host } as any)
+        : await Deno.connect({ hostname: connectHost, port });
 
       const encoder = new TextEncoder();
       const decoder = new TextDecoder();
