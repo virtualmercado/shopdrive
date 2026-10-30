@@ -1,5 +1,12 @@
 # Roadmap
 
+## Piloto AROMA — um pagamento real manual com cartão Mercado Pago
+- [x] Escopo registrado: somente um pagamento pequeno feito manualmente pelo usuário em https://www.redearoma.com.br; agente somente leitura, sem dados sensíveis, tentativas automáticas, correções ou publicação.
+- [x] Configuração conferida somente por booleanos: Mercado Pago/cartão/PIX e chave pública/Access Token presentes; view pública não expõe tokens/secrets. Linha de base às 2026-10-30T03:25:52.643764Z: 181 pedidos totais, 133 AROMA, último #001224, 417 movimentos de estoque AROMA; estoques simples/variantes preservados localmente sem credenciais. payments tem zero linhas mas pertence ao faturamento da plataforma, não comprova ausência de pagamentos de cartão de loja.
+- [x] Auditoria pré-transação interrompida: PaymentColumn.tsx:271 registra tokenResponse.id no console. Confirmado por GET no arquivo público index-DnEM-QsY.js de www.redearoma.com.br: chamada console.log com token .id presente, sem iniciar tokenização/pagamento ou capturar dados sensíveis.
+- [ ] BLOQUEADO: única tentativa manual e validações pós-pagamento não executadas devido à exposição confirmada do token do cartão no checkout publicado; usuário avisado para não prosseguir. Correções exigem autorização separada, fora desta etapa.
+- [x] Nenhuma alteração de código, dados/configuração/credenciais/gateway ou publicação; nenhuma chamada de criação/tokenização/pagamento, tentativa automática ou correção. Somente consultas/GET públicos e registros de escopo/evidência sem dados sensíveis.
+
 ## Piloto AROMA — reteste final do Auth
 - [x] Leitura efetiva de produção confirma https://www.redearoma.com.br/conta na lista de 13 retornos, com Site URL legado e demais entradas preservados; nenhuma configuração alterada.
 - [x] Conferida disponibilidade: nenhum acesso seguro de cliente controlado fornecido/disponível; sem credenciais controladas nas variáveis de teste e nenhum mecanismo documentado. Não usar sessão de lojista nem selecionar cliente real arbitrário.
