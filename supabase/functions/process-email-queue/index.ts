@@ -162,6 +162,36 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Authorization (fail closed): only the internal scheduler token or a Master/admin JWT.
+    const jobToken = req.headers.get("x-internal-job-token") ?? "";
+    let authorized = false;
+    if (/^[0-9a-f]{64}$/.test(jobToken)) {
+      const { data: ok, error: jobErr } = await supabase.rpc("verify_internal_job_token", {
+        p_job: "process-email-queue", p_token: jobToken,
+      });
+      authorized = !jobErr && ok === true;
+    }
+    if (!authorized) {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      if (bearer) {
+        const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: `Bearer ${bearer}` } },
+        });
+        const { data: claimsData } = await authClient.auth.getClaims(bearer);
+        const callerId = claimsData?.claims?.sub as string | undefined;
+        if (callerId) {
+          const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerId, _role: "admin" });
+          authorized = isAdmin === true;
+        }
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Claim atômico no banco (FOR UPDATE SKIP LOCKED): cada item só é entregue a um worker.
     const workerId = crypto.randomUUID();
     const { data: claimed, error: fetchErr } = await supabase.rpc("claim_email_queue_batch", {
