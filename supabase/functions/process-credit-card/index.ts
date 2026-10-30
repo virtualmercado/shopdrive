@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface CreditCardRequest {
   orderId?: string; // Order created BEFORE the charge; payment only confirms it
-  amount: number;
+  amount?: number; // ignored: amount is taken from the persisted order
   storeOwnerId: string;
   customerName: string;
   customerEmail: string;
@@ -75,7 +75,6 @@ serve(async (req) => {
     console.log("Processing credit card payment");
 
     const {
-      amount,
       storeOwnerId,
       customerName,
       customerEmail,
@@ -90,11 +89,16 @@ serve(async (req) => {
     } = requestData;
     const orderId = requestData.orderId;
 
-    // IDOR protection: when an orderId is provided, ensure it belongs to the claimed store owner
-    if (orderId) {
+    // The charge is always tied to a persisted order; the amount comes from the
+    // database, never from the request body.
+    if (!orderId || typeof orderId !== "string") {
+      return jsonResponse({ error: "Pedido obrigatório para pagamento com cartão" }, 400);
+    }
+    let amount = 0;
+    {
       const { data: orderRow, error: orderErr } = await supabase
         .from("orders")
-        .select("store_owner_id, payment_status, card_payment_id")
+        .select("store_owner_id, payment_status, card_payment_id, total_amount")
         .eq("id", orderId)
         .maybeSingle();
       if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
@@ -114,6 +118,10 @@ serve(async (req) => {
           duplicate: true,
           message: "Pagamento aprovado com sucesso!",
         });
+      }
+      amount = Math.round(Number(orderRow.total_amount) * 100) / 100;
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return jsonResponse({ error: "Valor do pedido inválido" }, 400);
       }
     }
 
