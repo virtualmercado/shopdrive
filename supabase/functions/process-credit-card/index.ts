@@ -119,9 +119,9 @@ serve(async (req) => {
           message: "Pagamento aprovado com sucesso!",
         });
       }
-        amount = Math.round(Number(orderRow.total_amount) * 100) / 100;
-        if (!Number.isFinite(amount) || amount <= 0) {
-          return jsonResponse({ error: "Valor do pedido inválido" }, 400);
+      amount = Math.round(Number(orderRow.total_amount) * 100) / 100;
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return jsonResponse({ error: "Valor do pedido inválido" }, 400);
         }
     }
 
