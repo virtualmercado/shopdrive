@@ -57,14 +57,14 @@ export const supabase={
  functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}},
 };`;
 
-export async function mountRuntimeFixture(page: Page, origin: string, resolution = "valid") {
+export async function mountRuntimeFixture(page: Page, origin: string, resolution = "valid", transformClient?: (source: string) => string) {
   await page.context().route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.origin !== origin) { await route.abort(); return; }
     if (request.method() !== "GET" && request.method() !== "HEAD") { await route.abort(); return; }
     if (url.pathname === "/src/integrations/supabase/client.ts") {
-      await route.fulfill({ contentType: "application/javascript", body: clientFixture }); return;
+      await route.fulfill({ contentType: "application/javascript", body: transformClient ? transformClient(clientFixture) : clientFixture }); return;
     }
     if (url.pathname === "/src/hooks/useStoreEvents.tsx") {
       await route.fulfill({ contentType: "application/javascript", body: "export const trackStoreEvent=()=>{}; export const useStoreEvents=()=>({});" }); return;

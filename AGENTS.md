@@ -3,6 +3,7 @@
 - Front MARCA (Minha Rede, checkout `plano=marca`) só lê RPCs `get_my_*`; nunca envia valor nem decide estado. Why: backend é a autoridade.
 - Resolver de plano ignora `past_due` com tolerância vencida. Why: assinatura antiga esquecida mantinha plano pago.
 - Estoque (simples e variação) reservado só no servidor via `reserve_order_item_stock` na criação do pedido; devolvido uma vez em cancelamento/exclusão; Entregue não move estoque. Why: baixa no navegador não era atômica.
+- Storefront Mercado Pago observability never logs tokenization objects, card tokens, raw gateway payloads or caught payment errors; no-charge regressions mock the real checkout SDK and backend transport with all external requests blocked. Why: observability must not expose payment credentials or create real charges during validation.
 - Regras detalhadas de backend em `supabase/AGENTS.md`.
 - Catálogo PDF clássico: texto, links públicos e imagens passam por `src/lib/catalogPdfClassic.ts` (compartilhado por prévia e PDF). Why: evita divergência e vazamento do host de preview nos PDFs.
 

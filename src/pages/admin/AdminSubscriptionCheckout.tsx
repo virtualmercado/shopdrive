@@ -252,8 +252,8 @@ const AdminSubscriptionCheckout = () => {
           clearInterval(interval);
           setReviewTimedOut(true);
         }
-      } catch (error) {
-        console.error("Error checking status:", error);
+      } catch {
+        console.error("Error checking subscription status");
       }
     }, 5000);
 
@@ -499,14 +499,14 @@ const AdminSubscriptionCheckout = () => {
             cc_rejected_duplicated_payment: "Pagamento duplicado. Aguarde alguns minutos antes de tentar novamente.",
             cc_rejected_max_attempts: "Limite de tentativas atingido. Tente novamente mais tarde.",
           };
-          const friendlyMessage = declineMessages[declineData.statusDetail] || declineData.error || "Pagamento recusado. Tente outro cartão.";
+          const friendlyMessage = declineMessages[declineData.statusDetail] || "Pagamento recusado. Tente outro cartão.";
           toast.error(friendlyMessage);
           setIsProcessing(false);
           return;
         }
 
         // Generic error - show friendly message instead of throwing
-        const friendlyError = declineData?.error || "Erro ao processar assinatura. Tente novamente.";
+        const friendlyError = "Erro ao processar assinatura. Tente novamente.";
         toast.error(friendlyError);
         setIsProcessing(false);
         return;
@@ -524,7 +524,6 @@ const AdminSubscriptionCheckout = () => {
         throw new Error(data.error);
       }
 
-      console.log("Subscription response:", data);
       console.log("checkout_payment_success", { plan, billingCycle, paymentMethod });
 
       setSubscriptionId(data.subscription?.id || data.subscriptionId);
@@ -575,7 +574,7 @@ const AdminSubscriptionCheckout = () => {
       }
 
     } catch (error: any) {
-      console.error("Error processing subscription:", error);
+      console.error("Error processing subscription");
       // Try to parse JSON from error message for structured error handling
       let errorMessage = "Erro ao processar assinatura. Tente novamente.";
       try {
@@ -584,12 +583,6 @@ const AdminSubscriptionCheckout = () => {
           toast.error("Você já possui uma assinatura ativa ou pendente. Acesse o painel para gerenciá-la.");
           setTimeout(() => navigate("/lojista/financeiro"), 2000);
           return;
-        }
-        if (msg.startsWith("{")) {
-          const parsed = JSON.parse(msg);
-          errorMessage = parsed.error || errorMessage;
-        } else if (msg) {
-          errorMessage = msg;
         }
       } catch {}
       toast.error(errorMessage);

@@ -59,7 +59,7 @@ serve(async (req) => {
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
     
     if (claimsError || !claimsData?.claims) {
-      console.log("Invalid token:", claimsError?.message);
+      console.log("Invalid authentication token");
       return new Response(
         JSON.stringify({ error: "Token inválido" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -72,10 +72,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const requestData: CreditCardRequest = await req.json();
-    console.log("Processing credit card payment:", {
-      ...requestData,
-      cardToken: requestData.cardToken ? "***TOKEN***" : "MISSING"
-    });
+    console.log("Processing credit card payment");
 
     const {
       amount,
@@ -132,7 +129,7 @@ serve(async (req) => {
       .single();
 
     if (settingsError || !paymentSettings) {
-      console.error("Error fetching payment settings:", settingsError);
+      console.error("Error fetching payment settings");
       return new Response(
         JSON.stringify({ error: "Configurações de pagamento não encontradas" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -195,10 +192,7 @@ serve(async (req) => {
       paymentData.issuer_id = issuerId;
     }
 
-    console.log("Sending payment to Mercado Pago:", {
-      ...paymentData,
-      token: "***TOKEN***"
-    });
+    console.log("Sending payment to Mercado Pago");
 
     // Call Mercado Pago API
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
@@ -212,20 +206,8 @@ serve(async (req) => {
     });
 
     const mpData = await mpResponse.json();
-    console.log("Mercado Pago response:", JSON.stringify(mpData));
-
     if (!mpResponse.ok) {
-      console.error("Mercado Pago API error:", mpData);
-      
-      let errorMessage = "Erro ao processar pagamento";
-      
-      if (mpData.cause) {
-        const causes = Array.isArray(mpData.cause) ? mpData.cause : [mpData.cause];
-        const errorCodes = causes.map((c: any) => c.code || c.description).join(', ');
-        errorMessage = `Erro no gateway: ${errorCodes}`;
-      } else if (mpData.message) {
-        errorMessage = mpData.message;
-      }
+      console.error("Mercado Pago API error");
       
       return new Response(
         JSON.stringify({ 
@@ -239,8 +221,6 @@ serve(async (req) => {
     // Process the response based on payment status
     const paymentStatus = mpData.status;
     const paymentStatusDetail = mpData.status_detail;
-
-    console.log("Payment status:", paymentStatus, "Detail:", paymentStatusDetail);
 
     // Handle different payment statuses
     if (paymentStatus === "rejected") {
@@ -341,7 +321,7 @@ serve(async (req) => {
     }
 
     // Payment approved
-    console.log("Payment approved:", result);
+    console.log("Payment approved");
     
     return new Response(
       JSON.stringify({
@@ -351,11 +331,11 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
-    console.error("Error processing credit card payment:", error);
+  } catch {
+    console.error("Error processing credit card payment");
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Erro interno ao processar pagamento",
+        error: "Erro interno ao processar pagamento",
         status: "error"
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
