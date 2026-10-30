@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface CreditCardRequest {
-  orderId?: string; // Optional - order may be created after payment confirmation
+  orderId?: string; // Order created BEFORE the charge; payment only confirms it
   amount: number;
   storeOwnerId: string;
   customerName: string;
@@ -29,6 +29,12 @@ interface CreditCardRequest {
   description: string;
 }
 
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -44,26 +50,20 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.log("Missing or invalid authorization header");
-      return new Response(
-        JSON.stringify({ error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Não autorizado" }, 401);
     }
 
     // Verify the JWT token
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
-    
+
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    
+
     if (claimsError || !claimsData?.claims) {
       console.log("Invalid authentication token");
-      return new Response(
-        JSON.stringify({ error: "Token inválido" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Token inválido" }, 401);
     }
 
     console.log("Authenticated user:", claimsData.claims.sub);
@@ -94,31 +94,37 @@ serve(async (req) => {
     if (orderId) {
       const { data: orderRow, error: orderErr } = await supabase
         .from("orders")
-        .select("store_owner_id")
+        .select("store_owner_id, payment_status, card_payment_id")
         .eq("id", orderId)
         .maybeSingle();
       if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
-        return new Response(
-          JSON.stringify({ error: "Pedido não pertence à loja informada" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ error: "Pedido não pertence à loja informada" }, 403);
+      }
+
+      // Idempotent short-circuit: this order already has an approved card payment.
+      // A retry of the same logical purchase must NOT charge again.
+      if (orderRow.payment_status === "approved" && orderRow.card_payment_id) {
+        console.log("Order already has an approved payment; returning existing result");
+        return jsonResponse({
+          success: true,
+          status: "approved",
+          paymentId: orderRow.card_payment_id,
+          orderId,
+          orderConfirmed: true,
+          duplicate: true,
+          message: "Pagamento aprovado com sucesso!",
+        });
       }
     }
 
     // Validate required fields
     if (!amount || !storeOwnerId || !customerName || !customerEmail || !cardToken) {
-      return new Response(
-        JSON.stringify({ error: "Dados incompletos para processamento do cartão" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Dados incompletos para processamento do cartão" }, 400);
     }
 
     // Validate card token
     if (!cardToken || !paymentMethodId) {
-      return new Response(
-        JSON.stringify({ error: "Token do cartão ou método de pagamento não fornecido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Token do cartão ou método de pagamento não fornecido" }, 400);
     }
 
     // Get store's Mercado Pago credentials
@@ -130,29 +136,20 @@ serve(async (req) => {
 
     if (settingsError || !paymentSettings) {
       console.error("Error fetching payment settings");
-      return new Response(
-        JSON.stringify({ error: "Configurações de pagamento não encontradas" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Configurações de pagamento não encontradas" }, 400);
     }
 
     // Check if credit card is enabled
-    const isCreditCardEnabled = paymentSettings.credit_card_enabled || 
+    const isCreditCardEnabled = paymentSettings.credit_card_enabled ||
       (paymentSettings.mercadopago_enabled && paymentSettings.mercadopago_accepts_credit);
 
     if (!isCreditCardEnabled) {
-      return new Response(
-        JSON.stringify({ error: "Pagamento por cartão de crédito não está habilitado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Pagamento por cartão de crédito não está habilitado" }, 400);
     }
 
     if (!paymentSettings.mercadopago_access_token) {
       console.error("Mercado Pago access token not configured");
-      return new Response(
-        JSON.stringify({ error: "Token de acesso do Mercado Pago não configurado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Token de acesso do Mercado Pago não configurado" }, 400);
     }
 
     // Prepare payment data for Mercado Pago using token
@@ -187,10 +184,21 @@ serve(async (req) => {
       capture: true, // Capture immediately
     };
 
+    // Link the charge to the internal order for reconciliation
+    if (orderId) {
+      paymentData.external_reference = orderId;
+    }
+
     // Add issuer_id if provided
     if (issuerId) {
       paymentData.issuer_id = issuerId;
     }
+
+    // Stable idempotency key: the same logical order always reuses the same key,
+    // so retries/double-clicks never create a second charge at Mercado Pago.
+    const idempotencyKey = orderId
+      ? `order-${orderId}`
+      : `${storeOwnerId}-${crypto.randomUUID()}`;
 
     console.log("Sending payment to Mercado Pago");
 
@@ -200,7 +208,7 @@ serve(async (req) => {
       headers: {
         "Authorization": `Bearer ${paymentSettings.mercadopago_access_token}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": `${storeOwnerId}-${Date.now()}`,
+        "X-Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify(paymentData),
     });
@@ -208,24 +216,36 @@ serve(async (req) => {
     const mpData = await mpResponse.json();
     if (!mpResponse.ok) {
       console.error("Mercado Pago API error");
-      
-      return new Response(
-        JSON.stringify({ 
-          error: "Erro ao processar pagamento. Tente novamente.", 
-          status: "error"
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return jsonResponse({
+        error: "Erro ao processar pagamento. Tente novamente.",
+        status: "error",
+        orderId: orderId || null,
+      }, 400);
     }
 
     // Process the response based on payment status
     const paymentStatus = mpData.status;
     const paymentStatusDetail = mpData.status_detail;
+    const mpPaymentId = mpData.id?.toString() || null;
 
     // Handle different payment statuses
     if (paymentStatus === "rejected") {
+      // Mark the order's payment as rejected exactly once; the stock-restore
+      // trigger is idempotent and returns the reserved items a single time.
+      if (orderId) {
+        const { error: rejectErr } = await supabase
+          .from("orders")
+          .update({ payment_status: "rejected", card_payment_id: mpPaymentId })
+          .eq("id", orderId)
+          .neq("payment_status", "approved");
+        if (rejectErr) {
+          console.error("Failed to mark order payment as rejected");
+        }
+      }
+
       let rejectionMessage = "Pagamento recusado. ";
-      
+
       switch (paymentStatusDetail) {
         case "cc_rejected_insufficient_amount":
           rejectionMessage += "Saldo insuficiente no cartão.";
@@ -261,17 +281,15 @@ serve(async (req) => {
         default:
           rejectionMessage += "Tente outro cartão ou entre em contato com o banco.";
       }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          status: "rejected",
-          statusDetail: paymentStatusDetail,
-          error: rejectionMessage,
-          paymentId: mpData.id
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return jsonResponse({
+        success: false,
+        status: "rejected",
+        statusDetail: paymentStatusDetail,
+        error: rejectionMessage,
+        paymentId: mpPaymentId,
+        orderId: orderId || null,
+      });
     }
 
     // Payment approved or pending
@@ -279,7 +297,7 @@ serve(async (req) => {
       success: paymentStatus === "approved",
       status: paymentStatus,
       statusDetail: paymentStatusDetail,
-      paymentId: mpData.id?.toString(),
+      paymentId: mpPaymentId,
       authorizationCode: mpData.authorization_code,
       lastFourDigits: mpData.card?.last_four_digits,
       cardBrand: mpData.payment_method_id,
@@ -288,12 +306,25 @@ serve(async (req) => {
       netReceivedAmount: mpData.net_received_amount,
       dateApproved: mpData.date_approved,
       externalReference: mpData.external_reference,
+      orderId: orderId || null,
     };
 
     if (paymentStatus === "pending") {
+      // Keep the order pending and link the payment id for later reconciliation.
+      if (orderId && mpPaymentId) {
+        const { error: pendErr } = await supabase
+          .from("orders")
+          .update({ card_payment_id: mpPaymentId })
+          .eq("id", orderId)
+          .eq("payment_status", "pending");
+        if (pendErr) {
+          console.error("Failed to link pending payment to order");
+        }
+      }
+
       // Payment is pending - may require 3DS authentication or other verification
       let pendingMessage = "Pagamento pendente de confirmação. ";
-      
+
       switch (paymentStatusDetail) {
         case "pending_contingency":
           pendingMessage += "Aguardando processamento do banco.";
@@ -310,35 +341,51 @@ serve(async (req) => {
         default:
           pendingMessage += "Aguarde a confirmação.";
       }
-      
-      return new Response(
-        JSON.stringify({ 
-          ...result,
-          message: pendingMessage
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return jsonResponse({
+        ...result,
+        orderConfirmed: false,
+        message: pendingMessage,
+      });
     }
 
-    // Payment approved
+    // Payment approved: confirm the SAME pre-created order exactly once.
     console.log("Payment approved");
-    
-    return new Response(
-      JSON.stringify({
-        ...result,
-        message: "Pagamento aprovado com sucesso!"
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+
+    let orderConfirmed = false;
+    if (orderId) {
+      const { error: confirmErr } = await supabase
+        .from("orders")
+        .update({
+          status: "confirmed",
+          payment_status: "approved",
+          card_payment_id: mpPaymentId,
+        })
+        .eq("id", orderId)
+        .neq("payment_status", "approved");
+      if (confirmErr) {
+        // The charge IS approved at the gateway. Never report a generic failure:
+        // the pending order keeps the payment reference for reconciliation.
+        console.error("Failed to confirm order after approved payment");
+        orderConfirmed = false;
+      } else {
+        orderConfirmed = true;
+      }
+    }
+
+    return jsonResponse({
+      ...result,
+      orderConfirmed,
+      message: orderConfirmed || !orderId
+        ? "Pagamento aprovado com sucesso!"
+        : "Pagamento aprovado. Estamos confirmando seu pedido.",
+    });
 
   } catch {
     console.error("Error processing credit card payment");
-    return new Response(
-      JSON.stringify({ 
-        error: "Erro interno ao processar pagamento",
-        status: "error"
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      error: "Erro interno ao processar pagamento",
+      status: "error"
+    }, 500);
   }
 });
