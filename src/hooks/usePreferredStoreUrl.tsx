@@ -10,8 +10,8 @@ import { isValidCustomStoreHostname, preferredStoreUrl } from "@/lib/preferredSt
 export async function fetchPreferredStoreHostname(storeSlug: string): Promise<string | null> {
   // RPC created by migration 0062; the generated types entry lands when the
   // migration workflow regenerates types.ts, so the call is typed loosely here.
-  const rpc = supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
-  const { data, error } = await rpc("resolve_store_preferred_hostname", { p_store_slug: storeSlug });
+  // Must stay bound to the client: a detached `supabase.rpc` throws and silently disables the feature.
+  const { data, error } = await supabase.rpc("resolve_store_preferred_hostname", { p_store_slug: storeSlug });
   if (error) return null;
   return typeof data === "string" && isValidCustomStoreHostname(data) ? data : null;
 }
