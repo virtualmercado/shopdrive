@@ -3904,6 +3904,7 @@ export type Database = {
           boleto_payment_id: string | null
           boleto_payment_status: string | null
           boleto_url: string | null
+          card_payment_id: string | null
           checkout_origin: string | null
           created_at: string
           customer_address: string | null
@@ -3938,6 +3939,7 @@ export type Database = {
           boleto_payment_id?: string | null
           boleto_payment_status?: string | null
           boleto_url?: string | null
+          card_payment_id?: string | null
           checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
@@ -3972,6 +3974,7 @@ export type Database = {
           boleto_payment_id?: string | null
           boleto_payment_status?: string | null
           boleto_url?: string | null
+          card_payment_id?: string | null
           checkout_origin?: string | null
           created_at?: string
           customer_address?: string | null
