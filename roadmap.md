@@ -1,5 +1,11 @@
 # Roadmap
 
+## Piloto AROMA — um pagamento real manual com cartão Mercado Pago
+- [x] Escopo registrado: somente um pagamento pequeno feito manualmente pelo usuário em https://www.redearoma.com.br; agente somente leitura, sem dados sensíveis, tentativas automáticas, correções ou publicação.
+- [ ] Conferir fluxo existente, configuração pública sem secrets e linha de base de pedidos/pagamentos/estoque antes do teste.
+- [ ] AGUARDANDO USUÁRIO: realizar a única tentativa manual e informar apenas número do pedido, valor, itens/variações/frete e resultado visível, sem dados do cartão; evidência de confirmação/refresh e painel do lojista deve ser sanitizada.
+- [ ] Após conclusão manual, comparar retorno real e persistência, tenant AROMA, unicidade do pedido/pagamento e reserva de estoque, confirmação/refresh/painel e limites da auditoria de dados sensíveis; interromper sem correções em qualquer falha.
+
 ## Piloto AROMA — reteste final do Auth
 - [x] Leitura efetiva de produção confirma https://www.redearoma.com.br/conta na lista de 13 retornos, com Site URL legado e demais entradas preservados; nenhuma configuração alterada.
 - [x] Conferida disponibilidade: nenhum acesso seguro de cliente controlado fornecido/disponível; sem credenciais controladas nas variáveis de teste e nenhum mecanismo documentado. Não usar sessão de lojista nem selecionar cliente real arbitrário.
