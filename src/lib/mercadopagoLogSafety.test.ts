@@ -123,7 +123,7 @@ describe("Mercado Pago sensitive observability", () => {
   });
 
   it("API error payloads with tokens are neither logged nor reflected", async () => {
-    const result = await runBackend({ token: "fixture-card-token-sentinel", message: "fixture-server-credential", cause: [{ description: "fixture-cvv-sentinel" }] }, undefined, 400);
+    const result = await runBackend({ token: "fixture-card-token-sentinel", message: "fixture-server-credential", cause: [{ description: "fixture-cvv-sentinel" }] }, { gatewayStatus: 400 });
     expect(result.response.status).toBe(400);
     expect(result.body).toEqual({ error: "Erro ao processar pagamento. Tente novamente.", status: "error" });
     for (const sentinel of ["fixture-card-token-sentinel", "fixture-server-credential", "fixture-cvv-sentinel"]) {
@@ -141,5 +141,91 @@ describe("Mercado Pago sensitive observability", () => {
     expect(result.logs).not.toContain("fixture-card-token-sentinel");
     expect(JSON.stringify(result.body)).not.toContain("fixture-card-token-sentinel");
     expect(result.writes).toEqual([]);
+  });
+});
+
+describe("Mercado Pago transactional card flow", () => {
+  const orderId = "11111111-2222-3333-4444-555555555555";
+
+  it("uses a stable idempotency key and external_reference bound to the order", async () => {
+    const result = await runBackend(
+      { id: "fixture-payment", status: "approved", status_detail: "accredited", transaction_amount: 10 },
+      { orderId },
+    );
+    expect(result.outbound).toHaveLength(1);
+    const headers = result.outbound[0].init.headers as Record<string, string>;
+    expect(headers["X-Idempotency-Key"]).toBe(`order-${orderId}`);
+    expect(JSON.parse(String(result.outbound[0].init.body)).external_reference).toBe(orderId);
+  });
+
+  it("approval confirms the same pre-created order exactly once", async () => {
+    const result = await runBackend(
+      { id: "fixture-payment", status: "approved", status_detail: "accredited", transaction_amount: 10 },
+      { orderId },
+    );
+    expect(result.body.success).toBe(true);
+    expect(result.body.orderConfirmed).toBe(true);
+    expect(result.body.message).toBe("Pagamento aprovado com sucesso!");
+    expect(result.updates).toHaveLength(1);
+    expect(result.updates[0].values).toMatchObject({
+      status: "confirmed",
+      payment_status: "approved",
+      card_payment_id: "fixture-payment",
+    });
+    expect(result.updates[0].filters).toContain(`id=${orderId}`);
+    expect(result.updates[0].filters).toContain("payment_status!=approved");
+  });
+
+  it("approval with a failed local confirmation never reports a generic payment error", async () => {
+    const result = await runBackend(
+      { id: "fixture-payment", status: "approved", status_detail: "accredited", transaction_amount: 10 },
+      { orderId, updateError: true },
+    );
+    expect(result.body.success).toBe(true);
+    expect(result.body.status).toBe("approved");
+    expect(result.body.orderConfirmed).toBe(false);
+    expect(result.body.message).toBe("Pagamento aprovado. Estamos confirmando seu pedido.");
+    expect(JSON.stringify(result.body)).not.toContain("Erro ao processar pagamento");
+  });
+
+  it("an order already approved short-circuits without a new gateway charge", async () => {
+    const result = await runBackend(
+      { id: "fixture-payment", status: "approved" },
+      { orderId, orderRow: { store_owner_id: "fixture-store", payment_status: "approved", card_payment_id: "fixture-existing-payment" } },
+    );
+    expect(result.outbound).toHaveLength(0);
+    expect(result.body.success).toBe(true);
+    expect(result.body.duplicate).toBe(true);
+    expect(result.body.paymentId).toBe("fixture-existing-payment");
+    expect(result.updates).toHaveLength(0);
+  });
+
+  it("rejection marks the same order rejected once so stock is returned a single time", async () => {
+    const result = await runBackend(
+      { id: "fixture-rejected", status: "rejected", status_detail: "cc_rejected_insufficient_amount" },
+      { orderId },
+    );
+    expect(result.body.success).toBe(false);
+    expect(result.body.status).toBe("rejected");
+    expect(result.updates).toHaveLength(1);
+    expect(result.updates[0].values).toMatchObject({
+      payment_status: "rejected",
+      card_payment_id: "fixture-rejected",
+    });
+    expect(result.updates[0].filters).toContain(`id=${orderId}`);
+    expect(result.updates[0].filters).toContain("payment_status!=approved");
+  });
+
+  it("pending payment links the payment id to the order without confirming it", async () => {
+    const result = await runBackend(
+      { id: "fixture-pending", status: "pending", status_detail: "pending_review_manual" },
+      { orderId },
+    );
+    expect(result.body.success).toBe(false);
+    expect(result.body.status).toBe("pending");
+    expect(result.body.orderConfirmed).toBe(false);
+    expect(result.updates).toHaveLength(1);
+    expect(result.updates[0].values).toEqual({ card_payment_id: "fixture-pending" });
+    expect(result.updates[0].filters).toContain("payment_status=pending");
   });
 });
