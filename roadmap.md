@@ -1,5 +1,12 @@
 # Roadmap
 
+## Hotfix de segurança — token de cartão Mercado Pago
+- [x] Escopo recebido: remover apenas exposição sensível em logs/debug/telemetria e mensagens de erro; preservar chaves, tokenização, envio/processamento e demais métodos; nenhuma cobrança.
+- [x] Removidos log do token SDK, objetos de resposta/erro do cartão no navegador e payloads/respostas/erros brutos no process-credit-card; mensagens de erro não refletem objetos externos.
+- [ ] Validar tokenização/transporte com SDK e backend simulados sem acesso a cobrança, logs/erros sanitizados, inicialização e regressões existentes.
+- [ ] Auditar persistência por metadados/agregados sem ler tokens ou alterar banco; registrar limites da evidência.
+- [ ] AGUARDANDO AUTORIZAÇÃO: publicação do frontend corrigido para atingir o www público, seguida de conferência da versão publicada; não realizar pagamento antes disso.
+
 ## Piloto AROMA — um pagamento real manual com cartão Mercado Pago
 - [x] Escopo registrado: somente um pagamento pequeno feito manualmente pelo usuário em https://www.redearoma.com.br; agente somente leitura, sem dados sensíveis, tentativas automáticas, correções ou publicação.
 - [x] Configuração conferida somente por booleanos: Mercado Pago/cartão/PIX e chave pública/Access Token presentes; view pública não expõe tokens/secrets. Linha de base às 2026-10-30T03:25:52.643764Z: 181 pedidos totais, 133 AROMA, último #001224, 417 movimentos de estoque AROMA; estoques simples/variantes preservados localmente sem credenciais. payments tem zero linhas mas pertence ao faturamento da plataforma, não comprova ausência de pagamentos de cartão de loja.

@@ -891,14 +891,9 @@ const CheckoutContent = () => {
             },
           });
 
-          console.log("Payment response:", paymentResponse);
-
           // Handle edge function error
           if (paymentResponse.error) {
-            console.error("Payment processing error:", paymentResponse.error);
-            const errorMessage = typeof paymentResponse.error === 'string' 
-              ? paymentResponse.error 
-              : paymentResponse.error.message || "Erro ao processar pagamento";
+            const errorMessage = "Erro ao processar pagamento";
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
@@ -910,8 +905,7 @@ const CheckoutContent = () => {
 
           // Handle rejected payment
           if (paymentData.status === "rejected" || !paymentData.success) {
-            console.error("Payment rejected:", paymentData);
-            const errorMessage = paymentData.error || "Pagamento recusado pelo banco emissor";
+            const errorMessage = "Pagamento recusado pelo banco emissor";
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
@@ -952,9 +946,8 @@ const CheckoutContent = () => {
           navigate(storePath(`/pedido-confirmado/${order.id}`));
           return;
 
-        } catch (paymentError: any) {
-          console.error("Credit card payment exception:", paymentError);
-          const errorMessage = paymentError.message || "Erro ao processar pagamento com cartão";
+        } catch {
+          const errorMessage = "Erro ao processar pagamento com cartão";
           setCardProcessingError(errorMessage);
           toast.error(errorMessage);
           setLoading(false);

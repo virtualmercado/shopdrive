@@ -260,15 +260,11 @@ export const PaymentColumn = ({
           identificationNumber: customerCpf?.replace(/\D/g, '') || "00000000000",
         };
 
-        console.log("Creating card token with MercadoPago SDK...");
-        
         const tokenResponse = await mp.createCardToken(cardData);
         
         if (!tokenResponse || !tokenResponse.id) {
           throw new Error("Falha ao gerar token do cartão");
         }
-
-        console.log("Card token created successfully:", tokenResponse.id);
 
         // Detect payment method from card number
         const paymentMethodId = getPaymentMethodId(cardForm.number);
@@ -281,20 +277,9 @@ export const PaymentColumn = ({
         };
 
         onFinalize(tokenData);
-      } catch (error: any) {
-        console.error("Card tokenization error:", error);
-        let errorMessage = "Erro ao processar cartão. Verifique os dados.";
-        
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (error.cause && Array.isArray(error.cause)) {
-          const causes = error.cause.map((c: any) => c.description || c.message).filter(Boolean);
-          if (causes.length > 0) {
-            errorMessage = causes.join('. ');
-          }
-        }
-        
-        setCardFormError(errorMessage);
+      } catch {
+        // SDK errors may echo card fields or the token; never log or display them.
+        setCardFormError("Erro ao processar cartão. Verifique os dados.");
       } finally {
         setIsTokenizing(false);
       }
