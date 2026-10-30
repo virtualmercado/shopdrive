@@ -442,6 +442,13 @@
       "when": 1793385610690,
       "tag": "0062_preferred_store_url",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793393623494,
+      "tag": "0063_tighten_public_read_policies",
+      "breakpoints": true
     }
   ]
 }
