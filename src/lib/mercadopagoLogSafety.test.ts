@@ -17,7 +17,7 @@ function consoleCalls(source: string, fileName: string) {
   return { file, calls };
 }
 
-async function runBackend(gatewayReply: unknown, failure?: Error) {
+async function runBackend(gatewayReply: unknown, failure?: Error, gatewayStatus = 200) {
   const logs: unknown[][] = [];
   const outbound: { url: string; init: RequestInit }[] = [];
   const writes: string[] = [];
@@ -40,7 +40,7 @@ async function runBackend(gatewayReply: unknown, failure?: Error) {
     fetch: async (url: string, init: RequestInit) => {
       outbound.push({ url, init });
       if (failure) throw failure;
-      return Response.json(gatewayReply);
+      return Response.json(gatewayReply, { status: gatewayStatus });
     },
   });
   if (!handler) throw new Error("Handler not mounted");
@@ -89,6 +89,27 @@ describe("Mercado Pago sensitive observability", () => {
     expect(result.logs).not.toContain("fixture-card-token-sentinel");
     expect(result.logs).not.toContain("fixture-server-credential");
     expect(result.logs).not.toContain("fixture-cvv-sentinel");
+    expect(result.writes).toEqual([]);
+  });
+
+  it("API error payloads with tokens are neither logged nor reflected", async () => {
+    const result = await runBackend({ token: "fixture-card-token-sentinel", message: "fixture-server-credential", cause: [{ description: "fixture-cvv-sentinel" }] }, undefined, 400);
+    expect(result.response.status).toBe(400);
+    expect(result.body).toEqual({ error: "Erro ao processar pagamento. Tente novamente.", status: "error" });
+    for (const sentinel of ["fixture-card-token-sentinel", "fixture-server-credential", "fixture-cvv-sentinel"]) {
+      expect(result.logs).not.toContain(sentinel);
+      expect(JSON.stringify(result.body)).not.toContain(sentinel);
+    }
+  });
+
+  it("rejection keeps the existing payment outcome without exposing the raw response", async () => {
+    const result = await runBackend({ id: "fixture-rejected-payment", status: "rejected", status_detail: "cc_rejected_insufficient_amount", token: "fixture-card-token-sentinel" });
+    expect(result.response.status).toBe(200);
+    expect(result.body.success).toBe(false);
+    expect(result.body.status).toBe("rejected");
+    expect(result.body.error).toBe("Pagamento recusado. Saldo insuficiente no cartão.");
+    expect(result.logs).not.toContain("fixture-card-token-sentinel");
+    expect(JSON.stringify(result.body)).not.toContain("fixture-card-token-sentinel");
     expect(result.writes).toEqual([]);
   });
 });
