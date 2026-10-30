@@ -153,3 +153,4 @@
 - [x] Achado 2: CustomerServiceDropdown consulta profiles do lojista como anônimo → 406 permanente (contato da loja não carrega).
 - [ ] BLOQUEADO: falha exata não reproduzida; falta o log de console do navegador afetado ([PublicStoreErrorBoundary]) ou autorização para 1 pedido guest controlado no slug.
 - [ ] Contas de teste criadas em produção: teste.hotfix.aroma@example.com, teste.hotfix2.aroma@example.com (aguardando decisão de limpeza).
+- [x] Reprodução controlada autorizada (carrinho persistido + 1 pedido guest WhatsApp): pedido #001225 (84f325ba) criado uma vez, AROMA, R$ 3,46, retirada, estoque 929→928, sem cobrança; confirmação abriu normal; incidente NÃO reproduzido.
