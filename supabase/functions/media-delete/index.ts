@@ -1,5 +1,6 @@
 import { S3Client, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.700.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mediaDeleteDecision } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,22 +71,30 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "objectKey inválido" }, 400);
     }
 
-    // --- Ownership verification ---
+    // --- Ownership verification (fail-closed) ---
+    // Only products/{product_id}/... keys are deletable, and only by the product
+    // owner or a Master/admin. Any other prefix is rejected — no generic deletes.
     const userId = claimsData.claims.sub as string;
     const pathParts = objectKey.split("/");
-    // Expected path: products/{product_id}/yyyy/mm/uuid.ext
+    const supabaseService = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { data: isAdmin } = await supabaseService.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+
+    let productOwnerId: string | null = null;
     if (pathParts[0] === "products" && pathParts[1]) {
-      const productId = pathParts[1];
-      const supabaseService = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { data: product, error: productError } = await supabaseService
+      const { data: product } = await supabaseService
         .from("products")
         .select("user_id")
-        .eq("id", productId)
-        .single();
+        .eq("id", pathParts[1])
+        .maybeSingle();
+      productOwnerId = product?.user_id ?? null;
+    }
 
-      if (productError || !product || product.user_id !== userId) {
-        return jsonResponse({ ok: false, error: "Sem permissão para deletar este arquivo" }, 403);
-      }
+    if (mediaDeleteDecision(objectKey, { userId, isAdmin: isAdmin === true }, productOwnerId) !== "allow") {
+      return jsonResponse({ ok: false, error: "Sem permissão para deletar este arquivo" }, 403);
     }
 
     // Delete from MinIO

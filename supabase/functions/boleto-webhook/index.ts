@@ -113,31 +113,9 @@ serve(async (req) => {
     const bodyText = await req.text();
     const body = JSON.parse(bodyText);
 
-    // Dedup: check if this webhook event was already processed
+    // NOTE: dedup registration happens ONLY after signature verification below.
+    // An unsigned payload must never occupy a dedup key.
     const webhookEventId = body.id?.toString() || body.data?.id?.toString() || "";
-    if (webhookEventId) {
-      const { data: existingEvent } = await supabase
-        .from("webhook_events")
-        .select("id")
-        .eq("gateway", "mercadopago_boleto")
-        .eq("gateway_event_id", webhookEventId)
-        .maybeSingle();
-
-      if (existingEvent) {
-        console.log("Duplicate boleto webhook event, skipping:", webhookEventId);
-        return new Response(
-          JSON.stringify({ received: true, duplicate: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      await supabase.from("webhook_events").insert({
-        gateway: "mercadopago_boleto",
-        gateway_event_id: webhookEventId,
-        event_type: body.type || body.action || "unknown",
-        payload: body,
-      });
-    }
 
     console.log("Boleto webhook received:", JSON.stringify(body));
 
@@ -213,6 +191,32 @@ serve(async (req) => {
         JSON.stringify({ received: true, processed: false }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Dedup: only AFTER the signature has been verified (or the payment is
+    // unknown, in which case we return below without registering anything).
+    if (storeOwnerId && webhookEventId) {
+      const { data: existingEvent } = await supabase
+        .from("webhook_events")
+        .select("id")
+        .eq("gateway", "mercadopago_boleto")
+        .eq("gateway_event_id", webhookEventId)
+        .maybeSingle();
+
+      if (existingEvent) {
+        console.log("Duplicate boleto webhook event, skipping:", webhookEventId);
+        return new Response(
+          JSON.stringify({ received: true, duplicate: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await supabase.from("webhook_events").insert({
+        gateway: "mercadopago_boleto",
+        gateway_event_id: webhookEventId,
+        event_type: body.type || body.action || "unknown",
+        payload: body,
+      });
     }
 
     // Find the boleto payment by external ID
