@@ -256,8 +256,26 @@ serve(async (req) => {
       if (body.type === "payment" && body.data?.id) {
         externalPaymentId = body.data.id.toString();
         
-        if (body.action === "payment.created" || body.action === "payment.updated") {
-          paymentStatus = "approved";
+        // Never trust the webhook action: confirm the real status with Mercado Pago.
+        const { data: mpCfg } = await supabase
+          .from("payment_settings")
+          .select("mercadopago_access_token")
+          .eq("user_id", storeOwnerId)
+          .maybeSingle();
+        if (mpCfg?.mercadopago_access_token && /^\d+$/.test(externalPaymentId)) {
+          try {
+            const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${externalPaymentId}`, {
+              headers: { Authorization: `Bearer ${mpCfg.mercadopago_access_token}` },
+            });
+            if (mpRes.ok) {
+              const mpPay = await mpRes.json();
+              if (mpPay?.status === "approved" && String(mpPay?.id) === externalPaymentId) {
+                paymentStatus = "approved";
+              }
+            }
+          } catch (_) {
+            console.error("Mercado Pago status lookup failed");
+          }
         }
       }
     } else if (gateway === "pagbank") {

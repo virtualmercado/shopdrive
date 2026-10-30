@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface CreditCardRequest {
   orderId?: string; // Order created BEFORE the charge; payment only confirms it
-  amount: number;
+  amount?: number; // ignored: amount is taken from the persisted order
   storeOwnerId: string;
   customerName: string;
   customerEmail: string;
