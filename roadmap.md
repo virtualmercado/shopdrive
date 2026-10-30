@@ -145,3 +145,11 @@
 - [x] Remover simulação, flag fail-closed, exclusividade global, TXT, DNS real, tutoriais, Master.
 - [ ] BLOQUEADO (externo): provisionamento automático de hostname + SSL + roteamento — hospedagem atual não oferece API.
 - [ ] Rotina periódica de revalidação agendada — aguarda infraestrutura (sem domínios V2 ativos).
+
+## Hotfix — Checkout AROMA "temporariamente indisponível" (30/10)
+- [x] Reprodução tentada em produção (slug) e prévia: cadastro c/ e s/ endereço, login, salvar endereço, editar dados em /conta, Meus Pedidos, cotação de frete por CEP (SEDEX R$ 12,12 OK), página de pedido como visitante.
+- [x] Auditoria de código (subagente): nenhum caminho de renderização quebrado por dados normais de cliente; boundary só dispara com dados corrompidos (carrinho/frete), não comprovados.
+- [x] Achado 1: visitante não consegue reabrir confirmação de pedido guest ("Pedido não encontrado", pedido #001222) nos dois endereços.
+- [x] Achado 2: CustomerServiceDropdown consulta profiles do lojista como anônimo → 406 permanente (contato da loja não carrega).
+- [ ] BLOQUEADO: falha exata não reproduzida; falta o log de console do navegador afetado ([PublicStoreErrorBoundary]) ou autorização para 1 pedido guest controlado no slug.
+- [ ] Contas de teste criadas em produção: teste.hotfix.aroma@example.com, teste.hotfix2.aroma@example.com (aguardando decisão de limpeza).
