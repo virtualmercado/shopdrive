@@ -220,7 +220,7 @@ serve(async (req) => {
       return jsonResponse({
         error: "Erro ao processar pagamento. Tente novamente.",
         status: "error",
-        orderId: orderId || null,
+        ...(orderId ? { orderId } : {}),
       }, 400);
     }
 
@@ -288,7 +288,7 @@ serve(async (req) => {
         statusDetail: paymentStatusDetail,
         error: rejectionMessage,
         paymentId: mpPaymentId,
-        orderId: orderId || null,
+        ...(orderId ? { orderId } : {}),
       });
     }
 
@@ -306,7 +306,7 @@ serve(async (req) => {
       netReceivedAmount: mpData.net_received_amount,
       dateApproved: mpData.date_approved,
       externalReference: mpData.external_reference,
-      orderId: orderId || null,
+      ...(orderId ? { orderId } : {}),
     };
 
     if (paymentStatus === "pending") {
