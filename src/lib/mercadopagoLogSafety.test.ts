@@ -17,25 +17,55 @@ function consoleCalls(source: string, fileName: string) {
   return { file, calls };
 }
 
-async function runBackend(gatewayReply: unknown, failure?: Error, gatewayStatus = 200) {
+interface BackendFixtureOptions {
+  failure?: Error;
+  gatewayStatus?: number;
+  orderId?: string;
+  orderRow?: { store_owner_id: string; payment_status: string; card_payment_id: string | null } | null;
+  updateError?: boolean;
+}
+
+async function runBackend(gatewayReply: unknown, failureOrOptions?: Error | BackendFixtureOptions) {
+  const options: BackendFixtureOptions = failureOrOptions instanceof Error
+    ? { failure: failureOrOptions }
+    : (failureOrOptions || {});
+  const { failure, gatewayStatus = 200, orderId, orderRow, updateError = false } = options;
   const logs: unknown[][] = [];
   const outbound: { url: string; init: RequestInit }[] = [];
   const writes: string[] = [];
+  const updates: { values: Record<string, unknown>; filters: string[] }[] = [];
   let handler: ((req: Request) => Promise<Response>) | undefined;
   const client = {
     auth: { getClaims: async () => ({ data: { claims: { sub: "fixture-user" } }, error: null }) },
     from: () => ({
       select() { return this; }, eq() { return this; },
       single: async () => ({ data: { mercadopago_access_token: "fixture-server-credential", mercadopago_enabled: true, mercadopago_accepts_credit: true }, error: null }),
+      maybeSingle: async () => ({
+        data: orderRow === undefined
+          ? { store_owner_id: "fixture-store", payment_status: "pending", card_payment_id: null }
+          : orderRow,
+        error: null,
+      }),
       insert: () => { writes.push("insert"); throw new Error("Writes forbidden in fixture"); },
-      update: () => { writes.push("update"); throw new Error("Writes forbidden in fixture"); },
+      update: (values: Record<string, unknown>) => {
+        writes.push("update");
+        const filters: string[] = [];
+        const chain = {
+          eq: (col: string, val: unknown) => { filters.push(`${col}=${String(val)}`); return chain; },
+          neq: (col: string, val: unknown) => { filters.push(`${col}!=${String(val)}`); return chain; },
+          then: (resolve: (r: { error: Error | null }) => void) =>
+            resolve({ error: updateError ? new Error("fixture-update-failure") : null }),
+        };
+        updates.push({ values, filters });
+        return chain;
+      },
     }),
   };
   const source = backendSource.replace(/^import .*;\n/gm, "");
   const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   vm.runInNewContext(compiled, {
     serve: (fn: typeof handler) => { handler = fn; }, createClient: () => client,
-    Deno: { env: { get: () => "fixture-environment" } }, Request, Response, Date,
+    Deno: { env: { get: () => "fixture-environment" } }, Request, Response, Date, crypto,
     console: Object.fromEntries(["log", "error", "warn", "debug", "info"].map(level => [level, (...args: unknown[]) => logs.push(args)])),
     fetch: async (url: string, init: RequestInit) => {
       outbound.push({ url, init });
@@ -46,9 +76,9 @@ async function runBackend(gatewayReply: unknown, failure?: Error, gatewayStatus 
   if (!handler) throw new Error("Handler not mounted");
   const response = await handler(new Request("https://fixture.invalid/process-credit-card", {
     method: "POST", headers: { Authorization: "Bearer fixture-auth", "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: 10, storeOwnerId: "fixture-store", customerName: "Cliente Fictício", customerEmail: "fixture@example.invalid", customerCpf: "fixture-cpf", customerPhone: "", customerAddress: {}, cardToken: "fixture-card-token-sentinel", paymentMethodId: "visa", installments: 1 }),
+    body: JSON.stringify({ amount: 10, storeOwnerId: "fixture-store", customerName: "Cliente Fictício", customerEmail: "fixture@example.invalid", customerCpf: "fixture-cpf", customerPhone: "", customerAddress: {}, cardToken: "fixture-card-token-sentinel", paymentMethodId: "visa", installments: 1, ...(orderId ? { orderId } : {}) }),
   }));
-  return { logs: JSON.stringify(logs), outbound, writes, response, body: await response.json() };
+  return { logs: JSON.stringify(logs), outbound, writes, updates, response, body: await response.json() };
 }
 
 describe("Mercado Pago sensitive observability", () => {
