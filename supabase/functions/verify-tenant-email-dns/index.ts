@@ -24,6 +24,28 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // --- Authentication (required) ---
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const authClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const callerId = claimsData.claims.sub as string;
+    // --- End Auth ---
+
     const body: VerifyRequest = await req.json();
     const { tenant_id, domain, action, cloudflare_zone_id } = body;
 
@@ -32,6 +54,21 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "tenant_id e domain são obrigatórios" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Authorization: the caller may only touch their OWN tenant, unless Master/admin.
+    // The client-supplied tenant_id is never trusted on its own.
+    if (callerId !== tenant_id) {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: callerId,
+        _role: "admin",
+      });
+      if (isAdmin !== true) {
+        return new Response(
+          JSON.stringify({ error: "Sem permissão para este tenant" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Remove Cloudflare records for tenant

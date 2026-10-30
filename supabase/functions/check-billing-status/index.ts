@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { extractBearerToken, isValidJobTokenFormat } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,43 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authorization: this function mutates subscriptions platform-wide and must
+    // never be callable anonymously. Only the internal scheduler token or a
+    // Master/admin JWT are accepted. Fail closed.
+    const jobToken = req.headers.get("x-internal-job-token") ?? "";
+    let authorized = false;
+    if (isValidJobTokenFormat(jobToken)) {
+      const { data: ok, error: jobErr } = await supabase.rpc("verify_internal_job_token", {
+        p_job: "check-billing-status",
+        p_token: jobToken,
+      });
+      authorized = !jobErr && ok === true;
+    }
+    if (!authorized) {
+      const bearer = extractBearerToken(req);
+      if (bearer) {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const authClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: `Bearer ${bearer}` } },
+        });
+        const { data: claimsData } = await authClient.auth.getClaims(bearer);
+        const callerId = claimsData?.claims?.sub as string | undefined;
+        if (callerId) {
+          const { data: isAdmin } = await supabase.rpc("has_role", {
+            _user_id: callerId,
+            _role: "admin",
+          });
+          authorized = isAdmin === true;
+        }
+      }
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const now = new Date();
     const results: any[] = [];

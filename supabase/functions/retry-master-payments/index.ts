@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isValidJobTokenFormat } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -109,6 +110,33 @@ serve(async (req) => {
     // --- End Auth ---
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authorization: this job mutates subscriptions platform-wide, so it requires
+    // a Master/admin role validated in the database OR a valid internal job token.
+    // A regular authenticated user can never run it.
+    const callerId = claimsData.claims.sub as string | undefined;
+    const jobToken = req.headers.get("x-internal-job-token") ?? "";
+    let authorized = false;
+    if (isValidJobTokenFormat(jobToken)) {
+      const { data: ok, error: jobErr } = await supabase.rpc("verify_internal_job_token", {
+        p_job: "retry-master-payments",
+        p_token: jobToken,
+      });
+      authorized = !jobErr && ok === true;
+    }
+    if (!authorized && callerId) {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: callerId,
+        _role: "admin",
+      });
+      authorized = isAdmin === true;
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("Starting payment retry job...");
 

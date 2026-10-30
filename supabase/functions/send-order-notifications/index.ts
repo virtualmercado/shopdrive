@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { isValidJobTokenFormat } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,33 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Order not found or too old" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Authorization: only the store owner of this order, a Master/admin or an
+    // internal job may trigger its notifications. The client-supplied orderId
+    // is never trusted on its own.
+    const callerId = claimsData.claims.sub as string;
+    const jobToken = req.headers.get("x-internal-job-token") ?? "";
+    let authorized = callerId === order.store_owner_id;
+    if (!authorized && isValidJobTokenFormat(jobToken)) {
+      const { data: ok, error: jobErr } = await supabase.rpc("verify_internal_job_token", {
+        p_job: "send-order-notifications",
+        p_token: jobToken,
+      });
+      authorized = !jobErr && ok === true;
+    }
+    if (!authorized) {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: callerId,
+        _role: "admin",
+      });
+      authorized = isAdmin === true;
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: "Sem permissão para este pedido" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

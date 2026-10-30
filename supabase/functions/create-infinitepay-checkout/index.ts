@@ -1,6 +1,7 @@
 // InfinitePay Checkout - public link generator
 // Docs: https://www.infinitepay.io/checkout-documentacao
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildCheckoutItemsFromOrder } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,9 +42,12 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json()) as RequestBody;
 
-    if (!body?.store_owner_id || !body?.order_id || !Array.isArray(body.items) || body.items.length === 0) {
+    // Only the order id is accepted from the caller (guest-checkout compatible;
+    // order ids are unguessable UUIDs). Store, items, quantities and prices are
+    // ALWAYS loaded from the database — client-supplied values are ignored.
+    if (!body?.order_id) {
       return new Response(
-        JSON.stringify({ error: "store_owner_id, order_id e items são obrigatórios" }),
+        JSON.stringify({ error: "order_id é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -53,10 +57,44 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("id, store_owner_id, status, order_number, customer_name, customer_email, customer_phone")
+      .eq("id", body.order_id)
+      .maybeSingle();
+
+    if (orderError || !order) {
+      return new Response(
+        JSON.stringify({ error: "Pedido não encontrado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (order.status === "paid" || order.status === "confirmed") {
+      return new Response(
+        JSON.stringify({ error: "Pedido já está pago" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { data: orderItems, error: itemsError } = await supabase
+      .from("order_items")
+      .select("product_name, quantity, product_price")
+      .eq("order_id", order.id);
+
+    if (itemsError) throw itemsError;
+
+    if (!orderItems || orderItems.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Pedido sem itens" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { data: settings, error: settingsError } = await supabase
       .from("payment_settings")
       .select("infinitepay_enabled, infinitepay_handle")
-      .eq("user_id", body.store_owner_id)
+      .eq("user_id", order.store_owner_id)
       .maybeSingle();
 
     if (settingsError) throw settingsError;
@@ -70,25 +108,19 @@ Deno.serve(async (req) => {
 
     const handle = sanitizeHandle(settings.infinitepay_handle);
 
-    // Build items in cents
-    const items = body.items.map((it) => ({
-      name: String(it.name).slice(0, 100),
-      quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
-      price: Math.round(Number(it.price) * 100), // BRL -> cents
-    }));
+    // Items come exclusively from the persisted order (prices in cents).
+    const items = buildCheckoutItemsFromOrder(orderItems);
 
     const payload: Record<string, unknown> = {
       handle,
       items,
-      order_nsu: body.order_id,
+      order_nsu: order.id,
       redirect_url: body.redirect_url ?? null,
-      customer: body.customer
-        ? {
-            name: body.customer.name ?? undefined,
-            email: body.customer.email ?? undefined,
-            phone_number: body.customer.phone_number ?? undefined,
-          }
-        : undefined,
+      customer: {
+        name: order.customer_name ?? undefined,
+        email: order.customer_email ?? undefined,
+        phone_number: order.customer_phone ?? undefined,
+      },
     };
 
     const resp = await fetch("https://api.checkout.infinitepay.io/links", {
@@ -121,7 +153,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Persist gateway reference on order
+    // Persist gateway reference on the SAME order loaded from the database
     await supabase
       .from("orders")
       .update({
@@ -129,14 +161,14 @@ Deno.serve(async (req) => {
         status: "pending",
         notes: `InfinitePay checkout: ${checkoutUrl}`,
       })
-      .eq("id", body.order_id);
+      .eq("id", order.id);
 
     return new Response(
       JSON.stringify({
         checkout_url: checkoutUrl,
         handle,
-        order_id: body.order_id,
-        order_number: body.order_number ?? null,
+        order_id: order.id,
+        order_number: order.order_number ?? null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

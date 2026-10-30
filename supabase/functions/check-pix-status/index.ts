@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { canAccessPixPayment } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,6 +76,37 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Pagamento PIX não encontrado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Authorization: load the related order and confirm the caller is allowed
+    // to touch this record BEFORE any service-role read/write. Guest checkout
+    // polling (anon key, no user id) remains allowed because every write below
+    // is derived from the gateway response, never from caller input.
+    const callerUserId = (claimsData.claims.sub as string | undefined) ?? null;
+    const { data: relatedOrder } = await supabase
+      .from('orders')
+      .select('customer_id')
+      .eq('id', pixPayment.order_id)
+      .maybeSingle();
+
+    let callerIsAdmin = false;
+    if (callerUserId) {
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: callerUserId,
+        _role: 'admin',
+      });
+      callerIsAdmin = isAdmin === true;
+    }
+
+    if (!canAccessPixPayment(
+      { userId: callerUserId, isAdmin: callerIsAdmin },
+      { store_owner_id: pixPayment.store_owner_id },
+      relatedOrder,
+    )) {
+      return new Response(
+        JSON.stringify({ error: "Sem permissão para este pagamento" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
