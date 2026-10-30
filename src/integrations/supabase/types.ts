@@ -7827,6 +7827,10 @@ export type Database = {
       }
     }
     Functions: {
+      _active_v2_store_hostname: {
+        Args: { p_merchant_id: string }
+        Returns: string
+      }
       _assert_catalog_draft_config: {
         Args: { _config: Json; _uid: string }
         Returns: undefined
@@ -8824,6 +8828,10 @@ export type Database = {
           store_id: string
           store_slug: string
         }[]
+      }
+      resolve_store_preferred_hostname: {
+        Args: { p_store_slug: string }
+        Returns: string
       }
       restore_order_variant_stock: {
         Args: { p_order_id: string; p_reason: string }
