@@ -139,15 +139,14 @@ export const PaymentDataSection = ({
         toast.success("Cartão validado com sucesso!");
       } else if (result.status === "rejected") {
         setValidationStatus("rejected");
-        setValidationMessage(result.error);
+        setValidationMessage("Cartão recusado. Verifique os dados informados.");
       } else {
         setValidationStatus("error");
-        setValidationMessage(result.error || "Erro na validação");
+        setValidationMessage("Erro na validação");
       }
-    } catch (error: any) {
-      console.error("Card validation error:", error);
+    } catch {
       setValidationStatus("error");
-      setValidationMessage(error.message || "Erro ao validar cartão");
+      setValidationMessage("Erro ao validar cartão");
     } finally {
       setIsValidating(false);
     }
