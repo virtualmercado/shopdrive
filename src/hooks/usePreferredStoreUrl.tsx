@@ -3,21 +3,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { isValidCustomStoreHostname, preferredStoreUrl } from "@/lib/preferredStoreUrl";
 
 /**
- * Resolves the store's preferred public URL through the server-side
- * resolve_store_preferred_hostname RPC (fail-closed: errors and inactive
- * domains fall back to the traditional ShopDrive URL).
+ * Server-side resolution of the store's active custom V2 hostname.
+ * Fail-closed: any error or inactive state returns null (ShopDrive URL fallback).
+ * The hostname always comes from the store's own authorized V2 binding.
+ */
+export async function fetchPreferredStoreHostname(storeSlug: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("resolve_store_preferred_hostname", { p_store_slug: storeSlug });
+  if (error) return null;
+  return typeof data === "string" && isValidCustomStoreHostname(data) ? data : null;
+}
+
+export const preferredStoreHostnameQueryKey = (storeSlug: string) => ["preferred-store-hostname", storeSlug] as const;
+
+/**
+ * Resolves the store's preferred public URL for panel display and sharing.
  */
 export function usePreferredStoreUrl(storeSlug?: string | null) {
   const slug = storeSlug?.trim() || null;
   const query = useQuery({
-    queryKey: ["preferred-store-hostname", slug],
+    queryKey: preferredStoreHostnameQueryKey(slug ?? ""),
     enabled: !!slug,
     staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("resolve_store_preferred_hostname", { p_store_slug: slug! });
-      if (error) return null; // fail-closed: keep the ShopDrive URL
-      return typeof data === "string" && isValidCustomStoreHostname(data) ? data : null;
-    },
+    queryFn: () => fetchPreferredStoreHostname(slug!),
   });
 
   const customHostname = query.data ?? null;
