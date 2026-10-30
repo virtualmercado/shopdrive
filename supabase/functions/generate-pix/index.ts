@@ -74,12 +74,34 @@ serve(async (req) => {
     {
       const { data: orderRow, error: orderErr } = await supabase
         .from("orders")
-        .select("store_owner_id, total_amount")
+        .select("store_owner_id, total_amount, customer_id, payment_status, status, created_at")
         .eq("id", orderId)
         .maybeSingle();
       if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
         return new Response(
           JSON.stringify({ error: "Pedido não pertence à loja informada" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Caller binding: only the store owner, a Master/admin, the order's own
+      // customer, or (for guest orders) the checkout that just created a still
+      // unpaid order may request a charge with this store's credentials.
+      const callerId = (claimsData.claims.sub as string | undefined) ?? null;
+      let callerAllowed = false;
+      if (callerId && (callerId === orderRow.store_owner_id || callerId === orderRow.customer_id)) {
+        callerAllowed = true;
+      } else if (callerId) {
+        const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerId, _role: "admin" });
+        callerAllowed = isAdmin === true;
+      }
+      if (!callerAllowed && !orderRow.customer_id) {
+        const ageMs = Date.now() - new Date(orderRow.created_at as string).getTime();
+        callerAllowed = orderRow.payment_status !== "approved" && orderRow.status !== "cancelled" &&
+          Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 2 * 60 * 60 * 1000;
+      }
+      if (!callerAllowed) {
+        return new Response(
+          JSON.stringify({ error: "Sem permissão para este pedido" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
