@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
 
     try {
       const conn = smtp_security === "ssl"
-        ? await Deno.connectTls({ hostname: connectHost, port, serverName: host } as any)
+        ? await Deno.connectTls({ hostname: host, port })
         : await Deno.connect({ hostname: connectHost, port });
 
       const encoder = new TextEncoder();
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
 
       if (smtp_security === "tls" && ehloResp.includes("STARTTLS")) {
         await sendCommand("STARTTLS");
-        const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: smtp_host });
+        const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: host });
         conn.read = tlsConn.read.bind(tlsConn);
         conn.write = tlsConn.write.bind(tlsConn);
         ehloResp = await sendCommand("EHLO shopdrive.com.br");
