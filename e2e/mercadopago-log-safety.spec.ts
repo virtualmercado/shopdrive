@@ -8,7 +8,7 @@ const errorSentinel = "fixture-sensitive-error-sentinel";
 function cardFixture(source: string) {
   return source
     .replace("pix_enabled:false,credit_card_enabled:false,boleto_enabled:false", "pix_enabled:true,pix_provider:'mercado_pago',credit_card_enabled:true,credit_card_provider:'mercado_pago',mercadopago_enabled:true,mercadopago_accepts_pix:true,mercadopago_accepts_credit:true,mercadopago_public_key:'fixture-public-key',boleto_enabled:true")
-    .replace("window.__createdOrder=args;", "window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args;")
+    .replace("window.__createdOrder=args;", "window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args;order.payment_method=args.p_payment_method;order.payment_status=args.p_payment_status;order.status=args.p_status;")
     .replace("functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}}", `functions:{invoke:async(name,opts)=>{
       if(name!=='process-credit-card')throw new Error('Fixture forbids external functions');
       window.__paymentCalls=(window.__paymentCalls||0)+1;
@@ -53,6 +53,7 @@ for (const mode of ["approved", "sdk-error", "backend-error", "rejected"]) {
     if (mode === "approved") {
       await expect(page).toHaveURL(`${origin}/loja-a/pedido-confirmado/${ORDER_A}`);
       expect(await page.evaluate(() => (window as any).__orderCalls)).toBe(1);
+      await expect(page.getByText("Cartão de Crédito", { exact: true })).toBeVisible();
     } else {
       const message = mode === "sdk-error" ? "Erro ao processar cartão. Verifique os dados." : mode === "backend-error" ? "Erro ao processar pagamento" : "Pagamento recusado pelo banco emissor";
       await expect(page.getByText(message, { exact: true }).first()).toBeVisible();

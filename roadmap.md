@@ -3,8 +3,8 @@
 ## Hotfix de segurança — token de cartão Mercado Pago
 - [x] Escopo recebido: remover apenas exposição sensível em logs/debug/telemetria e mensagens de erro; preservar chaves, tokenização, envio/processamento e demais métodos; nenhuma cobrança.
 - [x] Removidos log do token SDK, objetos de resposta/erro do cartão no navegador e payloads/respostas/erros brutos no process-credit-card; mensagens de erro não refletem objetos externos.
-- [ ] Validar tokenização/transporte com SDK e backend simulados sem acesso a cobrança, logs/erros sanitizados, inicialização e regressões existentes.
-- [ ] Auditar persistência por metadados/agregados sem ler tokens ou alterar banco; registrar limites da evidência.
+- [x] 432 testes unitários passaram, incluindo quatro regressões que executam o handler com fetch/banco fictícios; quatro cenários do checkout real em navegador (aprovado/erro SDK/erro backend/recusado) passaram via Python Playwright, sem token em console/UI/storage ou escrita hospedada. SDK e transporte foram simulados: não é tokenização real no provedor. Runner TypeScript não iniciou devido a binário ausente; fallback Python validado. Verificação automática atual build OK.
+- [x] process-credit-card não escreve token em banco nem retorna payload bruto; auditoria agregada não encontrou marcadores nas 756 auditorias nem tokens nas 34 assinaturas (payments/webhook_events vazios). Histórico de logs consultado retornou zero registros, portanto ausência histórica global NÃO comprovada. Encontrado sink legado separado em validate-card → master_subscriptions.card_token, fora do checkout AROMA e sem valores existentes; não alterar persistência/recorrência neste hotfix. Nenhuma alteração do banco.
 - [ ] AGUARDANDO AUTORIZAÇÃO: publicação do frontend corrigido para atingir o www público, seguida de conferência da versão publicada; não realizar pagamento antes disso.
 
 ## Piloto AROMA — um pagamento real manual com cartão Mercado Pago

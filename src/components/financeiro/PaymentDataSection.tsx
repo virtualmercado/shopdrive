@@ -116,7 +116,7 @@ export const PaymentDataSection = ({
 
       if (result.success) {
         setValidationStatus("success");
-        setValidationMessage(result.message);
+        setValidationMessage("Cartão validado com sucesso");
         setIsEditing(false);
         
         // Update local card state
