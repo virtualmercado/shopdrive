@@ -104,10 +104,6 @@ serve(async (req) => {
       if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
         return jsonResponse({ error: "Pedido não pertence à loja informada" }, 403);
       }
-      amount = Math.round(Number(orderRow.total_amount) * 100) / 100;
-      if (!Number.isFinite(amount) || amount <= 0) {
-        return jsonResponse({ error: "Valor do pedido inválido" }, 400);
-      }
 
       // Idempotent short-circuit: this order already has an approved card payment.
       // A retry of the same logical purchase must NOT charge again.
@@ -123,6 +119,10 @@ serve(async (req) => {
           message: "Pagamento aprovado com sucesso!",
         });
       }
+        amount = Math.round(Number(orderRow.total_amount) * 100) / 100;
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return jsonResponse({ error: "Valor do pedido inválido" }, 400);
+        }
     }
 
     // Validate required fields

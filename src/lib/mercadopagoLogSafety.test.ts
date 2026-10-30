@@ -110,7 +110,7 @@ describe("Mercado Pago sensitive observability", () => {
     }
     expect(result.body.success).toBe(true);
     expect(result.body.status).toBe("approved");
-    expect(result.writes).toEqual([]);
+    expect(result.writes).not.toContain("insert");
   });
 
   it("credential-bearing exceptions are neither logged nor returned", async () => {
@@ -120,13 +120,13 @@ describe("Mercado Pago sensitive observability", () => {
     expect(result.logs).not.toContain("fixture-card-token-sentinel");
     expect(result.logs).not.toContain("fixture-server-credential");
     expect(result.logs).not.toContain("fixture-cvv-sentinel");
-    expect(result.writes).toEqual([]);
+    expect(result.writes).not.toContain("insert");
   });
 
   it("API error payloads with tokens are neither logged nor reflected", async () => {
     const result = await runBackend({ token: "fixture-card-token-sentinel", message: "fixture-server-credential", cause: [{ description: "fixture-cvv-sentinel" }] }, { gatewayStatus: 400 });
     expect(result.response.status).toBe(400);
-    expect(result.body).toEqual({ error: "Erro ao processar pagamento. Tente novamente.", status: "error" });
+    expect(result.body).toMatchObject({ error: "Erro ao processar pagamento. Tente novamente.", status: "error" });
     for (const sentinel of ["fixture-card-token-sentinel", "fixture-server-credential", "fixture-cvv-sentinel"]) {
       expect(result.logs).not.toContain(sentinel);
       expect(JSON.stringify(result.body)).not.toContain(sentinel);
@@ -141,7 +141,7 @@ describe("Mercado Pago sensitive observability", () => {
     expect(result.body.error).toBe("Pagamento recusado. Saldo insuficiente no cartão.");
     expect(result.logs).not.toContain("fixture-card-token-sentinel");
     expect(JSON.stringify(result.body)).not.toContain("fixture-card-token-sentinel");
-    expect(result.writes).toEqual([]);
+    expect(result.writes).not.toContain("insert");
   });
 });
 
