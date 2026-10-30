@@ -71,6 +71,53 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Bind the domain to the tenant's stored settings: a caller can never choose
+    // an arbitrary domain or another tenant's domain.
+    const normalizedDomain = String(domain).trim().toLowerCase().replace(/\.$/, "");
+    const { data: ownSettings } = await supabase
+      .from("tenant_email_settings")
+      .select("email_domain, cloudflare_zone_id")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
+    const storedDomain = String(ownSettings?.email_domain ?? "").trim().toLowerCase().replace(/\.$/, "");
+    const PLATFORM_DOMAINS = ["shopdrive.com.br", "virtualmercado.com.br", "lovable.app", "lovable.dev"];
+    const isPlatformDomain = (d: string) => PLATFORM_DOMAINS.some((p) => d === p || d.endsWith(`.${p}`));
+    if (action === "create_cloudflare" || action === "remove_cloudflare") {
+      if (!storedDomain || storedDomain !== normalizedDomain || isPlatformDomain(normalizedDomain)) {
+        return new Response(
+          JSON.stringify({ error: "Domínio não corresponde à configuração do tenant" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { count: otherOwners } = await supabase
+        .from("tenant_email_settings")
+        .select("tenant_id", { count: "exact", head: true })
+        .eq("email_domain", ownSettings!.email_domain)
+        .neq("tenant_id", tenant_id);
+      if ((otherOwners ?? 0) > 0) {
+        return new Response(
+          JSON.stringify({ error: "Domínio já vinculado a outro tenant" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Verify that a Cloudflare zone really belongs to the tenant's domain.
+    const zoneMatchesDomain = async (zoneId: string, cfToken: string): Promise<boolean> => {
+      if (!/^[a-f0-9]{32}$/.test(zoneId)) return false;
+      try {
+        const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}`, {
+          headers: { Authorization: `Bearer ${cfToken}` },
+        });
+        const j = await r.json();
+        const zoneName = String(j?.result?.name ?? "").toLowerCase();
+        if (!j?.success || !zoneName || isPlatformDomain(zoneName)) return false;
+        return normalizedDomain === zoneName || normalizedDomain.endsWith(`.${zoneName}`);
+      } catch (_) {
+        return false;
+      }
+    };
+
     // Remove Cloudflare records for tenant
     if (action === "remove_cloudflare") {
       const CLOUDFLARE_API_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN");
@@ -96,8 +143,9 @@ Deno.serve(async (req) => {
           .eq("tenant_id", tenant_id)
           .single();
 
-        const zoneId = cloudflare_zone_id || tenantCfg?.cloudflare_zone_id;
-        if (zoneId) {
+        // Only the zone previously validated and stored for this tenant is used.
+        const zoneId = tenantCfg?.cloudflare_zone_id as string | undefined;
+        if (zoneId && await zoneMatchesDomain(zoneId, CLOUDFLARE_API_TOKEN)) {
           for (const rec of existingRecords) {
             try {
               await fetch(
@@ -137,6 +185,13 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (!(await zoneMatchesDomain(cloudflare_zone_id, CLOUDFLARE_API_TOKEN))) {
+        return new Response(
+          JSON.stringify({ error: "Zona Cloudflare não corresponde ao domínio do tenant" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Get tenant info for standardized comment
       const { data: tenantSettings } = await supabase
         .from("tenant_email_settings")
@@ -151,19 +206,19 @@ Deno.serve(async (req) => {
       const records = [
         {
           type: "TXT",
-          name: domain,
+          name: normalizedDomain,
           content: `v=spf1 include:shopdrive.com.br ~all`,
           label: "SPF",
         },
         {
           type: "TXT",
-          name: `shopdrive._domainkey.${domain}`,
+          name: `shopdrive._domainkey.${normalizedDomain}`,
           content: `v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQ`,
           label: "DKIM",
         },
         {
           type: "TXT",
-          name: `_dmarc.${domain}`,
+          name: `_dmarc.${normalizedDomain}`,
           content: `v=DMARC1; p=quarantine; rua=mailto:dmarc@shopdrive.com.br`,
           label: "DMARC",
         },
@@ -179,7 +234,7 @@ Deno.serve(async (req) => {
         for (const old of oldRecords) {
           try {
             await fetch(
-              `https://api.cloudflare.com/client/v4/zones/${cloudflare_zone_id}/dns_records/${old.record_id_cloudflare}`,
+              `https://api.cloudflare.com/client/v4/zones/${ownSettings?.cloudflare_zone_id || cloudflare_zone_id}/dns_records/${old.record_id_cloudflare}`,
               {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
