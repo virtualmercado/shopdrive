@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Persist gateway reference on order
+    // Persist gateway reference on the SAME order loaded from the database
     await supabase
       .from("orders")
       .update({
@@ -161,14 +161,14 @@ Deno.serve(async (req) => {
         status: "pending",
         notes: `InfinitePay checkout: ${checkoutUrl}`,
       })
-      .eq("id", body.order_id);
+      .eq("id", order.id);
 
     return new Response(
       JSON.stringify({
         checkout_url: checkoutUrl,
         handle,
-        order_id: body.order_id,
-        order_number: body.order_number ?? null,
+        order_id: order.id,
+        order_number: order.order_number ?? null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
