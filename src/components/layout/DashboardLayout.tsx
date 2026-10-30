@@ -38,6 +38,7 @@ import { GlobalBillingAlert } from "@/components/billing/GlobalBillingAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
 import { syncTemplatePreviewState } from "@/lib/templatePreviewSync";
+import { usePreferredStoreUrl } from "@/hooks/usePreferredStoreUrl";
 
 // ShopDrive Official Logo for Dashboard
 import sdLogo from "@/assets/logo-header-menu-sd.png";
@@ -63,7 +64,9 @@ interface TemplateEditorCredentials {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
-  const [storeUrl, setStoreUrl] = useState<string>("");
+  const [storeSlug, setStoreSlug] = useState<string>("");
+  // Preferred public URL: active custom V2 domain when authorized, else the traditional ShopDrive URL.
+  const { url: storeUrl, isCustomDomain: storeUrlIsCustomDomain } = usePreferredStoreUrl(storeSlug);
   const [copied, setCopied] = useState(false);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
@@ -191,8 +194,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .single();
 
       if (profile?.store_slug) {
-        const url = `${window.location.origin}/${profile.store_slug}`;
-        setStoreUrl(url);
+        setStoreSlug(profile.store_slug);
       }
     };
 
@@ -601,15 +603,27 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
               {storeUrl && !isTemplateEditorMode && (
                 <div className="flex items-center gap-4 flex-shrink-0">
-                  <Link to={`/${storeUrl.split('/').pop()}`}>
-                    <Button 
-                      className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-                    >
-                      <Store className="h-4 w-4" />
-                      <span className="hidden sm:inline">Ver Loja</span>
-                      <span className="sm:hidden">Loja</span>
-                    </Button>
-                  </Link>
+                  {storeUrlIsCustomDomain ? (
+                    <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                      <Button
+                        className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+                      >
+                        <Store className="h-4 w-4" />
+                        <span className="hidden sm:inline">Ver Loja</span>
+                        <span className="sm:hidden">Loja</span>
+                      </Button>
+                    </a>
+                  ) : (
+                    <Link to={`/${storeUrl.split('/').pop()}`}>
+                      <Button
+                        className="gap-2 transition-all hover:opacity-90 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+                      >
+                        <Store className="h-4 w-4" />
+                        <span className="hidden sm:inline">Ver Loja</span>
+                        <span className="sm:hidden">Loja</span>
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
