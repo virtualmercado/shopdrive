@@ -863,13 +863,18 @@ const CheckoutContent = () => {
         return createdOrder as any;
       };
 
-      // CREDIT CARD FLOW - Process payment BEFORE creating order using card token
+      // CREDIT CARD FLOW - Create the order FIRST (pending), then charge the card.
+      // The charge only confirms the pre-created order, so an approved payment
+      // can never end up without an order, and retries reuse the same order.
       if (formData.payment_method === "cartao_credito" && cardTokenData) {
-        console.log("Processing credit card payment with token before order creation");
-        
+        console.log("[Checkout] criando pedido pendente antes da cobrança do cartão");
+
+        const order = await createCheckoutOrder("pending", "pending");
+
         try {
           const paymentResponse = await supabase.functions.invoke("process-credit-card", {
             body: {
+              orderId: order.id,
               amount: total,
               storeOwnerId: storeData.id,
               customerName: formData.customer_name,
@@ -891,9 +896,10 @@ const CheckoutContent = () => {
             },
           });
 
-          // Handle edge function error
+          // Handle edge function error (network/5xx): the payment state is unknown.
+          // The order exists and stays pending for reconciliation.
           if (paymentResponse.error) {
-            const errorMessage = "Erro ao processar pagamento";
+            const errorMessage = "Não foi possível confirmar o pagamento. Se o valor foi cobrado, seu pedido será confirmado automaticamente.";
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
@@ -903,19 +909,16 @@ const CheckoutContent = () => {
 
           const paymentData = paymentResponse.data;
 
-          // Handle rejected payment
+          // Handle rejected payment: the order was marked rejected server-side
+          // and the reserved stock was returned exactly once.
           if (paymentData.status === "rejected" || !paymentData.success) {
-            const errorMessage = "Pagamento recusado pelo banco emissor";
+            const errorMessage = paymentData.error || "Pagamento recusado pelo banco emissor";
             setCardProcessingError(errorMessage);
             toast.error(errorMessage);
             setLoading(false);
             finalizingRef.current = false;
             return;
           }
-
-          // Payment approved or pending - create order and items atomically with payment info
-          const orderStatus = paymentData.status === "approved" ? "confirmed" : "pending";
-          const order = await createCheckoutOrder(orderStatus, getPaymentStatus("cartao_credito", paymentData.status));
 
           logAuditEvent({
             action: "order_created",
@@ -938,16 +941,22 @@ const CheckoutContent = () => {
           }
 
           if (paymentData.status === "approved") {
-            toast.success("Pagamento aprovado! Pedido confirmado.");
+            if (paymentData.orderConfirmed === false) {
+              // Gateway approved but the local confirmation failed: safe state,
+              // never a generic "payment failed" message.
+              toast.info("Pagamento aprovado. Estamos confirmando seu pedido.");
+            } else {
+              toast.success("Pagamento aprovado! Pedido confirmado.");
+            }
           } else {
             toast.info(paymentData.message || "Pagamento em processamento. Aguarde a confirmação.");
           }
-          
+
           navigate(storePath(`/pedido-confirmado/${order.id}`));
           return;
 
         } catch {
-          const errorMessage = "Erro ao processar pagamento com cartão";
+          const errorMessage = "Não foi possível confirmar o pagamento. Se o valor foi cobrado, seu pedido será confirmado automaticamente.";
           setCardProcessingError(errorMessage);
           toast.error(errorMessage);
           setLoading(false);

@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS card_payment_id text;
+COMMENT ON COLUMN public.orders.card_payment_id IS 'Mercado Pago card payment id linked to this order for reconciliation (set by process-credit-card).';
