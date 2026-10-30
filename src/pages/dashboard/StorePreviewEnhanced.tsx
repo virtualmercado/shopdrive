@@ -23,6 +23,7 @@ import { RefreshCw } from "lucide-react";
 import YouTubeVideoCard from "@/components/store/YouTubeVideoCard";
 import StoreModelSelector from "@/components/store/StoreModelSelector";
 import { useAuth } from "@/hooks/useAuth";
+import { usePreferredStoreUrl } from "@/hooks/usePreferredStoreUrl";
 import BenefitBannersConfig from "@/components/customize/BenefitBannersConfig";
 import StoreAppearanceCard from "@/components/customize/StoreAppearanceCard";
 import ContentBannerCard from "@/components/customize/ContentBannerCard";
@@ -686,7 +687,8 @@ const StorePreviewEnhanced = () => {
       },
     });
 
-  const storeUrl = `${window.location.origin}/${storeData.store_slug}`;
+  // Preferred public URL: active custom V2 domain when authorized, else the traditional ShopDrive URL.
+  const { url: storeUrl } = usePreferredStoreUrl(storeData.store_slug);
 
   if (loading) {
     return (
