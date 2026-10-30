@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveOrderChargeAmount } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,17 +106,28 @@ serve(async (req) => {
       );
     }
 
-    // IDOR protection: ensure the order belongs to the claimed store owner
+    // IDOR protection: ensure the order belongs to the claimed store owner.
+    // The charge amount is ALWAYS derived from the persisted order total;
+    // any client-supplied amount is ignored.
+    let validAmount: number;
     {
       const { data: orderRow, error: orderErr } = await supabase
         .from("orders")
-        .select("store_owner_id")
+        .select("store_owner_id, total_amount")
         .eq("id", orderId)
         .maybeSingle();
       if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
         return new Response(
           JSON.stringify({ error: "Pedido não pertence à loja informada" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      try {
+        validAmount = resolveOrderChargeAmount(orderRow.total_amount);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Valor do pedido inválido." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -127,18 +139,7 @@ serve(async (req) => {
       );
     }
 
-    // Validate and format the amount
-    const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    const validAmount = Math.round((parsedAmount || 0) * 100) / 100;
-    
-    console.log("Amount validation:", { original: amount, parsed: parsedAmount, valid: validAmount });
-
-    if (!validAmount || validAmount <= 0 || isNaN(validAmount)) {
-      return new Response(
-        JSON.stringify({ error: "Valor do pagamento inválido. O valor deve ser maior que zero." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log("Amount derived from order:", { orderId, validAmount });
 
     // Fetch merchant payment settings
     const { data: paymentSettings, error: settingsError } = await supabase
