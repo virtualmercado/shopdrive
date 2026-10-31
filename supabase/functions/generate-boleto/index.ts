@@ -96,7 +96,7 @@ serve(async (req) => {
       description 
     } = await req.json() as BoletoRequest;
 
-    console.log("Boleto request received:", { orderId, amount, storeOwnerId, customerName, customerEmail });
+    console.log("Boleto request received:", { orderId });
 
     // Validate required fields
     if (!orderId || !storeOwnerId) {
@@ -240,7 +240,7 @@ serve(async (req) => {
       date_of_expiration: expiresAt.toISOString(),
     };
     
-    console.log("Mercado Pago boleto payload:", JSON.stringify(mpPayload));
+    console.log("Mercado Pago boleto request prepared:", { orderId });
     
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -255,7 +255,7 @@ serve(async (req) => {
     const mpData = await mpResponse.json();
 
     if (!mpResponse.ok) {
-      console.error("Mercado Pago error:", mpData);
+      console.error("Mercado Pago error:", { status: mpResponse?.status, code: mpData?.error, cause: mpData?.cause?.[0]?.code });
       
       // Handle specific error messages
       let errorMessage = "Erro ao gerar boleto no Mercado Pago";
@@ -273,7 +273,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Mercado Pago boleto response:", JSON.stringify(mpData));
+    console.log("Mercado Pago boleto response:", { id: mpData?.id, status: mpData?.status, status_detail: mpData?.status_detail });
 
     // Check if payment was rejected
     if (mpData.status === "rejected") {
@@ -314,10 +314,10 @@ serve(async (req) => {
       expiresAt: expiresAt.toISOString(),
     };
 
-    console.log("Extracted boleto data:", boletoData);
+    console.log("Extracted boleto data:", { orderId, has_url: Boolean(boletoData?.boletoUrl ?? boletoData?.boleto_url) });
 
     if (!boletoData.boletoUrl) {
-      console.error("No boleto URL in response:", mpData);
+      console.error("No boleto URL in response:", { id: mpData?.id, status: mpData?.status });
       return new Response(
         JSON.stringify({ 
           error: "Falha ao gerar boleto. Verifique as configurações do gateway de pagamento.",
