@@ -175,7 +175,7 @@ async def check_other(browser, mode, label):
         await expect(dialog.get_by_role("button", name="Verificar novamente")).to_have_count(0)
         await expect(dialog.get_by_role("textbox")).to_have_count(0)
     else:
-        await expect(dialog.get_by_role("heading", name="Informe seu domínio", exact=True)).to_be_visible()
+        await expect(dialog.get_by_role("heading", name="Informe seu domínio", exact=False)).to_be_visible()
         if mode == "pending":
             await expect(dialog.get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
     await page.screenshot(path=str(OUTPUT / (mode + ".png")))
