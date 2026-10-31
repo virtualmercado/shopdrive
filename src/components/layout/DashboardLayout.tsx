@@ -39,6 +39,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
 import { syncTemplatePreviewState } from "@/lib/templatePreviewSync";
 import { usePreferredStoreUrl } from "@/hooks/usePreferredStoreUrl";
+import { useMerchantDomain } from "@/hooks/useMerchantDomain";
 
 // ShopDrive Official Logo for Dashboard
 import sdLogo from "@/assets/logo-header-menu-sd.png";
@@ -69,6 +70,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { url: storeUrl, isCustomDomain: storeUrlIsCustomDomain } = usePreferredStoreUrl(storeSlug);
   const [copied, setCopied] = useState(false);
   const [domainWizardOpen, setDomainWizardOpen] = useState(false);
+  const { presentation: domainPresentation, isLoading: domainLoading, loadError: domainLoadError } = useMerchantDomain();
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState<string | null>(null);
   const [isTemplateEditorMode, setIsTemplateEditorMode] = useState(false);
@@ -589,14 +591,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         <Copy className="h-4 w-4 text-gray-600" />
                       )}
                     </Button>
-                    <button
+                    <Button
+                      variant="link"
                       onClick={() => setDomainWizardOpen(true)}
-                      className="text-xs flex items-center gap-1 hover:underline text-primary whitespace-nowrap"
+                      disabled={domainLoading || !!domainLoadError}
+                      aria-label={domainLoading ? "Carregando domínio" : domainPresentation.ctaLabel}
+                      title={domainLoading ? "Carregando domínio" : domainPresentation.ctaLabel}
+                      className="h-auto p-0 text-xs gap-1"
                     >
                       <Globe className="h-3 w-3" />
-                      <span className="hidden sm:inline">Conectar domínio próprio</span>
+                      <span className="hidden sm:inline">{domainLoading ? "Carregando domínio…" : domainPresentation.ctaLabel}</span>
                       <span className="sm:hidden">Domínio</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
