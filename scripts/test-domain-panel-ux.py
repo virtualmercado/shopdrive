@@ -125,7 +125,7 @@ async def check_active(browser):
     async with page.expect_popup() as popup_event:
         await dialog.get_by_role("link", name="Visitar domínio").click()
     popup = await popup_event.value
-    await popup.wait_for_event("requestfailed") if popup.url == "about:blank" else asyncio.sleep(0)
+    await popup.wait_for_timeout(100)
     await popup.close()
     await dialog.get_by_role("button", name="Desconectar domínio", exact=True).click()
     await expect(page.get_by_role("alertdialog").get_by_role("heading", name="Deseja desconectar www.redearoma.com.br?")).to_be_visible()
