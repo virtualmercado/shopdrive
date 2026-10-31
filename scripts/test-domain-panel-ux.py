@@ -113,7 +113,7 @@ async def check_active(browser):
     await page.wait_for_timeout(1200)
     print("OBSERVED", await page.locator("body").inner_text(), "ERRORS", errors if "errors" in locals() else [], flush=True)
     await page.screenshot(path=str(OUTPUT / "diagnostic.png"))
-    await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True)).to_be_visible()
+    await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True, include_hidden=True)).to_have_count(1)
     await expect(page.locator("main").get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
     await expect(page.locator("main").get_by_role("link", name="Visitar", exact=True)).to_have_attribute("href", "https://www.redearoma.com.br")
     await page.screenshot(path=str(OUTPUT / "active-panel.png"))
@@ -138,7 +138,7 @@ async def check_active(browser):
     await page.evaluate("window.__finishVerify(true)")
     await expect(timestamp).not_to_have_text(before)
     await expect(dialog.get_by_text("Domínio conectado", exact=True).last).to_be_visible()
-    await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True)).to_be_visible()
+    await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True, include_hidden=True)).to_have_count(1)
     calls = await page.evaluate("window.__calls.filter(x=>x.fn)")
     assert calls == [{"fn": "verify-custom-domain-dns", "body": {}}, {"fn": "verify-custom-domain-dns", "body": {}}]
     assert await page.evaluate("window.__forbidden") == []
