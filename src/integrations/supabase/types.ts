@@ -3493,7 +3493,10 @@ export type Database = {
           domain_type: string
           expected_cname: string | null
           expected_ip: string | null
+          external_created_at: string | null
+          external_error: string | null
           external_hostname_id: string | null
+          external_last_check_at: string | null
           flow_version: number
           id: string
           infrastructure_provider: string | null
@@ -3505,6 +3508,8 @@ export type Database = {
           needs_reverification: boolean
           normalized_domain: string | null
           ownership_verified_at: string | null
+          provision_attempts: number
+          provision_next_retry_at: string | null
           redirect_old_link: boolean
           released_at: string | null
           routing_status: string
@@ -3531,7 +3536,10 @@ export type Database = {
           domain_type?: string
           expected_cname?: string | null
           expected_ip?: string | null
+          external_created_at?: string | null
+          external_error?: string | null
           external_hostname_id?: string | null
+          external_last_check_at?: string | null
           flow_version?: number
           id?: string
           infrastructure_provider?: string | null
@@ -3543,6 +3551,8 @@ export type Database = {
           needs_reverification?: boolean
           normalized_domain?: string | null
           ownership_verified_at?: string | null
+          provision_attempts?: number
+          provision_next_retry_at?: string | null
           redirect_old_link?: boolean
           released_at?: string | null
           routing_status?: string
@@ -3569,7 +3579,10 @@ export type Database = {
           domain_type?: string
           expected_cname?: string | null
           expected_ip?: string | null
+          external_created_at?: string | null
+          external_error?: string | null
           external_hostname_id?: string | null
+          external_last_check_at?: string | null
           flow_version?: number
           id?: string
           infrastructure_provider?: string | null
@@ -3581,6 +3594,8 @@ export type Database = {
           needs_reverification?: boolean
           normalized_domain?: string | null
           ownership_verified_at?: string | null
+          provision_attempts?: number
+          provision_next_retry_at?: string | null
           redirect_old_link?: boolean
           released_at?: string | null
           routing_status?: string
@@ -7942,6 +7957,14 @@ export type Database = {
       }
       _custom_domain_access_state: { Args: { p_store: string }; Returns: Json }
       _custom_domain_norm_or_null: { Args: { p: string }; Returns: string }
+      _custom_domain_provisioning_authz: {
+        Args: {
+          p_actor: string
+          p_merchant_id: string
+          p_normalized_domain: string
+        }
+        Returns: boolean
+      }
       _custom_domain_ui_available: {
         Args: { p_store: string }
         Returns: boolean
@@ -8273,6 +8296,14 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      begin_custom_domain_provisioning: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_expected_updated_at: string
+        }
+        Returns: Json
+      }
       begin_editorial_catalog_publication: {
         Args: { _expected_updated_at: string; _idempotency_key: string }
         Returns: Json
@@ -8368,6 +8399,19 @@ export type Database = {
       }
       complement_template_data_impl: {
         Args: { p_template_id: string; p_user_id: string }
+        Returns: Json
+      }
+      complete_custom_domain_provisioning: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_error: string
+          p_expected_updated_at: string
+          p_external_hostname_id: string
+          p_routing_status: string
+          p_ssl_status: string
+          p_state: string
+        }
         Returns: Json
       }
       complete_my_catalog_preview: {
@@ -8489,6 +8533,24 @@ export type Database = {
       ensure_catalog_share_code: { Args: never; Returns: string }
       expire_plan_trials: { Args: never; Returns: Json }
       expire_stale_pix_payments: { Args: never; Returns: number }
+      fail_custom_domain_provisioning: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_error: string
+          p_expected_updated_at: string
+          p_next_retry_at: string
+        }
+        Returns: Json
+      }
+      finalize_custom_domain_revoke: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_expected_updated_at: string
+        }
+        Returns: Json
+      }
       force_sync_brand_template: {
         Args: { p_template_id: string }
         Returns: Json
@@ -8841,6 +8903,14 @@ export type Database = {
       restore_order_variant_stock: {
         Args: { p_order_id: string; p_reason: string }
         Returns: number
+      }
+      revoke_custom_domain_internal: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_expected_updated_at: string
+        }
+        Returns: Json
       }
       save_my_catalog_draft: {
         Args: {
