@@ -23,6 +23,7 @@ ACTIVE = {
 }
 
 MAIN = """
+import "/src/index.css";
 import React from '/node_modules/.vite/deps/react.js';
 import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
 import {BrowserRouter} from '/node_modules/.vite/deps/react-router-dom.js';
@@ -110,18 +111,12 @@ async def check_active(browser):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     await page.goto(ORIGIN + "/lojista/store")
-    await page.wait_for_timeout(1200)
-    print("OBSERVED", await page.locator("body").inner_text(), "ERRORS", errors if "errors" in locals() else [], flush=True)
-    await page.screenshot(path=str(OUTPUT / "diagnostic.png"))
     await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True, include_hidden=True)).to_have_count(1)
     await expect(page.locator("main").get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
     await expect(page.locator("main").get_by_role("link", name="Visitar", exact=True)).to_have_attribute("href", "https://www.redearoma.com.br")
     await page.screenshot(path=str(OUTPUT / "active-panel.png"))
     await page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True).click()
     dialog = page.get_by_role("dialog")
-    await page.wait_for_timeout(300)
-    print("DIALOG", await dialog.inner_text(), flush=True)
-    await page.screenshot(path=str(OUTPUT / "diagnostic-dialog.png"))
     await expect(dialog.get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
     await expect(dialog.get_by_role("heading", name="Informe seu domínio")).not_to_be_visible()
     await expect(dialog.get_by_text("Os registros de apontamento", exact=False)).not_to_be_visible()
@@ -161,15 +156,9 @@ async def check_other(browser, mode, label):
     await mount(context, mode)
     page = await context.new_page()
     await page.goto(ORIGIN + "/lojista/store")
-    await page.wait_for_timeout(1200)
-    print("OBSERVED", await page.locator("body").inner_text(), "ERRORS", errors if "errors" in locals() else [], flush=True)
-    await page.screenshot(path=str(OUTPUT / "diagnostic.png"))
     await expect(page.locator("header").get_by_role("button", name=label, exact=True)).to_be_visible()
     await page.locator("header").get_by_role("button", name=label, exact=True).click()
     dialog = page.get_by_role("dialog")
-    await page.wait_for_timeout(300)
-    print("DIALOG", await dialog.inner_text(), flush=True)
-    await page.screenshot(path=str(OUTPUT / "diagnostic-dialog.png"))
     if mode == "unavailable":
         await expect(dialog.get_by_text("Domínio próprio temporariamente indisponível", exact=True)).to_be_visible()
         await expect(dialog.get_by_role("button", name="Verificar novamente")).to_have_count(0)
