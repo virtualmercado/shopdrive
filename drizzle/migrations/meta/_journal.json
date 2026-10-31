@@ -470,6 +470,13 @@
       "when": 1793404993748,
       "tag": "0066_checkout_order_trusted_pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793405181732,
+      "tag": "0067_set_current_catalog_derive_url",
+      "breakpoints": true
     }
   ]
 }
