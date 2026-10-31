@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info, Circle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
-import { customDomainStateLabel, isCustomDomainConnected } from "@/lib/customDomainStatus";
+import { customDomainStateLabel, isCustomDomainConnected, customDomainDisplayHostname, customDomainChecklist } from "@/lib/customDomainStatus";
 import { normalizeCustomDomain } from "../../../supabase/functions/_shared/customDomainCore";
 import { toast } from "sonner";
 
@@ -47,7 +48,9 @@ const Step = ({ n, title, done, children }: { n: number; title: string; done?: b
 export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
   const { overview, domain, tutorials, claimDomain, regenerateChallenge, verify, disconnect } = useMerchantDomain();
   const [input, setInput] = useState("");
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const d = domain && !domain.released && domain.flow_version === 2 ? domain : null;
+  const hostname = customDomainDisplayHostname(d);
   const owned = !!d?.ownership_verified_at;
   const expired = !!d && !owned && !!d.verification_expires_at && new Date(d.verification_expires_at) < new Date();
   const provider = d?.last_result?.provider ?? null;
