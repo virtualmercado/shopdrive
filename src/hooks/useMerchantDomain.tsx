@@ -11,6 +11,8 @@ export interface CustomDomainRecord { purpose: "root" | "www"; type: string; hos
 export interface CustomDomainV2 {
   id: string;
   domain: string;
+  /** Exact authorized host (preserves www) when the store has an exact pilot hostname. */
+  display_hostname?: string | null;
   flow_version: number;
   state: string | null;
   txt_host: string | null;
