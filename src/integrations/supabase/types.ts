@@ -7941,6 +7941,11 @@ export type Database = {
         Returns: boolean
       }
       _custom_domain_access_state: { Args: { p_store: string }; Returns: Json }
+      _custom_domain_norm_or_null: { Args: { p: string }; Returns: string }
+      _custom_domain_ui_available: {
+        Args: { p_store: string }
+        Returns: boolean
+      }
       _disconnect_custom_domain: {
         Args: { p_domain_id: string; p_source: string }
         Returns: undefined
