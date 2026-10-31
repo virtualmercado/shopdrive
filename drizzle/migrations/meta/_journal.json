@@ -463,6 +463,13 @@
       "when": 1793404364328,
       "tag": "0065_process_email_queue_internal_token",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793404993748,
+      "tag": "0066_checkout_order_trusted_pricing",
+      "breakpoints": true
     }
   ]
 }
