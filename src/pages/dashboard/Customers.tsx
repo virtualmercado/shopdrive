@@ -1,3 +1,4 @@
+import { csvQuoted, escapeHtml } from "@/lib/safeOutput";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
 import { useState, useEffect } from 'react';
@@ -700,7 +701,7 @@ const Customers = () => {
     const printContent = `
       <html>
         <head>
-          <title>Lista de Clientes${filterLabels.length > 0 ? ` - ${filterLabels.join(' | ')}` : ''}</title>
+          <title>Lista de Clientes${filterLabels.length > 0 ? ` - ${escapeHtml(filterLabels.join(' | '))}` : ''}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             h1 { color: #333; margin-bottom: 10px; }
@@ -713,7 +714,7 @@ const Customers = () => {
         </head>
         <body>
           <h1>Lista de Clientes${isFilterActive ? ' (Filtrada)' : ''}</h1>
-          ${filterLabels.length > 0 ? `<p class="subtitle">${filterLabels.join(' | ')}</p>` : ''}
+          ${filterLabels.length > 0 ? `<p class="subtitle">${escapeHtml(filterLabels.join(' | '))}</p>` : ''}
           <p>Total: ${listToPrint.length} clientes</p>
           <table>
             <thead>
@@ -742,14 +743,14 @@ const Customers = () => {
                 const code = customerCodes.get(c.id) || '-';
                 return `
                   <tr>
-                    <td>${code}</td>
-                    <td>${c.full_name}</td>
-                    <td>${c.email ?? "-"}</td>
-                    <td>${c.phone || '-'}</td>
-                    <td>${birthDate}</td>
-                    <td>${addr?.state || '-'}</td>
-                    <td>${addr?.city || '-'}</td>
-                    <td>${groupNames}</td>
+                    <td>${escapeHtml(code)}</td>
+                    <td>${escapeHtml(c.full_name)}</td>
+                    <td>${escapeHtml(c.email ?? "-")}</td>
+                    <td>${escapeHtml(c.phone || '-')}</td>
+                    <td>${escapeHtml(birthDate)}</td>
+                    <td>${escapeHtml(addr?.state || '-')}</td>
+                    <td>${escapeHtml(addr?.city || '-')}</td>
+                    <td>${escapeHtml(groupNames)}</td>
                   </tr>
                 `;
               }).join('')}
@@ -799,7 +800,7 @@ const Customers = () => {
     
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => csvQuoted(cell)).join(','))
     ].join('\n');
     
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
