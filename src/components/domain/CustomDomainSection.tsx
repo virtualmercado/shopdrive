@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Globe, ExternalLink, Settings, Lock } from "lucide-react";
+import { Globe, ExternalLink, Settings, Lock, Check, Copy, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
-import { customDomainStateLabel, isCustomDomainConnected } from "@/lib/customDomainStatus";
+import {
+  customDomainStateLabel, isCustomDomainConnected,
+  customDomainCtaLabel, customDomainDisplayHostname, customDomainChecklist,
+} from "@/lib/customDomainStatus";
 import { CustomDomainWizard } from "./CustomDomainWizard";
+import { toast } from "sonner";
 
 export const CustomDomainSection = () => {
   const [open, setOpen] = useState(false);
@@ -24,7 +27,14 @@ export const CustomDomainSection = () => {
 
   const available = !!overview?.available;
   const connected = isCustomDomainConnected(domain);
+  const hasDomain = !!domain && !domain.released;
+  const hostname = customDomainDisplayHostname(domain);
   const purchaseUrl = overview?.purchase_url;
+
+  const copyAddress = async () => {
+    await navigator.clipboard.writeText(`https://${hostname}`);
+    toast.success("Endereço copiado.");
+  };
 
   return (
     <>
@@ -49,31 +59,58 @@ export const CustomDomainSection = () => {
                 </p>
               </div>
             </div>
+          ) : connected ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <p className="text-sm font-medium">Domínio conectado</p>
+              </div>
+              <a href={`https://${hostname}`} target="_blank" rel="noopener noreferrer"
+                className="font-mono text-sm flex items-center gap-1 hover:underline w-fit" style={{ color: buttonBgColor }}>
+                {hostname} <ExternalLink className="h-3 w-3" />
+              </a>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                {customDomainChecklist(domain).map((item) => (
+                  <li key={item.key} className="flex items-center gap-1.5">
+                    <Check className="h-3 w-3 text-primary" /> {item.label}
+                  </li>
+                ))}
+                <li className="flex items-center gap-1.5">
+                  <Check className="h-3 w-3 text-primary" /> Loja publicada
+                </li>
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`https://${hostname}`} target="_blank" rel="noopener noreferrer" className="gap-1.5">
+                    <ExternalLink className="h-4 w-4" /> Ver domínio
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" onClick={copyAddress} className="gap-1.5">
+                  <Copy className="h-4 w-4" /> Copiar endereço
+                </Button>
+                <Button size="sm" onClick={() => setOpen(true)} style={{ backgroundColor: buttonBgColor, color: buttonTextColor }} className="gap-1.5">
+                  <Settings className="h-4 w-4" /> Gerenciar domínio
+                </Button>
+              </div>
+            </div>
           ) : (
             <>
-              {domain && !domain.released ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={connected ? "default" : "outline"} className="font-mono">{domain.domain}</Badge>
-                    <span className="text-sm text-muted-foreground">{customDomainStateLabel(domain.state)}</span>
-                    {connected && (
-                      <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer" className="text-sm flex items-center gap-1 hover:underline" style={{ color: buttonBgColor }}>
-                        Visitar <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
+              {hasDomain ? (
+                <div className="space-y-1">
+                  <p className="font-mono text-sm">{hostname}</p>
+                  <p className="text-sm text-muted-foreground">{customDomainStateLabel(domain!.state)}</p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Conecte um domínio que você já possui (ex.: seudominio.com.br).</p>
+                <p className="text-sm text-muted-foreground">Use seu próprio domínio na sua loja ShopDrive.</p>
               )}
               <Button onClick={() => setOpen(true)} style={{ backgroundColor: buttonBgColor, color: buttonTextColor }} className="w-full gap-2">
                 <Settings className="h-4 w-4" />
-                {domain && !domain.released ? "Gerenciar domínio" : "Conectar domínio"}
+                {customDomainCtaLabel(domain)}
               </Button>
             </>
           )}
 
-          {purchaseUrl && (
+          {purchaseUrl && !connected && (
             <a href={purchaseUrl} target="_blank" rel="noopener noreferrer" className="text-sm flex items-center gap-1 hover:underline" style={{ color: buttonBgColor }}>
               Ainda não tem um domínio? Registrar um domínio
               <ExternalLink className="h-3 w-3" />
