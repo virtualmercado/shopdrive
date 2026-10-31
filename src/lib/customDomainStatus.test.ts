@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  customDomainCtaLabel, customDomainDisplayHostname, customDomainChecklist, isCustomDomainConnected,
+  customDomainCtaLabel, customDomainDisplayHostname, customDomainChecklist, isCustomDomainConnected, customDomainPresentation,
 } from "./customDomainStatus";
 
 const activeDomain = {
@@ -36,12 +36,12 @@ describe("customDomainCtaLabel", () => {
 describe("customDomainChecklist", () => {
   it("marks every step done for a fully active domain", () => {
     const items = customDomainChecklist(activeDomain);
-    expect(items.map((i) => i.done)).toEqual([true, true, true, true]);
+    expect(items.map((i) => i.done)).toEqual([true, true, true, true, true]);
     expect(items.some((i) => i.attention)).toBe(false);
   });
   it("never marks DNS done without server confirmation", () => {
     const items = customDomainChecklist({ ...activeDomain, dns_verified_at: null, routing_status: "not_started", ssl_status: "pending" });
-    expect(items.map((i) => i.done)).toEqual([true, false, false, false]);
+    expect(items.map((i) => i.done)).toEqual([true, false, false, false, true]);
   });
   it("flags ownership as attention when pending", () => {
     const items = customDomainChecklist({ ...activeDomain, ownership_verified_at: null, dns_verified_at: null });
@@ -59,5 +59,21 @@ describe("isCustomDomainConnected", () => {
     expect(isCustomDomainConnected(activeDomain)).toBe(true);
     expect(isCustomDomainConnected({ ...activeDomain, active: false })).toBe(false);
     expect(isCustomDomainConnected({ ...activeDomain, state: "ssl_provisioning" })).toBe(false);
+  });
+});
+
+describe("shared domain presentation", () => {
+  it("uses exactly the backend www host for visit/copy, never the canonical root", () => {
+    expect(customDomainPresentation(activeDomain).address).toBe("https://www.redearoma.com.br");
+  });
+  it("treats released records as absent across every consumer", () => {
+    expect(customDomainPresentation({ ...activeDomain, released: true })).toMatchObject({
+      domain: null, connected: false, hostname: "", address: "",
+    });
+  });
+  it("does not infer connection from completed provisioning timestamps", () => {
+    const view = customDomainPresentation({ ...activeDomain, state: "ssl_provisioning", active: false });
+    expect(view.connected).toBe(false);
+    expect(view.checklist.find((item) => item.key === "publication")?.done).toBe(false);
   });
 });
