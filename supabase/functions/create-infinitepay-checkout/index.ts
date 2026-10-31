@@ -111,11 +111,32 @@ Deno.serve(async (req) => {
     // Items come exclusively from the persisted order (prices in cents).
     const items = buildCheckoutItemsFromOrder(orderItems);
 
+    // Post-payment redirect: only HTTPS URLs on platform hosts or the store's
+    // own active custom domain are forwarded; anything else is dropped.
+    let safeRedirect: string | null = null;
+    if (typeof body.redirect_url === "string" && body.redirect_url.length <= 2048) {
+      try {
+        const u = new URL(body.redirect_url);
+        const h = u.hostname.toLowerCase();
+        let allowed = u.protocol === "https:" && (
+          h === "shopdrive.com.br" || h === "www.shopdrive.com.br" || h === "virtualmercado.lovable.app" ||
+          /^id-preview--[0-9a-f-]{36}\.lovable\.app$/.test(h));
+        if (!allowed && u.protocol === "https:") {
+          const { data: prof } = await supabase.from("profiles").select("store_slug").eq("id", order.store_owner_id).maybeSingle();
+          if (prof?.store_slug) {
+            const { data: preferred } = await supabase.rpc("resolve_store_preferred_hostname", { p_store_slug: prof.store_slug });
+            allowed = typeof preferred === "string" && preferred.length > 0 && preferred.toLowerCase() === h;
+          }
+        }
+        if (allowed && !u.username && !u.password) safeRedirect = u.toString();
+      } catch { safeRedirect = null; }
+    }
+
     const payload: Record<string, unknown> = {
       handle,
       items,
       order_nsu: order.id,
-      redirect_url: body.redirect_url ?? null,
+      redirect_url: safeRedirect,
       customer: {
         name: order.customer_name ?? undefined,
         email: order.customer_email ?? undefined,
