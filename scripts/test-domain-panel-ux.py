@@ -23,14 +23,14 @@ ACTIVE = {
 
 MAIN = """
 import React from '/node_modules/.vite/deps/react.js';
-import {createRoot} from '/node_modules/.vite/deps/react-dom_client.js';
+import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
 import {BrowserRouter} from '/node_modules/.vite/deps/react-router-dom.js';
 import {QueryClient,QueryClientProvider} from '/node_modules/.vite/deps/@tanstack_react-query.js';
 import {AuthProvider} from '/src/contexts/AuthContext.tsx';
 import DashboardLayout from '/src/components/layout/DashboardLayout.tsx';
 import {CustomDomainSection} from '/src/components/domain/CustomDomainSection.tsx';
 const h=React.createElement;
-createRoot(document.getElementById('root')).render(h(QueryClientProvider,{client:new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity},mutations:{retry:false}}})},h(AuthProvider,null,h(BrowserRouter,null,h(DashboardLayout,null,h(CustomDomainSection))))));
+ReactDOM.createRoot(document.getElementById('root')).render(h(QueryClientProvider,{client:new QueryClient({defaultOptions:{queries:{retry:false,staleTime:Infinity},mutations:{retry:false}}})},h(AuthProvider,null,h(BrowserRouter,null,h(DashboardLayout,null,h(CustomDomainSection))))));
 """
 
 CLIENT = """
