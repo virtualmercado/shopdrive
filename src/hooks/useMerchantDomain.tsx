@@ -2,6 +2,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { customDomainPresentation } from "@/lib/customDomainStatus";
 
 // Custom Domains V2: every write goes through server RPCs / the verify edge function.
 // The browser never decides DNS, routing or SSL status.
@@ -144,6 +145,7 @@ export const useMerchantDomain = () => {
   return {
     overview: overview.data,
     domain: overview.data?.domain ?? null,
+    presentation: customDomainPresentation(overview.data?.domain),
     isLoading: overview.isLoading,
     loadError: overview.error,
     tutorials: tutorials.data,

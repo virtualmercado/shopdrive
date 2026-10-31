@@ -1,5 +1,12 @@
 # Roadmap
 
+## Refinamento final de UX — Domínio Próprio V2
+- [x] Estado e hostname compartilhados via customDomainPresentation/useMerchantDomain no cabeçalho, bloco e modal; preservadas todas as regras V2.
+- [x] Gerenciamento principal ativo com detalhes recolhidos e DNS confirmado sem aviso contraditório; visita/cópia/verificação/desconexão preservadas.
+- [x] Navegador com componentes e hook reais, identidade/RPCs locais e todas as origens interceptadas: ativo, elegível vazio, pendente e sem acesso aprovados; cópia HTTPS exata, popup, cancelamento de desconexão e timestamp só após resposta/refetch, erro sem timestamp otimista. Nenhuma conta real, escrita hospedada ou pagamento.
+- [x] 485 testes unitários aprovados, verificações automáticas build OK; nenhuma publicação ou mudança de backend/infraestrutura.
+- [ ] BLOQUEADO: homologação real de “Verificar novamente” da AROMA com feature_enabled=false. O código existente de verify-custom-domain-dns (linhas 40–42) rejeita lojista não-admin quando a flag global é false, mesmo com UI piloto disponível. Função implantada não comparada por falta de leitura de source hospedado disponível; não executar verificação real ou alterar autorização nesta tarefa exclusivamente de UX.
+
 ## Hotfix de segurança — token de cartão Mercado Pago
 - [x] Escopo recebido: remover apenas exposição sensível em logs/debug/telemetria e mensagens de erro; preservar chaves, tokenização, envio/processamento e demais métodos; nenhuma cobrança.
 - [x] Removidos log do token SDK, objetos de resposta/erro do cartão no navegador e payloads/respostas/erros brutos no process-credit-card; mensagens de erro não refletem objetos externos.
