@@ -1,3 +1,4 @@
+import { neutralizeFormula } from "@/lib/safeOutput";
 /** Helpers puros da lista de Assinantes do Master (contatos, rótulos e CSV). */
 
 export const NOT_INFORMED = "Não informado";
@@ -76,7 +77,7 @@ export const formatAddress = (r: SubscriberRow) => {
 };
 
 const csvCell = (v: unknown) => {
-  const s = v == null ? "" : String(v);
+  const s = neutralizeFormula(v);
   return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

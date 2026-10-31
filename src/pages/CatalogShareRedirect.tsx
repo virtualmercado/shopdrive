@@ -43,8 +43,22 @@ const CatalogShareRedirect = () => {
         return;
       }
 
+      // Only follow catalog files hosted in this app's own public storage.
+      let target: URL | null = null;
+      try {
+        target = new URL(resolved.catalog_url);
+        const storageOrigin = new URL(import.meta.env.VITE_SUPABASE_URL).origin;
+        if (target.origin !== storageOrigin || !target.pathname.startsWith("/storage/v1/object/public/")) target = null;
+      } catch {
+        target = null;
+      }
+      if (!target) {
+        setState("unavailable");
+        return;
+      }
+
       // Temporary redirect semantics: the current catalog can change.
-      window.location.replace(resolved.catalog_url);
+      window.location.replace(target.toString());
     };
 
     run();
