@@ -5,6 +5,7 @@ Run: python3 scripts/test-domain-panel-ux.py
 """
 import asyncio
 import json
+import re
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
@@ -69,6 +70,12 @@ async def mount(context, mode):
     domain = dict(ACTIVE) if mode != "empty" else None
     if mode == "pending":
         domain.update(state="dns_pending", active=False, dns_verified_at=None, routing_status="not_started", ssl_status="pending")
+    auth_source = await (await context.request.get(ORIGIN + "/src/contexts/AuthContext.tsx")).text()
+    layout_source = await (await context.request.get(ORIGIN + "/src/components/layout/DashboardLayout.tsx")).text()
+    deps = dict(re.findall(r'(/node_modules/\.vite/deps/[^"?]+)\?v=([^"\s]+)', auth_source + layout_source))
+    main = MAIN
+    for path, version in deps.items():
+        main = main.replace(path + "\'", path + "?v=" + version + "\'")
     overview = {"available": mode != "unavailable", "ingress_ready": False, "records": [], "domain": domain,
                 "purchase_url": "https://registrar.example.invalid"}
     async def intercept(route):
@@ -78,7 +85,7 @@ async def mount(context, mode):
             return
         path = request.url[len(ORIGIN):].split("?")[0]
         overrides = {
-            "/src/main.tsx": MAIN,
+            "/src/main.tsx": main,
             "/src/integrations/supabase/client.ts": CLIENT,
             "/src/hooks/useBrandNetwork.tsx": "export const useMinhaRedeMenuVisible=()=>false;",
             "/src/components/billing/GlobalBillingAlert.tsx": "export const GlobalBillingAlert=()=>null;",
