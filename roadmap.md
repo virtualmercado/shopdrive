@@ -1,5 +1,11 @@
 # Roadmap
 
+## Refinamento final de UX — Domínio Próprio V2
+- [ ] Unificar estado e hostname exibidos no cabeçalho, bloco e modal, preservando todas as regras V2.
+- [ ] Exibir gerenciamento principal para domínio ativo e detalhes históricos recolhidos, sem aviso contraditório de infraestrutura.
+- [ ] Validar ações, estados elegível/pendente/sem acesso e timestamp retornado pela verificação existente com fixtures locais sem escritas reais.
+- [ ] Conferir testes e verificações automáticas; entregar sem publicação e sem mudanças de backend/infraestrutura.
+
 ## Hotfix de segurança — token de cartão Mercado Pago
 - [x] Escopo recebido: remover apenas exposição sensível em logs/debug/telemetria e mensagens de erro; preservar chaves, tokenização, envio/processamento e demais métodos; nenhuma cobrança.
 - [x] Removidos log do token SDK, objetos de resposta/erro do cartão no navegador e payloads/respostas/erros brutos no process-credit-card; mensagens de erro não refletem objetos externos.
