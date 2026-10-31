@@ -1,3 +1,4 @@
+import { csvQuoted } from "@/lib/safeOutput";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -123,11 +124,9 @@ export const DataExportModal = ({
           
           if (Array.isArray(data)) {
             if (data.length > 0) {
-              csvLines.push(Object.keys(data[0]).join(","));
+              csvLines.push(Object.keys(data[0]).map(csvQuoted).join(","));
               data.forEach(item => {
-                csvLines.push(Object.values(item).map(v => 
-                  typeof v === "string" ? `"${v}"` : v
-                ).join(","));
+                csvLines.push(Object.values(item).map(v => csvQuoted(v && typeof v === "object" ? JSON.stringify(v) : v)).join(","));
               });
             }
           } else if (typeof data === "object") {
@@ -135,10 +134,10 @@ export const DataExportModal = ({
               if (typeof value === "object") {
                 csvLines.push(`${key}:`);
                 Object.entries(value as object).forEach(([k, v]) => {
-                  csvLines.push(`  ${k},${v}`);
+                  csvLines.push(`  ${csvQuoted(k)},${csvQuoted(v)}`);
                 });
               } else {
-                csvLines.push(`${key},${value}`);
+                csvLines.push(`${csvQuoted(key)},${csvQuoted(value)}`);
               }
             });
           }
