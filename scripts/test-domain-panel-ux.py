@@ -68,7 +68,7 @@ export const supabase={
 
 
 async def mount(context, mode):
-    domain = dict(ACTIVE) if mode != "empty" else None
+    domain = dict(ACTIVE) if mode not in ("empty", "unavailable") else None
     if mode == "pending":
         domain.update(state="dns_pending", active=False, dns_verified_at=None, routing_status="not_started", ssl_status="pending")
     auth_source = await (await context.request.get(ORIGIN + "/src/contexts/AuthContext.tsx")).text()
@@ -105,7 +105,7 @@ async def mount(context, mode):
 
 
 async def check_active(browser):
-    context = await browser.new_context(viewport={"width": 1280, "height": 1800})
+    context = await browser.new_context(viewport={"width": 1280, "height": 1800}, reduced_motion="reduce")
     await mount(context, "active")
     page = await context.new_page()
     errors = []
@@ -114,6 +114,7 @@ async def check_active(browser):
     await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True, include_hidden=True)).to_have_count(1)
     await expect(page.locator("main").get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
     await expect(page.locator("main").get_by_role("link", name="Visitar", exact=True)).to_have_attribute("href", "https://www.redearoma.com.br")
+    await page.wait_for_timeout(500)
     await page.screenshot(path=str(OUTPUT / "active-panel.png"))
     await page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True).click()
     dialog = page.get_by_role("dialog")
@@ -121,6 +122,14 @@ async def check_active(browser):
     await expect(dialog.get_by_role("heading", name="Informe seu domínio")).not_to_be_visible()
     await expect(dialog.get_by_text("Os registros de apontamento", exact=False)).not_to_be_visible()
     await expect(dialog.get_by_role("link", name="Visitar domínio")).to_have_attribute("href", "https://www.redearoma.com.br")
+    async with page.expect_popup() as popup_event:
+        await dialog.get_by_role("link", name="Visitar domínio").click()
+    popup = await popup_event.value
+    await popup.wait_for_event("requestfailed") if popup.url == "about:blank" else asyncio.sleep(0)
+    await popup.close()
+    await dialog.get_by_role("button", name="Desconectar domínio", exact=True).click()
+    await expect(page.get_by_role("alertdialog").get_by_role("heading", name="Deseja desconectar www.redearoma.com.br?")).to_be_visible()
+    await page.get_by_role("alertdialog").get_by_role("button", name="Manter domínio", exact=True).click()
     await dialog.get_by_role("button", name="Copiar endereço", exact=True).click()
     assert await page.evaluate("window.__copied") == "https://www.redearoma.com.br"
     timestamp = dialog.get_by_text("Última verificação:", exact=False)
@@ -140,19 +149,21 @@ async def check_active(browser):
     calls = await page.evaluate("window.__calls.filter(x=>x.fn)")
     assert calls == [{"fn": "verify-custom-domain-dns", "body": {}}, {"fn": "verify-custom-domain-dns", "body": {}}]
     assert await page.evaluate("window.__forbidden") == []
-    await page.screenshot(path=str(OUTPUT / "active-management.png"))
+    await page.wait_for_timeout(500)
+    await dialog.screenshot(path=str(OUTPUT / "active-management.png"))
     await dialog.get_by_role("button", name="Ver detalhes da configuração").click()
     await expect(dialog.get_by_text("DNS configurado e verificado.", exact=True)).to_be_visible()
     await expect(dialog.get_by_text("Os registros de apontamento", exact=False)).to_have_count(0)
     await expect(dialog.get_by_text("www.redearoma.com.br", exact=True).last).to_be_visible()
-    await page.screenshot(path=str(OUTPUT / "active-details.png"))
+    await page.wait_for_timeout(500)
+    await dialog.screenshot(path=str(OUTPUT / "active-details.png"))
     assert errors == [], errors
     print("PASS active: shared header/block/modal, exact host and copied URL, reverify success/failure, server timestamp, no forbidden calls")
     await context.close()
 
 
 async def check_other(browser, mode, label):
-    context = await browser.new_context(viewport={"width": 1280, "height": 1800})
+    context = await browser.new_context(viewport={"width": 1280, "height": 1800}, reduced_motion="reduce")
     await mount(context, mode)
     page = await context.new_page()
     await page.goto(ORIGIN + "/lojista/store")
@@ -180,7 +191,7 @@ async def main():
         await check_active(browser)
         await check_other(browser, "empty", "Conectar domínio próprio")
         await check_other(browser, "pending", "Continuar configuração")
-        await check_other(browser, "unavailable", "Gerenciar domínio")
+        await check_other(browser, "unavailable", "Conectar domínio próprio")
         await browser.close()
 
 
