@@ -833,6 +833,9 @@ const CheckoutContent = () => {
         if (createOrderError || !createdOrder) {
           console.error("[Checkout] create_checkout_order error:", createOrderError);
           const rawMsg = String((createOrderError as any)?.message || "");
+          if (rawMsg.includes("valores do carrinho foram atualizados")) {
+            throw new Error("Os preços de alguns produtos mudaram. Remova e adicione novamente os itens do carrinho e tente de novo.");
+          }
           if (rawMsg.includes("Combinação indisponível") || rawMsg.includes("Selecione as opções") || rawMsg.includes("Estoque insuficiente")) {
             throw new Error(`${rawMsg} Revise o carrinho e tente novamente.`);
           }
