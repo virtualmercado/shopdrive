@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info, Circle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
-import { customDomainStateLabel, isCustomDomainConnected } from "@/lib/customDomainStatus";
+import { customDomainStateLabel, isCustomDomainConnected, customDomainDisplayHostname, customDomainChecklist } from "@/lib/customDomainStatus";
 import { normalizeCustomDomain } from "../../../supabase/functions/_shared/customDomainCore";
 import { toast } from "sonner";
 
@@ -47,7 +48,9 @@ const Step = ({ n, title, done, children }: { n: number; title: string; done?: b
 export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
   const { overview, domain, tutorials, claimDomain, regenerateChallenge, verify, disconnect } = useMerchantDomain();
   const [input, setInput] = useState("");
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const d = domain && !domain.released && domain.flow_version === 2 ? domain : null;
+  const hostname = customDomainDisplayHostname(d);
   const owned = !!d?.ownership_verified_at;
   const expired = !!d && !owned && !!d.verification_expires_at && new Date(d.verification_expires_at) < new Date();
   const provider = d?.last_result?.provider ?? null;
@@ -73,13 +76,18 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
         <div className="space-y-4">
           <Step n={1} title="Informe seu domínio" done={!!d}>
             {d ? (
-              <p className="font-mono text-sm">{d.domain}</p>
+              <p className="font-mono text-sm">{hostname}</p>
             ) : (
-              <div className="flex gap-2">
-                <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="seudominio.com.br" className="font-mono" />
-                <Button onClick={submit} disabled={!input || claimDomain.isPending}>
-                  {claimDomain.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="www.sualoja.com.br" className="font-mono" />
+                  <Button onClick={submit} disabled={!input || claimDomain.isPending}>
+                    {claimDomain.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Utilize o endereço com www, por exemplo: www.sualoja.com.br
+                </p>
               </div>
             )}
           </Step>
@@ -166,15 +174,37 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
           {d && (
             <Step n={4} title="Verificar e conectar" done={connected}>
               <p className="text-sm">{customDomainStateLabel(d.state)}</p>
+              <ul className="space-y-1.5 text-sm">
+                {customDomainChecklist(d).map((item) => (
+                  <li key={item.key} className="flex items-center gap-2">
+                    {item.done ? (
+                      <Check className="h-4 w-4 text-primary" />
+                    ) : item.attention ? (
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className={item.done ? "" : "text-muted-foreground"}>{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+              {!connected && (d.ownership_verified_at || d.dns_verified_at) && (
+                <p className="text-xs text-muted-foreground">Estamos configurando a conexão segura da sua loja.</p>
+              )}
               {d.last_dns_check && <p className="text-xs text-muted-foreground">Última verificação: {new Date(d.last_dns_check).toLocaleString("pt-BR")}</p>}
               {d.last_result?.notes?.includes("ns_resolver_unavailable") && <p className="text-xs text-muted-foreground">O serviço de consulta DNS não respondeu. Isso não indica erro na sua configuração — tente novamente.</p>}
-              {connected && <p className="flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4" /> Domínio conectado com SSL ativo.</p>}
+              {connected && (
+                <div className="space-y-1">
+                  <p className="flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4" /> Seu domínio está conectado.</p>
+                  <p className="text-xs text-muted-foreground">Seus clientes já podem acessar sua loja por https://{hostname}</p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => verify.mutate()} disabled={verify.isPending}>
                   {verify.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                   Verificar novamente
                 </Button>
-                <Button variant="outline" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+                <Button variant="outline" onClick={() => setConfirmDisconnect(true)} disabled={disconnect.isPending}>
                   {connected ? "Desconectar domínio" : "Cancelar este domínio"}
                 </Button>
               </div>
@@ -182,6 +212,23 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja desconectar {hostname}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A loja continuará funcionando pelo endereço ShopDrive. Você poderá conectar um domínio novamente depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter domínio</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmDisconnect(false); disconnect.mutate(); }}>
+              Desconectar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

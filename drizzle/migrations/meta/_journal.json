@@ -477,6 +477,13 @@
       "when": 1793405181732,
       "tag": "0067_set_current_catalog_derive_url",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793406396477,
+      "tag": "0068_custom_domain_v2_panel_availability",
+      "breakpoints": true
     }
   ]
 }
