@@ -64,6 +64,16 @@ function getUserFriendlyMessage(statusDetail: string | null): string {
   }
 }
 
+const isAllowedReturnOrigin = (o: string): boolean => {
+  try {
+    const u = new URL(o);
+    if (u.protocol !== "https:" || u.pathname !== "/" && u.pathname !== "") return false;
+    const h = u.hostname.toLowerCase();
+    return h === "shopdrive.com.br" || h === "www.shopdrive.com.br" || h === "virtualmercado.lovable.app" ||
+      /^id-preview--[0-9a-f-]{36}\.lovable\.app$/.test(h) || /^[0-9a-f-]{36}\.lovableproject\.com$/.test(h);
+  } catch { return false; }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -592,7 +602,8 @@ serve(async (req) => {
     // Chave de idempotência ESTÁVEL por intenção/fatura (nunca baseada em Date.now())
     const idempotencyKey = `sub-${subscription.id}-${invoiceRef}`;
     const webhookUrl = `${supabaseUrl}/functions/v1/master-subscription-webhook`;
-    const requestOrigin = req.headers.get("origin") || "https://shopdrive.com.br";
+    const rawOrigin = req.headers.get("origin") || "";
+    const requestOrigin = isAllowedReturnOrigin(rawOrigin) ? new URL(rawOrigin).origin : "https://shopdrive.com.br";
 
     if (billingCycle === "monthly" && paymentMethod === "credit_card") {
       // Assinatura RECORRENTE real no Mercado Pago (/preapproval)

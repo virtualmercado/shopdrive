@@ -12,6 +12,10 @@ interface OrderNotificationRequest {
   orderId: string;
 }
 
+const esc = (v: unknown): string => (v == null ? "" : String(v))
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,8 +118,8 @@ Deno.serve(async (req) => {
     // Format items list
     const itemsList = order.order_items.map((item: any) =>
       `<tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.product_name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${esc(item.product_name)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${esc(item.quantity)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">R$ ${Number(item.product_price).toFixed(2)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">R$ ${Number(item.subtotal).toFixed(2)}</td>
       </tr>`
@@ -125,7 +129,7 @@ Deno.serve(async (req) => {
     const customerEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">Pedido Confirmado!</h1>
-        <p>Olá ${order.customer_name},</p>
+        <p>Olá ${esc(order.customer_name)},</p>
         <p>Recebemos seu pedido com sucesso!</p>
         <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h2 style="color: #555; margin-top: 0;">Pedido #${orderId.substring(0, 8)}</h2>
@@ -142,20 +146,20 @@ Deno.serve(async (req) => {
             Total: R$ ${Number(order.total_amount).toFixed(2)}
           </div>
         </div>
-        <p>Obrigado por comprar na ${storeName}!</p>
+        <p>Obrigado por comprar na ${esc(storeName)}!</p>
       </div>`;
 
     // Store owner email HTML
     const storeOwnerEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">Novo Pedido Recebido! 🎉</h1>
-        <p>Olá ${storeOwner.full_name},</p>
+        <p>Olá ${esc(storeOwner.full_name)},</p>
         <p>Você recebeu um novo pedido em sua loja!</p>
         <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h2 style="color: #555; margin-top: 0;">Pedido #${orderId.substring(0, 8)}</h2>
           <div style="margin-bottom: 20px;">
-            <strong>Cliente:</strong> ${order.customer_name}<br>
-            <strong>Email:</strong> ${order.customer_email}
+            <strong>Cliente:</strong> ${esc(order.customer_name)}<br>
+            <strong>Email:</strong> ${esc(order.customer_email)}
           </div>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <thead><tr style="background-color: #e5e7eb;">
