@@ -60,7 +60,7 @@ async def main():
    if mode in ['approved','retry']:
     await page.wait_for_url('http://localhost:8080/loja-a/pedido-confirmado/'+ids['ORDER_A'])
    else:
-    msg={'sdk-error':'Não foi possível validar os dados do cartão.','backend-error':'Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora.','rejected':'Pagamento recusado pelo banco emissor'}[mode]
+    msg={'sdk-error':'Não foi possível validar os dados do cartão.','backend-error':'Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora.','rejected':'Pagamento recusado pelo banco emissor.'}[mode]
     await page.get_by_text(msg,exact=True).first.wait_for(state='visible')
    if mode=='backend-error':
     assert await page.get_by_role('button',name='Pagar e finalizar',exact=True).is_disabled()
