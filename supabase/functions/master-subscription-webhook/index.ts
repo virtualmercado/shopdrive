@@ -69,7 +69,7 @@ const PaymentSchema = z.object({
   payment_method_id: z.string().max(100).optional(),
 });
 const AuthorizedSchema = z.object({ id: Identifier, preapproval_id: Identifier, payment: z.object({ id: Identifier.nullish() }).nullish() });
-const PreapprovalSchema = z.object({ id: Identifier, status: z.enum(['authorized','pending','paused','cancelled']), next_payment_date: z.string().datetime({ offset: true }).nullish() });
+const PreapprovalSchema = z.object({ id: Identifier, status: z.enum(['authorized','pending','paused','cancelled']), next_payment_date: z.string().datetime({ offset: true }).nullish(), external_reference: z.string().max(200).nullish() });
 const topics = new Set(['payment','subscription_authorized_payment','authorized_payment','subscription_preapproval','preapproval','subscription_preapproval_plan','test']);
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -143,12 +143,15 @@ serve(async (req) => {
       if (payment.status === 'approved' && !payment.date_approved) throw new Error('provider_approval_date_missing');
       const linkedPreapprovalId = preapprovalId ?? payment.preapproval_id;
       let nextPaymentDate: string | null | undefined;
+      let subscriptionReference: string | null | undefined;
       if (linkedPreapprovalId) {
         const preapproval = PreapprovalSchema.parse(await getResource(`preapproval/${encodeURIComponent(linkedPreapprovalId)}`));
         if (preapproval.id !== linkedPreapprovalId) throw new Error('provider_resource_mismatch');
         nextPaymentDate = preapproval.next_payment_date;
+        subscriptionReference = preapproval.external_reference;
       }
       resource = { ...payment, preapproval_id: linkedPreapprovalId ?? null, next_payment_date: nextPaymentDate ?? null,
+        external_reference: payment.external_reference ?? subscriptionReference ?? null,
         hard_decline: isHardDecline(payment.status_detail ?? null), user_message: getUserFriendlyMessage(payment.status_detail ?? null) };
       kind = 'payment';
     }
