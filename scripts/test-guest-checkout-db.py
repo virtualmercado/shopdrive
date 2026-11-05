@@ -68,3 +68,21 @@ sql(auth(oid=authorder,uid=f"'{U}'",digest='NULL'))
 print('PASS authenticated customer retained')
 assert sql("select has_table_privilege('anon','checkout_payment_attempts','select')")=='f';assert sql("select has_function_privilege('anon','claim_checkout_payment(uuid,uuid,text,text,text,boolean)','execute')")=='f'
 print('PASS capability table and privileged RPC access denied to public roles')
+import glob,os
+expire_sql=sorted(glob.glob(str(ROOT/'drizzle/migrations/0073_*.sql'))) or [os.environ.get('EXPIRE_SQL','/tmp/0073_body.sql')]
+sql(Path(expire_sql[0]).read_text().split('SELECT cron.')[0])
+# 'other' = abandoned guest attempt that never reached the gateway (capability lost before sending).
+assert sql('select expire_abandoned_checkout_attempts()')=='0'
+third=json.loads(sql(f"select begin_checkout_attempt('{A}',null)"));sent_order=json.loads(sql(f"select create_checkout_order_once('{third['attemptId']}','{third['guestPaymentToken']}','{json.dumps(payload)}')"))['id']
+third_hash=f"encode(extensions.digest('{third['guestPaymentToken']}','sha256'),'hex')"
+assert json.loads(sql(f"select claim_checkout_payment('{sent_order}',NULL,{third_hash},'cartao_credito','mercadopago',false)"))['charge'] is True
+sql("update checkout_payment_attempts set expires_at=now()-interval '1 second' where state in ('ready','submitting')")
+assert sql('select expire_abandoned_checkout_attempts()')=='2' # guest 'other' + authenticated never-sent attempt
+assert sql(f"select count(*) from order_stock_movements where order_id='{other}' and kind='restore'")=='1'
+assert sql(f"select status||'/'||payment_status from orders where id='{other}'")=='cancelled/expired'
+assert sql('select expire_abandoned_checkout_attempts()')=='0'
+assert sql(f"select count(*) from order_stock_movements where order_id='{other}' and kind='restore'")=='1'
+assert sql(f"select status from orders where id='{sent_order}'")=='pending' and sql(f"select count(*) from order_stock_movements where order_id='{sent_order}' and kind='restore'")=='0'
+assert sql(f"select state from checkout_payment_attempts where order_id='{sent_order}'")=='submitting'
+assert sql("select has_function_privilege('anon','expire_abandoned_checkout_attempts(integer)','execute')")=='f'
+print('PASS lost capability before gateway expires once; sent/unknown attempts stay blocked for reconciliation')

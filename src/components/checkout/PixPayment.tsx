@@ -124,9 +124,14 @@ export const PixPayment = ({
     }
   }, [pixData?.pixPaymentId, guestPaymentToken, onPaymentConfirmed, onExpired]);
 
+  // Generate once per order; unstable parent callbacks must never trigger another
+  // generation request (the server would only reconcile, but retries stay explicit).
+  const generatedForRef = useRef<string | null>(null);
   useEffect(() => {
+    if (generatedForRef.current === orderId) return;
+    generatedForRef.current = orderId;
     generatePix();
-  }, [generatePix]);
+  }, [generatePix, orderId]);
 
   // Start polling when PIX data is available
   useEffect(() => {

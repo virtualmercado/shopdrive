@@ -19,6 +19,7 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Integrar checkout persistente e mensagens distintas; validar cliente autenticado com fixture.
 - [x] Reauditar dados locais #001238/#001239 somente em leitura; manter #001240 intacto.
 - [x] Testes locais SQL concorrentes, handlers reais com transporte sintético, checkout visual desktop/mobile e compilação automática OK.
-- [ ] BLOQUEADO: reconsulta real ao Mercado Pago para #001238/#001239 indisponível nesta entrega; não recomendar cancelamento definitivo sem essa prova.
-- [ ] BLOQUEADO: homologação completa PIX guest/legado e revisão final de troca de identidade, perda de sessão e encerramento de pedidos; não publicar antes de concluir.
+- [x] Reconsulta real somente leitura ao Mercado Pago (04–05/11): #001238/#001239/#001240 sem pagamento vinculado; R$ 585,38 é 'Link de pagamento' sem referência — revisão manual.
+- [x] Homologação PIX guest/legado (handlers + navegador), compatibilidade do frontend publicado, expiração de tentativas abandonadas antes do gateway (migration 0073, cron horário), typecheck/build/testes.
+- [ ] Operação manual do lojista: cancelar #001239 pelo fluxo normal; conciliar R$ 585,38 com #001240.
 - [x] Relatar implementação parcial e bloqueios, sem cobrança real ou publicação automática.

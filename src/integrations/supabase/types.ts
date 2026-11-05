@@ -8663,6 +8663,10 @@ export type Database = {
         Returns: Json
       }
       ensure_catalog_share_code: { Args: never; Returns: string }
+      expire_abandoned_checkout_attempts: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       expire_plan_trials: { Args: never; Returns: Json }
       expire_stale_pix_payments: { Args: never; Returns: number }
       fail_custom_domain_provisioning: {
