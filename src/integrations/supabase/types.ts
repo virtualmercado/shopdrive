@@ -8373,6 +8373,15 @@ export type Database = {
         }
         Returns: Json
       }
+      authorize_checkout_payment_status: {
+        Args: {
+          p_method: string
+          p_order_id: string
+          p_token_hash: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       authorize_onboarding_identity_application: {
         Args: {
           p_context_hash?: string

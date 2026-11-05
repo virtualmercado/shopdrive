@@ -505,6 +505,13 @@
       "when": 1793891804758,
       "tag": "0071_checkout_capability_privileges",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793892159613,
+      "tag": "0072_checkout_payment_recovery_guards",
+      "breakpoints": true
     }
   ]
 }
