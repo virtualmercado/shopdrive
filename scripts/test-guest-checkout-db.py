@@ -2,13 +2,15 @@
 import subprocess, concurrent.futures
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
-DSN='postgresql://nobody@localhost:55432/postgres?sslmode=disable'
+DSN='postgresql://nobody@localhost:55432/guest_checkout_test?sslmode=disable'
+subprocess.run(['dropdb','--if-exists','--maintenance-db=postgresql://nobody@localhost:55432/postgres?sslmode=disable','guest_checkout_test'],check=True,capture_output=True)
+subprocess.run(['createdb','--maintenance-db=postgresql://nobody@localhost:55432/postgres?sslmode=disable','guest_checkout_test'],check=True,capture_output=True)
 def sql(query, ok=True):
  p=subprocess.run(['psql',DSN,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],text=True,capture_output=True)
  if ok and p.returncode: raise AssertionError(p.stderr)
  if not ok: assert p.returncode!=0, 'Expected server rejection'
  return p.stdout.strip()
-sql('''CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+sql('''DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; END IF; END $$;
 CREATE SCHEMA auth; CREATE SCHEMA extensions; CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('test.uid',true),'')::uuid $$;
 CREATE TABLE public.profiles(id uuid primary key);
@@ -28,7 +30,7 @@ sql(base[base.index('CREATE OR REPLACE FUNCTION public.reserve_order_item_stock'
 sql((ROOT/'drizzle/migrations/0066_checkout_order_trusted_pricing.sql').read_text())
 a=base.index('CREATE OR REPLACE FUNCTION public.trg_orders_restore_variant_stock');b=base.index('-- Deleting items/orders')
 sql(base[a:b]);sql('CREATE TRIGGER stock_restore BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.trg_orders_restore_variant_stock();')
-sql((ROOT/'drizzle/migrations/0070_secure_checkout_attempts.sql').read_text());sql((ROOT/'drizzle/migrations/0071_checkout_capability_privileges.sql').read_text())
+sql((ROOT/'drizzle/migrations/0070_secure_checkout_attempts.sql').read_text());sql((ROOT/'drizzle/migrations/0071_checkout_capability_privileges.sql').read_text());sql((ROOT/'drizzle/migrations/0072_checkout_payment_recovery_guards.sql').read_text())
 A='11111111-1111-4111-8111-111111111111';B='22222222-2222-4222-8222-222222222222';P='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';U='dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 sql(f"insert into profiles values ('{A}'),('{B}'); insert into products(id,user_id,price,name,is_active,stock) values ('{P}','{A}',10,'Fictício',true,100);")
 import json
@@ -52,7 +54,9 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: claims=list(p
 assert sum(c['charge'] for c in claims)==1;assert all(c['idempotencyKey']=='order-'+order for c in claims)
 sql(f"update orders set status='cancelled' where id='{order}'",False)
 sql(f"select record_checkout_payment_result('{order}','unknown')");assert json.loads(sql(claim))['charge'] is False
-print('PASS concurrent charges single-flight; unknown retry never charges or releases stock')
+sql(f"delete from order_items where order_id='{order}'",False)
+sql(f"update checkout_payment_attempts set expires_at=now()-interval '1 second' where order_id='{order}'");sql(f"select authorize_checkout_payment_status('{order}',NULL,{hash_expr},'cartao_credito')");sql(auth(),False);sql(f"update checkout_payment_attempts set expires_at=now()+interval '1 hour' where order_id='{order}'")
+print('PASS single-flight; unknown retry/item deletion blocked; expired token permits only reconciliation')
 sql(f"select record_checkout_payment_result('{order}','rejected','fixture-payment'); select apply_checkout_payment_result('{order}'); select apply_checkout_payment_result('{order}');")
 assert sql(f"select count(*) from order_stock_movements where order_id='{order}' and kind='restore'")=='1'
 assert sql('select stock from products')=='99' # other order still reserved

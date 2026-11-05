@@ -11,14 +11,14 @@ async function run(options:Options={}) {
  let handler:((r:Request)=>Promise<Response>)|undefined;
  const db={auth:{getClaims:async()=>options.guest?{data:null,error:{}}:{data:{claims:{sub:'fixture-customer'}},error:null}},rpc:async(name:string,args:any)=>{
   calls.push({name,args});
-  if(name==='authorize_checkout_payment') return options.denied?{data:null,error:{}}:{data:{id:ORDER,store_owner_id:STORE,total_amount:10,customer_email:'fixture@example.invalid',customer_name:'Fictício',payment_status:'pending'},error:null};
+  if(name==='authorize_checkout_payment' || name==='authorize_checkout_payment_status') return options.denied?{data:null,error:{}}:{data:{id:ORDER,store_owner_id:STORE,total_amount:10,customer_email:'fixture@example.invalid',customer_name:'Fictício',payment_status:'pending'},error:null};
   if(name==='claim_checkout_payment')return{data:{charge:!options.state,state:options.state||'submitting',externalPaymentId:options.state==='pending'?'fixture-payment':null},error:null};
   if(name==='apply_checkout_payment_result')return options.localFailure?{data:null,error:{}}:{data:{status:options.reject?'rejected':'approved',orderConfirmed:true,qrCode:options.method==='pix'?'fixture-qr':null,pixPaymentId:'fixture-pix'},error:null};
   return {data:null,error:null};
  },from:()=>({select(){return this},eq(){return this},single:async()=>({data:{mercadopago_access_token:'fixture-server-secret',mercadopago_enabled:true,mercadopago_accepts_credit:true,credit_card_enabled:true,credit_card_provider:'mercado_pago',credit_card_installments_no_interest:12,pix_enabled:true,pix_provider:'mercado_pago'},error:null})})};
  const context:any={Request,Response,Date,crypto,TextEncoder,Uint8Array,AbortSignal,z,createClient:()=>db,Deno:{env:{get:()=> 'fixture-config'}},corsHeaders:{'Access-Control-Allow-Origin':'*'},console:{error:(...a:unknown[])=>logs.push(a)},fetch:async(url:string,init:RequestInit)=>{
   outbound.push({url,init});if(options.timeout)throw new Error('fixture-card-token-sentinel fixture-server-secret');
-  const payment={id:'fixture-payment',external_reference:ORDER,transaction_amount:10,status:options.reject?'rejected':'approved',payment_method_id:options.method==='pix'?'pix':'visa',status_detail:options.reject?'cc_rejected_insufficient_amount':'accredited',token:'fixture-card-token-sentinel',point_of_interaction:{transaction_data:{qr_code:'fixture-qr'}},date_of_expiration:'2026-11-05T17:00:00Z'};
+  const payment={id:'fixture-payment',external_reference:ORDER,transaction_amount:10,currency_id:'BRL',status:options.reject?'rejected':'approved',payment_method_id:options.method==='pix'?'pix':'visa',status_detail:options.reject?'cc_rejected_insufficient_amount':'accredited',token:'fixture-card-token-sentinel',point_of_interaction:{transaction_data:{qr_code:'fixture-qr'}},date_of_expiration:'2026-11-05T17:00:00Z'};
   return Response.json(url.includes('/search?')?{results:[payment]}:payment);
  },serve:(fn:typeof handler)=>{handler=fn}};
  const shared=ts.transpileModule(readFileSync('supabase/functions/_shared/checkoutPayment.ts','utf8').replace(/^import .*;\n/gm,'').replace(/export /g,''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText;

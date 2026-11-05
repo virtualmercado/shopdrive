@@ -20,8 +20,8 @@ export async function paymentIdentity(req: Request, auth: SupabaseClient, guestT
  if (!guestToken || !/^[0-9a-f]{64}$/.test(guestToken)) throw new PaymentAccessError();
  return { p_user_id: null, p_token_hash: await tokenHash(guestToken) };
 }
-export async function authorizePayment(db: SupabaseClient, orderId: string, method: string, identity: { p_user_id: string | null; p_token_hash: string | null }) {
- const { data, error } = await db.rpc('authorize_checkout_payment', { p_order_id: orderId, p_method: method, ...identity });
+export async function authorizePayment(db: SupabaseClient, orderId: string, method: string, identity: { p_user_id: string | null; p_token_hash: string | null }, statusOnly = false) {
+ const { data, error } = await db.rpc(statusOnly ? 'authorize_checkout_payment_status' : 'authorize_checkout_payment', { p_order_id: orderId, p_method: method, ...identity });
  if (error || !data) throw new PaymentAccessError();
  return data;
 }

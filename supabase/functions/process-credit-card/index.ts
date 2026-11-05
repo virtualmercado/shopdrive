@@ -18,7 +18,8 @@ serve(async req => {
   if (!url || !anon || !service) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},503);
   db=createClient(url,service); const auth=createClient(url,anon);
   const identity=await paymentIdentity(req,auth,body.guestPaymentToken);
-  const order=await authorizePayment(db,orderId,'cartao_credito',identity);
+  const { data: order, error: authError } = await db.rpc(body.action === 'status' ? 'authorize_checkout_payment_status' : 'authorize_checkout_payment', {p_order_id:orderId,p_method:'cartao_credito',...identity});
+  if (authError || !order) throw new PaymentAccessError();
   const {data:settings,error:settingsError}=await db.from('payment_settings').select('mercadopago_access_token,mercadopago_enabled,mercadopago_accepts_credit,credit_card_enabled,credit_card_provider,credit_card_installments_no_interest').eq('user_id',order.store_owner_id).single();
   if (settingsError || !settings?.mercadopago_access_token || !cardProviderEnabled(settings) || !(Number(order.total_amount)>0)) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
   if (body.action==='pay' && (!body.cardToken || !body.paymentMethodId || body.installments>Number(settings.credit_card_installments_no_interest || 1))) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);

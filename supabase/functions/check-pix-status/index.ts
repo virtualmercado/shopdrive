@@ -54,7 +54,7 @@ serve(async (req) => {
     }
 
     try {
-      await authorizePayment(supabase, pixPayment.order_id, 'pix', identity);
+      await authorizePayment(supabase, pixPayment.order_id, 'pix', identity, true);
     } catch {
       return new Response(
         JSON.stringify({ error: "Sem permissão para este pagamento" }),
