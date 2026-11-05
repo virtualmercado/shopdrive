@@ -9,17 +9,19 @@ fixture=fixture.replace('pix_enabled:false,credit_card_enabled:false,boleto_enab
 fixture=fixture.replace("if(name==='create_checkout_order'){window.__createdOrder=args;return {data:order,error:null};}","if(name==='begin_checkout_attempt')return {data:{attemptId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',guestPaymentToken:'a'.repeat(64),expiresAt:'2026-11-06T18:00:00Z'},error:null};if(name==='create_checkout_order_once'){window.__orderRequests=(window.__orderRequests||0)+1;if(!window.__orderCalls){window.__orderCalls=1;window.__createdOrder=args.p_order;order.payment_method=args.p_order.p_payment_method;}return {data:order,error:null};}")
 fixture=fixture.replace('window.__createdOrder=args;', 'window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args;order.payment_method=args.p_payment_method;order.payment_status=args.p_payment_status;order.status=args.p_status;')
 fixture=fixture.replace("functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}}",'''functions:{invoke:async(name,opts)=>{
-window.__fn=window.__fn||[];window.__fn.push({name,hasToken:opts.body.guestPaymentToken==='a'.repeat(64),orderId:opts.body.orderId,forged:'amount' in opts.body||'storeOwnerId' in opts.body||'gateway' in opts.body});
+window.__fn=window.__fn||[];window.__fn.push({t:Math.round(performance.now()),path:location.pathname,name,hasToken:opts.body.guestPaymentToken==='a'.repeat(64),orderId:opts.body.orderId,forged:'amount' in opts.body||'storeOwnerId' in opts.body||'gateway' in opts.body});
 const m=window.__pixMode;const qr={success:true,status:'pending',qrCode:'fixture-pix-qr',qrCodeBase64:'',expiresAt:new Date(Date.now()+(m==='expired'?6000:1800000)).toISOString(),pixPaymentId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd'};
 if(name==='generate-pix'){if(m==='unknown')return {data:{success:false,status:'unknown',message:'Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora.'},error:null};if(m==='local-failure')return {data:{success:true,status:'approved',orderConfirmed:false},error:null};return {data:qr,error:null};}
 if(name==='check-pix-status'){window.__polls=(window.__polls||0)+1;if(m==='approved'&&window.__polls>=1)return {data:{status:'approved'},error:null};if(m==='expired')return {data:{status:'expired'},error:null};if(m==='rejected')return {data:{status:'cancelled'},error:null};return {data:{status:'pending'},error:null};}
 throw new Error('Fixture forbids external functions');
 }}''')
 
+import sys
+MODES=sys.argv[1:] or ['approved','pending-refresh','expired','rejected','unknown','local-failure']
 async def main():
  async with async_playwright() as p:
   browser=await p.chromium.launch(headless=True)
-  for mode in ['approved','pending-refresh','expired','rejected','unknown','local-failure']:
+  for mode in MODES:
    context=await browser.new_context(viewport={'width':1280,'height':1800}); page=await context.new_page(); logs=[]; errors=[]
    page.on('console',lambda msg: logs.append(msg.text));page.on('pageerror',lambda err:errors.append(str(err)))
    async def route_handler(route):
