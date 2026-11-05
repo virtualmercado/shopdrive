@@ -16,7 +16,8 @@ export async function verifyMercadoPagoSignature(req: Request, secret: string): 
   const id = url.searchParams.get('data.id');
   const requestId = req.headers.get('x-request-id');
   // Truly absent fields are omitted, as specified by Mercado Pago.
-  const manifest = `${id === null ? '' : `id:${id.toLowerCase()};`}${requestId === null ? '' : `request-id:${requestId};`}ts:${ts};`;
+  // Current official Node SDK preserves case (Mercado Pago sdk-nodejs PR #439).
+  const manifest = `${id === null ? '' : `id:${id};`}${requestId === null ? '' : `request-id:${requestId};`}ts:${ts};`;
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const bytes = new Uint8Array(hash.match(/.{2}/g)?.map(value => parseInt(value, 16)) ?? []);
