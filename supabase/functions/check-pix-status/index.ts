@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { paymentIdentity, authorizePayment } from "../_shared/checkoutPayment.ts";
+import { paymentIdentity, authorizePayment, reconcilePayment, persistPayment, PAYMENT_UNKNOWN } from "../_shared/checkoutPayment.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,13 +53,29 @@ serve(async (req) => {
       );
     }
 
+    let authorizedOrder;
     try {
-      await authorizePayment(supabase, pixPayment.order_id, 'pix', identity, true);
+      authorizedOrder = await authorizePayment(supabase, pixPayment.order_id, 'pix', identity, true);
     } catch {
       return new Response(
         JSON.stringify({ error: "Sem permissão para este pagamento" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    const { data: checkoutAttempt, error: attemptError } = await supabase.from('checkout_payment_attempts').select('state,external_payment_id,gateway').eq('order_id',pixPayment.order_id).maybeSingle();
+    if (attemptError) return new Response(JSON.stringify({status:'unknown',message:PAYMENT_UNKNOWN}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
+    if (checkoutAttempt) {
+      if (checkoutAttempt.state === 'approved') {
+        const {data:applied,error}=await supabase.rpc('apply_checkout_payment_result',{p_order_id:pixPayment.order_id});
+        return new Response(JSON.stringify(error?{status:'unknown',message:PAYMENT_UNKNOWN}:{status:applied?.status}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
+      }
+      const {data:config}=await supabase.from('payment_settings').select('mercadopago_access_token,pagbank_token').eq('user_id',authorizedOrder.store_owner_id).single();
+      const credential=checkoutAttempt.gateway==='pagbank'?config?.pagbank_token:config?.mercadopago_access_token;
+      if(!credential)return new Response(JSON.stringify({status:'unknown',message:PAYMENT_UNKNOWN}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
+      const payment=await reconcilePayment(authorizedOrder,checkoutAttempt.external_payment_id,credential,checkoutAttempt.gateway || 'mercadopago','pix');
+      const result=payment?await persistPayment(supabase,pixPayment.order_id,payment):{status:'unknown',message:PAYMENT_UNKNOWN};
+      return new Response(JSON.stringify(result),{headers:{...corsHeaders,'Content-Type':'application/json'}});
     }
 
     // If already approved or expired, return current status
