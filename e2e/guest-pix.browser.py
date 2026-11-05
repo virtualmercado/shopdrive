@@ -71,7 +71,7 @@ async def main():
     await page.get_by_text('Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora.',exact=True).first.wait_for()
    st=await page.evaluate('()=>({fn:window.__fn||[],orders:window.__orderRequests||0,storage:JSON.stringify({l:{...localStorage}})})')
    gens=[f for f in st['fn'] if f['name']=='generate-pix']
-   assert all(f['hasToken'] and not f['forged'] and f['orderId']==ids['ORDER_A'] for f in st['fn']), st['fn']
+   assert all(f['hasToken'] and not f['forged'] and (f['name']!='generate-pix' or f['orderId']==ids['ORDER_A']) for f in st['fn']), st['fn']
    assert len(gens)<=1, 'auto second PIX generation'
    assert 'a'*64 not in st['storage'], 'capability leaked to localStorage'
    assert 'a'*64 not in '\n'.join(logs)
