@@ -22,10 +22,14 @@ serve(async req => {
   const {data:settings,error:settingsError}=await db.from('payment_settings').select('mercadopago_access_token,mercadopago_enabled,mercadopago_accepts_credit,credit_card_enabled,credit_card_provider,credit_card_installments_no_interest').eq('user_id',order.store_owner_id).single();
   if (settingsError || !settings?.mercadopago_access_token || !cardProviderEnabled(settings) || !(Number(order.total_amount)>0)) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
   if (body.action==='pay' && (!body.cardToken || !body.paymentMethodId || body.installments>Number(settings.credit_card_installments_no_interest || 1))) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
+  if (body.action==='pay' && !z.string().email().safeParse(order.customer_email).success) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
   const {data:claim,error}=await db.rpc('claim_checkout_payment',{p_order_id:orderId,...identity,p_method:'cartao_credito',p_gateway:'mercadopago',p_status_only:body.action==='status'});
   if (error || !claim) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},409);
   if (claim.state==='approved' && claim.orderConfirmed) return json({success:true,status:'approved',orderConfirmed:true,duplicate:true,paymentId:claim.externalPaymentId});
-  if (['rejected','cancelled','expired'].includes(claim.state)) return json({success:false,status:claim.state,message:'Pagamento recusado pelo banco emissor.'});
+  if (['approved','rejected','cancelled','expired'].includes(claim.state)) {
+   const { data, error: applyError } = await db.rpc('apply_checkout_payment_result',{p_order_id:orderId});
+   return json(applyError || !data ? {success:claim.state==='approved',status:claim.state==='approved'?'approved':'unknown',orderConfirmed:false,message:claim.state==='approved'?'Pagamento aprovado. Estamos confirmando seu pedido.':PAYMENT_UNKNOWN} : {...data,success:claim.state==='approved'});
+  }
   if (!claim.charge) {
    if (claim.state==='ready') return json({success:false,status:'not_started',message:PAYMENT_NOT_STARTED});
    const payment=await reconcilePayment(order,claim.externalPaymentId,settings.mercadopago_access_token);

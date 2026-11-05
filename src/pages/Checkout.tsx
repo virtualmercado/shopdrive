@@ -108,6 +108,9 @@ const CheckoutContent = () => {
     setPaymentUnresolved(saved?.state === 'unknown');
     setPaymentTerminal(saved?.state === 'terminal');
     if (saved?.state === 'unknown') setCardProcessingError(CARD_MESSAGES.unknown);
+    if (saved?.orderId && saved.state !== 'terminal') {
+      setCreatedOrderId(saved.orderId);
+    }
   }, [attemptKey]);
   const finishAttempt = () => {
     if (attemptKey) sessionStorage.removeItem(attemptKey);
@@ -123,6 +126,10 @@ const CheckoutContent = () => {
       const result = await supabase.functions.invoke('process-credit-card', { body: { orderId: saved.orderId, guestPaymentToken: saved.guestPaymentToken, action: 'status' } });
       const data = result.data;
       if (!result.error && data?.status === 'approved') {
+        if (data.orderConfirmed === false) {
+          setCardProcessingError(CARD_MESSAGES.approvedPending);
+          return;
+        }
         finishAttempt(); clearCart();
         toast.info(data.orderConfirmed === false ? CARD_MESSAGES.approvedPending : 'Pagamento aprovado! Pedido confirmado.');
         navigate(storePath(`/pedido-confirmado/${saved.orderId}`));
@@ -759,6 +766,10 @@ const CheckoutContent = () => {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
+    if (formData.payment_method === 'cartao_credito' && !z.string().email().safeParse(customerEmail).success) {
+      toast.error('Informe um e-mail válido para o pagamento.');
+      return;
+    }
 
     if (!formData.delivery_method && !deliveryDeferred) {
       toast.error("Escolha como deseja receber seu pedido");
@@ -970,6 +981,24 @@ const CheckoutContent = () => {
             setCardProcessingError(message); toast.error(message);
             return;
           }
+          if (paymentData.orderConfirmed === false) {
+            if (activeAttempt && attemptKey) {
+              const next = { ...activeAttempt, state: 'unknown' as const };
+              saveCheckoutAttempt(attemptKey, next); setPaymentAttempt(next);
+            }
+            setPaymentUnresolved(true); setCardProcessingError(CARD_MESSAGES.approvedPending);
+            toast.info(CARD_MESSAGES.approvedPending);
+            return;
+          }
+          // Approval updates the local receipt too; guest order reads may use the private session cache.
+          try {
+            const cacheKey = `shopdrive_checkout_order:${order.id}`;
+            const cached = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+            if (cached.order) {
+              cached.order.payment_status = 'approved'; cached.order.status = 'confirmed';
+              sessionStorage.setItem(cacheKey, JSON.stringify(cached));
+            }
+          } catch { /* optional receipt cache */ }
           finishAttempt();
 
           logAuditEvent({
@@ -1365,6 +1394,9 @@ const CheckoutContent = () => {
           <CustomerColumn
             isLoggedIn={!!user}
             customerProfile={customerProfile}
+            guestEmail={customerEmail}
+            onGuestEmailChange={setCustomerEmail}
+            guestPaymentDetailsRequired={formData.payment_method === 'cartao_credito'}
             customerAddresses={customerAddresses}
             selectedAddressId={selectedAddressId}
             onSelectAddress={setSelectedAddressId}
@@ -1416,7 +1448,7 @@ const CheckoutContent = () => {
             primaryColor={primaryColor}
             loading={loading}
             onFinalize={handleFinalize}
-            isFormValid={isFormValid && !paymentUnresolved && !paymentTerminal}
+            isFormValid={isFormValid && !paymentUnresolved && !paymentTerminal && (formData.payment_method !== 'cartao_credito' || z.string().email().safeParse(customerEmail).success)}
             paymentUnresolved={paymentUnresolved}
             paymentTerminal={paymentTerminal}
             onCheckPayment={checkCardResult}

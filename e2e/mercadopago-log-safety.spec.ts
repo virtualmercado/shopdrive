@@ -45,6 +45,7 @@ for (const mode of ["approved", "sdk-error", "backend-error", "rejected"]) {
     await expect(page.getByRole("radio", { name: "Pix", exact: true })).toBeVisible();
     await expect(page.getByRole("radio", { name: "Boleto bancário", exact: true })).toBeVisible();
     await page.getByRole("radio", { name: "Cartão de crédito", exact: true }).click();
+    await page.getByLabel("E-mail para pagamento *", { exact: true }).fill("fixture@example.invalid");
     // Synthetic invalid card data: the SDK is mocked and all external requests are blocked.
     await page.getByPlaceholder("0000 0000 0000 0000", { exact: true }).fill("4000000000000000");
     await page.getByPlaceholder("MM/AA", { exact: true }).fill("1299");
@@ -56,7 +57,7 @@ for (const mode of ["approved", "sdk-error", "backend-error", "rejected"]) {
       expect(await page.evaluate(() => (window as any).__orderCalls)).toBe(1);
       await expect(page.getByText("Cartão de Crédito", { exact: true })).toBeVisible();
     } else {
-      const message = mode === "sdk-error" ? "Não foi possível validar os dados do cartão." : mode === "backend-error" ? "Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora." : "Pagamento recusado pelo banco emissor";
+      const message = mode === "sdk-error" ? "Não foi possível validar os dados do cartão." : mode === "backend-error" ? "Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora." : "Pagamento recusado pelo banco emissor.";
       await expect(page.getByText(message, { exact: true }).first()).toBeVisible();
       expect(await page.evaluate(() => (window as any).__orderCalls || 0)).toBe(mode === "sdk-error" ? 0 : 1);
     }

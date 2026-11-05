@@ -49,6 +49,7 @@ async def main():
    assert await page.get_by_role('radio',name='Pix',exact=True).is_visible()
    assert await page.get_by_role('radio',name='Boleto bancário',exact=True).is_visible()
    await page.get_by_role('radio',name='Cartão de crédito',exact=True).click()
+   await page.get_by_label('E-mail para pagamento *',exact=True).fill('fixture@example.invalid')
    await page.get_by_placeholder('0000 0000 0000 0000',exact=True).fill('4000000000000000')
    await page.get_by_placeholder('MM/AA',exact=True).fill('1299')
    await page.get_by_placeholder('123',exact=True).fill('000')

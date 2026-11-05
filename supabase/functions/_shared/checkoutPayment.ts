@@ -56,18 +56,21 @@ export function normalizeGatewayPayment(raw: Record<string, any>, order: { id: s
 export async function fetchPayment(url: string, init: RequestInit) {
  return fetch(url, { ...init, signal: AbortSignal.timeout(20000) });
 }
-export async function reconcilePayment(order: { id: string; total_amount: number; card_payment_id?: string }, externalId: string | null, credential: string, gateway = 'mercadopago') {
+export async function reconcilePayment(order: { id: string; total_amount: number; card_payment_id?: string }, externalId: string | null, credential: string, gateway = 'mercadopago', expectedMethod?: 'card' | 'pix') {
  const headers = { Authorization: `Bearer ${credential}` };
  if (externalId || order.card_payment_id) {
   const id = externalId || order.card_payment_id;
   const response = await fetchPayment(gateway === 'pagbank' ? `https://api.pagseguro.com/orders/${encodeURIComponent(String(id))}` : `https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(id))}`, { headers });
-  return response.ok ? normalizeGatewayPayment(await response.json(), order, gateway) : null;
+  if (!response.ok) return null;
+  const raw = await response.json();
+  if (gateway === 'mercadopago' && expectedMethod && (expectedMethod === 'pix' ? raw.payment_method_id !== 'pix' : raw.payment_method_id === 'pix')) return null;
+  return normalizeGatewayPayment(raw, order, gateway);
  }
  if (gateway !== 'mercadopago') return null; // Never issue a second PagBank create to resolve an unknown first call.
  const response = await fetchPayment(`https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(order.id)}&sort=date_created&criteria=desc&limit=10`, { headers });
  if (!response.ok) return null;
  const raw = await response.json();
- const matches = (raw.results || []).map((item: Record<string, any>) => normalizeGatewayPayment(item, order)).filter(Boolean);
+ const matches = (raw.results || []).filter((item: Record<string, any>) => !expectedMethod || (expectedMethod === 'pix' ? item.payment_method_id === 'pix' : item.payment_method_id !== 'pix')).map((item: Record<string, any>) => normalizeGatewayPayment(item, order)).filter(Boolean);
  return matches.length === 1 ? matches[0] : null; // zero or conflicting results remain unknown; never charge again.
 }
 export async function persistPayment(db: SupabaseClient, orderId: string, payment: NonNullable<ReturnType<typeof normalizeGatewayPayment>>) {
