@@ -70,7 +70,7 @@ assert sql("select has_table_privilege('anon','checkout_payment_attempts','selec
 print('PASS capability table and privileged RPC access denied to public roles')
 import glob,os
 expire_sql=sorted(glob.glob(str(ROOT/'drizzle/migrations/0073_*.sql'))) or [os.environ.get('EXPIRE_SQL','/tmp/0073_body.sql')]
-sql(Path(expire_sql[0]).read_text())
+sql(Path(expire_sql[0]).read_text().split('SELECT cron.')[0])
 # 'other' = abandoned guest attempt that never reached the gateway (capability lost before sending).
 assert sql('select expire_abandoned_checkout_attempts()')=='0'
 third=json.loads(sql(f"select begin_checkout_attempt('{A}',null)"));sent_order=json.loads(sql(f"select create_checkout_order_once('{third['attemptId']}','{third['guestPaymentToken']}','{json.dumps(payload)}')"))['id']
