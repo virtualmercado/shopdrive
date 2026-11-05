@@ -2,7 +2,7 @@
 import subprocess, concurrent.futures
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
-DSN='postgresql://nobody@localhost:55432/postgres'
+DSN='postgresql://nobody@localhost:55432/postgres?sslmode=disable'
 def sql(query, ok=True):
  p=subprocess.run(['psql',DSN,'-X','-v','ON_ERROR_STOP=1','-At','-c',query],text=True,capture_output=True)
  if ok and p.returncode: raise AssertionError(p.stderr)
