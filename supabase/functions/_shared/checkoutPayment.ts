@@ -49,7 +49,7 @@ export function normalizeGatewayPayment(raw: Record<string, any>, order: { id: s
   const qr = raw.qr_codes?.[0];
   return { id: String(raw.id), state: status === 'PAID' ? 'approved' : ['CANCELED','DECLINED'].includes(status) ? 'cancelled' : 'pending', detail: '', qr: qr?.text, qrBase64: qr?.links?.find((l: any) => l.rel === 'QRCODE.PNG')?.href, expiresAt: qr?.expiration_date };
  }
- if (!raw.id || raw.external_reference !== order.id || Math.round(Number(raw.transaction_amount)*100) !== Math.round(Number(order.total_amount)*100)) return null;
+ if (!raw.id || raw.currency_id !== 'BRL' || raw.external_reference !== order.id || Math.round(Number(raw.transaction_amount)*100) !== Math.round(Number(order.total_amount)*100)) return null;
  if (!['approved','pending','in_process','authorized','rejected','cancelled','expired'].includes(raw.status)) return null;
  return { id: String(raw.id), state: ['in_process','authorized'].includes(raw.status) ? 'pending' : raw.status, detail: String(raw.status_detail || ''), qr: raw.point_of_interaction?.transaction_data?.qr_code, qrBase64: raw.point_of_interaction?.transaction_data?.qr_code_base64, expiresAt: raw.date_of_expiration };
 }

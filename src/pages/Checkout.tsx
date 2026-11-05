@@ -103,7 +103,9 @@ const CheckoutContent = () => {
   const [paymentTerminal, setPaymentTerminal] = useState(false);
   const attemptKey = storeData?.id ? attemptStorageKey(storeData.id, user?.id || null) : null;
   useEffect(() => {
-    const saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null;
+    let saved: CheckoutAttempt | null = null;
+    try { saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null; }
+    catch { setPaymentUnresolved(true); setCardProcessingError('Não foi possível recuperar sua tentativa anterior. Entre em contato com a loja antes de pagar novamente.'); return; }
     setPaymentAttempt(saved);
     setPaymentUnresolved(saved?.state === 'unknown');
     setPaymentTerminal(saved?.state === 'terminal');
@@ -119,7 +121,8 @@ const CheckoutContent = () => {
     setPaymentTerminal(false);
   };
   const checkCardResult = async () => {
-    const saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null;
+    let saved: CheckoutAttempt | null = null;
+    try { saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null; } catch { return; }
     if (!saved?.orderId || finalizingRef.current) return;
     finalizingRef.current = true; setLoading(true);
     try {

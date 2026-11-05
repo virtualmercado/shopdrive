@@ -6,9 +6,9 @@ export function loadCheckoutAttempt(key: string): CheckoutAttempt | null {
   const raw = sessionStorage.getItem(key); if (!raw) return null;
   const value = JSON.parse(raw);
   // An expired order-bound attempt must not disappear: require reconciliation, not a new order.
-  if (typeof value.attemptId !== 'string' || !/^[0-9a-f]{64}$/.test(value.guestPaymentToken) || typeof value.expiresAt !== 'string') return null;
+  if (typeof value.attemptId !== 'string' || !/^[0-9a-f]{64}$/.test(value.guestPaymentToken) || typeof value.expiresAt !== 'string') throw new Error('checkout_attempt_unreadable');
   return value;
- } catch { return null; }
+ } catch { throw new Error('checkout_attempt_unreadable'); }
 }
 export function saveCheckoutAttempt(key: string, attempt: CheckoutAttempt) {
  sessionStorage.setItem(key, JSON.stringify(attempt)); // Failure prevents order submission; don't silently lose idempotency.
