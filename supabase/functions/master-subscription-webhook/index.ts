@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3";
+import { verifyMercadoPagoSignature } from "./signature.ts";
 
 // Hard decline codes - these should NOT be retried automatically
 const HARD_DECLINE_CODES = [
@@ -57,683 +55,117 @@ function getUserFriendlyMessage(statusDetail: string | null): string {
   }
 }
 
-const GRACE_PERIOD_DAYS_MONTHLY = 7;
-const GRACE_PERIOD_DAYS_ANNUAL = 14;
 
-// Verify Mercado Pago webhook signature
-async function verifyMercadoPagoSignature(
-  req: Request,
-  body: string,
-  secret: string
-): Promise<boolean> {
-  try {
-    const xSignature = req.headers.get("x-signature");
-    const xRequestId = req.headers.get("x-request-id");
-
-    if (!xSignature || !xRequestId) {
-      console.log("Missing signature headers");
-      return false;
-    }
-
-    const parts = xSignature.split(",");
-    const ts = parts.find((p) => p.startsWith("ts="))?.split("=")[1];
-    const hash = parts.find((p) => p.startsWith("v1="))?.split("=")[1];
-
-    if (!ts || !hash) {
-      console.log("Invalid signature format");
-      return false;
-    }
-
-    const bodyJson = JSON.parse(body);
-    const dataId = bodyJson.data?.id?.toString() || "";
-    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(manifest));
-    const calculatedHash = Array.from(new Uint8Array(signature))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    const isValid = calculatedHash === hash;
-    if (!isValid) {
-      console.log("Signature mismatch:", { expected: hash, calculated: calculatedHash });
-    }
-    return isValid;
-  } catch (error) {
-    console.error("Error verifying signature:", error);
-    return false;
-  }
-}
+const Identifier = z.union([z.string().regex(/^[A-Za-z0-9_-]{1,200}$/), z.number().int().nonnegative().refine(Number.isSafeInteger)]).transform(String);
+const EventSchema = z.object({
+  id: Identifier.optional(), type: z.string().max(100).optional(), topic: z.string().max(100).optional(),
+  action: z.string().max(100).optional(), data: z.object({ id: Identifier }).optional(),
+});
+const PaymentSchema = z.object({
+  id: Identifier, status: z.enum(['approved','pending','in_process','authorized','rejected','cancelled','refunded','charged_back']),
+  status_detail: z.string().max(200).nullish(), transaction_amount: z.number().positive().finite(),
+  currency_id: z.literal('BRL'), date_approved: z.string().datetime({ offset: true }).nullish(),
+  external_reference: z.string().max(200).nullish(), preapproval_id: Identifier.nullish(),
+  payment_method_id: z.string().max(100).optional(),
+});
+const AuthorizedSchema = z.object({ id: Identifier, preapproval_id: Identifier, payment: z.object({ id: Identifier.nullish() }).nullish() });
+const PreapprovalSchema = z.object({ id: Identifier, status: z.enum(['authorized','pending','paused','cancelled']), next_payment_date: z.string().datetime({ offset: true }).nullish(), external_reference: z.string().max(200).nullish() });
+const topics = new Set(['payment','subscription_authorized_payment','authorized_payment','subscription_preapproval','preapproval','subscription_preapproval_plan','test']);
+const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  // Even when configuration is missing, unsigned notifications are never accepted.
+  if (!req.headers.get('x-signature')) return json({ error: 'Invalid signature' }, 401);
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) return json({ error: 'Webhook unavailable' }, 503);
+  const db = createClient(url, key);
+  let eventKey: string | undefined;
+  let claimToken: string | undefined;
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Read body as text for signature verification
+    const { data: gateway, error: configError } = await db.from('master_payment_gateways')
+      .select('mercadopago_webhook_secret,mercadopago_access_token')
+      .eq('gateway_name','mercadopago').eq('is_active',true).eq('is_default',true).maybeSingle();
+    if (configError) throw new Error('config_lookup_failed');
+    if (!gateway?.mercadopago_webhook_secret) return json({ error: 'Webhook signature configuration missing' }, 503);
+    if (!await verifyMercadoPagoSignature(req, gateway.mercadopago_webhook_secret)) return json({ error: 'Invalid signature' }, 401);
+    // Authenticate before parsing and before any deduplication write.
     const bodyText = await req.text();
-    const body = JSON.parse(bodyText);
-    console.log("Webhook received:", JSON.stringify(body));
-
-    // Verify webhook signature using master gateway secret
-    const { data: gateway } = await supabase
-      .from("master_payment_gateways")
-      .select("mercadopago_webhook_secret, mercadopago_access_token")
-      .eq("is_active", true)
-      .eq("is_default", true)
-      .maybeSingle();
-
-    if (gateway?.mercadopago_webhook_secret) {
-      const signatureValid = await verifyMercadoPagoSignature(
-        req,
-        bodyText,
-        gateway.mercadopago_webhook_secret
-      );
-
-      if (!signatureValid) {
-        console.error("Invalid Mercado Pago webhook signature - rejecting");
-        return new Response(
-          JSON.stringify({ error: "Invalid signature" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      console.log("Webhook signature verified successfully");
-    } else {
-      console.error("No webhook secret configured for master gateway - rejecting unsigned webhook");
-      return new Response(
-        JSON.stringify({ error: "Webhook secret not configured" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { type, data, action } = body;
-
-    // Mercado Pago sends different formats
-    let paymentId: string | null = null;
-    let topic = type || body.topic;
-
-    if (data?.id) {
-      paymentId = data.id.toString();
-    } else if (body.id && body.topic === "payment") {
-      paymentId = body.id.toString();
-    } else if (body.resource) {
-      const resourceParts = body.resource.split("/");
-      paymentId = resourceParts[resourceParts.length - 1];
-    }
-
-    console.log("Parsed webhook:", { topic, paymentId, action });
-
-    if (!paymentId && topic !== "test") {
-      console.log("No payment ID found, ignoring webhook");
-      return new Response(
-        JSON.stringify({ received: true, message: "No payment ID" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Handle test webhook
-    if (topic === "test" || action === "test") {
-      console.log("Test webhook received");
-      return new Response(
-        JSON.stringify({ received: true, message: "Test webhook acknowledged" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const SUBSCRIPTION_TOPICS = ["subscription_preapproval", "preapproval", "subscription_preapproval_plan"];
-    const AUTHORIZED_PAYMENT_TOPICS = ["subscription_authorized_payment", "authorized_payment"];
-
-    if (!gateway?.mercadopago_access_token) {
-      console.error("No gateway access token found");
-      return new Response(
-        JSON.stringify({ error: "Gateway credentials not found" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const mpAuth = { "Authorization": `Bearer ${gateway.mercadopago_access_token}` };
-    let preapprovalIdFromWebhook: string | null = null;
-
-    // ── Tópico de assinatura recorrente (preapproval) ──
-    if (SUBSCRIPTION_TOPICS.includes(topic)) {
-      const preapprovalResp = await fetch(`https://api.mercadopago.com/preapproval/${paymentId}`, { headers: mpAuth });
-      if (!preapprovalResp.ok) {
-        console.error("Error fetching preapproval:", await preapprovalResp.text());
-        return new Response(
-          JSON.stringify({ received: true, message: "Preapproval fetch failed" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const preapproval = await preapprovalResp.json();
-      console.log("Preapproval status:", preapproval.status);
-
-      const { data: sub } = await supabase
-        .from("master_subscriptions")
-        .select("*")
-        .eq("gateway_subscription_id", paymentId)
-        .maybeSingle();
-
-      if (sub) {
-        const update: any = { updated_at: new Date().toISOString() };
-        if (preapproval.next_payment_date) {
-          update.current_period_end = new Date(preapproval.next_payment_date).toISOString();
-        }
-        if (preapproval.status === "cancelled") {
-          update.status = "cancelled";
-          update.cancelled_at = new Date().toISOString();
-        } else if (preapproval.status === "paused") {
-          update.status = "past_due";
-          // Pausa não concede plano para sempre: tolerância canônica a partir do fim do período pago.
-          const paidUntil = update.current_period_end || sub.current_period_end;
-          if (!sub.grace_period_ends_at && paidUntil) {
-            const graceDays = sub.billing_cycle === "annual" ? 14 : 7;
-            update.grace_period_ends_at = new Date(new Date(paidUntil).getTime() + graceDays * 86400000).toISOString();
-          } else if (!paidUntil) {
-            console.error("PAUSED_WITHOUT_PAID_UNTIL", { subscriptionId: sub.id });
-          }
-        }
-        await supabase.from("master_subscriptions").update(update).eq("id", sub.id);
-
-        await supabase.from("master_subscription_logs").insert({
-          subscription_id: sub.id,
-          user_id: sub.user_id,
-          event_type: "preapproval_updated",
-          event_description: `Assinatura recorrente atualizada no gateway (status ${preapproval.status})`,
-          metadata: { preapprovalId: paymentId, preapprovalStatus: preapproval.status }
-        });
-      }
-
-      return new Response(
-        JSON.stringify({ received: true, topic, preapprovalStatus: preapproval.status }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // ── Tópico de pagamento gerado pela assinatura recorrente ──
-    if (AUTHORIZED_PAYMENT_TOPICS.includes(topic)) {
-      const apResp = await fetch(`https://api.mercadopago.com/authorized_payments/${paymentId}`, { headers: mpAuth });
-      if (!apResp.ok) {
-        console.error("Error fetching authorized payment:", await apResp.text());
-        return new Response(
-          JSON.stringify({ received: true, message: "Authorized payment fetch failed" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const authorizedPayment = await apResp.json();
-      preapprovalIdFromWebhook = authorizedPayment.preapproval_id?.toString() || null;
-      const realPaymentId = authorizedPayment.payment?.id?.toString() || null;
-      console.log("Authorized payment:", { preapprovalIdFromWebhook, realPaymentId, status: authorizedPayment.status });
-
-      if (!realPaymentId) {
-        return new Response(
-          JSON.stringify({ received: true, message: "Authorized payment without payment id yet" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      paymentId = realPaymentId;
-    } else if (topic !== "payment" && topic !== "merchant_order") {
-      console.log("Ignoring non-payment webhook:", topic);
-      return new Response(
-        JSON.stringify({ received: true, message: `Topic ${topic} ignored` }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-
-    // Dedup: check if this webhook event was already processed
-    const eventId = body.id?.toString() || body.data?.id?.toString() || "";
-    if (eventId) {
-      const { data: existingEvent } = await supabase
-        .from("webhook_events")
-        .select("id")
-        .eq("gateway", "mercadopago_master")
-        .eq("gateway_event_id", eventId)
-        .maybeSingle();
-
-      if (existingEvent) {
-        console.log("Duplicate webhook event, skipping:", eventId);
-        return new Response(
-          JSON.stringify({ received: true, duplicate: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Record this event
-      await supabase.from("webhook_events").insert({
-        gateway: "mercadopago_master",
-        gateway_event_id: eventId,
-        event_type: topic,
-        payload: body,
+    if (bodyText.length > 65536) return json({ error: 'Invalid event' }, 400);
+    let raw: unknown;
+    try { raw = JSON.parse(bodyText); } catch { return json({ error: 'Invalid event' }, 400); }
+    const parsed = EventSchema.safeParse(raw);
+    if (!parsed.success) return json({ error: 'Invalid event' }, 400);
+    const event = parsed.data;
+    const topic = event.type ?? event.topic;
+    if (!topic) return json({ error: 'Invalid event' }, 400);
+    const signedId = new URL(req.url).searchParams.get('data.id');
+    if (topic !== 'test' && (!signedId || !/^[A-Za-z0-9_-]{1,200}$/.test(signedId))) return json({ error: 'Signed resource ID required' }, 400);
+    if (event.data && event.data.id !== signedId) return json({ error: 'Resource ID mismatch' }, 400);
+    if (!topics.has(topic)) return json({ received: true, ignored: true });
+    if (!gateway.mercadopago_access_token) return json({ error: 'Webhook resource configuration missing' }, 503);
+    const resourceId = signedId ?? 'test';
+    // Resource namespace prevents a notification ID from suppressing another payment.
+    const eventIdentity = event.id ?? `${req.headers.get('x-request-id') ?? 'absent'}:${req.headers.get('x-signature')?.match(/(?:^|,)\s*ts\s*=\s*(\d+)/)?.[1] ?? ''}`;
+    eventKey = `${topic}:${resourceId}:${eventIdentity}`;
+    const { data: claim, error: claimError } = await db.rpc('claim_master_subscription_webhook', { p_event_key: eventKey, p_resource_id: resourceId, p_topic: topic });
+    if (claimError || !claim) throw new Error('claim_failed');
+    if (!claim.claimed) return claim.duplicate ? json({ received: true, duplicate: true }) : json({ error: 'Event processing; retry later' }, 503);
+    if (typeof claim.token !== 'string') throw new Error('invalid_claim');
+    claimToken = claim.token;
+    const getResource = async (path: string): Promise<unknown> => {
+      const response = await fetch(`https://api.mercadopago.com/${path}`, {
+        method: 'GET', headers: { Authorization: `Bearer ${gateway.mercadopago_access_token}` }, signal: AbortSignal.timeout(15000),
       });
-    }
-
-    // Find payment in our database
-    let { data: payment, error: paymentError } = await supabase
-      .from("master_subscription_payments")
-      .select("*, master_subscriptions(*)")
-      .eq("gateway_payment_id", paymentId)
-      .maybeSingle();
-
-    if (paymentError) {
-      console.error("Error fetching payment:", paymentError);
-    }
-
-    // Pagamento gerado pela assinatura recorrente: vincular à tentativa aberta (idempotente)
-    if (!payment && preapprovalIdFromWebhook) {
-      const { data: sub } = await supabase
-        .from("master_subscriptions")
-        .select("*")
-        .eq("gateway_subscription_id", preapprovalIdFromWebhook)
-        .maybeSingle();
-
-      if (sub) {
-        const { data: openPayment } = await supabase
-          .from("master_subscription_payments")
-          .select("*")
-          .eq("subscription_id", sub.id)
-          .is("gateway_payment_id", null)
-          .in("status", ["pending", "in_process", "processing"])
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (openPayment) {
-          const { data: adopted } = await supabase
-            .from("master_subscription_payments")
-            .update({ gateway_payment_id: paymentId })
-            .eq("id", openPayment.id)
-            .select("*, master_subscriptions(*)")
-            .single();
-          payment = adopted;
-          console.log("Adopted open payment row for preapproval payment:", openPayment.id);
-        } else {
-          const { data: created } = await supabase
-            .from("master_subscription_payments")
-            .insert({
-              subscription_id: sub.id,
-              user_id: sub.user_id,
-              amount: sub.monthly_price || sub.total_amount,
-              payment_method: "credit_card",
-              gateway: "mercadopago",
-              status: "pending",
-              gateway_payment_id: paymentId,
-              idempotency_key: `preapproval-${preapprovalIdFromWebhook}-${paymentId}`,
-            })
-            .select("*, master_subscriptions(*)")
-            .single();
-          payment = created;
-          console.log("Created payment row for recurring charge:", paymentId);
-        }
-      }
-    }
-
-    if (!payment) {
-      console.log("Payment not found in database:", paymentId);
-      return new Response(
-        JSON.stringify({ received: true, message: "Payment not found" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Found payment:", payment.id, "subscription:", payment.subscription_id);
-
-
-    // Fetch current payment status from Mercado Pago
-    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        "Authorization": `Bearer ${gateway.mercadopago_access_token}`,
-      },
-    });
-
-    if (!mpResponse.ok) {
-      console.error("Error fetching MP payment:", await mpResponse.text());
-      return new Response(
-        JSON.stringify({ error: "Error fetching payment from MP" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const mpPayment = await mpResponse.json();
-    console.log("MP payment status:", mpPayment.status, mpPayment.status_detail);
-
-    const previousStatus = payment.status;
-    let newPaymentStatus = payment.status;
-    let newSubscriptionStatus = payment.master_subscriptions?.status;
-    
-    const statusDetail = mpPayment.status_detail || null;
-    const hardDecline = isHardDecline(statusDetail);
-    const userMessage = getUserFriendlyMessage(statusDetail);
-    const isMonthly = payment.master_subscriptions?.billing_cycle === "monthly";
-    const gracePeriodDays = isMonthly ? GRACE_PERIOD_DAYS_MONTHLY : GRACE_PERIOD_DAYS_ANNUAL;
-
-    // Map MP status to our status
-    switch (mpPayment.status) {
-      case "approved":
-        newPaymentStatus = "paid";
-        newSubscriptionStatus = "active";
-        break;
-      case "pending":
-      case "in_process":
-        newPaymentStatus = "pending";
-        break;
-      case "rejected":
-        newPaymentStatus = "failed";
-        // Use past_due for both monthly and annual (not cancelled immediately)
-        newSubscriptionStatus = "past_due";
-        break;
-      case "cancelled":
-        newPaymentStatus = "cancelled";
-        newSubscriptionStatus = "cancelled";
-        break;
-      case "refunded":
-        newPaymentStatus = "refunded";
-        break;
-    }
-
-    // ── MARCA: validações extras antes de qualquer transição (termos congelados, nunca preço atual) ──
-    const subPlan = payment.master_subscriptions?.plan_id;
-    const isMarcaSub = subPlan === "marca" || (payment.master_subscriptions as any)?.pending_plan_id === "marca";
-    if (isMarcaSub) {
-      // Evento antigo/fora de ordem nunca rebaixa pagamento já confirmado.
-      if (previousStatus === "paid" && newPaymentStatus === "pending") {
-        newPaymentStatus = "paid";
-        newSubscriptionStatus = payment.master_subscriptions?.status;
-      }
-      if (mpPayment.status === "approved" && previousStatus !== "paid") {
-        let reason: string | null = null;
-        const sub: any = payment.master_subscriptions;
-        if (!sub?.contract_acceptance_id || !sub?.brand_account_id) reason = "missing_acceptance";
-        else if ((mpPayment.currency_id || "BRL") !== "BRL") reason = "currency_mismatch";
-        else {
-          const { data: inv } = await supabase
-            .from("invoices")
-            .select("id, invoice_id, amount, contract_acceptance_id, brand_account_id")
-            .eq("subscription_id", payment.subscription_id)
-            .in("status", ["pending", "paid"])
-            .order("created_at", { ascending: false });
-          const ext = mpPayment.external_reference ? String(mpPayment.external_reference) : null;
-          const paid = Math.round(Number(mpPayment.transaction_amount) * 100);
-          const match = (inv || []).find((i: any) =>
-            i.contract_acceptance_id === sub.contract_acceptance_id &&
-            i.brand_account_id === sub.brand_account_id &&
-            Math.round(Number(i.amount) * 100) === paid &&
-            (!ext || i.invoice_id === ext));
-          if (!match) reason = ext && !(inv || []).some((i: any) => i.invoice_id === ext) ? "external_reference_mismatch" : "invoice_amount_mismatch";
-          else if (Math.round(Number(payment.amount) * 100) !== paid) reason = "payment_amount_mismatch";
-        }
-        if (reason) {
-          console.error("[MARCA] payment validation failed:", reason);
-          newPaymentStatus = "in_review"; // não marca paga, não ativa
-          newSubscriptionStatus = payment.master_subscriptions?.status;
-          await supabase.from("master_subscription_logs").insert({
-            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
-            event_type: "MARCA_PAYMENT_REJECTED",
-            event_description: "Pagamento MARCA não confere com a fatura/aceite; ativação bloqueada",
-            metadata: { reason, mpPaymentId: paymentId },
-          });
-        } else {
-          await supabase.from("master_subscription_logs").insert({
-            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
-            event_type: "MARCA_PAYMENT_CONFIRMED", event_description: "Pagamento MARCA validado",
-            metadata: { mpPaymentId: paymentId },
-          });
-        }
-      }
-    }
-
-    console.log("Status update:", { previousStatus, newPaymentStatus, newSubscriptionStatus, hardDecline });
-
-    // Update payment record with detailed info
-    const paymentUpdate: any = {
-      status: newPaymentStatus,
-      gateway_status: mpPayment.status,
-      gateway_response: mpPayment,
-      updated_at: new Date().toISOString(),
-      decline_code: statusDetail,
-      decline_type: newPaymentStatus === "failed" ? (hardDecline ? "hard" : "soft") : null,
-      user_message: newPaymentStatus === "failed" ? userMessage : null,
-      attempt_number: (payment.attempt_number || 0) + 1,
+      if (!response.ok) { await response.text(); throw new Error('provider_lookup_failed'); }
+      return response.json();
     };
-
-    if (mpPayment.status === "approved" && !payment.paid_at) {
-      paymentUpdate.paid_at = mpPayment.date_approved || new Date().toISOString();
+    let kind = 'ignored';
+    let resource: Record<string, unknown> = {};
+    if (topic === 'preapproval' || topic === 'subscription_preapproval') {
+      resource = PreapprovalSchema.parse(await getResource(`preapproval/${encodeURIComponent(resourceId)}`));
+      if (resource.id !== resourceId) throw new Error('provider_resource_mismatch');
+      kind = 'preapproval';
+    } else if (topic === 'payment' || topic === 'authorized_payment' || topic === 'subscription_authorized_payment') {
+      let paymentId = resourceId;
+      let preapprovalId: string | undefined;
+      if (topic !== 'payment') {
+        const ap = AuthorizedSchema.parse(await getResource(`authorized_payments/${encodeURIComponent(resourceId)}`));
+        if (ap.id !== resourceId) throw new Error('provider_resource_mismatch');
+        if (!ap.payment?.id) throw new Error('provider_payment_not_ready');
+        paymentId = ap.payment.id;
+        preapprovalId = ap.preapproval_id;
+      }
+      const payment = PaymentSchema.parse(await getResource(`v1/payments/${encodeURIComponent(paymentId)}`));
+      if (payment.id !== paymentId || (preapprovalId && payment.preapproval_id && payment.preapproval_id !== preapprovalId)) throw new Error('provider_resource_mismatch');
+      if (payment.status === 'approved' && !payment.date_approved) throw new Error('provider_approval_date_missing');
+      const linkedPreapprovalId = preapprovalId ?? payment.preapproval_id;
+      let nextPaymentDate: string | null | undefined;
+      let subscriptionReference: string | null | undefined;
+      if (linkedPreapprovalId) {
+        const preapproval = PreapprovalSchema.parse(await getResource(`preapproval/${encodeURIComponent(linkedPreapprovalId)}`));
+        if (preapproval.id !== linkedPreapprovalId) throw new Error('provider_resource_mismatch');
+        nextPaymentDate = preapproval.next_payment_date;
+        subscriptionReference = preapproval.external_reference;
+      }
+      resource = { ...payment, preapproval_id: linkedPreapprovalId ?? null, next_payment_date: nextPaymentDate ?? null,
+        external_reference: payment.external_reference ?? subscriptionReference ?? null,
+        hard_decline: isHardDecline(payment.status_detail ?? null), user_message: getUserFriendlyMessage(payment.status_detail ?? null) };
+      kind = 'payment';
     }
-
-    if (mpPayment.status === "refunded" && !payment.refunded_at) {
-      paymentUpdate.refunded_at = new Date().toISOString();
+    const { data: result, error: applyError } = await db.rpc('apply_master_subscription_webhook', {
+      p_event_key: eventKey, p_claim_token: claimToken, p_kind: kind, p_resource: resource,
+    });
+    if (applyError || !result) throw new Error('reconciliation_failed');
+    return json({ received: true, changed: result.changed === true });
+  } catch {
+    // No provider body, secrets, hashes, request data or caught errors reach logs/results.
+    if (eventKey && claimToken) {
+      try { await db.rpc('release_master_subscription_webhook', { p_event_key: eventKey, p_claim_token: claimToken }); } catch { /* Lease also permits safe retry. */ }
     }
-
-    await supabase
-      .from("master_subscription_payments")
-      .update(paymentUpdate)
-      .eq("id", payment.id);
-
-    // Sync invoice status based on payment gateway ID
-    if (paymentId) {
-      const invoiceStatus = newPaymentStatus === "paid" ? "paid" 
-        : newPaymentStatus === "failed" ? "rejected"
-        : newPaymentStatus === "cancelled" ? "cancelled"
-        : newPaymentStatus === "refunded" ? "refunded"
-        : "pending";
-      
-      const invoiceUpdate: any = { status: invoiceStatus };
-      if (invoiceStatus === "paid") {
-        invoiceUpdate.paid_at = mpPayment.date_approved || new Date().toISOString();
-      }
-
-      const { data: matchedInvoices } = await supabase
-        .from("invoices")
-        .update(invoiceUpdate)
-        .eq("mp_payment_id", paymentId)
-        .select("id");
-
-      // Cobranças da assinatura recorrente não têm mp_payment_id previamente: vincular a fatura aberta
-      if (!matchedInvoices?.length && payment.subscription_id) {
-        const { data: openInvoice } = await supabase
-          .from("invoices")
-          .select("id")
-          .eq("subscription_id", payment.subscription_id)
-          .in("status", ["pending", "processing"])
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (openInvoice?.id) {
-          await supabase
-            .from("invoices")
-            .update({ ...invoiceUpdate, mp_payment_id: paymentId })
-            .eq("id", openInvoice.id);
-        }
-      }
-    }
-
-
-
-
-
-    // Update subscription if status changed
-    if (newSubscriptionStatus && newSubscriptionStatus !== payment.master_subscriptions?.status) {
-      const now = new Date();
-      const subscriptionUpdate: any = {
-        status: newSubscriptionStatus,
-        updated_at: now.toISOString(),
-      };
-
-      if (newSubscriptionStatus === "active") {
-        subscriptionUpdate.started_at = payment.master_subscriptions?.started_at || now.toISOString();
-        // Clear decline fields on success
-        subscriptionUpdate.decline_type = null;
-        subscriptionUpdate.last_decline_code = null;
-        subscriptionUpdate.last_decline_message = null;
-        subscriptionUpdate.next_retry_at = null;
-        subscriptionUpdate.requires_card_update = false;
-        subscriptionUpdate.retry_count = 0;
-        subscriptionUpdate.grace_period_ends_at = null;
-        subscriptionUpdate.downgrade_reason = null;
-
-        // Restore previous plan if account was downgraded
-        const previousPlan = payment.master_subscriptions?.previous_plan_id;
-        if (previousPlan && payment.master_subscriptions?.plan_id === "gratis") {
-          subscriptionUpdate.plan_id = previousPlan;
-          subscriptionUpdate.previous_plan_id = null;
-          subscriptionUpdate.downgraded_at = null;
-          console.log(`Reactivating plan: gratis -> ${previousPlan}`);
-        }
-
-        // Promote pending_plan_id -> plan_id (cloned/pending stores)
-        const pendingPlan = (payment.master_subscriptions as any)?.pending_plan_id;
-        if (pendingPlan) {
-          subscriptionUpdate.plan_id = pendingPlan;
-          subscriptionUpdate.pending_plan_id = null;
-          console.log(`Promoting pending plan -> ${pendingPlan}`);
-        }
-
-        // Determine effective new plan and reactivate products that were
-        // disabled by plan limit. Use ONLY the inactive_reason='plan_limit' marker
-        // so manual deactivations stay untouched.
-        const effectivePlanId =
-          subscriptionUpdate.plan_id || payment.master_subscriptions?.plan_id;
-        const planLimitsMap: Record<string, number | null> = {
-          gratis: 20,
-          free: 20,
-          pro: 150,
-          premium: null, // unlimited
-          marca: null, // herda Premium (ilimitado)
-        };
-        const maxProducts =
-          effectivePlanId in planLimitsMap ? planLimitsMap[effectivePlanId] : 20;
-
-        // Only attempt reactivation when upgrading to a paid plan
-        if (effectivePlanId && effectivePlanId !== "gratis" && effectivePlanId !== "free") {
-          const { data: reactivatedCount, error: reactErr } = await supabase.rpc(
-            "reactivate_products_after_upgrade",
-            { p_user_id: payment.user_id, p_max_products: maxProducts }
-          );
-          if (reactErr) {
-            console.error("Error reactivating products after upgrade:", reactErr);
-          } else {
-            console.log(
-              `Reactivated ${reactivatedCount ?? 0} plan-limited products for user ${payment.user_id} (plan=${effectivePlanId}, max=${maxProducts ?? "∞"})`
-            );
-          }
-        }
-      }
-
-      if (newSubscriptionStatus === "past_due") {
-        subscriptionUpdate.decline_type = hardDecline ? "hard" : "soft";
-        subscriptionUpdate.last_decline_code = statusDetail;
-        subscriptionUpdate.last_decline_message = userMessage;
-        subscriptionUpdate.requires_card_update = hardDecline;
-        
-        // Set grace period if not already set
-        if (!payment.master_subscriptions?.grace_period_ends_at) {
-          const gracePeriodEnd = new Date(now.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
-          subscriptionUpdate.grace_period_ends_at = gracePeriodEnd.toISOString();
-        }
-        
-        // Calculate next retry for soft decline
-        if (!hardDecline) {
-          const retryCount = payment.master_subscriptions?.retry_count || 0;
-          const retrySchedule = isMonthly ? [0, 1, 3, 6] : [0, 2, 5, 9, 12, 14];
-          const nextRetryDay = retrySchedule[retryCount + 1] ?? null;
-          
-          if (nextRetryDay !== null) {
-            const graceStart = payment.master_subscriptions?.grace_period_ends_at 
-              ? new Date(new Date(payment.master_subscriptions.grace_period_ends_at).getTime() - gracePeriodDays * 24 * 60 * 60 * 1000)
-              : now;
-            subscriptionUpdate.next_retry_at = new Date(graceStart.getTime() + nextRetryDay * 24 * 60 * 60 * 1000).toISOString();
-          }
-        }
-      }
-
-      if (newSubscriptionStatus === "cancelled" && !payment.master_subscriptions?.cancelled_at) {
-        subscriptionUpdate.cancelled_at = now.toISOString();
-      }
-
-      await supabase
-        .from("master_subscriptions")
-        .update(subscriptionUpdate)
-        .eq("id", payment.subscription_id);
-
-      if (isMarcaSub && newSubscriptionStatus === "active") {
-        // Guarda do banco pode ter bloqueado; registrar só a ativação real.
-        const { data: after } = await supabase.from("master_subscriptions")
-          .select("status, plan_id").eq("id", payment.subscription_id).maybeSingle();
-        if (after?.status === "active" && after?.plan_id === "marca") {
-          await supabase.from("master_subscription_logs").insert({
-            subscription_id: payment.subscription_id, user_id: payment.user_id, payment_id: payment.id,
-            event_type: "MARCA_SUBSCRIPTION_ACTIVATED", event_description: "Plano MARCA ativado após pagamento confirmado",
-          });
-        }
-      }
-
-      // Log the status change
-      await supabase.from("master_subscription_logs").insert({
-        subscription_id: payment.subscription_id,
-        user_id: payment.user_id,
-        payment_id: payment.id,
-        event_type: `subscription_${newSubscriptionStatus}`,
-        event_description: `Status alterado de ${payment.master_subscriptions?.status} para ${newSubscriptionStatus}`,
-        metadata: {
-          previousStatus: payment.master_subscriptions?.status,
-          newStatus: newSubscriptionStatus,
-          mpStatus: mpPayment.status,
-          mpStatusDetail: statusDetail,
-          declineType: hardDecline ? "hard" : "soft",
-          userMessage,
-        }
-      });
-    }
-
-    // Log payment status change
-    if (previousStatus !== newPaymentStatus) {
-      await supabase.from("master_subscription_logs").insert({
-        subscription_id: payment.subscription_id,
-        user_id: payment.user_id,
-        payment_id: payment.id,
-        event_type: `payment_${newPaymentStatus}`,
-        event_description: `Pagamento ${newPaymentStatus === "paid" ? "confirmado" : newPaymentStatus}`,
-        metadata: {
-          previousStatus,
-          newStatus: newPaymentStatus,
-          mpPaymentId: paymentId,
-          mpStatus: mpPayment.status,
-          mpStatusDetail: statusDetail,
-          userMessage: newPaymentStatus === "failed" ? userMessage : null,
-        }
-      });
-    }
-
-    console.log("Webhook processed successfully");
-
-    return new Response(
-      JSON.stringify({ 
-        received: true, 
-        paymentId: payment.id,
-        subscriptionId: payment.subscription_id,
-        newStatus: newPaymentStatus,
-        declineType: hardDecline ? "hard" : "soft",
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-  } catch (error: any) {
-    console.error("Webhook error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Webhook processing error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error('MASTER_SUBSCRIPTION_WEBHOOK_RETRY_REQUIRED');
+    return json({ error: 'Webhook temporarily unavailable; retry later' }, 503);
   }
 });

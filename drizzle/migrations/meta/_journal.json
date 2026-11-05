@@ -519,6 +519,13 @@
       "when": 1793893821973,
       "tag": "0073_expire_abandoned_checkout_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793913727503,
+      "tag": "0074_subscription_webhook_atomic",
+      "breakpoints": true
     }
   ]
 }

@@ -3329,6 +3329,81 @@ export type Database = {
           },
         ]
       }
+      master_subscription_webhook_applications: {
+        Row: {
+          applied_at: string
+          gateway_payment_id: string
+          intended_plan: string
+          invoice_id: string
+          payment_id: string
+          period_end: string
+        }
+        Insert: {
+          applied_at?: string
+          gateway_payment_id: string
+          intended_plan: string
+          invoice_id: string
+          payment_id: string
+          period_end: string
+        }
+        Update: {
+          applied_at?: string
+          gateway_payment_id?: string
+          intended_plan?: string
+          invoice_id?: string
+          payment_id?: string
+          period_end?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_subscription_webhook_applications_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_webhook_applications_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "master_subscription_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_subscription_webhook_receipts: {
+        Row: {
+          claim_token: string
+          completed_at: string | null
+          created_at: string
+          event_key: string
+          lease_until: string
+          resource_id: string
+          state: string
+          topic: string
+        }
+        Insert: {
+          claim_token?: string
+          completed_at?: string | null
+          created_at?: string
+          event_key: string
+          lease_until?: string
+          resource_id: string
+          state?: string
+          topic: string
+        }
+        Update: {
+          claim_token?: string
+          completed_at?: string | null
+          created_at?: string
+          event_key?: string
+          lease_until?: string
+          resource_id?: string
+          state?: string
+          topic?: string
+        }
+        Relationships: []
+      }
       master_subscriptions: {
         Row: {
           billing_cycle: string
@@ -8355,6 +8430,15 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_master_subscription_webhook: {
+        Args: {
+          p_claim_token: string
+          p_event_key: string
+          p_kind: string
+          p_resource: Json
+        }
+        Returns: Json
+      }
       apply_template_to_existing_store: {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
         Returns: Json
@@ -8499,6 +8583,10 @@ export type Database = {
       }
       claim_marca_upgrade_checkout: {
         Args: { p_user_id: string }
+        Returns: Json
+      }
+      claim_master_subscription_webhook: {
+        Args: { p_event_key: string; p_resource_id: string; p_topic: string }
         Returns: Json
       }
       clone_product_variants: {
@@ -8970,6 +9058,10 @@ export type Database = {
         Returns: Json
       }
       regenerate_custom_domain_challenge: { Args: never; Returns: Json }
+      release_master_subscription_webhook: {
+        Args: { p_claim_token: string; p_event_key: string }
+        Returns: undefined
+      }
       render_email_campaign_html:
         | {
             Args: {
