@@ -8504,6 +8504,10 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
       }
+      close_checkout_attempt: {
+        Args: { p_attempt_id: string; p_guest_payment_token: string }
+        Returns: undefined
+      }
       complement_template_data: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json

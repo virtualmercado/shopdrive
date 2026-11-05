@@ -498,6 +498,13 @@
       "when": 1793891707587,
       "tag": "0070_secure_checkout_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793891804758,
+      "tag": "0071_checkout_capability_privileges",
+      "breakpoints": true
     }
   ]
 }
