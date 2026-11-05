@@ -16,14 +16,18 @@ serve(async req=>{
   if(!url||!anon||!service)return json({error:PAYMENT_NOT_STARTED},503);
   db=createClient(url,service);const identity=await paymentIdentity(req,createClient(url,anon),parsed.data.guestPaymentToken);
   const order=await authorizePayment(db,orderId,'pix',identity);
+  const {data:existingAttempt,error:attemptError}=await db.from('checkout_payment_attempts').select('state').eq('order_id',orderId).maybeSingle();
+  sent=Boolean(existingAttempt && existingAttempt.state!=='ready');
+  if(attemptError)return json({success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   const {data:settings,error:settingsError}=await db.from('payment_settings').select('pix_enabled,pix_provider,mercadopago_enabled,mercadopago_accepts_pix,mercadopago_access_token,pagbank_enabled,pagbank_accepts_pix,pagbank_token').eq('user_id',order.store_owner_id).single();
   const gateway=settings?pixProvider(settings):null;const credential=gateway==='mercadopago'?settings?.mercadopago_access_token:settings?.pagbank_token;
-  if(settingsError||!gateway||!credential)return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
+  if(settingsError||!gateway||!credential)return json({error:sent?PAYMENT_UNKNOWN:PAYMENT_NOT_STARTED,status:sent?'unknown':'not_started'},400);
   const {data:claim,error}=await db.rpc('claim_checkout_payment',{p_order_id:orderId,...identity,p_method:'pix',p_gateway:gateway,p_status_only:false});
-  if(error||!claim)return json({error:PAYMENT_NOT_STARTED,status:'not_started'},409);
+  if(error||!claim)return json({error:sent?PAYMENT_UNKNOWN:PAYMENT_NOT_STARTED,status:sent?'unknown':'not_started'},409);
   if(claim.state==='approved'&&claim.orderConfirmed)return json({success:true,status:'approved',orderConfirmed:true});
   if(['rejected','cancelled','expired'].includes(claim.state))return json({success:false,status:claim.state,message:'Este pagamento foi encerrado.'});
   if(!claim.charge){
+   sent=true;
    const payment=await reconcilePayment(order,claim.externalPaymentId,credential,gateway,'pix');
    return json(payment?await persistPayment(db,orderId,payment):{success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   }

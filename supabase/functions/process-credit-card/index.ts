@@ -20,12 +20,15 @@ serve(async req => {
   const identity=await paymentIdentity(req,auth,body.guestPaymentToken);
   const { data: order, error: authError } = await db.rpc(body.action === 'status' ? 'authorize_checkout_payment_status' : 'authorize_checkout_payment', {p_order_id:orderId,p_method:'cartao_credito',...identity});
   if (authError || !order) throw new PaymentAccessError();
+  const { data: existingAttempt, error: attemptError } = await db.from('checkout_payment_attempts').select('state').eq('order_id', orderId).maybeSingle();
+  sent = Boolean(order.card_payment_id || (existingAttempt && existingAttempt.state !== 'ready'));
+  if (attemptError) return json({success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   const {data:settings,error:settingsError}=await db.from('payment_settings').select('mercadopago_access_token,mercadopago_enabled,mercadopago_accepts_credit,credit_card_enabled,credit_card_provider,credit_card_installments_no_interest').eq('user_id',order.store_owner_id).single();
-  if (settingsError || !settings?.mercadopago_access_token || !cardProviderEnabled(settings) || !(Number(order.total_amount)>0)) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
-  if (body.action==='pay' && (!body.cardToken || !body.paymentMethodId || body.installments>Number(settings.credit_card_installments_no_interest || 1))) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
+  if (settingsError || !settings?.mercadopago_access_token || !cardProviderEnabled(settings) || !(Number(order.total_amount)>0)) return json({error:sent?PAYMENT_UNKNOWN:PAYMENT_NOT_STARTED,status:sent?'unknown':'not_started'},400);
+  if (!sent && body.action==='pay' && (!body.cardToken || !body.paymentMethodId || body.installments>Number(settings.credit_card_installments_no_interest || 1))) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
   if (body.action==='pay' && !z.string().email().safeParse(order.customer_email).success) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
   const {data:claim,error}=await db.rpc('claim_checkout_payment',{p_order_id:orderId,...identity,p_method:'cartao_credito',p_gateway:'mercadopago',p_status_only:body.action==='status'});
-  if (error || !claim) return json({error:PAYMENT_NOT_STARTED,status:'not_started'},409);
+  if (error || !claim) return json({error:sent?PAYMENT_UNKNOWN:PAYMENT_NOT_STARTED,status:sent?'unknown':'not_started'},409);
   if (claim.state==='approved' && claim.orderConfirmed) return json({success:true,status:'approved',orderConfirmed:true,duplicate:true,paymentId:claim.externalPaymentId});
   if (['approved','rejected','cancelled','expired'].includes(claim.state)) {
    const { data, error: applyError } = await db.rpc('apply_checkout_payment_result',{p_order_id:orderId});
@@ -33,6 +36,7 @@ serve(async req => {
   }
   if (!claim.charge) {
    if (claim.state==='ready') return json({success:false,status:'not_started',message:PAYMENT_NOT_STARTED});
+   sent=true;
    const payment=await reconcilePayment(order,claim.externalPaymentId,settings.mercadopago_access_token,'mercadopago','card');
    return json(payment ? await persistPayment(db,orderId,payment) : {success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   }
