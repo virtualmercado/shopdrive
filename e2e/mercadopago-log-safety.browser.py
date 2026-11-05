@@ -6,19 +6,21 @@ fixture=re.search(r'const clientFixture = `([\s\S]*?)`;', (ROOT/'e2e/public-stor
 ids={'STORE_A':'11111111-1111-4111-8111-111111111111','STORE_B':'22222222-2222-4222-8222-222222222222','PRODUCT_A':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','PRODUCT_B':'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','ORDER_A':'cccccccc-cccc-4ccc-8ccc-cccccccccccc'}
 for k,v in ids.items(): fixture=fixture.replace('${'+k+'}',v)
 fixture=fixture.replace('pix_enabled:false,credit_card_enabled:false,boleto_enabled:false',"pix_enabled:true,pix_provider:'mercado_pago',credit_card_enabled:true,credit_card_provider:'mercado_pago',mercadopago_enabled:true,mercadopago_accepts_pix:true,mercadopago_accepts_credit:true,mercadopago_public_key:'fixture-public-key',boleto_enabled:true")
+fixture=fixture.replace("if(name==='create_checkout_order'){window.__createdOrder=args;return {data:order,error:null};}","if(name==='begin_checkout_attempt')return {data:{attemptId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',guestPaymentToken:'a'.repeat(64),expiresAt:'2026-11-06T18:00:00Z'},error:null};if(name==='create_checkout_order_once'){window.__orderRequests=(window.__orderRequests||0)+1;if(!window.__orderCalls){window.__orderCalls=1;window.__createdOrder=args.p_order;order.payment_method=args.p_order.p_payment_method;}return {data:order,error:null};}")
 fixture=fixture.replace('window.__createdOrder=args;', 'window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args;order.payment_method=args.p_payment_method;order.payment_status=args.p_payment_status;order.status=args.p_status;')
 fixture=fixture.replace("functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}}",'''functions:{invoke:async(name,opts)=>{
 if(name!=='process-credit-card')throw new Error('Fixture forbids external functions');
 window.__paymentCalls=(window.__paymentCalls||0)+1;
 window.__transportOk=opts.body.cardToken==='fixture-sdk-token-sentinel' && !('cardNumber' in opts.body) && !('securityCode' in opts.body) && !('cvv' in opts.body);
 if(window.__cardMode==='backend-error')return {data:null,error:{message:'fixture-sensitive-error-sentinel fixture-sdk-token-sentinel',token:'fixture-sdk-token-sentinel'}};
+if(window.__cardMode==='retry' && window.__paymentCalls===1)return {data:{status:'not_started'},error:null};
 if(window.__cardMode==='rejected')return {data:{status:'rejected',success:false,error:'fixture-sensitive-error-sentinel',token:'fixture-sdk-token-sentinel'},error:null};
 return {data:{status:'approved',success:true,token:'fixture-sdk-token-sentinel'},error:null};
 }}''')
 async def main():
  async with async_playwright() as p:
   browser=await p.chromium.launch(headless=True)
-  for mode in ['approved','sdk-error','backend-error','rejected']:
+  for mode in ['approved','sdk-error','backend-error','rejected','retry']:
    context=await browser.new_context(viewport={'width':1280,'height':1800}); page=await context.new_page(); logs=[]; errors=[]
    page.on('console',lambda msg: logs.append(msg.text));page.on('pageerror',lambda err:errors.append(str(err)))
    async def route_handler(route):
@@ -52,15 +54,28 @@ async def main():
    await page.get_by_placeholder('123',exact=True).fill('000')
    await page.get_by_placeholder('NOME COMO ESTÁ NO CARTÃO',exact=True).fill('FICTICIO')
    await page.get_by_role('button',name='Pagar e finalizar',exact=True).click()
-   if mode=='approved':
+   if mode=='retry':
+    await page.get_by_text('Não foi possível iniciar o pagamento. Nenhuma cobrança foi realizada.',exact=True).first.wait_for(state='visible')
+    await page.get_by_role('button',name='Pagar e finalizar',exact=True).click()
+   if mode in ['approved','retry']:
     await page.wait_for_url('http://localhost:8080/loja-a/pedido-confirmado/'+ids['ORDER_A'])
    else:
-    msg={'sdk-error':'Erro ao processar cartão. Verifique os dados.','backend-error':'Erro ao processar pagamento','rejected':'Pagamento recusado pelo banco emissor'}[mode]
+    msg={'sdk-error':'Não foi possível validar os dados do cartão.','backend-error':'Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora.','rejected':'Pagamento recusado pelo banco emissor'}[mode]
     await page.get_by_text(msg,exact=True).first.wait_for(state='visible')
+   if mode=='backend-error':
+    assert await page.get_by_role('button',name='Pagar e finalizar',exact=True).is_disabled()
+    await page.reload()
+    await page.get_by_role('radio',name='Cartão de crédito',exact=True).click()
+    assert await page.get_by_role('button',name='Pagar e finalizar',exact=True).is_disabled()
+    await page.get_by_role('button',name='Verificar pagamento',exact=True).wait_for(state='visible')
+    # Don't assert pre-reload counters; prove persisted unresolved UI and no new requests.
+    print('PASS unresolved refresh blocks another payment')
+    await page.screenshot(path=str(OUT/'unresolved-refresh.png'))
+    await context.close();continue
    state=await page.evaluate('()=>({initialized:window.__sdkInitialized,transportOk:window.__transportOk,paymentCalls:window.__paymentCalls||0,orderCalls:window.__orderCalls||0,storage:JSON.stringify({local:{...localStorage},session:{...sessionStorage}})})')
    assert state['initialized'] is True
-   assert state['paymentCalls']==(0 if mode=='sdk-error' else 1)
-   assert state['orderCalls']==(1 if mode=='approved' else 0)
+   assert state['paymentCalls']==(0 if mode=='sdk-error' else 2 if mode=='retry' else 1)
+   assert state['orderCalls']==(0 if mode=='sdk-error' else 1)
    if mode!='sdk-error': assert state['transportOk'] is True
    text=await page.locator('body').inner_text()
    for sentinel in ['fixture-sdk-token-sentinel','fixture-sensitive-error-sentinel']:
