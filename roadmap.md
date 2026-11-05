@@ -23,3 +23,9 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Homologação PIX guest/legado (handlers + navegador), compatibilidade do frontend publicado, expiração de tentativas abandonadas antes do gateway (migration 0073, cron horário), typecheck/build/testes.
 - [ ] Operação manual do lojista: cancelar #001239 pelo fluxo normal; conciliar R$ 585,38 com #001240.
 - [x] Relatar implementação parcial e bloqueios, sem cobrança real ou publicação automática.
+
+## Publicação controlada do hotfix guest — 2026-11-05
+
+- [x] Conferir delta frontend contra a versão realmente publicada: HTML público identifica commit `1ad6619966996e0099569149dcca23a151230170`; candidato `0e5d970dc70acaa3a9f163a4d96c5917fc8df08d`. Cartão/PIX sintéticos (11 cenários) e 26 testes específicos passaram; build OK.
+- [ ] BLOQUEADO — autorização restrita ao hotfix: delta inclui `src/lib/customDomainProvisioning.test.ts` e definições de provisionamento/revogação de domínio em `src/integrations/supabase/types.ts`, não relacionadas ao checkout. Não publicado; precisa de autorização explícita sobre esse escopo adicional ou candidato restrito, sem alterar automaticamente arquivos protegidos.
+- [ ] BLOQUEADO pela publicação: validar versão pública e checkout/carrinho AROMA www, cartão/PIX guest e cliente autenticado, sem cobranças nem dados sensíveis.
