@@ -1,5 +1,5 @@
 import { usePublicStoreIdentity, useStorePath } from "@/contexts/PublicStoreRuntime";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -136,6 +136,17 @@ const CheckoutContent = () => {
       }
     } catch { setCardProcessingError(CARD_MESSAGES.unknown); }
     finally { finalizingRef.current = false; setLoading(false); }
+  };
+  const startNewAttempt = async () => {
+    if (!attemptKey || finalizingRef.current) return;
+    const saved = loadCheckoutAttempt(attemptKey);
+    if (!saved) return;
+    finalizingRef.current = true; setLoading(true);
+    try {
+      const { error } = await supabase.rpc('close_checkout_attempt', { p_attempt_id: saved.attemptId, p_guest_payment_token: saved.guestPaymentToken });
+      if (error) { toast.error('O pedido anterior ainda precisa ser conciliado ou encerrado.'); return; }
+      finishAttempt(); setCardProcessingError(null);
+    } finally { finalizingRef.current = false; setLoading(false); }
   };
   
   // Customer data
@@ -806,7 +817,7 @@ const CheckoutContent = () => {
 
       // Entrega a combinar: nenhuma modalidade é gravada (NULL), sem valor artificial.
       const deliveryMethodLabel = deliveryDeferred ? null : formData.delivery_method === "retirada" ? "retirada" : "entrega";
-      const checkoutCustomerId = customerProfile?.id || null;
+      const checkoutCustomerId = user?.id || null;
       const isGuestOrder = !checkoutCustomerId;
       const orderItemsPayload = cart.map((item) => ({
         product_id: item.id,
@@ -1222,18 +1233,18 @@ const CheckoutContent = () => {
 
   };
 
-  const handlePixPaymentConfirmed = () => {
+  const handlePixPaymentConfirmed = useCallback(() => {
     finishAttempt();
     clearCart();
     // Track purchase event for conversion funnel
     if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
     toast.success("Pagamento confirmado!");
     navigate(storePath(`/pedido-confirmado/${createdOrderId}`));
-  };
+  }, [attemptKey, clearCart, storeData?.id, createdOrderId, navigate, storePath]);
 
-  const handlePixExpired = () => {
+  const handlePixExpired = useCallback(() => {
     toast.warning("Verifique o resultado do PIX antes de iniciar outro pagamento.");
-  };
+  }, []);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -1409,7 +1420,7 @@ const CheckoutContent = () => {
             paymentUnresolved={paymentUnresolved}
             paymentTerminal={paymentTerminal}
             onCheckPayment={checkCardResult}
-            onNewAttempt={() => { finishAttempt(); setCardProcessingError(null); }}
+            onNewAttempt={startNewAttempt}
             pendingMessage={pendingMessage}
 
             cardProcessingError={cardProcessingError}
