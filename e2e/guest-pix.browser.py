@@ -22,7 +22,7 @@ async def main():
   for mode in ['approved','pending-refresh','expired','rejected','unknown','local-failure']:
    context=await browser.new_context(viewport={'width':1280,'height':1800}); page=await context.new_page(); logs=[]; errors=[]
    page.on('console',lambda msg: logs.append(msg.text));page.on('pageerror',lambda err:errors.append(str(err)))
-   async def route_handler(route,page=page):
+   async def route_handler(route):
     req=route.request; url=req.url
     if not url.startswith('http://localhost:8080/') or req.method not in ['GET','HEAD']:
      await route.abort();return
