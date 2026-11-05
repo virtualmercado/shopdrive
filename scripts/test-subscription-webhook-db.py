@@ -116,3 +116,16 @@ apply(event,tok,older)
 assert sql(f"select status from master_subscriptions where id='{S}'")=='active'
 assert sql("select status from invoices where invoice_id='inv_old'")=='rejected'
 print('PASS older failed payment settles its invoice without downgrading current subscription')
+# Recover an already-paid record whose invoice/entitlement were never applied.
+S3='77777777-7777-4777-8777-777777777777';P3='88888888-8888-4888-8888-888888888888'
+sql(f"insert into master_subscriptions(id,user_id,plan_id,billing_cycle,monthly_price,total_amount,status,gateway,current_period_start,current_period_end) values('{S3}','{A}','premium','monthly',49.97,49.97,'pending','mercadopago','2026-10-20','2026-11-20'); insert into master_subscription_payments(id,subscription_id,user_id,amount,gateway,payment_method,status,gateway_payment_id,paid_at) values('{P3}','{S3}','{A}',49.97,'mercadopago','credit_card','paid','1002','2026-10-20T12:33:35Z'); update invoices set invoice_id='inv_repair',status='overdue',mp_payment_id=NULL,paid_at=NULL where subscription_id='{S3}'")
+repair={**payload,'id':'1002','external_reference':'inv_repair','preapproval_id':None}
+event='payment:1002:repair';tok=json.loads(sql(f"set test.role='service_role';select claim_master_subscription_webhook('{event}','1002','payment')").splitlines()[-1])['token']
+apply(event,tok,repair)
+assert sql("select status||':'||mp_payment_id from invoices where invoice_id='inv_repair'")=='paid:1002'
+assert sql(f"select status from master_subscriptions where id='{S3}'")=='active'
+assert sql(f"select count(*) from master_subscription_webhook_applications where payment_id='{P3}'")=='1'
+event='payment:1002:repair-repeat';tok=json.loads(sql(f"set test.role='service_role';select claim_master_subscription_webhook('{event}','1002','payment')").splitlines()[-1])['token']
+apply(event,tok,repair)
+assert sql('select count(*) from test_effects')=='2'
+print('PASS paid but incomplete record: invoice and entitlement recovered exactly once')
