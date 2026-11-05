@@ -77,7 +77,7 @@ third=json.loads(sql(f"select begin_checkout_attempt('{A}',null)"));sent_order=j
 third_hash=f"encode(extensions.digest('{third['guestPaymentToken']}','sha256'),'hex')"
 assert json.loads(sql(f"select claim_checkout_payment('{sent_order}',NULL,{third_hash},'cartao_credito','mercadopago',false)"))['charge'] is True
 sql("update checkout_payment_attempts set expires_at=now()-interval '1 second' where state in ('ready','submitting')")
-assert sql('select expire_abandoned_checkout_attempts()')=='1'
+assert sql('select expire_abandoned_checkout_attempts()')=='2' # guest 'other' + authenticated never-sent attempt
 assert sql(f"select count(*) from order_stock_movements where order_id='{other}' and kind='restore'")=='1'
 assert sql(f"select status||'/'||payment_status from orders where id='{other}'")=='cancelled/expired'
 assert sql('select expire_abandoned_checkout_attempts()')=='0'
