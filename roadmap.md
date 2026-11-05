@@ -29,3 +29,9 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Conferir delta frontend contra a versão realmente publicada: HTML público identifica commit `1ad6619966996e0099569149dcca23a151230170`; candidato `0e5d970dc70acaa3a9f163a4d96c5917fc8df08d`. Cartão/PIX sintéticos (11 cenários) e 26 testes específicos passaram; build OK.
 - [x] Gate objetivo autorizado: teste de provisionamento fora do grafo de imports de produção; adições de domínio somente em tipos, com JavaScript emitido e `Constants` idênticos à revisão pública. Nenhuma alteração funcional de UI/domínio/Worker/provisionamento incluída no bundle; nenhum código alterado nesta etapa.
 - [x] Publicado e confirmado: revisão `0eb19644a187e055d7559493606a018d1fcb97cc`, novo bundle `/assets/index-CPTehEbV.js` servido em ShopDrive e www AROMA. Produto real com aroma Açaí → carrinho → checkout guest → formulário de cartão editável → opção PIX abriram; zero erros de página/401/403/chamadas de pagamento e nenhum marcador sensível observado. Escritas interceptadas; nenhum pedido/QR/cobrança criado. Homologação autenticada anterior preservada, sem repetir testes ou autenticar conta real nesta etapa.
+
+## Webhook Mercado Pago de assinaturas — 2026-11-05
+
+- [ ] Identificar o secret esperado e conferir presença por nome, sem ler valores.
+- [ ] Conferir assinatura HMAC oficial e idempotência/atualização de invoice no fluxo existente.
+- [ ] Após configuração manual do secret real, validar assinatura ausente/inválida/válida e atualização única com fixtures isoladas, sem cobrança nem alteração de dados existentes.
