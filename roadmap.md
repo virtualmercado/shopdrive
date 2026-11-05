@@ -32,6 +32,6 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 
 ## Webhook Mercado Pago de assinaturas — 2026-11-05
 
-- [ ] Identificar o secret esperado e conferir presença por nome, sem ler valores.
-- [ ] Conferir assinatura HMAC oficial e idempotência/atualização de invoice no fluxo existente.
-- [ ] Após configuração manual do secret real, validar assinatura ausente/inválida/válida e atualização única com fixtures isoladas, sem cobrança nem alteração de dados existentes.
+- [x] Identificado: `master-subscription-webhook` lê `master_payment_gateways.mercadopago_webhook_secret`, não um secret de ambiente. Consulta agregada: um gateway ativo/padrão, Access Token configurado, chave webhook ausente. Nenhum valor secreto lido.
+- [x] Revisão somente leitura: usa x-signature/x-request-id e HMAC-SHA256, porém assina body.data.id em vez de query data.id, não normaliza IDs alfanuméricos nem verifica tolerância temporal, e registra hashes na falha; dedup read-then-insert ignora erro de unicidade, não prova atualização única concorrente. Sem alterações de código ou deploy.
+- [ ] BLOQUEADO: administrador deve configurar a chave autêntica do Mercado Pago em `master_payment_gateways.mercadopago_webhook_secret` do gateway ativo/padrão; o formulário Master atual não oferece esse campo e Secrets de ambiente não são lidos pela função. Depois, concluir adequação/validação oficial e testes isolados de assinatura/idempotência/invoice sem cobranças ou dados reais.
