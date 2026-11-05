@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { canAccessPixPayment } from "../_shared/authorization.ts";
+import { paymentIdentity, authorizePayment } from "../_shared/checkoutPayment.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface Request {
   pixPaymentId: string;
+  guestPaymentToken?: string;
 }
 
 serve(async (req) => {
@@ -22,40 +23,13 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Authentication check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.log("Missing or invalid authorization header");
-      return new Response(
-        JSON.stringify({ error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify the JWT token
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
-      console.log("Invalid token:", claimsError?.message);
-      return new Response(
-        JSON.stringify({ error: "Token inválido" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Authenticated user:", claimsData.claims.sub);
-
     // Use service role for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { pixPaymentId } = await req.json() as Request;
+    const { pixPaymentId, guestPaymentToken } = await req.json() as Request;
+    const identity = await paymentIdentity(req, createClient(supabaseUrl, supabaseAnonKey), guestPaymentToken);
 
-    if (!pixPaymentId) {
+    if (typeof pixPaymentId !== 'string' || !/^[0-9a-f-]{36}$/.test(pixPaymentId)) {
       return new Response(
         JSON.stringify({ error: "pixPaymentId é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -79,31 +53,9 @@ serve(async (req) => {
       );
     }
 
-    // Authorization: load the related order and confirm the caller is allowed
-    // to touch this record BEFORE any service-role read/write. Guest checkout
-    // polling (anon key, no user id) remains allowed because every write below
-    // is derived from the gateway response, never from caller input.
-    const callerUserId = (claimsData.claims.sub as string | undefined) ?? null;
-    const { data: relatedOrder } = await supabase
-      .from('orders')
-      .select('customer_id')
-      .eq('id', pixPayment.order_id)
-      .maybeSingle();
-
-    let callerIsAdmin = false;
-    if (callerUserId) {
-      const { data: isAdmin } = await supabase.rpc('has_role', {
-        _user_id: callerUserId,
-        _role: 'admin',
-      });
-      callerIsAdmin = isAdmin === true;
-    }
-
-    if (!canAccessPixPayment(
-      { userId: callerUserId, isAdmin: callerIsAdmin },
-      { store_owner_id: pixPayment.store_owner_id },
-      relatedOrder,
-    )) {
+    try {
+      await authorizePayment(supabase, pixPayment.order_id, 'pix', identity);
+    } catch {
       return new Response(
         JSON.stringify({ error: "Sem permissão para este pagamento" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -168,7 +120,7 @@ serve(async (req) => {
           paymentStatus = 'expired';
         }
       } else {
-        console.error("Error checking Mercado Pago status:", await mpResponse.text());
+        console.error("Error checking Mercado Pago status");
       }
     } else if (pixPayment.gateway === 'pagbank') {
       console.log(`Checking PagBank payment: ${externalPaymentId}`);
@@ -191,7 +143,7 @@ serve(async (req) => {
           paymentStatus = 'cancelled';
         }
       } else {
-        console.error("Error checking PagBank status:", await pbResponse.text());
+        console.error("Error checking PagBank status");
       }
     }
 
@@ -226,6 +178,12 @@ serve(async (req) => {
 
       if (paymentStatus === 'approved') {
         orderUpdateData.status = 'confirmed';
+        orderUpdateData.payment_status = 'approved';
+      } else {
+        // First persist a definitive gateway outcome, then the existing restore-once trigger may run.
+        await supabase.rpc('record_checkout_payment_result', { p_order_id: pixPayment.order_id, p_state: paymentStatus, p_external_id: externalPaymentId });
+        orderUpdateData.payment_status = paymentStatus;
+        orderUpdateData.status = 'cancelled';
       }
 
       const { error: updateOrderError } = await supabase
@@ -245,9 +203,8 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-    console.error("Unexpected error:", errorMessage);
+  } catch {
+    console.error("PIX status could not be checked");
     return new Response(
       JSON.stringify({ error: "Erro interno do servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
