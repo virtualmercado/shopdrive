@@ -61,6 +61,10 @@ interface PaymentColumnProps {
   /** Mensagem contextual (mesma fonte de validação do botão) sobre pendências. */
   pendingMessage?: string | null;
 
+  paymentUnresolved?: boolean;
+  paymentTerminal?: boolean;
+  onCheckPayment?: () => void;
+  onNewAttempt?: () => void;
   cardProcessingError?: string | null;
   customerCpf?: string;
 }
@@ -86,6 +90,10 @@ export const PaymentColumn = ({
   pendingMessage = null,
 
   cardProcessingError,
+  paymentUnresolved = false,
+  paymentTerminal = false,
+  onCheckPayment,
+  onNewAttempt,
   customerCpf,
 }: PaymentColumnProps) => {
   const [cardForm, setCardForm] = useState<CardFormData>({
@@ -211,6 +219,7 @@ export const PaymentColumn = ({
   };
 
   const handleFinalize = async () => {
+    if (loading || isTokenizing || paymentUnresolved || paymentTerminal) return;
     // InfinitePay (PIX or Cartão): skip local tokenization — checkout is hosted by InfinitePay
     if (
       (paymentMethod === "pix" && isInfinitepayPix) ||
@@ -279,7 +288,7 @@ export const PaymentColumn = ({
         onFinalize(tokenData);
       } catch {
         // SDK errors may echo card fields or the token; never log or display them.
-        setCardFormError("Erro ao processar cartão. Verifique os dados.");
+        setCardFormError("Não foi possível validar os dados do cartão.");
       } finally {
         setIsTokenizing(false);
       }
@@ -372,6 +381,8 @@ export const PaymentColumn = ({
               </div>
             )}
             
+            {paymentUnresolved && <Button variant="outline" onClick={onCheckPayment} disabled={loading} className="w-full gap-2"><Loader2 className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />Verificar pagamento</Button>}
+            {paymentTerminal && <Button variant="outline" onClick={onNewAttempt} disabled={loading} className="w-full">Iniciar nova tentativa</Button>}
             <div>
               <Label className="text-xs">Número do cartão</Label>
               <Input

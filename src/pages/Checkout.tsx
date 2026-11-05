@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { logAuditEvent } from "@/lib/auditLog";
 import { toast } from "sonner";
+import { attemptStorageKey, loadCheckoutAttempt, saveCheckoutAttempt, CARD_MESSAGES, safeCardMessage } from "@/lib/checkoutAttempt";
+import type { CheckoutAttempt } from "@/lib/checkoutAttempt";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { trackStoreEvent } from "@/hooks/useStoreEvents";
@@ -96,6 +98,45 @@ const CheckoutContent = () => {
   const [creditCardGateway, setCreditCardGateway] = useState<"mercadopago" | "pagbank" | "infinitepay" | null>(null);
   const [cardProcessingError, setCardProcessingError] = useState<string | null>(null);
   const finalizingRef = useRef(false);
+  const [paymentAttempt, setPaymentAttempt] = useState<CheckoutAttempt | null>(null);
+  const [paymentUnresolved, setPaymentUnresolved] = useState(false);
+  const [paymentTerminal, setPaymentTerminal] = useState(false);
+  const attemptKey = storeData?.id ? attemptStorageKey(storeData.id, user?.id || null) : null;
+  useEffect(() => {
+    const saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null;
+    setPaymentAttempt(saved);
+    setPaymentUnresolved(saved?.state === 'unknown');
+    setPaymentTerminal(saved?.state === 'terminal');
+    if (saved?.state === 'unknown') setCardProcessingError(CARD_MESSAGES.unknown);
+  }, [attemptKey]);
+  const finishAttempt = () => {
+    if (attemptKey) sessionStorage.removeItem(attemptKey);
+    setPaymentAttempt(null);
+    setPaymentUnresolved(false);
+    setPaymentTerminal(false);
+  };
+  const checkCardResult = async () => {
+    const saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null;
+    if (!saved?.orderId || finalizingRef.current) return;
+    finalizingRef.current = true; setLoading(true);
+    try {
+      const result = await supabase.functions.invoke('process-credit-card', { body: { orderId: saved.orderId, guestPaymentToken: saved.guestPaymentToken, action: 'status' } });
+      const data = result.data;
+      if (!result.error && data?.status === 'approved') {
+        finishAttempt(); clearCart();
+        toast.info(data.orderConfirmed === false ? CARD_MESSAGES.approvedPending : 'Pagamento aprovado! Pedido confirmado.');
+        navigate(storePath(`/pedido-confirmado/${saved.orderId}`));
+      } else if (!result.error && ['rejected','cancelled','expired'].includes(data?.status)) {
+        const terminal = { ...saved, state: 'terminal' as const };
+        if (attemptKey) saveCheckoutAttempt(attemptKey, terminal);
+        setPaymentAttempt(terminal); setPaymentUnresolved(false); setPaymentTerminal(true);
+        setCardProcessingError(safeCardMessage(data.status));
+      } else {
+        setCardProcessingError(CARD_MESSAGES.unknown);
+      }
+    } catch { setCardProcessingError(CARD_MESSAGES.unknown); }
+    finally { finalizingRef.current = false; setLoading(false); }
+  };
   
   // Customer data
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
@@ -691,6 +732,7 @@ const CheckoutContent = () => {
   };
 
   const handleFinalize = async (cardTokenData?: CardTokenData) => {
+    if (paymentUnresolved || paymentTerminal) return;
     setCardProcessingError(null);
     if (finalizingRef.current) {
       console.warn("[Checkout] Finalização ignorada: pedido já está em processamento");
@@ -801,38 +843,36 @@ const CheckoutContent = () => {
         p_is_guest_order: isGuestOrder,
         p_items: orderItemsPayload as any,
       });
+      let activeAttempt: CheckoutAttempt | null = null;
+      const securePaymentFlow = (formData.payment_method === 'cartao_credito' && creditCardGateway === 'mercadopago') || (formData.payment_method === 'pix' && (pixGateway === 'mercadopago' || pixGateway === 'pagbank'));
       const createCheckoutOrder = async (status: string, paymentStatus = getPaymentStatus(formData.payment_method)) => {
         const payload = buildCheckoutOrderPayload(status, paymentStatus);
-        console.log("[Checkout] início do checkout", {
-          store_id: storeData.id,
-          store_slug: storeSlug,
-          cart_items: cart.length,
-          subtotal,
-          delivery_fee: deliveryFee,
-          total,
-        });
-        console.log("[Checkout] modo do cliente", isGuestOrder ? "convidado" : "cadastrado", {
-          customer_id: checkoutCustomerId,
-          checkout_origin: payload.p_checkout_origin,
-        });
-        console.log("[Checkout] método de pagamento escolhido", formData.payment_method);
-        console.log("[Checkout] payload enviado para criar pedido", payload);
-
-        const { data: createdOrder, error: createOrderError } = await supabase.rpc(
-          "create_checkout_order" as any,
-          payload
-        );
-
-        console.log("[Checkout] resposta da criação do pedido", { data: createdOrder, error: createOrderError });
-        console.log("[Checkout] resposta da criação dos itens", {
-          success: !createOrderError && !!createdOrder,
-          items_count: orderItemsPayload.length,
-          order_id: (createdOrder as any)?.id || null,
-        });
+        // Resume the same capability after errors/refresh; never persist a card token.
+        const saved = attemptKey ? loadCheckoutAttempt(attemptKey) : null;
+        if (saved || securePaymentFlow) {
+          if (!attemptKey) throw new Error('Não foi possível preservar esta tentativa de pagamento.');
+          activeAttempt = saved;
+          if (!activeAttempt) {
+            const { data, error } = await supabase.rpc('begin_checkout_attempt', { p_store_owner_id: storeData.id, p_customer_id: checkoutCustomerId });
+            if (error || !data) throw new Error('Não foi possível iniciar seu pedido.');
+            activeAttempt = data as unknown as CheckoutAttempt;
+            saveCheckoutAttempt(attemptKey, activeAttempt);
+          }
+          setPaymentAttempt(activeAttempt);
+        }
+        const response = activeAttempt
+          ? await supabase.rpc('create_checkout_order_once', { p_attempt_id: activeAttempt.attemptId, p_guest_payment_token: activeAttempt.guestPaymentToken, p_order: payload })
+          : await supabase.rpc('create_checkout_order' as any, payload);
+        const createdOrder = response.data;
+        const createOrderError = response.error;
 
         if (createOrderError || !createdOrder) {
-          console.error("[Checkout] create_checkout_order error:", createOrderError);
+
           const rawMsg = String((createOrderError as any)?.message || "");
+          if (rawMsg.includes('checkout_content_changed')) {
+            toast.error('Seu pedido anterior ainda está pendente. Reconcilie ou cancele esse pedido antes de alterar o carrinho.');
+            throw new Error('checkout_content_changed');
+          }
           if (rawMsg.includes("valores do carrinho foram atualizados")) {
             throw new Error("Os preços de alguns produtos mudaram. Remova e adicione novamente os itens do carrinho e tente de novo.");
           }
@@ -842,6 +882,11 @@ const CheckoutContent = () => {
           throw new Error("Não foi possível registrar seu pedido. Tente novamente.");
         }
 
+        if (activeAttempt && attemptKey) {
+          activeAttempt = { ...activeAttempt, orderId: (createdOrder as any).id };
+          saveCheckoutAttempt(attemptKey, activeAttempt);
+          setPaymentAttempt(activeAttempt);
+        }
         try {
           sessionStorage.setItem(
             `shopdrive_checkout_order:${(createdOrder as any).id}`,
@@ -860,7 +905,7 @@ const CheckoutContent = () => {
             })
           );
         } catch (storageError) {
-          console.warn("[Checkout] não foi possível salvar cache local da confirmação", storageError);
+          // Confirmation cache is optional; the payment capability was already saved.
         }
 
         return createdOrder as any;
@@ -878,10 +923,7 @@ const CheckoutContent = () => {
           const paymentResponse = await supabase.functions.invoke("process-credit-card", {
             body: {
               orderId: order.id,
-              amount: total,
-              storeOwnerId: storeData.id,
-              customerName: formData.customer_name,
-              customerEmail: customerEmail || "",
+              guestPaymentToken: activeAttempt?.guestPaymentToken,
               customerCpf: customerProfile?.cpf || "",
               customerPhone: formData.customer_phone,
               customerAddress: {
@@ -899,29 +941,25 @@ const CheckoutContent = () => {
             },
           });
 
-          // Handle edge function error (network/5xx): the payment state is unknown.
-          // The order exists and stays pending for reconciliation.
-          if (paymentResponse.error) {
-            const errorMessage = "Não foi possível confirmar o pagamento. Se o valor foi cobrado, seu pedido será confirmado automaticamente.";
-            setCardProcessingError(errorMessage);
-            toast.error(errorMessage);
-            setLoading(false);
-            finalizingRef.current = false;
+          let paymentData = paymentResponse.data;
+          // Non-2xx server responses are safe structured failures; transport loss remains ambiguous.
+          if (paymentResponse.error && (paymentResponse.error as any).context instanceof Response) {
+            try { paymentData = await (paymentResponse.error as any).context.json(); } catch { /* unknown */ }
+          }
+          if (paymentData?.status !== 'approved') {
+            const status = paymentData?.status || 'unknown';
+            const unknown = !['not_started','rejected','cancelled','expired'].includes(status);
+            const terminal = ['rejected','cancelled','expired'].includes(status);
+            if (activeAttempt && attemptKey) {
+              const next = { ...activeAttempt, state: unknown ? 'unknown' as const : terminal ? 'terminal' as const : 'ready' as const };
+              saveCheckoutAttempt(attemptKey, next); setPaymentAttempt(next);
+            }
+            setPaymentUnresolved(unknown); setPaymentTerminal(terminal);
+            const message = safeCardMessage(status, paymentData?.statusDetail);
+            setCardProcessingError(message); toast.error(message);
             return;
           }
-
-          const paymentData = paymentResponse.data;
-
-          // Handle rejected payment: the order was marked rejected server-side
-          // and the reserved stock was returned exactly once.
-          if (paymentData.status === "rejected" || !paymentData.success) {
-            const errorMessage = paymentData.error || "Pagamento recusado pelo banco emissor";
-            setCardProcessingError(errorMessage);
-            toast.error(errorMessage);
-            setLoading(false);
-            finalizingRef.current = false;
-            return;
-          }
+          finishAttempt();
 
           logAuditEvent({
             action: "order_created",
@@ -959,7 +997,12 @@ const CheckoutContent = () => {
           return;
 
         } catch {
-          const errorMessage = "Não foi possível confirmar o pagamento. Se o valor foi cobrado, seu pedido será confirmado automaticamente.";
+          if (activeAttempt && attemptKey) {
+            const next = { ...activeAttempt, state: 'unknown' as const };
+            saveCheckoutAttempt(attemptKey, next); setPaymentAttempt(next);
+          }
+          setPaymentUnresolved(true);
+          const errorMessage = CARD_MESSAGES.unknown;
           setCardProcessingError(errorMessage);
           toast.error(errorMessage);
           setLoading(false);
@@ -1162,8 +1205,7 @@ const CheckoutContent = () => {
       toast.success("Pedido realizado com sucesso!");
       setTimeout(() => navigate(storePath(`/pedido-confirmado/${order.id}`)), 1000);
     } catch (error: any) {
-      console.error("Checkout error:", error);
-      console.error("[Checkout] erro completo", error);
+
       if (whatsappWindow && !whatsappWindow.closed) {
         try { whatsappWindow.close(); } catch { /* noop */ }
       }
@@ -1181,6 +1223,7 @@ const CheckoutContent = () => {
   };
 
   const handlePixPaymentConfirmed = () => {
+    finishAttempt();
     clearCart();
     // Track purchase event for conversion funnel
     if (storeData?.id) trackStoreEvent(storeData.id, "purchase");
@@ -1189,7 +1232,7 @@ const CheckoutContent = () => {
   };
 
   const handlePixExpired = () => {
-    toast.warning("O QR Code expirou. Clique para gerar um novo.");
+    toast.warning("Verifique o resultado do PIX antes de iniciar outro pagamento.");
   };
 
   const handleApplyCoupon = async () => {
@@ -1242,6 +1285,7 @@ const CheckoutContent = () => {
             <div className="p-6">
               <PixPayment
                 orderId={createdOrderId}
+                guestPaymentToken={paymentAttempt?.guestPaymentToken}
                 amount={total}
                 storeOwnerId={storeData.id}
                 gateway={pixGateway as "mercadopago" | "pagbank"}
@@ -1259,7 +1303,7 @@ const CheckoutContent = () => {
                   navigate(storePath());
                 }}
               >
-                Cancelar e voltar para a loja
+                Voltar para a loja
               </Button>
             </div>
           </div>
@@ -1361,7 +1405,11 @@ const CheckoutContent = () => {
             primaryColor={primaryColor}
             loading={loading}
             onFinalize={handleFinalize}
-            isFormValid={isFormValid}
+            isFormValid={isFormValid && !paymentUnresolved && !paymentTerminal}
+            paymentUnresolved={paymentUnresolved}
+            paymentTerminal={paymentTerminal}
+            onCheckPayment={checkCardResult}
+            onNewAttempt={() => { finishAttempt(); setCardProcessingError(null); }}
             pendingMessage={pendingMessage}
 
             cardProcessingError={cardProcessingError}
