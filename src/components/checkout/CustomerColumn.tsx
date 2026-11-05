@@ -53,6 +53,9 @@ interface CustomerColumnProps {
   };
   setFormData: (data: any) => void;
   primaryColor: string;
+  guestEmail?: string;
+  onGuestEmailChange?: (value: string) => void;
+  guestPaymentDetailsRequired?: boolean;
   storeSlug: string;
   /** Requisitos obrigatórios pendentes (mesma fonte de validação do botão). */
   pendingRequirements?: { key: string; label: string; message: string }[];
@@ -91,6 +94,9 @@ export const CustomerColumn = ({
   formData,
   setFormData,
   primaryColor,
+  guestEmail = '',
+  onGuestEmailChange,
+  guestPaymentDetailsRequired = false,
   storeSlug,
   pendingRequirements = [],
 }: CustomerColumnProps) => {
@@ -511,6 +517,10 @@ export const CustomerColumn = ({
               Ou continue sem cadastro:
             </p>
             <div className="space-y-3">
+              {guestPaymentDetailsRequired && <div>
+                <Label htmlFor="guest-payment-email" className="text-sm">E-mail para pagamento *</Label>
+                <Input id="guest-payment-email" type="email" autoComplete="email" value={guestEmail} onChange={e => onGuestEmailChange?.(e.target.value)} />
+              </div>}
               <div>
                 <Label className="text-sm" htmlFor="checkout-customer-name">Nome completo *</Label>
                 <Input

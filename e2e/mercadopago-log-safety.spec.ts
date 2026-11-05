@@ -7,6 +7,7 @@ const errorSentinel = "fixture-sensitive-error-sentinel";
 
 function cardFixture(source: string) {
   return source
+    .replace("if(name==='create_checkout_order'){window.__createdOrder=args;return {data:order,error:null};}", "if(name==='begin_checkout_attempt')return {data:{attemptId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',guestPaymentToken:'a'.repeat(64),expiresAt:'2026-11-06T18:00:00Z'},error:null};if(name==='create_checkout_order_once'){window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args.p_order;order.payment_method=args.p_order.p_payment_method;return {data:order,error:null};}")
     .replace("pix_enabled:false,credit_card_enabled:false,boleto_enabled:false", "pix_enabled:true,pix_provider:'mercado_pago',credit_card_enabled:true,credit_card_provider:'mercado_pago',mercadopago_enabled:true,mercadopago_accepts_pix:true,mercadopago_accepts_credit:true,mercadopago_public_key:'fixture-public-key',boleto_enabled:true")
     .replace("window.__createdOrder=args;", "window.__orderCalls=(window.__orderCalls||0)+1;window.__createdOrder=args;order.payment_method=args.p_payment_method;order.payment_status=args.p_payment_status;order.status=args.p_status;")
     .replace("functions:{invoke:async()=>{throw new Error('Fixture forbids external functions');}}", `functions:{invoke:async(name,opts)=>{
@@ -44,6 +45,7 @@ for (const mode of ["approved", "sdk-error", "backend-error", "rejected"]) {
     await expect(page.getByRole("radio", { name: "Pix", exact: true })).toBeVisible();
     await expect(page.getByRole("radio", { name: "Boleto bancário", exact: true })).toBeVisible();
     await page.getByRole("radio", { name: "Cartão de crédito", exact: true }).click();
+    await page.getByLabel("E-mail para pagamento *", { exact: true }).fill("fixture@example.invalid");
     // Synthetic invalid card data: the SDK is mocked and all external requests are blocked.
     await page.getByPlaceholder("0000 0000 0000 0000", { exact: true }).fill("4000000000000000");
     await page.getByPlaceholder("MM/AA", { exact: true }).fill("1299");
@@ -55,9 +57,9 @@ for (const mode of ["approved", "sdk-error", "backend-error", "rejected"]) {
       expect(await page.evaluate(() => (window as any).__orderCalls)).toBe(1);
       await expect(page.getByText("Cartão de Crédito", { exact: true })).toBeVisible();
     } else {
-      const message = mode === "sdk-error" ? "Erro ao processar cartão. Verifique os dados." : mode === "backend-error" ? "Erro ao processar pagamento" : "Pagamento recusado pelo banco emissor";
+      const message = mode === "sdk-error" ? "Não foi possível validar os dados do cartão." : mode === "backend-error" ? "Não foi possível confirmar o pagamento. Estamos verificando o resultado. Não tente pagar novamente agora." : "Pagamento recusado pelo banco emissor.";
       await expect(page.getByText(message, { exact: true }).first()).toBeVisible();
-      expect(await page.evaluate(() => (window as any).__orderCalls || 0)).toBe(0);
+      expect(await page.evaluate(() => (window as any).__orderCalls || 0)).toBe(mode === "sdk-error" ? 0 : 1);
     }
     expect(await page.evaluate(() => (window as any).__sdkInitialized)).toBe(true);
     expect(await page.evaluate(() => (window as any).__paymentCalls || 0)).toBe(mode === "sdk-error" ? 0 : 1);

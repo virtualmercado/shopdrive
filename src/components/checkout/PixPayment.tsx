@@ -6,6 +6,7 @@ import { QrCode, Copy, Check, Clock, Loader2, RefreshCw } from "lucide-react";
 
 interface PixPaymentProps {
   orderId: string;
+  guestPaymentToken?: string;
   amount: number;
   storeOwnerId: string;
   gateway: "mercadopago" | "pagbank";
@@ -23,6 +24,7 @@ interface PixData {
 
 export const PixPayment = ({
   orderId,
+  guestPaymentToken,
   amount,
   storeOwnerId,
   gateway,
@@ -48,15 +50,14 @@ export const PixPayment = ({
       const { data, error: fnError } = await supabase.functions.invoke("generate-pix", {
         body: {
           orderId,
-          amount,
-          storeOwnerId,
-          gateway,
+          guestPaymentToken,
           description: `Pedido #${orderId.substring(0, 8)}`,
         },
       });
 
+      if (data?.status === 'approved') { hasConfirmedRef.current = true; onPaymentConfirmed(); return; }
       if (fnError || !data?.success) {
-        throw new Error(data?.error || "Erro ao gerar PIX");
+        throw new Error(data?.message || data?.error || "Não foi possível confirmar o PIX. Verifique o resultado antes de pagar novamente.");
       }
 
       setPixData({
@@ -72,13 +73,13 @@ export const PixPayment = ({
       setTimeLeft(Math.max(0, Math.floor((expiresAt - now) / 1000)));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Erro ao gerar QR Code PIX";
-      console.error("PIX generation error:", errorMessage);
+      
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [orderId, amount, storeOwnerId, gateway]);
+  }, [orderId, guestPaymentToken, amount, storeOwnerId, gateway, onPaymentConfirmed]);
 
   // Check payment status via polling
   const checkPaymentStatus = useCallback(async () => {
@@ -87,11 +88,11 @@ export const PixPayment = ({
     setChecking(true);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("check-pix-status", {
-        body: { pixPaymentId: pixData.pixPaymentId },
+        body: { pixPaymentId: pixData.pixPaymentId, guestPaymentToken },
       });
 
       if (fnError) {
-        console.error("Error checking status:", fnError);
+        
         return;
       }
 
@@ -117,11 +118,11 @@ export const PixPayment = ({
         onExpired?.();
       }
     } catch (err) {
-      console.error("Polling error:", err);
+      
     } finally {
       setChecking(false);
     }
-  }, [pixData?.pixPaymentId, onPaymentConfirmed, onExpired]);
+  }, [pixData?.pixPaymentId, guestPaymentToken, onPaymentConfirmed, onExpired]);
 
   useEffect(() => {
     generatePix();
@@ -205,7 +206,7 @@ export const PixPayment = ({
         </div>
         <Button onClick={generatePix} variant="outline" className="gap-2">
           <RefreshCw className="h-4 w-4" />
-          Tentar novamente
+          Verificar resultado
         </Button>
       </div>
     );
@@ -248,7 +249,7 @@ export const PixPayment = ({
         </div>
         <Button onClick={generatePix} variant="outline" className="gap-2">
           <RefreshCw className="h-4 w-4" />
-          Gerar novo QR Code
+          Verificar resultado
         </Button>
       </div>
     );
