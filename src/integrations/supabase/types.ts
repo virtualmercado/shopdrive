@@ -1304,6 +1304,89 @@ export type Database = {
           },
         ]
       }
+      checkout_payment_attempts: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          expires_at: string
+          external_payment_id: string | null
+          gateway: string | null
+          id: string
+          intent: Json | null
+          order_id: string | null
+          pix_expires_at: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          state: string
+          store_owner_id: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          expires_at?: string
+          external_payment_id?: string | null
+          gateway?: string | null
+          id?: string
+          intent?: Json | null
+          order_id?: string | null
+          pix_expires_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          state?: string
+          store_owner_id: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          expires_at?: string
+          external_payment_id?: string | null
+          gateway?: string | null
+          id?: string
+          intent?: Json | null
+          order_id?: string | null
+          pix_expires_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          state?: string
+          store_owner_id?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_payment_attempts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payment_attempts_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payment_attempts_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payment_attempts_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cms_banners: {
         Row: {
           banner_key: string
@@ -8251,6 +8334,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_checkout_payment_result: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       apply_confirmed_plan_downgrade: {
         Args: { p_new_plan: string; p_store_id: string }
         Returns: number
@@ -8277,6 +8364,15 @@ export type Database = {
         Returns: Json
       }
       assert_caller_is_admin: { Args: never; Returns: undefined }
+      authorize_checkout_payment: {
+        Args: {
+          p_method: string
+          p_order_id: string
+          p_token_hash: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       authorize_onboarding_identity_application: {
         Args: {
           p_context_hash?: string
@@ -8294,6 +8390,10 @@ export type Database = {
       }
       backfill_store_onboarding_states: {
         Args: { p_limit?: number }
+        Returns: Json
+      }
+      begin_checkout_attempt: {
+        Args: { p_customer_id?: string; p_store_owner_id: string }
         Returns: Json
       }
       begin_custom_domain_provisioning: {
@@ -8336,6 +8436,17 @@ export type Database = {
       check_order_rate_limit: { Args: { client_ip: string }; Returns: boolean }
       claim_brand_network_report_send: {
         Args: { p_queue_id: string }
+        Returns: Json
+      }
+      claim_checkout_payment: {
+        Args: {
+          p_gateway: string
+          p_method: string
+          p_order_id: string
+          p_status_only?: boolean
+          p_token_hash: string
+          p_user_id: string
+        }
         Returns: Json
       }
       claim_custom_domain: { Args: { p_domain: string }; Returns: Json }
@@ -8472,6 +8583,14 @@ export type Database = {
           p_store_owner_id: string
           p_subtotal?: number
           p_total_amount?: number
+        }
+        Returns: Json
+      }
+      create_checkout_order_once: {
+        Args: {
+          p_attempt_id: string
+          p_guest_payment_token: string
+          p_order: Json
         }
         Returns: Json
       }
@@ -8808,6 +8927,17 @@ export type Database = {
       }
       record_brand_network_report_provider_id: {
         Args: { p_provider_id: string; p_queue_id: string }
+        Returns: undefined
+      }
+      record_checkout_payment_result: {
+        Args: {
+          p_external_id?: string
+          p_order_id: string
+          p_pix_expires_at?: string
+          p_qr?: string
+          p_qr_base64?: string
+          p_state: string
+        }
         Returns: undefined
       }
       record_plan_contract_acceptance: {
