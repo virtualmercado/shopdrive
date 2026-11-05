@@ -23,3 +23,9 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Homologação PIX guest/legado (handlers + navegador), compatibilidade do frontend publicado, expiração de tentativas abandonadas antes do gateway (migration 0073, cron horário), typecheck/build/testes.
 - [ ] Operação manual do lojista: cancelar #001239 pelo fluxo normal; conciliar R$ 585,38 com #001240.
 - [x] Relatar implementação parcial e bloqueios, sem cobrança real ou publicação automática.
+
+## Publicação controlada do hotfix guest — 2026-11-05
+
+- [ ] Conferir delta frontend contra a versão realmente publicada; somente checkout guest/cartão/PIX esperado.
+- [ ] Publicar somente se o delta estiver comprovado; preservar backend, credenciais, infraestrutura e pedidos.
+- [ ] Validar versão pública e checkout/carrinho AROMA www, cartão/PIX guest e cliente autenticado, sem cobranças nem dados sensíveis.
