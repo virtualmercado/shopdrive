@@ -32,7 +32,7 @@ serve(async req => {
   }
   if (!claim.charge) {
    if (claim.state==='ready') return json({success:false,status:'not_started',message:PAYMENT_NOT_STARTED});
-   const payment=await reconcilePayment(order,claim.externalPaymentId,settings.mercadopago_access_token);
+   const payment=await reconcilePayment(order,claim.externalPaymentId,settings.mercadopago_access_token,'mercadopago','card');
    return json(payment ? await persistPayment(db,orderId,payment) : {success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   }
   const address=body.customerAddress;

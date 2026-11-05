@@ -24,7 +24,7 @@ serve(async req=>{
   if(claim.state==='approved'&&claim.orderConfirmed)return json({success:true,status:'approved',orderConfirmed:true});
   if(['rejected','cancelled','expired'].includes(claim.state))return json({success:false,status:claim.state,message:'Este pagamento foi encerrado.'});
   if(!claim.charge){
-   const payment=await reconcilePayment(order,claim.externalPaymentId,credential,gateway);
+   const payment=await reconcilePayment(order,claim.externalPaymentId,credential,gateway,'pix');
    return json(payment?await persistPayment(db,orderId,payment):{success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   }
   const expiresAt=new Date(Date.now()+30*60*1000).toISOString();
