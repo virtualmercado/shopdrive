@@ -1,309 +1,45 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveOrderChargeAmount } from "../_shared/authorization.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface PixRequest {
-  orderId: string;
-  amount: number;
-  storeOwnerId: string;
-  gateway: "mercadopago" | "pagbank";
-  description?: string;
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3';
+import { paymentIdentity, authorizePayment, PaymentAccessError, pixProvider, PAYMENT_NOT_STARTED, PAYMENT_UNKNOWN, fetchPayment, normalizeGatewayPayment, persistPayment, reconcilePayment } from '../_shared/checkoutPayment.ts';
+const Body=z.object({orderId:z.string().uuid(),guestPaymentToken:z.string().regex(/^[0-9a-f]{64}$/).optional()});
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,'Content-Type':'application/json'}});
+serve(async req=>{
+ if(req.method==='OPTIONS')return new Response('ok',{headers:corsHeaders});
+ if(req.method!=='POST')return json({error:PAYMENT_NOT_STARTED},405);
+ let sent=false;let db:ReturnType<typeof createClient>|undefined;let orderId:string|undefined;
+ try{
+  const parsed=Body.safeParse(await req.json());if(!parsed.success)return json({error:PAYMENT_NOT_STARTED},400);
+  orderId=parsed.data.orderId;
+  const url=Deno.env.get('SUPABASE_URL');const anon=Deno.env.get('SUPABASE_ANON_KEY');const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if(!url||!anon||!service)return json({error:PAYMENT_NOT_STARTED},503);
+  db=createClient(url,service);const identity=await paymentIdentity(req,createClient(url,anon),parsed.data.guestPaymentToken);
+  const order=await authorizePayment(db,orderId,'pix',identity);
+  const {data:settings,error:settingsError}=await db.from('payment_settings').select('pix_enabled,pix_provider,mercadopago_enabled,mercadopago_accepts_pix,mercadopago_access_token,pagbank_enabled,pagbank_accepts_pix,pagbank_token').eq('user_id',order.store_owner_id).single();
+  const gateway=settings?pixProvider(settings):null;const credential=gateway==='mercadopago'?settings?.mercadopago_access_token:settings?.pagbank_token;
+  if(settingsError||!gateway||!credential)return json({error:PAYMENT_NOT_STARTED,status:'not_started'},400);
+  const {data:claim,error}=await db.rpc('claim_checkout_payment',{p_order_id:orderId,...identity,p_method:'pix',p_gateway:gateway,p_status_only:false});
+  if(error||!claim)return json({error:PAYMENT_NOT_STARTED,status:'not_started'},409);
+  if(claim.state==='approved'&&claim.orderConfirmed)return json({success:true,status:'approved',orderConfirmed:true});
+  if(['rejected','cancelled','expired'].includes(claim.state))return json({success:false,status:claim.state,message:'Este pagamento foi encerrado.'});
+  if(!claim.charge){
+   const payment=await reconcilePayment(order,claim.externalPaymentId,credential,gateway);
+   return json(payment?await persistPayment(db,orderId,payment):{success:false,status:'unknown',message:PAYMENT_UNKNOWN});
   }
-
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Authentication check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.log("Missing or invalid authorization header");
-      return new Response(
-        JSON.stringify({ error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify the JWT token
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
-      console.log("Invalid token:", claimsError?.message);
-      return new Response(
-        JSON.stringify({ error: "Token inválido" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Authenticated user:", claimsData.claims.sub);
-
-    // Use service role for database operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { orderId, amount, storeOwnerId, gateway, description } = await req.json() as PixRequest;
-
-    console.log("PIX request received:", { orderId, amount, storeOwnerId, gateway, description });
-
-    if (!orderId || !storeOwnerId || !gateway) {
-      return new Response(
-        JSON.stringify({ error: "Parâmetros obrigatórios não informados" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // IDOR protection: ensure the order belongs to the claimed store owner.
-    // The charge amount is ALWAYS derived from the persisted order total;
-    // any client-supplied amount is ignored.
-    let validAmount: number;
-    {
-      const { data: orderRow, error: orderErr } = await supabase
-        .from("orders")
-        .select("store_owner_id, total_amount, customer_id, payment_status, status, created_at")
-        .eq("id", orderId)
-        .maybeSingle();
-      if (orderErr || !orderRow || orderRow.store_owner_id !== storeOwnerId) {
-        return new Response(
-          JSON.stringify({ error: "Pedido não pertence à loja informada" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      // Caller binding: only the store owner, a Master/admin, the order's own
-      // customer, or (for guest orders) the checkout that just created a still
-      // unpaid order may request a charge with this store's credentials.
-      const callerId = (claimsData.claims.sub as string | undefined) ?? null;
-      let callerAllowed = false;
-      if (callerId && (callerId === orderRow.store_owner_id || callerId === orderRow.customer_id)) {
-        callerAllowed = true;
-      } else if (callerId) {
-        const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerId, _role: "admin" });
-        callerAllowed = isAdmin === true;
-      }
-      if (!callerAllowed && !orderRow.customer_id) {
-        const ageMs = Date.now() - new Date(orderRow.created_at as string).getTime();
-        callerAllowed = orderRow.payment_status !== "approved" && orderRow.status !== "cancelled" &&
-          Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 2 * 60 * 60 * 1000;
-      }
-      if (!callerAllowed) {
-        return new Response(
-          JSON.stringify({ error: "Sem permissão para este pedido" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      try {
-        validAmount = resolveOrderChargeAmount(orderRow.total_amount);
-      } catch {
-        return new Response(
-          JSON.stringify({ error: "Valor do pedido inválido." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    console.log("Amount derived from order:", { orderId, validAmount });
-
-    // Fetch merchant payment settings
-    const { data: paymentSettings, error: settingsError } = await supabase
-      .from("payment_settings")
-      .select("*")
-      .eq("user_id", storeOwnerId)
-      .single();
-
-    if (settingsError || !paymentSettings) {
-      console.error("Payment settings error:", settingsError);
-      return new Response(
-        JSON.stringify({ error: "Configurações de pagamento não encontradas" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    let pixData: any = null;
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiration
-
-    if (gateway === "mercadopago") {
-      if (!paymentSettings.mercadopago_access_token || !paymentSettings.mercadopago_enabled) {
-        return new Response(
-          JSON.stringify({ error: "Mercado Pago não está configurado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Create PIX payment with Mercado Pago
-      const idempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
-      const mpPayload = {
-        transaction_amount: validAmount,
-        description: description || `Pedido ${orderId.substring(0, 8)}`,
-        payment_method_id: "pix",
-        payer: {
-          email: "customer@email.com"
-        },
-        date_of_expiration: expiresAt.toISOString(),
-      };
-      
-      console.log("Mercado Pago payload:", JSON.stringify(mpPayload));
-      
-      const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${paymentSettings.mercadopago_access_token}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": idempotencyKey,
-        },
-        body: JSON.stringify(mpPayload),
-      });
-
-      const mpData = await mpResponse.json();
-
-      if (!mpResponse.ok) {
-        console.error("Mercado Pago error:", JSON.stringify(mpData));
-        return new Response(
-          JSON.stringify({ error: "Erro ao gerar PIX. Tente novamente." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      pixData = {
-        externalPaymentId: mpData.id?.toString(),
-        qrCode: mpData.point_of_interaction?.transaction_data?.qr_code,
-        qrCodeBase64: mpData.point_of_interaction?.transaction_data?.qr_code_base64,
-        expiresAt: expiresAt.toISOString(),
-      };
-    } else if (gateway === "pagbank") {
-      if (!paymentSettings.pagbank_token || !paymentSettings.pagbank_enabled) {
-        return new Response(
-          JSON.stringify({ error: "PagBank não está configurado" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Create PIX payment with PagBank
-      const pbIdempotencyKey = `${orderId}-${Date.now()}-${crypto.randomUUID()}`;
-      const pbResponse = await fetch("https://api.pagseguro.com/orders", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${paymentSettings.pagbank_token}`,
-          "Content-Type": "application/json",
-          "x-idempotency-key": pbIdempotencyKey,
-        },
-        body: JSON.stringify({
-          reference_id: orderId,
-          customer: {
-            name: "Cliente",
-            email: paymentSettings.pagbank_email || "cliente@email.com",
-            tax_id: "00000000000",
-          },
-          items: [
-            {
-              name: description || `Pedido ${orderId.substring(0, 8)}`,
-              quantity: 1,
-              unit_amount: Math.round(validAmount * 100), // PagBank uses cents
-            },
-          ],
-          qr_codes: [
-            {
-              amount: {
-                value: Math.round(validAmount * 100),
-              },
-              expiration_date: expiresAt.toISOString(),
-            },
-          ],
-        }),
-      });
-
-      const pbData = await pbResponse.json();
-
-      if (!pbResponse.ok) {
-        console.error("PagBank error:", pbData);
-        return new Response(
-          JSON.stringify({ error: "Erro ao gerar PIX no PagBank", details: pbData }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const qrCode = pbData.qr_codes?.[0];
-      pixData = {
-        externalPaymentId: pbData.id,
-        qrCode: qrCode?.text,
-        qrCodeBase64: qrCode?.links?.find((l: any) => l.rel === "QRCODE.PNG")?.href,
-        expiresAt: expiresAt.toISOString(),
-      };
-    }
-
-    if (!pixData || !pixData.qrCode) {
-      return new Response(
-        JSON.stringify({ error: "Falha ao gerar QR Code PIX" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Save PIX payment record
-    const { data: pixPayment, error: pixError } = await supabase
-      .from("pix_payments")
-      .insert({
-        order_id: orderId,
-        store_owner_id: storeOwnerId,
-        gateway,
-        external_payment_id: pixData.externalPaymentId,
-        amount: validAmount,
-        status: "pending",
-        qr_code: pixData.qrCode,
-        qr_code_base64: pixData.qrCodeBase64,
-        expires_at: pixData.expiresAt,
-      })
-      .select()
-      .single();
-
-    if (pixError) {
-      console.error("PIX payment insert error:", pixError);
-      return new Response(
-        JSON.stringify({ error: "Erro ao salvar pagamento PIX" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Update order with PIX info
-    await supabase
-      .from("orders")
-      .update({
-        pix_payment_id: pixPayment.id,
-        pix_payment_status: "pending",
-        pix_qr_code: pixData.qrCode,
-        pix_qr_code_base64: pixData.qrCodeBase64,
-        pix_expires_at: pixData.expiresAt,
-      })
-      .eq("id", orderId);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        pixPaymentId: pixPayment.id,
-        qrCode: pixData.qrCode,
-        qrCodeBase64: pixData.qrCodeBase64,
-        expiresAt: pixData.expiresAt,
-        amount: validAmount,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Generate PIX error:", error);
-    return new Response(
-      JSON.stringify({ error: "Erro interno ao processar pagamento PIX" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+  const expiresAt=new Date(Date.now()+30*60*1000).toISOString();
+  const payload=gateway==='mercadopago'?{transaction_amount:Number(order.total_amount),external_reference:orderId,description:`Pedido ${orderId}`,payment_method_id:'pix',payer:{email:order.customer_email||'cliente@example.invalid'},date_of_expiration:expiresAt}:
+   {reference_id:orderId,customer:{name:order.customer_name,email:order.customer_email||'cliente@example.invalid',tax_id:'00000000000'},items:[{name:`Pedido ${orderId}`,quantity:1,unit_amount:Math.round(Number(order.total_amount)*100)}],qr_codes:[{amount:{value:Math.round(Number(order.total_amount)*100)},expiration_date:expiresAt}]};
+  sent=true;
+  const response=await fetchPayment(gateway==='mercadopago'?'https://api.mercadopago.com/v1/payments':'https://api.pagseguro.com/orders',{method:'POST',headers:{Authorization:`Bearer ${credential}`,'Content-Type':'application/json',[gateway==='mercadopago'?'X-Idempotency-Key':'x-idempotency-key']:`order-${orderId}`},body:JSON.stringify(payload)});
+  const raw=await response.json();const payment=response.ok?normalizeGatewayPayment(raw,order,gateway):null;
+  if(!payment||!payment.qr){await db.rpc('record_checkout_payment_result',{p_order_id:orderId,p_state:'unknown'});return json({success:false,status:'unknown',message:PAYMENT_UNKNOWN});}
+  payment.expiresAt=payment.expiresAt||expiresAt;
+  return json(await persistPayment(db,orderId,payment));
+ }catch(error){
+  console.error('PIX payment could not complete');
+  if(error instanceof PaymentAccessError)return json({error:PAYMENT_NOT_STARTED,status:'not_started'},403);
+  if(sent&&db&&orderId)await db.rpc('record_checkout_payment_result',{p_order_id:orderId,p_state:'unknown'});
+  return json({success:false,status:sent?'unknown':'not_started',message:sent?PAYMENT_UNKNOWN:PAYMENT_NOT_STARTED},sent?200:500);
+ }
 });
