@@ -92,3 +92,27 @@ assert sql(f"select status from master_subscription_payments where id='{P2}'")==
 assert sql(f"select status from master_subscriptions where id='{S2}'")=='pending'
 assert sql(f"select state from master_subscription_webhook_receipts where event_key='{event}'")=='processing'
 print('PASS swallowed legacy invoice trigger error: transaction rolls back payment and plan')
+sql('drop trigger synthetic_fail on invoices')
+# A renewal keeps the first external reference but settles its own new invoice.
+renewal={**payload,'id':'1000','date_approved':'2026-11-20T12:33:35Z','next_payment_date':'2026-12-20T12:33:35Z'}
+def apply_concurrent(x):
+ event=f'payment:1000:parallel-{x}'
+ tok=json.loads(sql(f"set test.role='service_role';select claim_master_subscription_webhook('{event}','1000','payment')").splitlines()[-1])['token']
+ return json.loads(apply(event,tok,renewal).splitlines()[-1])
+with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: renewals=list(pool.map(apply_concurrent,range(8)))
+assert sum(r['changed'] for r in renewals)==1
+assert sql("select count(*) from master_subscription_payments where gateway_payment_id='1000'")=='1'
+assert sql("select count(*) from invoices where mp_payment_id='1000'")=='1'
+assert sql(f"select mp_payment_id from invoices where id='{I}'")=='184105194045'
+assert sql(f"select current_period_end from master_subscriptions where id='{S}'").startswith('2026-12-20')
+assert sql('select count(*) from test_effects')=='1'
+print('PASS 8 concurrent renewals: one new invoice/payment, original invoice preserved')
+# Old failed charge must not downgrade a subscription settled in a newer cycle.
+older={**payload,'id':'1001','status':'rejected','external_reference':None,'preapproval_id':'fixture-preapproval'}
+sql(f"insert into invoices(subscriber_id,subscription_id,amount,status,reference_period_start,reference_period_end,invoice_id,plan) values('{A}','{S}',49.97,'pending','2026-09-20','2026-10-20','inv_old','premium')")
+older['external_reference']='inv_old'
+event='payment:1001:old-failed';tok=json.loads(sql(f"set test.role='service_role';select claim_master_subscription_webhook('{event}','1001','payment')").splitlines()[-1])['token']
+apply(event,tok,older)
+assert sql(f"select status from master_subscriptions where id='{S}'")=='active'
+assert sql("select status from invoices where invoice_id='inv_old'")=='rejected'
+print('PASS older failed payment settles its invoice without downgrading current subscription')

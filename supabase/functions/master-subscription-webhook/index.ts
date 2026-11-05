@@ -141,7 +141,14 @@ serve(async (req) => {
       const payment = PaymentSchema.parse(await getResource(`v1/payments/${encodeURIComponent(paymentId)}`));
       if (payment.id !== paymentId || (preapprovalId && payment.preapproval_id && payment.preapproval_id !== preapprovalId)) throw new Error('provider_resource_mismatch');
       if (payment.status === 'approved' && !payment.date_approved) throw new Error('provider_approval_date_missing');
-      resource = { ...payment, preapproval_id: preapprovalId ?? payment.preapproval_id ?? null,
+      const linkedPreapprovalId = preapprovalId ?? payment.preapproval_id;
+      let nextPaymentDate: string | null | undefined;
+      if (linkedPreapprovalId) {
+        const preapproval = PreapprovalSchema.parse(await getResource(`preapproval/${encodeURIComponent(linkedPreapprovalId)}`));
+        if (preapproval.id !== linkedPreapprovalId) throw new Error('provider_resource_mismatch');
+        nextPaymentDate = preapproval.next_payment_date;
+      }
+      resource = { ...payment, preapproval_id: linkedPreapprovalId ?? null, next_payment_date: nextPaymentDate ?? null,
         hard_decline: isHardDecline(payment.status_detail ?? null), user_message: getUserFriendlyMessage(payment.status_detail ?? null) };
       kind = 'payment';
     }
