@@ -11,62 +11,58 @@ const json = (b: unknown, s = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-  const url = Deno.env.get("SUPABASE_URL")!;
+  const url = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !anonKey || !serviceKey) return json({ error: "configuration_unavailable" }, 503);
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-  const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
-  const { data: claims } = await userClient.auth.getClaims(auth.slice(7));
+  const userClient = createClient(url, anonKey, { global: { headers: { Authorization: auth } } });
+  const { data: claims, error: claimsError } = await userClient.auth.getClaims(auth.slice(7));
   const uid = claims?.claims?.sub;
-  if (!uid) return json({ error: "unauthorized" }, 401);
-  const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: isAdmin } = await admin.rpc("has_role", { _user_id: uid, _role: "admin" });
-  if (!isAdmin) return json({ error: "forbidden" }, 403);
+  if (claimsError || !uid) return json({ error: "unauthorized" }, 401);
+  const admin = createClient(url, serviceKey);
+  const { data: isAdmin, error: roleError } = await admin.rpc("has_role", { _user_id: uid, _role: "admin" });
+  if (roleError || isAdmin !== true) return json({ error: "forbidden" }, 403);
 
   const body = await req.json().catch(() => ({}));
   const storeId = String(body?.store_id ?? "");
   const subscriptionId = String(body?.subscription_id ?? "");
-  if (!/^[0-9a-f-]{36}$/i.test(storeId) || !/^[0-9a-f-]{36}$/i.test(subscriptionId)) return json({ error: "invalid_input" }, 400);
-
-  // Preconditions (server-side): secondary link + inherited MARCA fallback.
-  const { data: link } = await admin.from("brand_account_owned_stores")
-    .select("brand_account_id, store_role").eq("store_profile_id", storeId).maybeSingle();
-  if (!link || link.store_role !== "secondary") return json({ stopped: true, reason: "not_secondary" }, 409);
-  const { data: inherited } = await admin.rpc("get_brand_inherited_plan", { p_store_id: storeId });
-  if (inherited !== "marca") return json({ stopped: true, reason: "no_marca_fallback" }, 409);
-
-  const { data: sub } = await admin.from("master_subscriptions")
-    .select("id, user_id, plan_id, status, gateway, gateway_subscription_id, current_period_end")
-    .eq("id", subscriptionId).maybeSingle();
-  if (!sub || sub.user_id !== storeId) return json({ stopped: true, reason: "subscription_mismatch" }, 409);
-  if (sub.gateway !== "mercadopago" || !sub.gateway_subscription_id) return json({ stopped: true, reason: "no_external_recurrence" }, 409);
-
-  const { data: gw } = await admin.from("master_payment_gateways")
-    .select("mercadopago_access_token").eq("gateway_name", "mercadopago").eq("is_active", true).eq("is_default", true).maybeSingle();
-  const token = gw?.mercadopago_access_token?.trim();
-  if (!token) return json({ stopped: true, reason: "gateway_not_configured" }, 409);
-
-  const pid = encodeURIComponent(sub.gateway_subscription_id);
-  const h = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  const g = await fetch(`https://api.mercadopago.com/preapproval/${pid}`, { headers: h, signal: AbortSignal.timeout(15000) });
-  const gJ: any = await g.json().catch(() => ({}));
-  if (!g.ok) return json({ stopped: true, reason: "provider_lookup_failed", http: g.status }, 502);
-  const before = { status: gJ?.status ?? null, next_payment_date: gJ?.next_payment_date ?? null };
-
-  let after = before;
-  if (gJ?.status !== "cancelled") {
-    const r = await fetch(`https://api.mercadopago.com/preapproval/${pid}`, {
-      method: "PUT", headers: h, body: JSON.stringify({ status: "cancelled" }), signal: AbortSignal.timeout(15000),
-    });
-    const j: any = await r.json().catch(() => ({}));
-    if (!r.ok) return json({ ok: false, reason: "provider_cancel_failed", http: r.status, before }, 502);
-    after = { status: j?.status ?? null, next_payment_date: j?.next_payment_date ?? null };
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(storeId) || !uuid.test(subscriptionId)) return json({ error: "invalid_input" }, 400);
+  let claimToken: string | null = null;
+  try {
+    const { data: operation, error: claimError } = await admin.rpc("claim_marca_recurrence_cancellation", { p_actor: uid, p_store_id: storeId, p_subscription_id: subscriptionId });
+    if (claimError || !operation) return json({ stopped: true, reason: "cancellation_not_authorized" }, 409);
+    if (operation.completed) return json({ ...operation.result, idempotent: true });
+    if (!operation.claimed) return json({ processing: true }, 202);
+    if (typeof operation.token !== "string" || typeof operation.provider_reference !== "string") throw new Error("invalid_claim");
+    claimToken = operation.token;
+    const { data: gw, error: gatewayError } = await admin.from("master_payment_gateways")
+      .select("mercadopago_access_token").eq("gateway_name", "mercadopago").eq("is_active", true).eq("is_default", true).maybeSingle();
+    const token = gw?.mercadopago_access_token?.trim();
+    if (gatewayError || !token) throw new Error("gateway_unavailable");
+    const endpoint = `https://api.mercadopago.com/preapproval/${encodeURIComponent(operation.provider_reference)}`;
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const lookup = await fetch(endpoint, { headers, signal: AbortSignal.timeout(15000) });
+    const before = await lookup.json();
+    if (!lookup.ok || typeof before?.status !== "string") throw new Error("provider_lookup_failed");
+    if (before.status !== "cancelled") {
+      // Unknown outcomes are read-only reconcilable and never eligible for a second PUT.
+      if (operation.reconcile_only) throw new Error("reconciliation_required");
+      const marked = await admin.rpc("mark_marca_recurrence_cancellation_sent", { p_subscription_id: subscriptionId, p_token: claimToken });
+      if (marked.error) throw new Error("claim_changed");
+      const cancelled = await fetch(endpoint, { method: "PUT", headers, body: JSON.stringify({ status: "cancelled" }), signal: AbortSignal.timeout(15000) });
+      const after = await cancelled.json();
+      if (!cancelled.ok || after?.status !== "cancelled") throw new Error("cancellation_unconfirmed");
+    }
+    const completed = await admin.rpc("complete_marca_recurrence_cancellation", { p_subscription_id: subscriptionId, p_token: claimToken, p_before: before.status, p_after: "cancelled" });
+    if (completed.error || !completed.data) throw new Error("completion_unavailable");
+    return json(completed.data);
+  } catch {
+    if (claimToken) {
+      await admin.rpc("fail_marca_recurrence_cancellation", { p_subscription_id: subscriptionId, p_token: claimToken }).catch(() => null);
+    }
+    return json({ ok: false, reason: "cancellation_requires_reconciliation" }, 503);
   }
-
-  await admin.from("master_subscription_logs").insert({
-    subscription_id: sub.id, user_id: storeId, event_type: "external_recurrence_cancelled_marca_secondary",
-    event_description: "Recorrência externa encerrada após vínculo MARCA; período já pago preservado até o fim.",
-    metadata: { brand_account_id: link.brand_account_id, provider_status_before: before.status, provider_status_after: after.status, paid_until: sub.current_period_end, actor: uid },
-  });
-
-  return json({ ok: true, before, after, paid_until: sub.current_period_end, local_status: sub.status });
 });
