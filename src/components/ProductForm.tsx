@@ -2026,7 +2026,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     )}
 
     {/* AI Product Assistant Modal */}
-    <AIProductAssistantModal
+    {!delegated && <AIProductAssistantModal
       open={aiAssistantOpen}
       onOpenChange={setAiAssistantOpen}
       currentCategory={categories.find(c => c.id === categoryId)?.name || ""}
@@ -2041,7 +2041,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           setDescription(result.description);
         }
       }}
-    />
+    />}
     {/* Plan block modal for image editor */}
     <PlanFeatureBlockModal
       open={imageEditorBlockOpen}

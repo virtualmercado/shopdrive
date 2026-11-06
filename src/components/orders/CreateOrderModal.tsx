@@ -226,7 +226,7 @@ export const CreateOrderModal = ({
   const handleAddProduct = async (product: Product) => {
     if (product.inventory_mode === "variant") {
       setProductSearch("");
-      const { groups, variants } = await loadVariantMatrix(product.id);
+      const { groups, variants } = await loadVariantMatrix(product.id, supabase);
       setPending({ product, groups, variants, selected: {} });
       return;
     }

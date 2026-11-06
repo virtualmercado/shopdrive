@@ -17,6 +17,12 @@ export function createMerchantScopedClient(actorId: string, storeId: string): ty
   // Authentication must never be a tenant identity or another session.
   return new Proxy(scoped, { get(target, property) {
     if (property === "auth") return supabase.auth;
+    if (property === "from" && actorId !== storeId) return (name: string) => {
+      const operationalViews: Record<string, string> = {
+        profiles: "merchant_store_profiles", payment_settings: "merchant_store_payment_settings", master_subscriptions: "merchant_store_subscriptions",
+      };
+      return target.from((operationalViews[name] ?? name) as never);
+    };
     const value = Reflect.get(target, property);
     return typeof value === "function" ? value.bind(target) : value;
   } });

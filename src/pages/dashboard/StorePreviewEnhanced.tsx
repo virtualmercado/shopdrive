@@ -641,7 +641,9 @@ const StorePreviewEnhanced = () => {
 
        // Não reintroduzir valores legados ao salvar outras configurações.
        // Os arrays de banners são a fonte da verdade.
-       const { banner_desktop_url: _legacyDesktop, banner_mobile_url: _legacyMobile, ...payload } = storeData;
+       const { banner_desktop_url: _legacyDesktop, banner_mobile_url: _legacyMobile, ...rawPayload } = storeData;
+       const payload = { ...rawPayload };
+       if (delegated) { delete (payload as Partial<typeof payload>).email; delete (payload as Partial<typeof payload>).store_slug; }
 
       const { error } = await supabase
         .from("profiles")

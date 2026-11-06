@@ -73,7 +73,7 @@ const Financeiro = () => {
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
-      if (!storeId) return;
+      if (!storeId || delegated) return;
 
       // Fetch master subscription with all new status fields
       const { data: masterSub, error: masterSubError } = await merchantClient
@@ -195,7 +195,7 @@ const Financeiro = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Temporary plan trial (no billing attached) */}
-        <PlanTrialBanner />
+        {!delegated && <PlanTrialBanner />}
 
         {!delegated && !linkedToMarca && <MarcaScheduledUpgradeCard />}
 
