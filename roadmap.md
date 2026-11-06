@@ -2,10 +2,10 @@
 
 ## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06
 
-- [ ] Auditar mecanismo existente, slots e elegibilidade; guardar evidência de identidade/dados/histórico e recorrência PREMIUM.
-- [ ] Vincular Varejo somente pelo mecanismo existente e confirmar MARCA efetivo nas duas lojas, exatamente dois slots e isolamento.
-- [ ] Somente após entitlement confirmado: cancelar a recorrência PREMIUM externa específica, confirmar ausência de próxima cobrança e registrar encerramento/substituição interna sem alterar histórico pago.
-- [ ] Confirmar financeiro herdado sem cobrança própria, 217 produtos ativos e endereço ShopDrive existente sem alterações de domínio/flags/Cloudflare ou cobrança.
+- [x] Auditoria somente leitura: principal MARCA direto ativo (`d98b895f`, período até 11/11), conta `b1f7437d` com apenas slot 1; Varejo PREMIUM direto ativo (`825c1194`, até 20/11), preapproval `c4536ee702544c568b6179a514ab7b6d`; ambas com 217 produtos ativos, Varejo com 2 pedidos, perfis elegíveis sem origem de template.
+- [ ] BLOQUEADO — vínculo: `validate_brand_owned_store` recusa a Varejo com assinatura própria PREMIUM ativa; `get_effective_store_plan` prioriza plano próprio e só herda MARCA se a base direta for free. O mecanismo atual não comprova MARCA na Varejo mantendo esse estado; requer definição/autorização de transição atômica no mecanismo existente, sem downgrade nem cancelamento externo antecipado.
+- [ ] BLOQUEADO pelo vínculo — recorrência: não cancelar Mercado Pago nem encerrar assinatura interna antes da solução e confirmação MARCA; não há função de cancelamento de preapproval revisada no repositório (cancelamento de payments não encerra recorrência). Nenhuma chamada externa ou alteração financeira efetuada.
+- [ ] BLOQUEADO — financeiro herdado: `Financeiro.tsx` lê assinatura própria e ainda expõe contratação Pro/Premium após herança; requer ajuste autorizado para mostrar MARCA herdado e suprimir contratação própria. Nenhum código funcional/publicação alterado, nenhum dado/pedido/produto/domínio/flag/Cloudflare modificado ou cobrança realizada.
 
 Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flags `feature_enabled`/`ingress_ready` permanecem `false`. AROMA não pode ser afetada.
 
