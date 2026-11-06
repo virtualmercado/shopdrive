@@ -79,6 +79,9 @@ async def check(browser, role, open_invoice=False, mobile=False):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     await page.goto(ORIGIN + "/lojista/financeiro")
+    await page.wait_for_timeout(1200)
+    print("Diagnostic", errors, (await page.locator("body").inner_text())[:300])
+    await page.screenshot(path=str(OUTPUT / "diagnostic.png"))
     await expect(page.get_by_role("heading", name="Histórico de faturas")).to_be_visible()
     await expect(page.get_by_role("cell", name="PREMIUM").first).to_be_visible()
     if role == "secondary":
