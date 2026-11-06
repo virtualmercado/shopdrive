@@ -95,7 +95,7 @@ Generate a refined palette that applies the user's request while maintaining goo
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-omni-1.1-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
