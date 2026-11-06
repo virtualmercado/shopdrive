@@ -203,7 +203,7 @@ const Financeiro = () => {
               <h2 className="text-lg font-semibold text-foreground">Plano MARCA</h2>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              Esta loja está vinculada ao Plano MARCA da AROMA. A assinatura é gerenciada pela loja principal.
+              Esta loja está vinculada ao Plano MARCA da empresa. A assinatura é gerenciada pela loja principal.
             </p>
           </Card>
         )}
