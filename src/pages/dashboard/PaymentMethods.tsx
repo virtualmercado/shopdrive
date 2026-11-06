@@ -490,6 +490,7 @@ const PaymentMethodsContent = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={delegated}
                   onClick={openMercadoPagoConfig}
                   className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}
@@ -513,6 +514,7 @@ const PaymentMethodsContent = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={delegated}
                   onClick={openPagbankConfig}
                   className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}
@@ -536,6 +538,7 @@ const PaymentMethodsContent = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={delegated}
                   onClick={openStoneTonConfig}
                   className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}
@@ -559,6 +562,7 @@ const PaymentMethodsContent = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={delegated}
                   onClick={openInfinitePayConfig}
                   className="w-full gateway-credentials-btn transition-colors"
                   style={{ borderColor: primaryColor, color: primaryColor }}

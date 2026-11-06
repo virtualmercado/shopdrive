@@ -1327,7 +1327,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
                 onClick={() => {
                   setAiGenerateTitle(true);
-                  setAiAssistantOpen(true);
+                  if (!delegated) setAiAssistantOpen(true);
                 }}
               >
                 <Sparkles className="h-3 w-3" />
@@ -1387,7 +1387,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               className={`w-full mb-2 gap-2 ${buttonRadius} border-primary text-primary hover:bg-primary hover:text-primary-foreground`}
               onClick={() => {
                 setAiGenerateTitle(false);
-                setAiAssistantOpen(true);
+                if (!delegated) setAiAssistantOpen(true);
               }}
             >
               <Bot className="h-4 w-4" />
