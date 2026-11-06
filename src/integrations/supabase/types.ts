@@ -2938,6 +2938,53 @@ export type Database = {
         }
         Relationships: []
       }
+      marca_recurrence_cancellations: {
+        Row: {
+          actor_id: string | null
+          claim_token: string | null
+          claimed_at: string | null
+          created_at: string
+          provider_reference: string
+          result: Json | null
+          state: string
+          store_id: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          provider_reference: string
+          result?: Json | null
+          state?: string
+          store_id: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          provider_reference?: string
+          result?: Json | null
+          state?: string
+          store_id?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marca_recurrence_cancellations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: true
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marca_scheduled_upgrades: {
         Row: {
           activated_at: string | null
@@ -8643,6 +8690,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_marca_recurrence_cancellation: {
+        Args: { p_actor: string; p_store_id: string; p_subscription_id: string }
+        Returns: Json
+      }
       claim_marca_upgrade_checkout: {
         Args: { p_user_id: string }
         Returns: Json
@@ -8685,6 +8736,15 @@ export type Database = {
           p_routing_status: string
           p_ssl_status: string
           p_state: string
+        }
+        Returns: Json
+      }
+      complete_marca_recurrence_cancellation: {
+        Args: {
+          p_after: string
+          p_before: string
+          p_subscription_id: string
+          p_token: string
         }
         Returns: Json
       }
@@ -8828,6 +8888,10 @@ export type Database = {
           p_next_retry_at: string
         }
         Returns: Json
+      }
+      fail_marca_recurrence_cancellation: {
+        Args: { p_subscription_id: string; p_token: string }
+        Returns: undefined
       }
       finalize_custom_domain_revoke: {
         Args: {
@@ -9040,6 +9104,10 @@ export type Database = {
       }
       mark_brand_network_report_queued: {
         Args: { p_email_queue_id: string; p_run_id: string }
+        Returns: undefined
+      }
+      mark_marca_recurrence_cancellation_sent: {
+        Args: { p_subscription_id: string; p_token: string }
         Returns: undefined
       }
       merchant_reply_support_ticket: {
