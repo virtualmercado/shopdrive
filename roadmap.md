@@ -2,6 +2,8 @@
 
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 
+- [ ] Novo pedido 03:07 UTC: implementar membership explícito, contexto central e troca nos módulos Dashboard/Produtos/Pedidos/Clientes/Minha Loja/Personalizar/Gateway/Financeiro; preservar identidade, Master, encerramento e auditoria. Corrigir cancelamento com claim transacional e regressões concorrentes; não publicar.
+
 - [x] Auditoria: vínculo MARCA é financeiro, não membership; AuthContext, consultas, RLS e funções derivam tenant de auth.uid/user.id. Não existe contexto de loja ativa. Duas lojas e 217 produtos ativos em cada uma confirmados em leitura.
 - [x] Plano de autorização explícita e migração coordenada aprovado; identidade real permanece separada da loja escolhida e seletor só será habilitado após verificações de isolamento.
 - [ ] Minha Rede → Minhas Lojas e cabeçalho Trocar loja somente para lojas legitimamente autorizadas; troca server-side, limpeza de estado/cache e Dashboard da loja escolhida.
