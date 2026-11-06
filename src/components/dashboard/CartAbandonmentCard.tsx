@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ShoppingCart } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SD_PURPLE = "#6A1B9A";
 const SD_ORANGE = "#FB8C00";
 
 const CartAbandonmentCard = () => {
-  const { user } = useAuth();
+  const { storeId, client: supabase } = useMerchantStore();
   const [carts, setCarts] = useState(0);
   const [purchases, setPurchases] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!storeId) return;
 
     const fetch = async () => {
       try {
@@ -27,13 +27,13 @@ const CartAbandonmentCard = () => {
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "add_to_cart")
             .gte("created_at", since),
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "purchase")
             .gte("created_at", since),
         ]);
@@ -48,7 +48,7 @@ const CartAbandonmentCard = () => {
     };
 
     fetch();
-  }, [user]);
+  }, [storeId]);
 
   const abandonmentRate = carts > 0 ? Math.round(((carts - purchases) / carts) * 100) : 0;
   const hasData = carts > 0 || purchases > 0;

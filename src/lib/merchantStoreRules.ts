@@ -4,7 +4,7 @@ export const isStoreUuid = (value: unknown): value is string => typeof value ===
 export const delegatedMerchantRouteAllowed = (path: string) => [
   "/lojista", "/lojista/products", "/lojista/orders", "/lojista/customers", "/lojista/store",
   "/lojista/customize", "/lojista/payment-methods", "/lojista/financeiro", "/lojista/minha-rede",
-].includes(path) || /^\/lojista\/customers\/[0-9a-f-]{36}$/i.test(path);
+].includes(path);
 
 export interface ManagedStore {
   storeId: string;

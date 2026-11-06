@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Megaphone, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 interface TopBarConfig {
   enabled: boolean;
@@ -34,6 +34,7 @@ export const TopBarConfigSection = ({
   primaryColor,
   onConfigChange,
 }: TopBarConfigSectionProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

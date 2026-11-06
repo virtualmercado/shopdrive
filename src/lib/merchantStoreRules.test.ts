@@ -9,6 +9,7 @@ describe("selected-store boundaries", () => {
   it("keeps non-migrated and account-control screens outside delegated administration", () => {
     expect(delegatedMerchantRouteAllowed("/lojista/products")).toBe(true);
     expect(delegatedMerchantRouteAllowed("/lojista/settings")).toBe(false);
+    expect(delegatedMerchantRouteAllowed("/lojista/customers/11111111-1111-4111-8111-111111111111")).toBe(false);
     expect(delegatedMerchantRouteAllowed("/lojista/catalog-pdf")).toBe(false);
   });
   it("rejects malformed server store contexts without falling back to an account", () => {

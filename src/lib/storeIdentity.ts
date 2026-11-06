@@ -7,8 +7,8 @@ import type { ColorPalette } from "@/lib/storePalettes";
  * Mesmos campos gravados pelo menu Personalizar — usada também pelo
  * provisionamento inicial do onboarding. Não altera entitlement de plano.
  */
-export async function persistStorePalette(userId: string, colors: ColorPalette["colors"]) {
-  const { error } = await supabase
+export async function persistStorePalette(userId: string, colors: ColorPalette["colors"], client = supabase) {
+  const { error } = await client
     .from("profiles")
     .update({
       primary_color: colors.primary,

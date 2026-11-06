@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { useMerchantStoreContext } from './MerchantStoreContext';
 
 interface ThemeColors {
   primaryColor: string;
@@ -57,6 +58,9 @@ export const useMerchantTheme = () => {
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const scope = useMerchantStoreContext();
+  const storeId = scope ? scope.storeId : null;
+  const profileClient = scope?.client ?? supabase;
   const [user, setUser] = useState<User | null>(null);
   const [merchantColors, setMerchantColors] = useState<ThemeColors>(VM_OFFICIAL_COLORS);
   const [loading, setLoading] = useState(true);
@@ -160,18 +164,20 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [merchantColors]);
 
   useEffect(() => {
+    let current = true;
     const fetchColors = async () => {
-      if (!user) {
+      if (!user || (scope && !storeId)) {
         setLoading(false);
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile } = await profileClient
         .from('profiles')
         .select('primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color')
-        .eq('id', user.id)
+        .eq('id', storeId ?? user.id)
         .single();
 
+      if (!current) return;
       if (profile) {
         const newColors = {
           primaryColor: profile.primary_color || '#6a1b9a',
@@ -200,8 +206,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     fetchColors();
 
     // No signed-in user → nothing to subscribe to; also avoids reading user.id below.
-    if (!user) {
-      return;
+    if (!user || scope?.delegated) {
+      return () => { current = false; };
     }
 
     // Subscribe to real-time changes
@@ -245,9 +251,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       .subscribe();
 
     return () => {
+      current = false;
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, storeId, scope?.delegated, profileClient]);
 
   // For the dashboard (backoffice), always return VM official colors
   // The merchantColors are still available via the separate property for receipts/catalogs/store

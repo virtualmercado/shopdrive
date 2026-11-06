@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 export interface PlanTrial {
   id: string;
@@ -44,21 +44,21 @@ export const resolveTrialState = (trial: PlanTrial | null): PlanTrialState => {
 
 /** Latest plan trial for the signed-in merchant (read-only). */
 export const usePlanTrial = () => {
-  const { user } = useAuth();
+  const { storeId, client: supabase } = useMerchantStore();
 
   return useQuery<PlanTrialState>({
-    queryKey: ["plan-trial", user?.id],
-    enabled: !!user,
+    queryKey: ["plan-trial", storeId],
+    enabled: !!storeId,
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60 * 5,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      if (!user) return { trial: null, isActive: false, justEnded: false };
+      if (!storeId) return { trial: null, isActive: false, justEnded: false };
 
       const { data, error } = await supabase
         .from("plan_trials")
         .select("*")
-        .eq("store_id", user.id)
+        .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

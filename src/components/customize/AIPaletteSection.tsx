@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Brain, Sparkles, Check, X, Loader2, Leaf, Waves, Mountain, Moon, Circle, Heart, Flame, TreeDeciduous, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { PaletteMoodboard } from "./PaletteMoodboard";
 import { StorePreviewMockup } from "./StorePreviewMockup";
 
@@ -57,6 +57,7 @@ export const AIPaletteSection = ({
   userId,
   onApplyPalette,
 }: AIPaletteSectionProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette | null>(null);
   const [previewPalette, setPreviewPalette] = useState<ColorPalette | null>(null);
@@ -110,6 +111,7 @@ export const AIPaletteSection = ({
   };
 
   const handleRefineWithAI = async () => {
+    if (delegated) return;
     if (!selectedPalette || !refinementPrompt.trim()) {
       toast({
         title: "Atenção",
@@ -165,7 +167,7 @@ export const AIPaletteSection = ({
     }
 
     try {
-      await persistStorePalette(userId, colorsToApply);
+      await persistStorePalette(userId, colorsToApply, supabase);
 
       // Update parent state
       onApplyPalette({

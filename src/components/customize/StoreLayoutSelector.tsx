@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { normalizeStoreLayout } from "@/lib/storeLayout";
 import { useToast } from "@/hooks/use-toast";
 import { StoreLayoutPreview } from "./StoreLayoutPreview";
@@ -49,6 +49,7 @@ interface StoreLayoutSelectorProps {
 export const StoreLayoutSelector = ({ 
   userId, 
 }: StoreLayoutSelectorProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [selectedLayout, setSelectedLayout] = useState<StoreLayoutType>("layout_01");
   const [savedLayout, setSavedLayout] = useState<StoreLayoutType>("layout_01");
