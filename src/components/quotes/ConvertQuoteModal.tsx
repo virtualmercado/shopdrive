@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useConvertQuoteToOrder, Quote } from "@/hooks/useQuotes";
 import { ArrowRightLeft, AlertTriangle, CheckCircle } from "lucide-react";
 
@@ -16,6 +16,7 @@ interface ConvertQuoteModalProps {
 }
 
 export const ConvertQuoteModal = ({ open, onOpenChange, quote }: ConvertQuoteModalProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const convert = useConvertQuoteToOrder();
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [useCurrentPrices, setUseCurrentPrices] = useState(false);
@@ -29,7 +30,7 @@ export const ConvertQuoteModal = ({ open, onOpenChange, quote }: ConvertQuoteMod
 
   const checkStock = async () => {
     if (!quote?.quote_items) return;
-    const productIds = quote.quote_items.filter((i) => i.product_id).map((i) => i.product_id!);
+    const productIds = quote.quote_items.flatMap((i) => i.product_id ? [i.product_id] : []);
     if (productIds.length === 0) return;
 
     const { data } = await supabase.from("products").select("id, stock").in("id", productIds);

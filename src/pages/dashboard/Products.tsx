@@ -26,7 +26,7 @@ import { CategoryManagementModal } from "@/components/products/CategoryManagemen
 import { BulkPriceAdjustModal } from "@/components/products/BulkPriceAdjustModal";
 import { exportPriceListPDF, printPriceList } from "@/lib/productsExport";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import type { ImageAdjustments } from "@/components/ImageEditor";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { PlanLimitReachedModal } from "@/components/plan";
@@ -64,6 +64,7 @@ interface Category {
 const PRODUCTS_PER_PAGE = ADMIN_PAGE_SIZE;
 
 const Products = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [searchTerm, setSearchTerm] = useState("");
   // Products whose combination SKU matches the search (owner-scoped by RLS).
   const [variantSkuMatches, setVariantSkuMatches] = useState<Set<string>>(new Set());
@@ -125,12 +126,11 @@ const Products = () => {
   }, []);
 
   const fetchPendingPlan = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!storeId) return;
     const { data } = await (supabase as any)
       .from('master_subscriptions')
       .select('id, pending_plan_id, status')
-      .eq('user_id', user.id)
+      .eq('user_id', storeId)
       .maybeSingle();
     if (data?.pending_plan_id && data.status === 'pending_payment') {
       setPendingPlan({ planId: data.pending_plan_id, subscriptionId: data.id });
@@ -141,20 +141,18 @@ const Products = () => {
 
 
   const fetchStoreName = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!storeId) return;
     const { data } = await supabase
       .from("profiles")
       .select("store_name, full_name")
-      .eq("id", user.id)
+      .eq("id", storeId)
       .maybeSingle();
     if (data) setStoreName((data as any).store_name || (data as any).full_name || "Loja");
   };
 
   const fetchProducts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!storeId) {
         setProducts([]);
         setLoading(false);
         return;
@@ -165,7 +163,7 @@ const Products = () => {
         supabase
           .from('products')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', storeId)
           .order('created_at', { ascending: false })
           .order('id', { ascending: true }),
       );
@@ -183,8 +181,7 @@ const Products = () => {
   };
 
   const fetchCategories = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    if (!storeId) {
       setCategories([]);
       return;
     }
@@ -192,19 +189,18 @@ const Products = () => {
     const { data } = await supabase
       .from("product_categories")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", storeId)
       .order("name");
     
     if (data) setCategories(data);
   };
 
   const fetchBrands = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setBrands([]); return; }
+    if (!storeId) { setBrands([]); return; }
     const { data } = await supabase
       .from("product_brands")
       .select("id, name")
-      .eq("user_id", user.id)
+      .eq("user_id", storeId)
       .order("name");
     const list = data || [];
     setBrands(list);

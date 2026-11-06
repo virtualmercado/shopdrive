@@ -1,6 +1,6 @@
 import { fetchAllRows } from "@/lib/adminPagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { toast } from "@/hooks/use-toast";
 
 export interface OrderItem {
@@ -34,12 +34,12 @@ export interface Order {
 }
 
 export const useOrders = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", storeId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const data = await fetchAllRows(() => supabase
         .from("orders")
@@ -62,7 +62,7 @@ export const useOrders = () => {
           updated_at,
           order_source
         `)
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: true }));
       return data as Order[];
@@ -71,8 +71,9 @@ export const useOrders = () => {
 };
 
 export const useOrderDetails = (orderId: string) => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["order", orderId],
+    queryKey: ["order", orderId, storeId],
     queryFn: async () => {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -94,22 +95,22 @@ export const useOrderDetails = (orderId: string) => {
         order_items: itemsData,
       } as Order;
     },
-    enabled: !!orderId,
+    enabled: !!orderId && !!storeId,
   });
 };
 
 export const useOrderStats = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["order-stats"],
+    queryKey: ["order-stats", storeId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("orders")
         .select("status, total_amount")
-        .eq("store_owner_id", user.id);
+        .eq("store_owner_id", storeId);
 
       if (error) throw error;
 
@@ -127,6 +128,7 @@ export const useOrderStats = () => {
 };
 
 export const useUpdateOrderStatus = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -141,15 +143,15 @@ export const useUpdateOrderStatus = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["order-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["order-stats", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["products", storeId] });
       // Invalidate dashboard chart queries so they reflect the new order status
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["top-products-30-days"] });
-      queryClient.invalidateQueries({ queryKey: ["top-customers-6-months"] });
-      queryClient.invalidateQueries({ queryKey: ["revenue-stats-30-days"] });
-      queryClient.invalidateQueries({ queryKey: ["recent-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["top-products-30-days", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["top-customers-6-months", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["revenue-stats-30-days", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["recent-orders", storeId] });
       toast({
         title: "Status atualizado",
         description: "O status do pedido foi atualizado com sucesso.",

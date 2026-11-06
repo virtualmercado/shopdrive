@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMerchantStore } from "./useMerchantStore";
 import { useAuth } from './useAuth';
 import { MerchantPlan, getPlanFromPlanId, resolveStoreEntitlements, PlanLimits, isWithinLimit } from '@/lib/planLimits';
 
@@ -64,7 +64,7 @@ interface ProductPlanUsageResponse {
 }
 
 export const useMerchantPlan = (): UseMerchantPlanReturn => {
-  const { user, loading: authLoading } = useAuth();
+  const { storeId, client: supabase, loading: authLoading } = useMerchantStore();
   const [plan, setPlan] = useState<MerchantPlan>('unknown');
   const [loading, setLoading] = useState(true);
   const [productCount, setProductCount] = useState(0);
@@ -75,7 +75,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
   const templateMode = isInTemplateEditorMode();
 
   const fetchPlanAndCounts = async () => {
-    if (!user) {
+    if (!storeId) {
       setPlan('unknown');
       setProductCount(0);
       setCustomerCount(0);
@@ -85,11 +85,11 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
 
     try {
       const [usageResult, customerResult] = await Promise.all([
-        (supabase.rpc as any)('get_product_plan_usage', { p_store_id: user.id }),
+        (supabase.rpc as any)('get_product_plan_usage', { p_store_id: storeId }),
         supabase
           .from('store_customers')
           .select('id', { count: 'exact', head: true })
-          .eq('store_owner_id', user.id),
+          .eq('store_owner_id', storeId),
       ]);
 
       if (usageResult.error) throw usageResult.error;
@@ -117,7 +117,7 @@ export const useMerchantPlan = (): UseMerchantPlanReturn => {
     if (!authLoading) {
       fetchPlanAndCounts();
     }
-  }, [user, authLoading]);
+  }, [storeId, authLoading]);
 
   // In template editor mode, override ALL limits to fully unlocked
   const limits = templateMode ? TEMPLATE_OVERRIDE_LIMITS : resolveStoreEntitlements(plan, planSource, ownedStoreRole);

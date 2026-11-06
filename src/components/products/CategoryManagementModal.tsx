@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import {
   Loader2,
   Pencil,
@@ -57,6 +57,7 @@ export const CategoryManagementModal = ({
   onOpenChange,
   onCategoryChange,
 }: CategoryManagementModalProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,13 +81,12 @@ export const CategoryManagementModal = ({
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const { data, error } = await supabase
         .from("product_categories")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", storeId)
         .order("name");
 
       if (error) throw error;
@@ -178,14 +178,13 @@ export const CategoryManagementModal = ({
     setSaving(true);
     let uploadFailed = false;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       let iconUrl: string | null = editing?.icon_url ?? null;
 
       if (iconFile) {
         try {
-          iconUrl = await uploadIcon(user.id, iconFile);
+          iconUrl = await uploadIcon(storeId, iconFile);
         } catch (uploadErr: any) {
           console.error("[CategoryIcon] upload failed, salvando sem ícone:", uploadErr);
           uploadFailed = true;
@@ -219,7 +218,7 @@ export const CategoryManagementModal = ({
             name: name.trim(),
             icon_url: iconUrl,
             is_active: isActive,
-            user_id: user.id,
+            user_id: storeId,
           });
         if (error) {
           if (error.code === "23505") {

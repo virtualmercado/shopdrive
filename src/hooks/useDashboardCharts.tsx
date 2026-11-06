@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 export interface SalesByState {
   state: string;
@@ -80,11 +80,11 @@ const getAgeRange = (age: number | null): string => {
 };
 
 export const useSalesByState = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["sales-by-state"],
+    queryKey: ["sales-by-state", storeId],
     queryFn: async (): Promise<SalesByState[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -93,7 +93,7 @@ export const useSalesByState = () => {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("customer_address")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (error) throw error;
@@ -139,11 +139,11 @@ export const useSalesByState = () => {
 };
 
 export const useSalesByGender = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["sales-by-gender"],
+    queryKey: ["sales-by-gender", storeId],
     queryFn: async (): Promise<SalesByGender[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -152,7 +152,7 @@ export const useSalesByGender = () => {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("customer_id, customer_email")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (ordersError) throw ordersError;
@@ -215,11 +215,11 @@ export const useSalesByGender = () => {
 };
 
 export const useSalesByAgeRange = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["sales-by-age-range"],
+    queryKey: ["sales-by-age-range", storeId],
     queryFn: async (): Promise<SalesByAgeRange[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -228,7 +228,7 @@ export const useSalesByAgeRange = () => {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("customer_id")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       if (ordersError) throw ordersError;
@@ -290,11 +290,11 @@ export const useSalesByAgeRange = () => {
 };
 
 export const useRevenueStats = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["revenue-stats-30-days"],
+    queryKey: ["revenue-stats-30-days", storeId],
     queryFn: async (): Promise<RevenueStats> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const now = new Date();
       const thirtyDaysAgo = new Date();
@@ -308,7 +308,7 @@ export const useRevenueStats = () => {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("total_amount")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .in("status", paidStatuses)
         .gte("created_at", thirtyDaysAgo.toISOString());
 
@@ -318,7 +318,7 @@ export const useRevenueStats = () => {
       const { data: prevOrders, error: prevError } = await supabase
         .from("orders")
         .select("total_amount")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .in("status", paidStatuses)
         .gte("created_at", sixtyDaysAgo.toISOString())
         .lt("created_at", thirtyDaysAgo.toISOString());
@@ -362,11 +362,11 @@ export interface TopCustomer {
 }
 
 export const useTopProducts = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["top-products-30-days"],
+    queryKey: ["top-products-30-days", storeId],
     queryFn: async (): Promise<TopProduct[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -375,7 +375,7 @@ export const useTopProducts = () => {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("id")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
         .gte("created_at", thirtyDaysAgo.toISOString());
 
@@ -426,11 +426,11 @@ export const useTopProducts = () => {
 };
 
 export const useTopCustomers = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["top-customers-6-months"],
+    queryKey: ["top-customers-6-months", storeId],
     queryFn: async (): Promise<TopCustomer[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -439,7 +439,7 @@ export const useTopCustomers = () => {
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
         .select("customer_name, total_amount")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .in("status", ["paid", "delivered", "shipped", "confirmed", "completed"])
         .gte("created_at", sixMonthsAgo.toISOString());
 

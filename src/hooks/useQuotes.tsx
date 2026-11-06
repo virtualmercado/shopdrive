@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { toast } from "@/hooks/use-toast";
 
 
@@ -40,16 +40,16 @@ export interface Quote {
 }
 
 export const useQuotes = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["quotes"],
+    queryKey: ["quotes", storeId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("quotes")
         .select("*")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -76,8 +76,9 @@ export const useQuotes = () => {
 };
 
 export const useQuoteDetails = (quoteId: string | null) => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["quote", quoteId],
+    queryKey: ["quote", quoteId, storeId],
     queryFn: async () => {
       if (!quoteId) return null;
       const { data: quoteData, error: quoteError } = await supabase
@@ -95,11 +96,12 @@ export const useQuoteDetails = (quoteId: string | null) => {
 
       return { ...quoteData, quote_items: itemsData || [] } as Quote;
     },
-    enabled: !!quoteId,
+    enabled: !!quoteId && !!storeId,
   });
 };
 
 export const useSaveQuote = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -112,24 +114,24 @@ export const useSaveQuote = () => {
       items: QuoteItem[];
       editId?: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
+      if (!quote.customer_name || !quote.valid_until || quote.subtotal === undefined || quote.total === undefined) throw new Error("Orçamento incompleto");
 
       if (editId) {
         const { error } = await supabase
           .from("quotes")
           .update({
             customer_id: quote.customer_id || null,
-            customer_name: quote.customer_name!,
+            customer_name: quote.customer_name,
             customer_phone: quote.customer_phone || null,
             customer_email: quote.customer_email || null,
             delivery_address: quote.delivery_address || null,
             notes: quote.notes || null,
-            valid_until: quote.valid_until!,
-            subtotal: quote.subtotal!,
+            valid_until: quote.valid_until,
+            subtotal: quote.subtotal,
             discount: quote.discount || 0,
             shipping_fee: quote.shipping_fee || 0,
-            total: quote.total!,
+            total: quote.total,
             payment_method_hint: quote.payment_method_hint || null,
             status: quote.status || "open",
           })
@@ -157,18 +159,18 @@ export const useSaveQuote = () => {
         const { data, error } = await supabase
           .from("quotes")
           .insert({
-            store_owner_id: user.id,
-            customer_name: quote.customer_name!,
+            store_owner_id: storeId,
+            customer_name: quote.customer_name,
             customer_id: quote.customer_id || null,
             customer_phone: quote.customer_phone || null,
             customer_email: quote.customer_email || null,
             delivery_address: quote.delivery_address || null,
             notes: quote.notes || null,
-            valid_until: quote.valid_until!,
-            subtotal: quote.subtotal!,
+            valid_until: quote.valid_until,
+            subtotal: quote.subtotal,
             discount: quote.discount || 0,
             shipping_fee: quote.shipping_fee || 0,
-            total: quote.total!,
+            total: quote.total,
             payment_method_hint: quote.payment_method_hint || null,
             status: quote.status || "open",
           })
@@ -198,7 +200,7 @@ export const useSaveQuote = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes", storeId] });
       toast({ title: "Sucesso", description: "Orçamento salvo com sucesso!" });
     },
     onError: (err: any) => {
@@ -209,6 +211,7 @@ export const useSaveQuote = () => {
 };
 
 export const useUpdateQuoteStatus = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -217,7 +220,7 @@ export const useUpdateQuoteStatus = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes", storeId] });
       toast({ title: "Status atualizado", description: "O status do orçamento foi atualizado." });
     },
     onError: () => {
@@ -227,6 +230,7 @@ export const useUpdateQuoteStatus = () => {
 };
 
 export const useDeleteQuote = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -235,7 +239,7 @@ export const useDeleteQuote = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes", storeId] });
       toast({ title: "Sucesso", description: "Orçamento excluído." });
     },
     onError: () => {
@@ -245,6 +249,7 @@ export const useDeleteQuote = () => {
 };
 
 export const useConvertQuoteToOrder = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -267,9 +272,9 @@ export const useConvertQuoteToOrder = () => {
       return order;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["order-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["order-stats", storeId] });
       toast({ title: "Convertido!", description: "Orçamento convertido em pedido com sucesso." });
     },
     onError: (err: any) => {
@@ -279,8 +284,9 @@ export const useConvertQuoteToOrder = () => {
 };
 
 export const useQuotePublicLink = (quoteId: string | null) => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["quote-public-link", quoteId],
+    queryKey: ["quote-public-link", quoteId, storeId],
     queryFn: async () => {
       if (!quoteId) return null;
       const { data, error } = await supabase
@@ -291,6 +297,6 @@ export const useQuotePublicLink = (quoteId: string | null) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!quoteId,
+    enabled: !!quoteId && !!storeId,
   });
 };

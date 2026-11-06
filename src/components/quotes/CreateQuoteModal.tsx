@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Search, Plus, Trash2, Save, FileText } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useSaveQuote, Quote, QuoteItem } from "@/hooks/useQuotes";
 import { format, addDays } from "date-fns";
@@ -33,6 +33,7 @@ interface CreateQuoteModalProps {
 }
 
 export const CreateQuoteModal = ({ open, onOpenChange, editQuote }: CreateQuoteModalProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const saveQuote = useSaveQuote();
 
@@ -60,8 +61,8 @@ export const CreateQuoteModal = ({ open, onOpenChange, editQuote }: CreateQuoteM
   const [freeItemQty, setFreeItemQty] = useState("1");
 
   useEffect(() => {
-    if (open && user) fetchData();
-  }, [open, user]);
+    if (open && storeId) fetchData();
+  }, [open, storeId]);
 
   useEffect(() => {
     if (editQuote && open) {
@@ -94,14 +95,14 @@ export const CreateQuoteModal = ({ open, onOpenChange, editQuote }: CreateQuoteM
     const { data: productsData } = await supabase
       .from("products")
       .select("id, name, price, promotional_price, stock")
-      .eq("user_id", user!.id)
+      .eq("user_id", storeId ?? "")
       .order("name");
     setProducts(productsData || []);
 
     const { data: storeCustomers } = await supabase
       .from("store_customers")
       .select("customer_id")
-      .eq("store_owner_id", user!.id);
+      .eq("store_owner_id", storeId ?? "");
 
     if (storeCustomers && storeCustomers.length > 0) {
       const ids = storeCustomers.map((sc) => sc.customer_id);

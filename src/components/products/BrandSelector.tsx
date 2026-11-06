@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Tag, Plus, Search, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useRef } from "react";
 
@@ -35,6 +35,7 @@ export const BrandSelector = ({
   buttonTextColor = "#FFFFFF",
   buttonRadius = "rounded-md",
 }: BrandSelectorProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,13 +54,12 @@ export const BrandSelector = ({
 
   const fetchBrands = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const { data, error } = await supabase
         .from("product_brands")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", storeId)
         .eq("is_active", true)
         .order("name");
 
@@ -120,12 +120,11 @@ export const BrandSelector = ({
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       let logoUrl = null;
       if (newBrandLogo) {
-        logoUrl = await uploadLogo(user.id, newBrandLogo);
+        logoUrl = await uploadLogo(storeId, newBrandLogo);
       }
 
       const { data, error } = await supabase
@@ -134,7 +133,7 @@ export const BrandSelector = ({
           name: newBrandName.trim(),
           logo_url: logoUrl,
           is_active: true,
-          user_id: user.id,
+          user_id: storeId,
         })
         .select()
         .single();

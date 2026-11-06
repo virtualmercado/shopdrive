@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from '@/hooks/useAuth';
 import { Search, Filter, ArrowDownAZ, Pencil, Plus, Users, Trash2, Printer, FileSpreadsheet, X, UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -89,6 +89,7 @@ interface NewCustomerData {
 }
 
 const Customers = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -187,7 +188,7 @@ const Customers = () => {
   useEffect(() => { setCurrentPage(1); }, [searchTerm, sortBy]);
 
   useEffect(() => {
-    if (user) {
+    if (storeId) {
       fetchCustomers();
       fetchGroups();
       fetchCustomerGroupAssignments();
@@ -202,7 +203,7 @@ const Customers = () => {
 
 
   const fetchCustomers = async () => {
-    if (!user) return;
+    if (!storeId) return;
     
     setLoading(true);
     try {
@@ -211,7 +212,7 @@ const Customers = () => {
         supabase
           .from('store_customers')
           .select('id, customer_id, is_active, customer_code, origin')
-          .eq('store_owner_id', user.id)
+          .eq('store_owner_id', storeId)
           .order('id', { ascending: true }),
       );
 
@@ -266,12 +267,12 @@ const Customers = () => {
   };
 
   const fetchGroups = async () => {
-    if (!user) return;
+    if (!storeId) return;
     
     const { data, error } = await supabase
       .from('customer_groups')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', storeId)
       .order('name');
 
     if (error) {
@@ -283,12 +284,12 @@ const Customers = () => {
   };
 
   const fetchCustomerGroupAssignments = async () => {
-    if (!user) return;
+    if (!storeId) return;
 
     const { data: groupsData } = await supabase
       .from('customer_groups')
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', storeId);
 
     if (!groupsData || groupsData.length === 0) return;
 
@@ -311,13 +312,13 @@ const Customers = () => {
   };
 
   const fetchCustomerAddresses = async () => {
-    if (!user) return;
+    if (!storeId) return;
 
     // First get customer IDs for this store
     const { data: storeCustomers } = await supabase
       .from('store_customers')
       .select('customer_id')
-      .eq('store_owner_id', user.id);
+      .eq('store_owner_id', storeId);
 
     if (!storeCustomers || storeCustomers.length === 0) {
       setCustomerAddresses([]);
@@ -362,12 +363,12 @@ const Customers = () => {
   };
 
   const handleCreateGroup = async () => {
-    if (!user || !newGroupName.trim()) return;
+    if (!storeId || !newGroupName.trim()) return;
 
     const { error } = await supabase
       .from('customer_groups')
       .insert({
-        user_id: user.id,
+        user_id: storeId,
         name: newGroupName.trim()
       });
 
@@ -422,7 +423,7 @@ const Customers = () => {
 
   // Add new customer manually
   const handleAddCustomer = async () => {
-    if (!user) return;
+    if (!storeId) return;
     
     // Validate required fields
     if (!newCustomerData.full_name.trim() || !newCustomerData.email.trim()) {
@@ -490,7 +491,7 @@ const Customers = () => {
         .from('customer_addresses')
         .insert({
           customer_id: customerId,
-          store_owner_id: user.id,
+          store_owner_id: storeId,
           recipient_name: newCustomerData.recipient_name.trim() || newCustomerData.full_name.trim(),
           cep: newCustomerData.cep.trim(),
           street: newCustomerData.street.trim(),
@@ -566,14 +567,14 @@ const Customers = () => {
   };
 
   const handleDeleteCustomer = async () => {
-    if (!user || !customerToDelete) return;
+    if (!storeId || !customerToDelete) return;
 
     try {
       // Delete from store_customers (removes the relationship)
       const { error } = await supabase
         .from('store_customers')
         .delete()
-        .eq('store_owner_id', user.id)
+        .eq('store_owner_id', storeId)
         .eq('customer_id', customerToDelete.id);
 
       if (error) throw error;

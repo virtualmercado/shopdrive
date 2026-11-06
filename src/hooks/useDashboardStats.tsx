@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 export interface DashboardStats {
   monthlySales: number;
@@ -18,12 +18,12 @@ export interface RecentOrder {
 }
 
 export const useDashboardStats = () => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard-stats", storeId],
     queryFn: async (): Promise<DashboardStats> => {
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       // Get current month boundaries
       const now = new Date();
@@ -34,7 +34,7 @@ export const useDashboardStats = () => {
       const { data: monthlyOrders, error: ordersError } = await supabase
         .from("orders")
         .select("total_amount, status")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .gte("created_at", startOfMonth.toISOString())
         .lte("created_at", endOfMonth.toISOString());
 
@@ -53,7 +53,7 @@ export const useDashboardStats = () => {
       const { count: productsCount, error: productsError } = await supabase
         .from("products")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+        .eq("user_id", storeId);
 
       if (productsError) throw productsError;
 
@@ -78,17 +78,17 @@ export const useDashboardStats = () => {
 };
 
 export const useRecentOrders = (limit: number = 5) => {
+  const { storeId, client: supabase } = useMerchantStore();
   return useQuery({
-    queryKey: ["recent-orders", limit],
+    queryKey: ["recent-orders", limit, storeId],
     queryFn: async (): Promise<RecentOrder[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("orders")
         .select("id, order_number, customer_name, total_amount, status, created_at")
-        .eq("store_owner_id", user.id)
+        .eq("store_owner_id", storeId)
         .order("created_at", { ascending: false })
         .limit(limit);
 

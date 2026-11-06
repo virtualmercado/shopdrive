@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Search, Plus, Trash2, Save, Package } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { loadVariantMatrix, comboKey, type VariantOptionGroup, type ProductVariantRow } from "@/lib/productVariants";
@@ -85,6 +85,7 @@ export const CreateOrderModal = ({
   onOrderCreated,
   editOrder,
 }: CreateOrderModalProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -115,10 +116,10 @@ export const CreateOrderModal = ({
   } | null>(null);
   
   useEffect(() => {
-    if (open && user) {
+    if (open && storeId) {
       fetchData();
     }
-  }, [open, user]);
+  }, [open, storeId]);
 
   useEffect(() => {
     if (editOrder && open) {
@@ -155,7 +156,7 @@ export const CreateOrderModal = ({
       const { data: productsData } = await supabase
         .from("products")
         .select("id, name, price, promotional_price, stock, image_url, inventory_mode")
-        .eq("user_id", user!.id)
+        .eq("user_id", storeId ?? "")
         .order("name");
       
       setProducts(productsData || []);
@@ -164,7 +165,7 @@ export const CreateOrderModal = ({
       const { data: storeCustomers } = await supabase
         .from("store_customers")
         .select("customer_id")
-        .eq("store_owner_id", user!.id);
+        .eq("store_owner_id", storeId ?? "");
 
       if (storeCustomers && storeCustomers.length > 0) {
         const customerIds = storeCustomers.map(sc => sc.customer_id);
@@ -188,7 +189,7 @@ export const CreateOrderModal = ({
       const { data: paymentData } = await supabase
         .from("payment_settings")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", storeId ?? "")
         .maybeSingle();
       
       setPaymentSettings(paymentData);
@@ -197,7 +198,7 @@ export const CreateOrderModal = ({
       const { data: shippingData } = await supabase
         .from("shipping_rules")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", storeId ?? "")
         .eq("is_active", true);
       
       setShippingRules(shippingData || []);
@@ -444,7 +445,7 @@ export const CreateOrderModal = ({
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
           .insert({
-            store_owner_id: user!.id,
+            store_owner_id: storeId ?? "",
             customer_id: selectedCustomerId,
             customer_name: customer.full_name,
             customer_email: customer.email,

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { 
@@ -77,6 +77,7 @@ const defaultSettings: Omit<PaymentSettings, 'user_id'> = {
 
 
 const PaymentMethodsContent = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const { primaryColor, buttonBgColor, buttonTextColor } = useTheme();
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
@@ -130,10 +131,10 @@ const PaymentMethodsContent = () => {
 
 
   useEffect(() => {
-    if (user) {
+    if (storeId) {
       fetchSettings();
     }
-  }, [user]);
+  }, [storeId]);
 
   useEffect(() => {
     if (settings) {
@@ -159,13 +160,13 @@ const PaymentMethodsContent = () => {
     "boleto_enabled,boleto_provider";
 
   const fetchSettings = async () => {
-    if (!user) return;
+    if (!storeId) return;
     
     try {
       const { data, error } = await supabase
         .from("payment_settings")
         .select(SAFE_COLUMNS)
-        .eq("user_id", user.id)
+        .eq("user_id", storeId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -175,7 +176,7 @@ const PaymentMethodsContent = () => {
       if (data) {
         setSettings(data as any);
       } else {
-        setSettings({ ...defaultSettings, user_id: user.id });
+        setSettings({ ...defaultSettings, user_id: storeId });
       }
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -189,7 +190,7 @@ const PaymentMethodsContent = () => {
 
 
   const saveSettings = async (newSettings: Partial<PaymentSettings>) => {
-    if (!user || !settings) return;
+    if (!storeId || !settings) return;
     
     setSaving(true);
     try {
@@ -205,7 +206,7 @@ const PaymentMethodsContent = () => {
       } else {
         const { data, error } = await supabase
           .from("payment_settings")
-          .insert({ ...updatedSettings, user_id: user.id })
+          .insert({ ...updatedSettings, user_id: storeId })
           .select(SAFE_COLUMNS)
           .single();
 

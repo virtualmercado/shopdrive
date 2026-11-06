@@ -7,7 +7,7 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Loader2, Trash2, Upload, Pencil, Plus, Sparkles, Bot, Star, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
@@ -89,9 +89,9 @@ const withIds = (vs: ProductVariation[]): ProductVariation[] =>
 
 const toGroups = (vs: ProductVariation[]): VariantOptionGroup[] =>
   withIds(vs).map((v) => ({
-    id: v.id!,
+    id: v.id ?? newId(),
     name: v.name,
-    values: v.values.map((val, i) => ({ id: v.valueIds![i], value: val })),
+    values: v.values.map((val, i) => ({ id: v.valueIds?.[i] ?? newId(), value: val })),
   }));
 
 /**
@@ -168,6 +168,7 @@ interface ProductFormProps {
 }
 
 export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPersisted }: ProductFormProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price.toString() || "");
@@ -211,7 +212,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     0,
   );
   useEffect(() => {
-    fetchVariantLimits().then(setVariantLimits).catch(() => {});
+    fetchVariantLimits(supabase).then(setVariantLimits).catch(() => {});
   }, []);
   
   // Weight and dimensions state
@@ -297,7 +298,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       setVariantMode(isVariant);
       setWasVariantMode(isVariant);
       if (isVariant) {
-        loadVariantMatrix(product.id).then(({ groups, variants }) => {
+        loadVariantMatrix(product.id, supabase).then(({ groups, variants }) => {
           if (groups.length > 0) {
             setVariations(
               groups.map((g) => ({
@@ -354,13 +355,12 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
   }, [product, open]);
 
   const fetchCategories = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!storeId) return;
     
     const { data } = await supabase
       .from("product_categories")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", storeId)
       .order("name");
     
     if (data) setCategories(data);
@@ -449,11 +449,9 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
         const mutationId = imagesMutationRef.current;
         const snapshot = imagePreviewsRef.current;
+        if (!storeId) throw new Error("Usuário não autenticado");
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Usuário não autenticado");
-
-        const resolvedUrls = await resolveImagePreviewsToUrls(user.id, snapshot, product.id);
+        const resolvedUrls = await resolveImagePreviewsToUrls(storeId, snapshot, product.id);
         const mainImage = resolvedUrls[0] || null;
 
         const { data, error } = await supabase
@@ -624,13 +622,11 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
   const createCategory = async () => {
     if (!newCategoryName.trim()) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!storeId) return;
 
     const { data, error } = await supabase
       .from("product_categories")
-      .insert([{ name: newCategoryName.trim(), user_id: user.id }])
+      .insert([{ name: newCategoryName.trim(), user_id: storeId }])
       .select()
       .single();
 
@@ -749,8 +745,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!storeId) {
         toast({
           title: "Erro",
           description: "Usuário não autenticado",
@@ -761,7 +756,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
       // Resolve ALL images to public URLs (never store data:/blob: URLs in the database)
       const productFolder = product?.id || "draft";
-      const allImages = await resolveImagePreviewsToUrls(user.id, imagePreviews, productFolder);
+      const allImages = await resolveImagePreviewsToUrls(storeId, imagePreviews, productFolder);
       const mainImage = allImages[0] || null;
 
       // Validate input data
@@ -837,7 +832,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
         brand_id: brandId || null,
         is_featured: isFeatured,
         is_new: isNew,
-        user_id: user.id,
+        user_id: storeId,
         variations: variations.length > 0 ? variations.map(v => ({ name: v.name, values: [...v.values] })) : [],
         weight: weight ? (weightUnit === "g" ? parseFloat(weight) / 1000 : parseFloat(weight)) : null,
         shipping_weight: shippingWeight ? (shippingWeightUnit === "g" ? parseFloat(shippingWeight) / 1000 : parseFloat(shippingWeight)) : null,
@@ -1010,9 +1005,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
       imagesMutationRef.current += 1;
       return;
     }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuário não autenticado");
+    if (!storeId) throw new Error("Usuário não autenticado");
 
     // Instrumentation required: log click context + blob info
     if (import.meta.env.DEV) {
@@ -1028,7 +1021,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
 
     // Persist: upload (unique filename) -> update DB with adjustments -> re-fetch -> hydrate local state
     const result = await persistEditedProductImage({
-      userId: user.id,
+      userId: storeId,
+      client: supabase,
       productId: product.id,
       imageIndex,
       blob: payload.blob,
@@ -1086,8 +1080,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       let completed = 0;
       let failed = 0;
@@ -1106,7 +1099,8 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           const { blob } = await exportEditedProductImageJpeg(sourceUrl, settings);
 
           const result = await persistEditedProductImage({
-            userId: user.id,
+            userId: storeId,
+      client: supabase,
             productId: product.id,
             imageIndex,
             blob,

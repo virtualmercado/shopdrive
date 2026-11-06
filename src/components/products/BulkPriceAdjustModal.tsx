@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 interface Product {
   id: string;
@@ -53,6 +53,7 @@ export const BulkPriceAdjustModal = ({
   categories,
   onApplied,
 }: Props) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [scope, setScope] = useState<Scope>("filtered");
   const [categoryId, setCategoryId] = useState<string>("");
   const [op, setOp] = useState<Op>("increase");
