@@ -547,6 +547,13 @@
       "when": 1793934934011,
       "tag": "0077_marca_recurrence_cancellation_single_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793935214313,
+      "tag": "0078_marca_scoped_private_data_containment",
+      "breakpoints": true
     }
   ]
 }

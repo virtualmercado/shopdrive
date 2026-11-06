@@ -302,6 +302,13 @@ export type Database = {
             foreignKeyName: "audit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -450,6 +457,13 @@ export type Database = {
             foreignKeyName: "brand_account_owned_stores_store_profile_id_fkey"
             columns: ["store_profile_id"]
             isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_account_owned_stores_store_profile_id_fkey"
+            columns: ["store_profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -492,6 +506,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brand_accounts_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brand_accounts_owner_profile_id_fkey"
             columns: ["owner_profile_id"]
@@ -1036,6 +1057,13 @@ export type Database = {
             foreignKeyName: "brand_templates_source_profile_id_fkey"
             columns: ["source_profile_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_templates_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1075,6 +1103,13 @@ export type Database = {
           store_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "catalog_editorial_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "catalog_editorial_access_store_id_fkey"
             columns: ["store_id"]
@@ -1166,6 +1201,13 @@ export type Database = {
           store_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "catalog_editorial_drafts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "catalog_editorial_drafts_store_id_fkey"
             columns: ["store_id"]
@@ -1285,6 +1327,13 @@ export type Database = {
             foreignKeyName: "catalog_publications_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_publications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1362,6 +1411,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: true
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payment_attempts_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1742,6 +1798,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "custom_domain_v2_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "custom_domain_v2_access_store_id_fkey"
             columns: ["store_id"]
@@ -2823,6 +2886,13 @@ export type Database = {
             foreignKeyName: "invoices_subscriber_id_fkey"
             columns: ["subscriber_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2983,6 +3053,13 @@ export type Database = {
             referencedRelation: "master_subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "marca_recurrence_cancellations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_subscriptions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       marca_scheduled_upgrades: {
@@ -3081,10 +3158,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "marca_scheduled_upgrades_source_subscription_id_fkey"
+            columns: ["source_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "marca_scheduled_upgrades_target_subscription_id_fkey"
             columns: ["target_subscription_id"]
             isOneToOne: false
             referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marca_scheduled_upgrades_target_subscription_id_fkey"
+            columns: ["target_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -3279,6 +3370,13 @@ export type Database = {
             referencedRelation: "master_subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "master_subscription_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_subscriptions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       master_subscription_payments: {
@@ -3372,6 +3470,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -3817,6 +3922,13 @@ export type Database = {
             foreignKeyName: "merchant_domains_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_domains_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3865,6 +3977,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "merchant_store_memberships_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "merchant_store_memberships_store_id_fkey"
             columns: ["store_id"]
@@ -4628,6 +4747,13 @@ export type Database = {
             foreignKeyName: "plan_contract_acceptances_accepted_by_profile_id_fkey"
             columns: ["accepted_by_profile_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_acceptances_accepted_by_profile_id_fkey"
+            columns: ["accepted_by_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4694,6 +4820,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "master_plans"
             referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "plan_contract_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plan_contract_settings_updated_by_fkey"
@@ -4772,6 +4905,13 @@ export type Database = {
             foreignKeyName: "plan_contract_versions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4795,6 +4935,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "master_plans"
             referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "plan_contract_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plan_contract_versions_published_by_fkey"
@@ -4956,6 +5103,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_events_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "platform_events_subscriber_id_fkey"
             columns: ["subscriber_id"]
@@ -5875,6 +6029,13 @@ export type Database = {
             foreignKeyName: "profiles_cloned_from_profile_id_fkey"
             columns: ["cloned_from_profile_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_cloned_from_profile_id_fkey"
+            columns: ["cloned_from_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5890,6 +6051,13 @@ export type Database = {
             columns: ["cloned_from_profile_id"]
             isOneToOne: false
             referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -6273,6 +6441,13 @@ export type Database = {
             foreignKeyName: "store_clone_logs_cloned_profile_id_fkey"
             columns: ["cloned_profile_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_cloned_profile_id_fkey"
+            columns: ["cloned_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -6288,6 +6463,13 @@ export type Database = {
             columns: ["cloned_profile_id"]
             isOneToOne: false
             referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_clone_logs_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -6442,6 +6624,13 @@ export type Database = {
             foreignKeyName: "store_onboarding_events_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_onboarding_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -6577,6 +6766,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "store_onboarding_state_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "store_onboarding_state_store_id_fkey"
             columns: ["store_id"]
@@ -6904,6 +7100,13 @@ export type Database = {
             foreignKeyName: "support_tickets_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -6919,6 +7122,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -7207,6 +7417,13 @@ export type Database = {
             foreignKeyName: "tenant_email_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -7311,6 +7528,13 @@ export type Database = {
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ticket_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ticket_messages_sender_id_fkey"
             columns: ["sender_id"]
@@ -7586,6 +7810,13 @@ export type Database = {
             foreignKeyName: "whatsapp_messages_store_owner_id_fkey"
             columns: ["store_owner_id"]
             isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_store_owner_id_fkey"
+            columns: ["store_owner_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -7666,6 +7897,350 @@ export type Database = {
         Update: {
           environment?: string | null
           is_active?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      merchant_store_payment_settings: {
+        Row: {
+          boleto_enabled: boolean | null
+          boleto_provider: string | null
+          credit_card_enabled: boolean | null
+          credit_card_installments_no_interest: number | null
+          credit_card_provider: string | null
+          id: string | null
+          infinitepay_client_secret_set: boolean | null
+          infinitepay_enabled: boolean | null
+          infinitepay_handle: string | null
+          infinitepay_webhook_secret_set: boolean | null
+          mercadopago_access_token_set: boolean | null
+          mercadopago_enabled: boolean | null
+          mercadopago_public_key: string | null
+          mercadopago_webhook_secret_set: boolean | null
+          pagbank_email: string | null
+          pagbank_enabled: boolean | null
+          pagbank_token_set: boolean | null
+          pagbank_webhook_secret_set: boolean | null
+          pix_discount_percent: number | null
+          pix_enabled: boolean | null
+          pix_provider: string | null
+          stone_ton_enabled: boolean | null
+          stone_ton_merchant_id: string | null
+          stone_ton_public_key: string | null
+          stone_ton_secret_key_set: boolean | null
+          user_id: string | null
+          whatsapp_accepts_cash: boolean | null
+          whatsapp_accepts_credit: boolean | null
+          whatsapp_accepts_debit: boolean | null
+          whatsapp_accepts_pix: boolean | null
+          whatsapp_accepts_transfer: boolean | null
+          whatsapp_enabled: boolean | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          boleto_enabled?: boolean | null
+          boleto_provider?: string | null
+          credit_card_enabled?: boolean | null
+          credit_card_installments_no_interest?: number | null
+          credit_card_provider?: string | null
+          id?: string | null
+          infinitepay_client_secret_set?: boolean | null
+          infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
+          infinitepay_webhook_secret_set?: boolean | null
+          mercadopago_access_token_set?: boolean | null
+          mercadopago_enabled?: boolean | null
+          mercadopago_public_key?: string | null
+          mercadopago_webhook_secret_set?: boolean | null
+          pagbank_email?: string | null
+          pagbank_enabled?: boolean | null
+          pagbank_token_set?: boolean | null
+          pagbank_webhook_secret_set?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_provider?: string | null
+          stone_ton_enabled?: boolean | null
+          stone_ton_merchant_id?: string | null
+          stone_ton_public_key?: string | null
+          stone_ton_secret_key_set?: boolean | null
+          user_id?: string | null
+          whatsapp_accepts_cash?: boolean | null
+          whatsapp_accepts_credit?: boolean | null
+          whatsapp_accepts_debit?: boolean | null
+          whatsapp_accepts_pix?: boolean | null
+          whatsapp_accepts_transfer?: boolean | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          boleto_enabled?: boolean | null
+          boleto_provider?: string | null
+          credit_card_enabled?: boolean | null
+          credit_card_installments_no_interest?: number | null
+          credit_card_provider?: string | null
+          id?: string | null
+          infinitepay_client_secret_set?: boolean | null
+          infinitepay_enabled?: boolean | null
+          infinitepay_handle?: string | null
+          infinitepay_webhook_secret_set?: boolean | null
+          mercadopago_access_token_set?: boolean | null
+          mercadopago_enabled?: boolean | null
+          mercadopago_public_key?: string | null
+          mercadopago_webhook_secret_set?: boolean | null
+          pagbank_email?: string | null
+          pagbank_enabled?: boolean | null
+          pagbank_token_set?: boolean | null
+          pagbank_webhook_secret_set?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_provider?: string | null
+          stone_ton_enabled?: boolean | null
+          stone_ton_merchant_id?: string | null
+          stone_ton_public_key?: string | null
+          stone_ton_secret_key_set?: boolean | null
+          user_id?: string | null
+          whatsapp_accepts_cash?: boolean | null
+          whatsapp_accepts_credit?: boolean | null
+          whatsapp_accepts_debit?: boolean | null
+          whatsapp_accepts_pix?: boolean | null
+          whatsapp_accepts_transfer?: boolean | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      merchant_store_profiles: {
+        Row: {
+          about_us_text: string | null
+          about_us_title: string | null
+          address: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_zip_code: string | null
+          banner_desktop_url: string | null
+          banner_desktop_urls: Json | null
+          banner_mobile_url: string | null
+          banner_mobile_urls: Json | null
+          button_bg_color: string | null
+          button_border_style: string | null
+          button_text_color: string | null
+          content_banners: Json | null
+          email: string | null
+          facebook_url: string | null
+          font_family: string | null
+          font_weight: number | null
+          footer_bg_color: string | null
+          footer_text_color: string | null
+          header_logo_position: string | null
+          home_video_description: string | null
+          home_video_enabled: boolean | null
+          home_video_id: string | null
+          home_video_title: string | null
+          home_video_url_original: string | null
+          id: string | null
+          instagram_url: string | null
+          is_maintenance_mode: boolean | null
+          main_banner_content: Json | null
+          phone: string | null
+          price_color: string | null
+          primary_color: string | null
+          product_border_style: string | null
+          product_button_display: string | null
+          product_image_format: string | null
+          product_text_alignment: string | null
+          return_policy_text: string | null
+          secondary_color: string | null
+          selected_benefit_banners: Json | null
+          source_template_id: string | null
+          store_description: string | null
+          store_layout: string | null
+          store_logo_url: string | null
+          store_model: string | null
+          store_name: string | null
+          store_slug: string | null
+          title_color: string | null
+          topbar_bg_color: string | null
+          topbar_enabled: boolean | null
+          topbar_link_target: string | null
+          topbar_link_type: string | null
+          topbar_text: string | null
+          topbar_text_color: string | null
+          whatsapp_number: string | null
+          x_url: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          about_us_text?: string | null
+          about_us_title?: string | null
+          address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_zip_code?: string | null
+          banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
+          banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
+          button_bg_color?: string | null
+          button_border_style?: string | null
+          button_text_color?: string | null
+          content_banners?: Json | null
+          email?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_title?: string | null
+          home_video_url_original?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
+          main_banner_content?: Json | null
+          phone?: string | null
+          price_color?: string | null
+          primary_color?: string | null
+          product_border_style?: string | null
+          product_button_display?: string | null
+          product_image_format?: string | null
+          product_text_alignment?: string | null
+          return_policy_text?: string | null
+          secondary_color?: string | null
+          selected_benefit_banners?: Json | null
+          source_template_id?: string | null
+          store_description?: string | null
+          store_layout?: string | null
+          store_logo_url?: string | null
+          store_model?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          about_us_text?: string | null
+          about_us_title?: string | null
+          address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_zip_code?: string | null
+          banner_desktop_url?: string | null
+          banner_desktop_urls?: Json | null
+          banner_mobile_url?: string | null
+          banner_mobile_urls?: Json | null
+          button_bg_color?: string | null
+          button_border_style?: string | null
+          button_text_color?: string | null
+          content_banners?: Json | null
+          email?: string | null
+          facebook_url?: string | null
+          font_family?: string | null
+          font_weight?: number | null
+          footer_bg_color?: string | null
+          footer_text_color?: string | null
+          header_logo_position?: string | null
+          home_video_description?: string | null
+          home_video_enabled?: boolean | null
+          home_video_id?: string | null
+          home_video_title?: string | null
+          home_video_url_original?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_maintenance_mode?: boolean | null
+          main_banner_content?: Json | null
+          phone?: string | null
+          price_color?: string | null
+          primary_color?: string | null
+          product_border_style?: string | null
+          product_button_display?: string | null
+          product_image_format?: string | null
+          product_text_alignment?: string | null
+          return_policy_text?: string | null
+          secondary_color?: string | null
+          selected_benefit_banners?: Json | null
+          source_template_id?: string | null
+          store_description?: string | null
+          store_layout?: string | null
+          store_logo_url?: string | null
+          store_model?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          title_color?: string | null
+          topbar_bg_color?: string | null
+          topbar_enabled?: boolean | null
+          topbar_link_target?: string | null
+          topbar_link_type?: string | null
+          topbar_text?: string | null
+          topbar_text_color?: string | null
+          whatsapp_number?: string | null
+          x_url?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "brand_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_store_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string | null
+          current_period_end: string | null
+          id: string | null
+          no_charge: boolean | null
+          payment_method: string | null
+          plan_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          id?: string | null
+          no_charge?: boolean | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          id?: string | null
+          no_charge?: boolean | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
