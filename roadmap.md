@@ -41,7 +41,8 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 
 ## Validação objetiva do webhook — 2026-11-06
 
-- [ ] Confirmar 401 sem assinatura e com assinatura inválida na função implantada, sem reivindicar eventos nem alterar dados financeiros.
-- [ ] Reexecutar handler real com assinatura sintética e transporte isolado: aceite, deduplicação, approved e ausência de segredos em logs/respostas.
-- [ ] Reexecutar conciliação/concorrência com migration real somente em PostgreSQL local descartável; confirmar invoice/pagamento uma vez.
-- [ ] Verificar possibilidade do simulador oficial sem credenciais reais e relatar precisamente o alcance da validação.
+- [x] Função implantada: duas requisições sem credenciais reais confirmaram 401 e resposta exata `Invalid signature` para ausência/assinatura inválida; sem claims, callbacks financeiros ou cobrança.
+- [x] 17 testes existentes do handler real passaram com chave e transporte fictícios. Validação adicional integrada handler real → RPCs SQL reais locais passou: HMAC sintético aceito, duplicate com um GET/uma aplicação, approved com uma atualização da invoice/pagamento e evento distinto sem novos efeitos. Sucesso, falha de provider e falha de aplicação não expõem chaves, assinatura, token ou PII fictícios em logs/respostas.
+- [x] PostgreSQL 17 descartável em localhost: dez cenários de SQL/concorrência passaram; oito claims/renovações simultâneos aplicam uma vez, rollback e eventos antigos preservam estado. Digests das quatro funções financeiras testadas iguais aos implantados. Cluster encerrado; nenhum dado financeiro real escrito.
+- [x] Simulador oficial não executado: requer acesso à aplicação/conta Mercado Pago, indisponível sem usar credenciais reais. Aceitação assinada/reconciliação aprovadas apenas com fixtures isoladas, não por evento oficial em produção. Configuração e rejeições confirmadas na função real; logs consultados contêm só inicialização e nenhum segredo.
+- [x] Comparação agregada antes/depois: pagamentos (32), invoices (32), assinaturas (34), receipts (0) e applications (0) mantiveram contagens/digests idênticos; nenhuma mudança de código funcional, deploy, configuração ou cobrança.
