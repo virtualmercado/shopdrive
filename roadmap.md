@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06
+
+- [ ] Auditar mecanismo existente, slots e elegibilidade; guardar evidência de identidade/dados/histórico e recorrência PREMIUM.
+- [ ] Vincular Varejo somente pelo mecanismo existente e confirmar MARCA efetivo nas duas lojas, exatamente dois slots e isolamento.
+- [ ] Somente após entitlement confirmado: cancelar a recorrência PREMIUM externa específica, confirmar ausência de próxima cobrança e registrar encerramento/substituição interna sem alterar histórico pago.
+- [ ] Confirmar financeiro herdado sem cobrança própria, 217 produtos ativos e endereço ShopDrive existente sem alterações de domínio/flags/Cloudflare ou cobrança.
+
 Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flags `feature_enabled`/`ingress_ready` permanecem `false`. AROMA não pode ser afetada.
 
 - [x] Migration 0069: colunas de provisionamento + 6 RPCs service-role + token de job interno + cron 5min
