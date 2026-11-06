@@ -43,10 +43,11 @@ export function MerchantStoreProvider({ children }: { children: ReactNode }) {
       supabase.rpc("get_my_managed_marca_stores" as never),
     ]).then(([context, list]) => {
       if (!current || actorRef.current !== actorId) return;
-      if (context.error || list.error || !Array.isArray(list.data)) throw new Error("store_access_denied");
+      const listData: unknown = list.data;
+      if (context.error || list.error || !Array.isArray(listData)) throw new Error("store_access_denied");
       const next = parseManagedStore(context.data);
       if (next.storeId !== (requested ?? actorId)) throw new Error("store_context_invalid");
-      setStore(next); setStores(list.data.map(parseManagedStore)); setResolvedActor(actorId);
+      setStore(next); setStores(listData.map(parseManagedStore)); setResolvedActor(actorId);
     }).catch(() => { if (current) setError(true); }).finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
   }, [actorId, authLoading, revision]);

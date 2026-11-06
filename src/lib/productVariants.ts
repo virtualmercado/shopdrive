@@ -25,9 +25,9 @@ export interface VariantLimits {
 export const DEFAULT_VARIANT_LIMITS: VariantLimits = { max_groups: 4, max_values_per_group: 30, max_variants: 200 };
 
 let limitsCache: VariantLimits | null = null;
-export async function fetchVariantLimits(): Promise<VariantLimits> {
+export async function fetchVariantLimits(client = supabase): Promise<VariantLimits> {
   if (limitsCache) return limitsCache;
-  const { data } = await supabase.rpc("get_variant_limits" as any);
+  const { data } = await client.rpc("get_variant_limits" as any);
   limitsCache = (data as unknown as VariantLimits) || DEFAULT_VARIANT_LIMITS;
   return limitsCache;
 }
@@ -84,11 +84,11 @@ export function reconcileValueIds(
 }
 
 /** Loads the active matrix of a product (owner or public, RLS decides). */
-export async function loadVariantMatrix(productId: string) {
+export async function loadVariantMatrix(productId: string, client = supabase) {
   const [groupsRes, valuesRes, variantsRes] = await Promise.all([
-    supabase.from("product_option_groups" as any).select("id, name, position").eq("product_id", productId).is("archived_at", null).order("position"),
-    supabase.from("product_option_values" as any).select("id, option_group_id, value, position").eq("product_id", productId).is("archived_at", null).order("position"),
-    supabase.from("product_variants" as any).select("id, sku, option_value_ids, stock_quantity, active").eq("product_id", productId).is("archived_at", null),
+    client.from("product_option_groups" as any).select("id, name, position").eq("product_id", productId).is("archived_at", null).order("position"),
+    client.from("product_option_values" as any).select("id, option_group_id, value, position").eq("product_id", productId).is("archived_at", null).order("position"),
+    client.from("product_variants" as any).select("id, sku, option_value_ids, stock_quantity, active").eq("product_id", productId).is("archived_at", null),
   ]);
   const groups: VariantOptionGroup[] = ((groupsRes.data as any[]) || []).map((g) => ({
     id: g.id,
