@@ -88,6 +88,7 @@ import AdminBrandTemplateEdit from "./pages/admin/AdminBrandTemplateEdit";
 import AdminBrandTemplateCatalog from "./pages/admin/AdminBrandTemplateCatalog";
 import AdminBrandTemplatePreview from "./pages/admin/AdminBrandTemplatePreview";
 import AdminPlatformSettings from "./pages/admin/AdminPlatformSettings";
+import { MerchantStoreProvider } from "./contexts/MerchantStoreContext";
 
 const authQueryClient = new QueryClient();
 const publicQueryClient = new QueryClient();
@@ -163,6 +164,7 @@ function App() {
               <Route path="/gestor/checkout-assinatura" element={<AdminSubscriptionCheckout />} />
 
               {/* Merchant Routes */}
+              <Route element={<MerchantStoreProvider><Outlet /></MerchantStoreProvider>}>
               <Route path="/lojista" element={<MerchantRoute><Dashboard /></MerchantRoute>} />
               <Route path="/lojista/products" element={<MerchantRoute><Products /></MerchantRoute>} />
 
@@ -183,6 +185,7 @@ function App() {
               <Route path="/lojista/reviews" element={<MerchantRoute><Reviews /></MerchantRoute>} />
               <Route path="/lojista/configuracao-loja" element={<MerchantRoute><StoreOnboarding /></MerchantRoute>} />
               <Route path="/lojista/marketing/tutorial/:tutorialId" element={<MerchantRoute><MarketingTutorial /></MerchantRoute>} />
+              </Route>
             </Route>
 
             <Route element={<PublicRuntime />}>

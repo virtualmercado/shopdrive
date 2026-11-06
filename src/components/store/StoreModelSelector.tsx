@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ShoppingCart, BookOpen, Info } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -43,6 +43,7 @@ export const StoreModelSelector = ({
   buttonBgColor,
   buttonTextColor,
 }: StoreModelSelectorProps) => {
+  const { storeId, client: supabase } = useMerchantStore();
   const { toast } = useToast();
   const [selectedModel, setSelectedModel] = useState<StoreModelType>("loja_virtual");
   const [savedModel, setSavedModel] = useState<StoreModelType>("loja_virtual");

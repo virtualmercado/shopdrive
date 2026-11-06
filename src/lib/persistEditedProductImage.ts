@@ -14,6 +14,7 @@ export interface ImageAdjustments {
 }
 
 export type PersistEditedProductImageParams = {
+  client?: typeof supabase;
   userId: string;
   productId: string;
   imageIndex: number;
@@ -65,6 +66,7 @@ export async function persistEditedProductImage({
   imageIndex,
   blob,
   adjustments,
+  client = supabase,
 }: PersistEditedProductImageParams): Promise<PersistEditedProductImageResult> {
   const traceStart = performance.now();
   const trace = (stage: string, detail?: Record<string, unknown>) => {
@@ -140,6 +142,7 @@ export async function persistEditedProductImage({
         apikey: SUPABASE_ANON_KEY,
         "Content-Type": "image/jpeg",
         "x-upsert": "false",
+        "x-shopdrive-store-id": userId,
         "cache-control": "3600",
       },
       body: blob,
@@ -172,7 +175,7 @@ export async function persistEditedProductImage({
     clearTimeout(abortTimer);
   }
 
-  const publicUrl = supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
+  const publicUrl = client.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
   trace("public_url_generated", { publicUrl, filePath });
   if (!publicUrl) {
     console.groupEnd();
@@ -180,7 +183,7 @@ export async function persistEditedProductImage({
   }
 
   // Fetch current persisted images + adjustments (do NOT trust local state; requirement: rehydrate).
-  const fetchResponse = await supabase
+  const fetchResponse = await client
     .from("products")
     .select("images,image_url,image_adjustments")
     .eq("id", productId)
@@ -228,7 +231,7 @@ export async function persistEditedProductImage({
   const finalAdj = nextAdj.slice(0, nextImages.length);
 
   // Cast adjustments to any to avoid TS Json type issues.
-  const updateResponse = await supabase
+  const updateResponse = await client
     .from("products")
     .update({
       images: nextImages,
@@ -256,7 +259,7 @@ export async function persistEditedProductImage({
   }
 
   // Mandatory re-fetch after update (proof of persistence)
-  const refetchResponse = await supabase
+  const refetchResponse = await client
     .from("products")
     .select("images,image_url,image_adjustments")
     .eq("id", productId)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 interface OrderItem {
   product_name: string;
@@ -42,6 +42,7 @@ const getPaymentLabel = (method: string | null) => {
 const separator = "--------------------------------";
 
 const ThermalReceiptPrintDialog = ({ orderId, onClose }: ThermalReceiptPrintDialogProps) => {
+  const { storeId, client: supabase } = useMerchantStore();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [store, setStore] = useState<any>(null);

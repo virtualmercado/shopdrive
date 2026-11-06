@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader2, Play, ExternalLink, Trash2, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 interface YouTubeVideoCardProps {
   buttonBgColor: string;
@@ -67,6 +67,7 @@ const YouTubeVideoCard = ({
   initialData,
   onSaved 
 }: YouTubeVideoCardProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
@@ -125,8 +126,7 @@ const YouTubeVideoCard = ({
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!storeId) {
         throw new Error("Usuário não autenticado");
       }
 
@@ -142,7 +142,7 @@ const YouTubeVideoCard = ({
           home_video_title: enabled ? title.trim() || null : null,
           home_video_description: enabled ? description.trim() || null : null,
         })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       if (error) throw error;
 
@@ -168,8 +168,7 @@ const YouTubeVideoCard = ({
   const handleRemoveVideo = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!storeId) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase
         .from("profiles")
@@ -180,7 +179,7 @@ const YouTubeVideoCard = ({
           home_video_title: null,
           home_video_description: null,
         })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       if (error) throw error;
 

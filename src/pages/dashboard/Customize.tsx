@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Trash2, Upload, Palette, Image, Type, LayoutGrid, RectangleHorizontal } from "lucide-react";
 import { AIPaletteSection } from "@/components/customize/AIPaletteSection";
 import { TopBarConfigSection } from "@/components/customize/TopBarConfigSection";
@@ -19,6 +19,7 @@ const SD_PRIMARY_BG = "#6A1B9A40";
 const SD_PRIMARY_HOVER = "#6A1B9A80";
 
 const Customize = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -54,15 +55,14 @@ const Customize = () => {
 
   const fetchUserData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
-      setUserId(user.id);
+      setUserId(storeId);
 
       const { data: profile } = await supabase
         .from("profiles")
         .select("store_logo_url, primary_color, secondary_color, footer_text_color, font_family, font_weight, product_image_format, product_border_style, product_text_alignment, product_button_display, button_border_style, button_bg_color, button_text_color, header_logo_position")
-        .eq("id", user.id)
+        .eq("id", storeId)
         .single();
 
       if (profile) {

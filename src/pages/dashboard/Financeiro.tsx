@@ -14,6 +14,7 @@ import { MarcaCommercialFlow, useMarcaOffer, marcaBlockedMessage } from "@/compo
 import { toast } from "sonner";
 import { Crown } from "lucide-react";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 interface SubscriptionInfo {
   id: string;
@@ -41,6 +42,7 @@ interface SavedCard {
 }
 
 const Financeiro = () => {
+  const { storeId, client: merchantClient, delegated } = useMerchantStore();
   const [currentPlan, setCurrentPlan] = useState<string>("gratis");
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
@@ -71,13 +73,13 @@ const Financeiro = () => {
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
-      if (!user) return;
+      if (!storeId || delegated) return;
 
       // Fetch master subscription with all new status fields
-      const { data: masterSub, error: masterSubError } = await supabase
+      const { data: masterSub, error: masterSubError } = await merchantClient
         .from("master_subscriptions")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", storeId)
         .in("status", ["active", "pending", "past_due", "suspended", "payment_failed", "grace_period"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -90,7 +92,7 @@ const Financeiro = () => {
           status: masterSub.status,
           billingCycle: masterSub.billing_cycle as "monthly" | "annual",
           planId: masterSub.plan_id,
-          cardToken: masterSub.card_token || undefined,
+          cardToken: delegated ? undefined : masterSub.card_token || undefined,
           paymentMethod: masterSub.payment_method || (masterSub.card_token ? "credit_card" : undefined),
           // New status tracking fields
           declineType: masterSub.decline_type,
@@ -113,7 +115,7 @@ const Financeiro = () => {
             brand: masterSub.card_brand || undefined,
           });
         }
-      } else {
+      } else if (!delegated && user) {
         // Fallback to old subscriptions table
         const { data: oldSub } = await supabase
           .from("subscriptions")
@@ -136,9 +138,10 @@ const Financeiro = () => {
     };
 
     fetchSubscriptionData();
-  }, [user]);
+  }, [user, storeId, delegated]);
 
   const handlePlanAction = (planId: string, action: "free" | "current" | "upgrade") => {
+    if (delegated || linkedToMarca) return;
     if (planId === currentPlan) return;
     if (planId === "marca") {
       const msg = marcaBlockedMessage(marcaOffer);
@@ -192,9 +195,9 @@ const Financeiro = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Temporary plan trial (no billing attached) */}
-        <PlanTrialBanner />
+        {!delegated && <PlanTrialBanner />}
 
-        <MarcaScheduledUpgradeCard />
+        {!delegated && !linkedToMarca && <MarcaScheduledUpgradeCard />}
 
         {linkedToMarca && (
           <Card className="p-6">
@@ -209,7 +212,7 @@ const Financeiro = () => {
         )}
 
         {/* Status Alert - Show at the top if there's an issue */}
-        {!linkedToMarca && subscription && (
+        {!delegated && !linkedToMarca && subscription && (
           <SubscriptionStatusAlert
             status={subscription.status}
             declineType={subscription.declineType}
@@ -225,7 +228,7 @@ const Financeiro = () => {
         )}
 
         {/* Plans Card Container */}
-        {!linkedToMarca && (<>
+        {!delegated && !linkedToMarca && (<>
         <Card className="p-6">
           {/* Header for Plans Section */}
           <div className="space-y-1 mb-6">

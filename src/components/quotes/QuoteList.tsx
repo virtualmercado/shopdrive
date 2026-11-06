@@ -7,7 +7,7 @@ import { ConvertQuoteModal } from "./ConvertQuoteModal";
 import { printQuoteA4 } from "./QuotePrintA4";
 import { useQuotes, useQuoteDetails, useUpdateQuoteStatus, useDeleteQuote, Quote } from "@/hooks/useQuotes";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 
 export const QuoteList = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const { data: quotes, isLoading } = useQuotes();
   const updateStatus = useUpdateQuoteStatus();
@@ -48,7 +49,7 @@ export const QuoteList = () => {
   const handlePrintPDF = async (quote: Quote) => {
     try {
       const { data: items } = await supabase.from("quote_items").select("*").eq("quote_id", quote.id);
-      const { data: store } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+      const { data: store } = await supabase.from("profiles").select("*").eq("id", storeId ?? "").single();
       await printQuoteA4({ quote: { ...quote, quote_items: items || [] }, store: store || {} });
     } catch {
       toast({ title: "Erro", description: "Erro ao gerar PDF.", variant: "destructive" });

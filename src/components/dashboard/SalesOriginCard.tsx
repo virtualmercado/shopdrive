@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ShoppingBag } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -28,12 +28,12 @@ const ORIGIN_CONFIG: Record<string, { label: string; tooltip: string }> = {
 };
 
 const SalesOriginCard = () => {
-  const { user } = useAuth();
+  const { storeId, client: supabase } = useMerchantStore();
   const [data, setData] = useState<OriginData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!storeId) return;
 
     const fetchData = async () => {
       try {
@@ -45,7 +45,7 @@ const SalesOriginCard = () => {
         const { data: orders, error } = await supabase
           .from("orders")
           .select("order_source")
-          .eq("store_owner_id", user.id)
+          .eq("store_owner_id", storeId)
           .in("status", paidStatuses)
           .gte("created_at", thirtyDaysAgo.toISOString());
 
@@ -78,7 +78,7 @@ const SalesOriginCard = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, [storeId]);
 
   const maxCount = data.length > 0 ? Math.max(...data.map((d) => d.count), 1) : 1;
 

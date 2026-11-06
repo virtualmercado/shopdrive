@@ -38,7 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +48,7 @@ import { QuoteList } from "@/components/quotes/QuoteList";
 const ITEMS_PER_PAGE = ADMIN_PAGE_SIZE;
 
 const Orders = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const [activeTab, setActiveTab] = useState("orders");
   const [createQuoteOpen, setCreateQuoteOpen] = useState(false);
   const { user } = useAuth();
@@ -87,11 +88,11 @@ const Orders = () => {
 
   // Fetch store data for printing
   const fetchStoreData = async () => {
-    if (!user) return null;
+    if (!storeId) return null;
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", storeId)
       .single();
     return data;
   };
@@ -264,7 +265,7 @@ const Orders = () => {
         .from("orders")
         .select("*")
         .eq("id", order.id)
-        .eq("store_owner_id", user!.id)
+        .eq("store_owner_id", storeId ?? "")
         .single();
 
       if (orderError || !orderData) throw orderError || new Error("Pedido não encontrado");
@@ -295,7 +296,7 @@ const Orders = () => {
             .from("store_customers")
             .select("customer_code")
             .eq("customer_id", orderData.customer_id)
-            .eq("store_owner_id", user!.id)
+            .eq("store_owner_id", storeId ?? "")
             .single();
           
           customer = {
@@ -306,6 +307,7 @@ const Orders = () => {
       }
 
       await printOrderA4({
+        client: supabase,
         order: { ...orderData, order_items: itemsData || [] },
         store: store || {},
         customer,

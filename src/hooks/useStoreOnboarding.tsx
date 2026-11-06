@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 export const ONBOARDING_STEPS = [
   { key: "company", label: "Empresa" },
@@ -35,17 +35,18 @@ export interface StoreOnboardingState {
 
 /** Estado de onboarding da loja do usuário logado (isolado por auth.uid via RLS). */
 export const useStoreOnboarding = () => {
-  const { user } = useAuth();
+  const { storeId, actorId, delegated, client: supabase } = useMerchantStore();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["store-onboarding", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["store-onboarding", storeId],
+    enabled: !!storeId,
     queryFn: async (): Promise<StoreOnboardingState | null> => {
+      if (!storeId) return null;
       const { data, error } = await supabase
         .from("store_onboarding_state")
         .select("*")
-        .eq("store_id", user!.id)
+        .eq("store_id", storeId ?? "")
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as StoreOnboardingState) ?? null;
@@ -54,23 +55,23 @@ export const useStoreOnboarding = () => {
 
   const recompute = useMutation({
     mutationFn: async () => {
-      if (!user?.id) return null;
+      if (!storeId) return null;
       const { data, error } = await supabase.rpc("recompute_store_onboarding_state", {
-        p_store_id: user.id,
+        p_store_id: storeId,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-onboarding", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["store-onboarding", storeId] });
     },
   });
 
   const logEvent = async (eventType: string, step?: string) => {
-    if (!user?.id) return;
+    if (!storeId || delegated) return;
     await supabase.from("store_onboarding_events").insert({
-      store_id: user.id,
-      user_id: user.id,
+      store_id: storeId,
+      user_id: actorId,
       event_type: eventType,
       step: step ?? null,
     });

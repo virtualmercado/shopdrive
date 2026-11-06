@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { customDomainPresentation } from "@/lib/customDomainStatus";
+import { useMerchantStore } from "./useMerchantStore";
 
 // Custom Domains V2: every write goes through server RPCs / the verify edge function.
 // The browser never decides DNS, routing or SSL status.
@@ -81,16 +82,15 @@ async function invokeVerify(storeId?: string) {
 }
 
 export const useMerchantDomain = () => {
-  const { user } = useAuthContext();
-  const userId = user?.id ?? null;
+  const { storeId: userId, client, delegated, loading } = useMerchantStore();
   const qc = useQueryClient();
   const key = ["custom-domain-v2", userId];
 
   const overview = useQuery({
     queryKey: key,
-    enabled: !!userId,
+    enabled: !!userId && !loading,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_my_custom_domain_v2");
+      const { data, error } = delegated ? await client.rpc("get_my_selected_store_domain") : await client.rpc("get_my_custom_domain_v2");
       if (error) throw error;
       return data as unknown as CustomDomainOverview;
     },
@@ -110,6 +110,7 @@ export const useMerchantDomain = () => {
 
   const claimDomain = useMutation({
     mutationFn: async (domain: string) => {
+      if (delegated) throw new Error("feature_unavailable");
       const { data, error } = await supabase.rpc("claim_custom_domain", { p_domain: domain });
       if (error) throw error;
       return data;
@@ -120,6 +121,7 @@ export const useMerchantDomain = () => {
 
   const regenerateChallenge = useMutation({
     mutationFn: async () => {
+      if (delegated) throw new Error("feature_unavailable");
       const { error } = await supabase.rpc("regenerate_custom_domain_challenge");
       if (error) throw error;
     },
@@ -128,13 +130,14 @@ export const useMerchantDomain = () => {
   });
 
   const verify = useMutation({
-    mutationFn: () => invokeVerify(),
+    mutationFn: () => { if (delegated) throw new Error("feature_unavailable"); return invokeVerify(); },
     onSuccess: () => refresh(),
     onError,
   });
 
   const disconnect = useMutation({
     mutationFn: async () => {
+      if (delegated) throw new Error("feature_unavailable");
       const { error } = await supabase.rpc("disconnect_custom_domain");
       if (error) throw error;
     },

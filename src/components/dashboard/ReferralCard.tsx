@@ -3,33 +3,32 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Copy, Check, Share2, Users, QrCode } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useMerchantStore } from '@/hooks/useMerchantStore';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ReferralCard = () => {
-  const { user } = useAuth();
+  const { storeId, client: supabase } = useMerchantStore();
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
 
   // Get user profile to check if they have a template
   const { data: profile } = useQuery({
-    queryKey: ['profile-referral', user?.id],
+    queryKey: ['profile-referral', storeId],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!storeId) return null;
       const { data } = await supabase
         .from('profiles')
         .select('source_template_id, store_slug')
-        .eq('id', user.id)
+        .eq('id', storeId)
         .maybeSingle();
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!storeId,
   });
 
   // Get template slug for the referral link
@@ -49,21 +48,21 @@ const ReferralCard = () => {
 
   // Get referral stats
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['referral-stats', user?.id],
+    queryKey: ['referral-stats', storeId],
     queryFn: async () => {
-      if (!user?.id) return { total_referrals: 0, active_referrals: 0 };
-      const { data } = await supabase.rpc('get_referral_stats', { p_store_id: user.id });
+      if (!storeId) return { total_referrals: 0, active_referrals: 0 };
+      const { data } = await supabase.rpc('get_referral_stats', { p_store_id: storeId });
       if (data && Array.isArray(data) && data.length > 0) return data[0];
       if (data && !Array.isArray(data)) return data;
       return { total_referrals: 0, active_referrals: 0 };
     },
-    enabled: !!user?.id,
+    enabled: !!storeId,
   });
 
   // Don't show if user doesn't come from a template
   if (!profile?.source_template_id || !template?.template_slug) return null;
 
-  const referralLink = `${window.location.origin}/revenda/${template.template_slug}?convite=${user?.id}`;
+  const referralLink = `${window.location.origin}/revenda/${template.template_slug}?convite=${storeId}`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(referralLink);

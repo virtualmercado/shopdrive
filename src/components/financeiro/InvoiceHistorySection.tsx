@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 import { allowsIndependentStoreBilling } from "@/lib/marcaSecondaryBilling";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 export interface Invoice {
   id: string;
@@ -130,6 +131,7 @@ const formatMethod = (m: string | null) =>
   m === "credit_card" ? "Cartão" : m === "pix" ? "PIX" : m === "boleto" ? "Boleto" : "—";
 
 export const InvoiceHistorySection = () => {
+  const { storeId, client: merchantClient, delegated } = useMerchantStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingInvoice | null>(null);
@@ -142,29 +144,29 @@ export const InvoiceHistorySection = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { plan, ownedStoreRole, loading: planLoading } = useMerchantPlan();
-  const independentBilling = allowsIndependentStoreBilling(ownedStoreRole, !planLoading && plan !== "unknown");
+  const independentBilling = !delegated && allowsIndependentStoreBilling(ownedStoreRole, !planLoading && plan !== "unknown");
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
+    if (!storeId) return;
     fetchAll();
-  }, [user]);
+  }, [storeId]);
 
   const fetchAll = async () => {
-    if (!user) return;
+    if (!storeId) return;
     setLoading(true);
     try {
       const [{ data: invData, error: invErr }, { data: subData }] = await Promise.all([
-        supabase
+        merchantClient
           .from("invoices")
           .select("id, due_date, amount, plan, status, payment_method, mp_payment_id, paid_at, created_at")
-          .eq("subscriber_id", user.id)
+          .eq("subscriber_id", storeId)
           .order("created_at", { ascending: false }),
-        supabase
+        merchantClient
           .from("master_subscriptions")
           .select("plan_id, billing_cycle, status, no_charge, current_period_end, payment_method")
-          .eq("user_id", user.id)
+          .eq("user_id", storeId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),

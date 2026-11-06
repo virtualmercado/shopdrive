@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Gift } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useToast } from "@/hooks/use-toast";
 import { BENEFIT_BANNERS, MAX_BENEFIT_BANNERS } from "@/lib/benefitBanners";
 
@@ -15,6 +15,7 @@ interface BenefitBannersConfigProps {
 }
 
 export const BenefitBannersConfig = ({ userId }: BenefitBannersConfigProps) => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [savedIds, setSavedIds] = useState<number[]>([]);

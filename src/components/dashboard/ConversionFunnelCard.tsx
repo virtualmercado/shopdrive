@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, ChevronDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,12 +28,12 @@ const calcRate = (numerator: number, denominator: number): string | null => {
 };
 
 const ConversionFunnelCard = () => {
-  const { user } = useAuth();
+  const { storeId, client: supabase } = useMerchantStore();
   const [data, setData] = useState<FunnelData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!storeId) return;
 
     const fetchFunnel = async () => {
       try {
@@ -45,25 +45,25 @@ const ConversionFunnelCard = () => {
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "store_visit")
             .gte("created_at", since),
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "product_view")
             .gte("created_at", since),
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "add_to_cart")
             .gte("created_at", since),
           supabase
             .from("store_events")
             .select("id", { count: "exact", head: true })
-            .eq("store_id", user.id)
+            .eq("store_id", storeId)
             .eq("event_type", "purchase")
             .gte("created_at", since),
         ]);
@@ -82,7 +82,7 @@ const ConversionFunnelCard = () => {
     };
 
     fetchFunnel();
-  }, [user]);
+  }, [storeId]);
 
   const maxValue = data
     ? Math.max(data.storeVisits, data.productViews, data.addToCarts, data.purchases, 1)

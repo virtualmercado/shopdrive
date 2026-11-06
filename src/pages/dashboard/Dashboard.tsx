@@ -14,10 +14,12 @@ import SalesOriginCard from "@/components/dashboard/SalesOriginCard";
 import ReferralCard from "@/components/dashboard/ReferralCard";
 import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
 import StoreSetupProgressCard from "@/components/dashboard/StoreSetupProgressCard";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 
 const CHART_COLORS = ["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#70AD47", "#9E480E", "#997300", "#636363", "#264478", "#4472C4"];
 
 const Dashboard = () => {
+  const { delegated } = useMerchantStore();
   const { primaryColor } = useTheme();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: salesByState, isLoading: stateLoading } = useSalesByState();
@@ -103,10 +105,10 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Temporary plan trial notice */}
-        <PlanTrialBanner />
+        {!delegated && <PlanTrialBanner />}
 
         {/* Orientação de configuração da loja (sem bloqueio) */}
-        <StoreSetupProgressCard />
+        {!delegated && <StoreSetupProgressCard />}
 
         {/* News Carousel */}
         <DashboardNewsCarousel />
@@ -134,7 +136,7 @@ const Dashboard = () => {
         </div>
 
         {/* Referral Card */}
-        <ReferralCard />
+        {!delegated && <ReferralCard />}
 
         {/* Conversion Funnel & Sales Origin - 2 Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

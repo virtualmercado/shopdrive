@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { ExternalLink, Loader2, Upload, Image as ImageIcon, Trash2, Store, ImagePlus } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CustomDomainSection } from "@/components/domain";
@@ -37,6 +37,7 @@ import {
 } from "@/lib/mainBannerContent";
 
 const StorePreviewEnhanced = () => {
+  const { storeId, client: supabase, delegated } = useMerchantStore();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -112,13 +113,12 @@ const StorePreviewEnhanced = () => {
   const fetchStoreData = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", storeId)
         .single();
 
       if (error) throw error;
@@ -216,11 +216,10 @@ const StorePreviewEnhanced = () => {
   const handleImageUpload = async (file: File, field: string) => {
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${field}_${Date.now()}.${fileExt}`;
+      const fileName = `${storeId}/${field}_${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -273,17 +272,14 @@ const StorePreviewEnhanced = () => {
 
     setUploading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const uploadedUrls: string[] = [];
       const filesToUpload = files.slice(0, maxBanners - currentUrls.length);
 
       for (const file of filesToUpload) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${arrayField}_${Date.now()}_${Math.random()}.${fileExt}`;
+        const fileName = `${storeId}/${arrayField}_${Date.now()}_${Math.random()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
@@ -327,7 +323,7 @@ const StorePreviewEnhanced = () => {
       await supabase
         .from("profiles")
         .update({ [arrayField]: newUrls, [legacyField]: null } as any)
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({
         title: `${uploadedUrls.length} imagem(ns) enviada(s) e salva(s) com sucesso!`,
@@ -358,8 +354,7 @@ const StorePreviewEnhanced = () => {
 
     // Salvar automaticamente no banco
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       await supabase
         .from("profiles")
@@ -368,7 +363,7 @@ const StorePreviewEnhanced = () => {
           [legacyField]: null,
           ...(arrayField === "banner_desktop_urls" ? { main_banner_content: nextContent } : {}),
         } as any)
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Imagem removida e alterações salvas" });
     } catch (error: any) {
@@ -384,13 +379,12 @@ const StorePreviewEnhanced = () => {
     field: "banner_rect_1_url" | "banner_rect_2_url" | "minibanner_1_img2_url" | "minibanner_2_img2_url"
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const { error } = await supabase
         .from("profiles")
         .update({ [field]: null } as any)
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       if (error) throw error;
 
@@ -415,11 +409,10 @@ const StorePreviewEnhanced = () => {
   const handleReplaceBanner = async (index: number, file: File) => {
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
+      const fileName = `${storeId}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -443,7 +436,7 @@ const StorePreviewEnhanced = () => {
       await supabase
         .from("profiles")
         .update({ banner_desktop_urls: newUrls, banner_desktop_url: null })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Banner substituído com sucesso!" });
     } catch (error: any) {
@@ -460,11 +453,10 @@ const StorePreviewEnhanced = () => {
   const handleReplaceMobileBanner = async (index: number, file: File) => {
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
+      const fileName = `${storeId}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -488,7 +480,7 @@ const StorePreviewEnhanced = () => {
       await supabase
         .from("profiles")
         .update({ banner_mobile_urls: newUrls, banner_mobile_url: null })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Banner mobile substituído com sucesso!" });
     } catch (error: any) {
@@ -505,11 +497,10 @@ const StorePreviewEnhanced = () => {
   const handleAddMobileBannerAtSlot = async (slotIndex: number, file: File) => {
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
+      const fileName = `${storeId}/banner_mobile_${Date.now()}_${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -542,7 +533,7 @@ const StorePreviewEnhanced = () => {
       await supabase
         .from("profiles")
         .update({ banner_mobile_urls: cleanUrls, banner_mobile_url: null })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Banner mobile adicionado com sucesso!" });
     } catch (error: any) {
@@ -559,11 +550,10 @@ const StorePreviewEnhanced = () => {
   const handleAddDesktopBannerAtSlot = async (slotIndex: number, file: File) => {
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
+      const fileName = `${storeId}/banner_desktop_${Date.now()}_${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -596,7 +586,7 @@ const StorePreviewEnhanced = () => {
       await supabase
         .from("profiles")
         .update({ banner_desktop_urls: cleanUrls, banner_desktop_url: null })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Banner desktop adicionado com sucesso!" });
     } catch (error: any) {
@@ -625,13 +615,12 @@ const StorePreviewEnhanced = () => {
     });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!storeId) return;
 
       await supabase
         .from("profiles")
         .update({ banner_desktop_urls: newUrls, banner_desktop_url: null, main_banner_content: nextContent })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
       toast({ title: "Banner removido e alterações salvas" });
     } catch (error: any) {
@@ -648,12 +637,13 @@ const StorePreviewEnhanced = () => {
       inFlight: saveInFlightRef,
       setLoading: setSaving,
       run: async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("not_authenticated");
+        if (!storeId) throw new Error("not_authenticated");
 
        // Não reintroduzir valores legados ao salvar outras configurações.
        // Os arrays de banners são a fonte da verdade.
-       const { banner_desktop_url: _legacyDesktop, banner_mobile_url: _legacyMobile, ...payload } = storeData;
+       const { banner_desktop_url: _legacyDesktop, banner_mobile_url: _legacyMobile, ...rawPayload } = storeData;
+       const payload = { ...rawPayload };
+       if (delegated) { delete (payload as Partial<typeof payload>).email; delete (payload as Partial<typeof payload>).store_slug; }
 
       const { error } = await supabase
         .from("profiles")
@@ -674,7 +664,7 @@ const StorePreviewEnhanced = () => {
           price_color: localPriceColor,
           title_color: localTitleColor,
         })
-        .eq("id", user.id);
+        .eq("id", storeId);
 
         if (error) throw error;
       },
@@ -899,7 +889,7 @@ const StorePreviewEnhanced = () => {
 
         {/* Store Model Selector */}
         <StoreModelSelector
-          userId={user?.id || null}
+          userId={storeId || null}
           primaryColor={primaryColor}
           buttonBgColor={buttonBgColor}
           buttonTextColor={buttonTextColor}
@@ -1178,7 +1168,7 @@ const StorePreviewEnhanced = () => {
 
             {/* Benefit Banners Config */}
             <div className="border-t pt-6">
-              <BenefitBannersConfig userId={user?.id ?? null} />
+              <BenefitBannersConfig userId={storeId ?? null} />
             </div>
 
             {/* Minibanners - 2 images per minibanner (Image 1 + Image 2 for hover effect) */}
@@ -1546,10 +1536,9 @@ const StorePreviewEnhanced = () => {
           onImageUpload={async (file, index) => {
             setUploading(true);
             try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) return;
+              if (!storeId) return;
               const fileExt = file.name.split(".").pop();
-              const fileName = `${user.id}/content_banner_${index}_${Date.now()}.${fileExt}`;
+              const fileName = `${storeId}/content_banner_${index}_${Date.now()}.${fileExt}`;
               const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
               if (uploadError) throw uploadError;
               const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
