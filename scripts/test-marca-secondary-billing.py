@@ -79,9 +79,6 @@ async def check(browser, role, open_invoice=False, mobile=False):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     await page.goto(ORIGIN + "/lojista/financeiro")
-    await page.wait_for_timeout(1200)
-    print("Diagnostic", errors, (await page.locator("body").inner_text())[:300])
-    await page.screenshot(path=str(OUTPUT / "diagnostic.png"))
     await expect(page.get_by_role("heading", name="Histórico de faturas")).to_be_visible()
     await expect(page.get_by_role("cell", name="PREMIUM").first).to_be_visible()
     if role == "secondary":
@@ -94,7 +91,7 @@ async def check(browser, role, open_invoice=False, mobile=False):
             await expect(page.get_by_text("A vencer", exact=True)).to_be_visible()
     await page.locator("main").screenshot(path=str(OUTPUT / f"{role or 'single'}-{'pending' if open_invoice else 'paid'}-{'mobile' if mobile else 'desktop'}.png"))
     assert await page.evaluate("window.__forbidden") == []
-    print("Blocked external requests:", blocked)
+    assert all(item.startswith("GET https://fonts.googleapis.com/") or item == "GET https://sdk.mercadopago.com/js/v2" for item in blocked), blocked
     assert errors == [], errors
     print("PASS", role or "single", "pending" if open_invoice else "paid", "mobile" if mobile else "desktop", "history retained; no hosted writes")
     await context.close()

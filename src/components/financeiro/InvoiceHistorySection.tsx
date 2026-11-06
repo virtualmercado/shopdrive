@@ -141,8 +141,8 @@ export const InvoiceHistorySection = () => {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { ownedStoreRole, loading: planLoading } = useMerchantPlan();
-  const independentBilling = !planLoading && allowsIndependentStoreBilling(ownedStoreRole);
+  const { plan, ownedStoreRole, loading: planLoading } = useMerchantPlan();
+  const independentBilling = allowsIndependentStoreBilling(ownedStoreRole, !planLoading && plan !== "unknown");
   const { toast } = useToast();
   const navigate = useNavigate();
 

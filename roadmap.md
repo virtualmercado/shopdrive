@@ -6,15 +6,18 @@
 - [x] Plano de autorização explícita e migração coordenada aprovado; identidade real permanece separada da loja escolhida e seletor só será habilitado após verificações de isolamento.
 - [ ] Minha Rede → Minhas Lojas e cabeçalho Trocar loja somente para lojas legitimamente autorizadas; troca server-side, limpeza de estado/cache e Dashboard da loja escolhida.
 - [ ] Garantir isolamento de produtos/pedidos/clientes/financeiro/gateway/configurações/domínio e Seu Link da loja ativa.
-- [ ] Financeiro: aviso/planos/cartão preparados, mas InvoiceHistorySection ainda gera próxima fatura virtual/pagamento PREMIUM na secundária; ocultar renovação sem alterar registros. Cancelamento exige JWT e has_role(admin), preserva período/financeiro e não registra tokens; validar repetição sequencial e concorrência somente com fixtures.
-- [ ] Executar somente testes necessários ao delta; não publicar, cobrar ou alterar infraestrutura/entitlements/registros financeiros.
+- [x] Financeiro: InvoiceHistorySection oculta próxima fatura virtual e pagamento/renovação própria na secundária e enquanto contexto é desconhecido; histórico real preservado. Regra unitária e navegador desktop/mobile com sessão/dados fictícios e tráfego externo bloqueado.
+- [x] Cancelamento validado com o handler real e transporte fictício: sem JWT/claims → 401, proprietário sem role admin → 403, repetição sequencial sem novo PUT, período preservado e nenhum token em logs/respostas; nenhuma chamada real.
+- [ ] BLOQUEADOR confirmado: duas chamadas administrativas simultâneas fazem dois PUTs de cancelamento; registro de conclusão pode duplicar. Teste esperado-falhar mantido como release blocker; função financeira não alterada nem reimplantada.
+- [ ] BLOQUEADOR de implementação: ainda não há membership/resolução de loja ativa nem cobertura coordenada de RLS/RPCs/arquivos/funções. Inventário concluído; nenhuma autorização cross-tenant foi aplicada e seletor não foi exposto. Não declarar gerenciamento multiloja implementado.
+- [x] Executados somente testes do delta; compilação automática OK. Duas lojas e 217 produtos ativos em cada uma reconfirmados em leitura; nada publicado, cobrado ou alterado em infraestrutura/entitlements/registros financeiros.
 
 ## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06
 
 - [x] Auditoria somente leitura: principal MARCA direto ativo (`d98b895f`, período até 11/11), conta `b1f7437d` com apenas slot 1; Varejo PREMIUM direto ativo (`825c1194`, até 20/11), preapproval `c4536ee702544c568b6179a514ab7b6d`; ambas com 217 produtos ativos, Varejo com 2 pedidos, perfis elegíveis sem origem de template.
-- [ ] BLOQUEADO — vínculo: `validate_brand_owned_store` recusa a Varejo com assinatura própria PREMIUM ativa; `get_effective_store_plan` prioriza plano próprio e só herda MARCA se a base direta for free. O mecanismo atual não comprova MARCA na Varejo mantendo esse estado; requer definição/autorização de transição atômica no mecanismo existente, sem downgrade nem cancelamento externo antecipado.
-- [ ] BLOQUEADO pelo vínculo — recorrência: não cancelar Mercado Pago nem encerrar assinatura interna antes da solução e confirmação MARCA; não há função de cancelamento de preapproval revisada no repositório (cancelamento de payments não encerra recorrência). Nenhuma chamada externa ou alteração financeira efetuada.
-- [ ] BLOQUEADO — financeiro herdado: `Financeiro.tsx` lê assinatura própria e ainda expõe contratação Pro/Premium após herança; requer ajuste autorizado para mostrar MARCA herdado e suprimir contratação própria. Nenhum código funcional/publicação alterado, nenhum dado/pedido/produto/domínio/flag/Cloudflare modificado ou cobrança realizada.
+- [x] Bloqueio histórico de vínculo resolvido pela migration 0075 e transição registrada abaixo; Varejo vinculada como slot 2, PREMIUM pago preservado até 20/11/2026 e MARCA herdado depois.
+- [x] Recorrência externa encerrada no turno anterior após vínculo; nenhum novo cancelamento executado neste turno.
+- [x] Financeiro herdado preparado no turno anterior; neste turno também ocultada a renovação virtual no histórico, sem modificar faturas. Frontend não publicado.
 
 Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flags `feature_enabled`/`ingress_ready` permanecem `false`. AROMA não pode ser afetada.
 
