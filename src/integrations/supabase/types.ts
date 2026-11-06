@@ -3951,6 +3951,7 @@ export type Database = {
       merchant_store_memberships: {
         Row: {
           active: boolean
+          authorization_approved: boolean
           created_at: string
           created_by: string | null
           id: string
@@ -3960,6 +3961,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          authorization_approved?: boolean
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3969,6 +3971,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          authorization_approved?: boolean
           created_at?: string
           created_by?: string | null
           id?: string
@@ -8024,9 +8027,18 @@ export type Database = {
           banner_desktop_urls: Json | null
           banner_mobile_url: string | null
           banner_mobile_urls: Json | null
+          banner_rect_1_url: string | null
+          banner_rect_2_url: string | null
           button_bg_color: string | null
           button_border_style: string | null
           button_text_color: string | null
+          content_banner_enabled: boolean | null
+          content_banner_image_url: string | null
+          content_banner_subtitle: string | null
+          content_banner_subtitle_color: string | null
+          content_banner_title: string | null
+          content_banner_title_color: string | null
+          content_banner_url: string | null
           content_banners: Json | null
           email: string | null
           facebook_url: string | null
@@ -8044,6 +8056,8 @@ export type Database = {
           instagram_url: string | null
           is_maintenance_mode: boolean | null
           main_banner_content: Json | null
+          minibanner_1_img2_url: string | null
+          minibanner_2_img2_url: string | null
           phone: string | null
           price_color: string | null
           primary_color: string | null
@@ -8086,9 +8100,18 @@ export type Database = {
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
           banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
           content_banners?: Json | null
           email?: string | null
           facebook_url?: string | null
@@ -8106,6 +8129,8 @@ export type Database = {
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           main_banner_content?: Json | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           phone?: string | null
           price_color?: string | null
           primary_color?: string | null
@@ -8148,9 +8173,18 @@ export type Database = {
           banner_desktop_urls?: Json | null
           banner_mobile_url?: string | null
           banner_mobile_urls?: Json | null
+          banner_rect_1_url?: string | null
+          banner_rect_2_url?: string | null
           button_bg_color?: string | null
           button_border_style?: string | null
           button_text_color?: string | null
+          content_banner_enabled?: boolean | null
+          content_banner_image_url?: string | null
+          content_banner_subtitle?: string | null
+          content_banner_subtitle_color?: string | null
+          content_banner_title?: string | null
+          content_banner_title_color?: string | null
+          content_banner_url?: string | null
           content_banners?: Json | null
           email?: string | null
           facebook_url?: string | null
@@ -8168,6 +8202,8 @@ export type Database = {
           instagram_url?: string | null
           is_maintenance_mode?: boolean | null
           main_banner_content?: Json | null
+          minibanner_1_img2_url?: string | null
+          minibanner_2_img2_url?: string | null
           phone?: string | null
           price_color?: string | null
           primary_color?: string | null
