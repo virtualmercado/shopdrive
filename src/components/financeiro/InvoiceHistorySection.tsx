@@ -24,6 +24,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
+import { allowsIndependentStoreBilling } from "@/lib/marcaSecondaryBilling";
 
 export interface Invoice {
   id: string;
@@ -139,6 +141,8 @@ export const InvoiceHistorySection = () => {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { ownedStoreRole, loading: planLoading } = useMerchantPlan();
+  const independentBilling = !planLoading && allowsIndependentStoreBilling(ownedStoreRole);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -225,6 +229,7 @@ export const InvoiceHistorySection = () => {
   };
 
   const handlePayInvoice = (row: Row) => {
+    if (!independentBilling) return;
     // Defensive guard: never open checkout for expired/terminal invoices
     const effective = getEffectiveStatus(row.status, row.due_date);
     if (!isPayable(effective, subscription?.status)) {
@@ -248,7 +253,7 @@ export const InvoiceHistorySection = () => {
 
 
   // Compose rows: upcoming on top + invoices, with effective status computed for sorting/eligibility
-  const composedRows: Array<Row & { _effectiveStatus: string }> = (upcoming
+  const composedRows: Array<Row & { _effectiveStatus: string }> = (upcoming && independentBilling
     ? [upcoming as Row, ...invoices]
     : (invoices as Row[])
   ).map((row) => ({
@@ -347,7 +352,7 @@ export const InvoiceHistorySection = () => {
               currentInvoices.map((invoice, index) => {
                 const isVirtual = (invoice as UpcomingInvoice).isVirtual === true;
                 const effective = invoice._effectiveStatus;
-                const canPay = isPayable(effective, subscription?.status);
+                const canPay = independentBilling && isPayable(effective, subscription?.status);
                 return (
                   <TableRow
                     key={invoice.id}
