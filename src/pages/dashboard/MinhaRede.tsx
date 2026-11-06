@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMerchantPlan } from '@/hooks/useMerchantPlan';
+import { ManagedStores } from '@/components/network/ManagedStores';
 import {
   useBrandNetworkActivationDetail, useBrandNetworkActivations, useBrandNetworkDashboard, usePlanMarcaFlag,
   type ActivationFilters,
@@ -368,6 +369,7 @@ const MinhaRede = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <Header />
+        <ManagedStores />
         {access === 'loading' && <Skeleton className="h-64 w-full" />}
         {access === 'unavailable' && (
           <Notice title="Recurso indisponível" text="O Minha Rede ainda não está disponível para a sua conta." />

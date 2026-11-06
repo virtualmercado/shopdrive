@@ -40,6 +40,9 @@ import { clearTemplateEditorContext } from "@/hooks/useTemplateEditor";
 import { syncTemplatePreviewState } from "@/lib/templatePreviewSync";
 import { usePreferredStoreUrl } from "@/hooks/usePreferredStoreUrl";
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
+import { delegatedMerchantRouteAllowed } from "@/lib/merchantStoreRules";
+import { StoreSwitcher } from "@/components/network/ManagedStores";
 
 // ShopDrive Official Logo for Dashboard
 import sdLogo from "@/assets/logo-header-menu-sd.png";
@@ -64,6 +67,7 @@ interface TemplateEditorCredentials {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const { storeId, client: merchantClient, delegated, stores } = useMerchantStore();
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [storeSlug, setStoreSlug] = useState<string>("");
   // Preferred public URL: active custom V2 domain when authorized, else the traditional ShopDrive URL.
@@ -187,12 +191,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   useEffect(() => {
     const fetchStoreUrl = async () => {
-      if (!user || isTemplateEditorMode) return;
+      if (!storeId || isTemplateEditorMode) return;
 
-      const { data: profile } = await supabase
+      const { data: profile } = await merchantClient
         .from("profiles")
         .select("store_slug")
-        .eq("id", user.id)
+        .eq("id", storeId)
         .single();
 
       if (profile?.store_slug) {
@@ -201,7 +205,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     };
 
     fetchStoreUrl();
-  }, [user, isTemplateEditorMode]);
+  }, [storeId, merchantClient, isTemplateEditorMode]);
 
   // Fetch template name when in editor mode
   useEffect(() => {
@@ -342,12 +346,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Store, label: "Minha Loja", path: "/lojista/store" },
     { icon: Palette, label: "Personalizar", path: "/lojista/customize" },
     { icon: Megaphone, label: "Marketing", path: "/lojista/marketing" },
-    ...(showMinhaRede ? [{ icon: Network, label: "Minha Rede", path: "/lojista/minha-rede" }] : []),
+    ...(showMinhaRede || stores.length > 0 ? [{ icon: Network, label: "Minha Rede", path: "/lojista/minha-rede" }] : []),
     { icon: MessageCircle, label: "Mensagens", path: "/lojista/messages" },
     { icon: Wallet, label: "Financeiro", path: "/lojista/financeiro" },
     { icon: HeadphonesIcon, label: "Suporte / Tickets", path: "/lojista/support" },
     { icon: Settings, label: "Configurações", path: "/lojista/settings" },
-  ];
+  ].filter((item) => !delegated || delegatedMerchantRouteAllowed(item.path));
 
   // Helper to generate nav link with template params preserved
   const getNavPath = (basePath: string) => {
@@ -565,6 +569,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   : menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
                 }
               </h1>
+              {!isTemplateEditorMode && <StoreSwitcher />}
               
               {/* Store Link Badge - Uses VM official colors (hide in template mode) */}
               {storeUrl && !isTemplateEditorMode && (
@@ -594,7 +599,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     <Button
                       variant="link"
                       onClick={() => setDomainWizardOpen(true)}
-                      disabled={domainLoading || !!domainLoadError}
+                      disabled={delegated || domainLoading || !!domainLoadError}
                       aria-label={domainLoading ? "Carregando domínio" : domainPresentation.ctaLabel}
                       title={domainLoading ? "Carregando domínio" : domainPresentation.ctaLabel}
                       className="h-auto p-0 text-xs gap-1"
