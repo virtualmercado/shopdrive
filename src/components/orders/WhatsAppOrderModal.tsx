@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, Eraser } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { buildItemizedWhatsAppMessage } from "@/lib/whatsappOrderMessage";
 
 interface WhatsAppOrderModalProps {
@@ -44,6 +44,7 @@ export function WhatsAppOrderModal({
   order,
   storeName = "Nossa Loja",
 }: WhatsAppOrderModalProps) {
+  const { storeId, client: supabase } = useMerchantStore();
   const isMobile = useIsMobile();
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");

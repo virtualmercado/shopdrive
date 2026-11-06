@@ -13,9 +13,8 @@ const syntheticToken = "synthetic-provider-token-never-real";
 function harness(options: { claims?: boolean; admin?: boolean; cancelled?: boolean; concurrent?: boolean } = {}) {
   let handler: Handler | undefined;
   let providerStatus = options.cancelled ? "cancelled" : "authorized";
-  let reads = 0;
-  let releaseReads: (() => void) | undefined;
-  const bothReads = new Promise<void>((resolve) => { releaseReads = resolve; });
+  let state = "ready";
+  const completedResult = { ok: true, paid_until: "2026-11-20T00:00:00Z", local_status: "active" };
   const requests: { url: string; method: string; body: string | null }[] = [];
   const writes: { table: string; value: unknown }[] = [];
   const logs: unknown[] = [];
@@ -26,10 +25,23 @@ function harness(options: { claims?: boolean; admin?: boolean; cancelled?: boole
         expect(args).toEqual({ _user_id: actorId, _role: "admin" });
         return { data: options.admin === true, error: null };
       }
-      if (name === "get_brand_inherited_plan") {
-        expect(args).toEqual({ p_store_id: storeId });
-        return { data: "marca", error: null };
+      if (name === "claim_marca_recurrence_cancellation") {
+        expect(args).toEqual({ p_actor: actorId, p_store_id: storeId, p_subscription_id: subscriptionId });
+        if (state === "completed") return { data: { completed: true, result: completedResult }, error: null };
+        if (state !== "ready") return { data: { claimed: false }, error: null };
+        state = "processing";
+        return { data: { claimed: true, token: "synthetic-claim", provider_reference: "fixture-recurrence", reconcile_only: false }, error: null };
       }
+      if (name === "mark_marca_recurrence_cancellation_sent") {
+        expect(state).toBe("processing"); state = "sent";
+        return { data: null, error: null };
+      }
+      if (name === "complete_marca_recurrence_cancellation") {
+        if (state !== "completed") writes.push({ table: "master_subscription_logs", value: completedResult });
+        state = "completed";
+        return { data: completedResult, error: null };
+      }
+      if (name === "fail_marca_recurrence_cancellation") { state = "unknown"; return { data: null, error: null }; }
       throw new Error("Unexpected synthetic RPC");
     },
     from: (table: string) => ({
@@ -61,11 +73,6 @@ function harness(options: { claims?: boolean; admin?: boolean; cancelled?: boole
       requests.push({ url, method, body: typeof init.body === "string" ? init.body : null });
       if (method === "GET") {
         const snapshot = providerStatus;
-        if (options.concurrent) {
-          reads += 1;
-          if (reads === 2) releaseReads?.();
-          await bothReads;
-        }
         return Response.json({ status: snapshot, next_payment_date: null });
       }
       expect(method).toBe("PUT");
@@ -121,12 +128,13 @@ describe("Real MARCA recurrence cancellation handler, synthetic-only validation"
     expect(JSON.stringify(h.logs)).not.toContain(syntheticToken);
     expect(JSON.stringify(h.writes)).not.toContain(syntheticToken);
   });
-  // Expected failure is a release blocker, NOT certification of idempotence.
-  // Once the handler gains a durable single-flight claim, remove .fails.
-  it.fails("BLOCKER: concurrent requests must cancel the external recurrence only once", async () => {
+  it("concurrent requests cancel the external recurrence only once", async () => {
     const h = harness({ admin: true, concurrent: true });
     const responses = await Promise.all([h.handler(request()), h.handler(request())]);
-    expect(responses.map((r) => r.status)).toEqual([200, 200]);
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 202]);
+    expect(h.requests.filter((r) => r.method === "GET")).toHaveLength(1);
+    expect(h.writes).toHaveLength(1);
+    expect((await h.handler(request())).status).toBe(200);
     expect(h.requests.filter((r) => r.method === "PUT")).toHaveLength(1);
   });
 });

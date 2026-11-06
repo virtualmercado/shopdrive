@@ -190,6 +190,7 @@ const PaymentMethodsContent = () => {
 
 
   const saveSettings = async (newSettings: Partial<PaymentSettings>) => {
+    if (delegated && !settings?.id) return;
     if (!storeId || !settings) return;
     
     setSaving(true);
@@ -199,7 +200,7 @@ const PaymentMethodsContent = () => {
       if (settings.id) {
         const { error } = await supabase
           .from("payment_settings")
-          .update(updatedSettings)
+          .update(delegated ? newSettings : updatedSettings)
           .eq("id", settings.id);
         
         if (error) throw error;

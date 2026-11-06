@@ -307,6 +307,7 @@ const Orders = () => {
       }
 
       await printOrderA4({
+        client: supabase,
         order: { ...orderData, order_items: itemsData || [] },
         store: store || {},
         customer,

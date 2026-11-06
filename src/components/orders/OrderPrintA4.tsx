@@ -10,12 +10,12 @@ const DEFAULT_FOOTER = "Documento gerado automaticamente pela ShopDrive";
  * efetivamente ativo (fonte autoritativa: RPC get_effective_store_plan).
  * Sem cache global — resolvido por pedido/loja a cada geração.
  */
-const resolveFooterText = async (order: { store_owner_id?: string | null }): Promise<string> => {
+const resolveFooterText = async (order: { store_owner_id?: string | null }, client = supabase): Promise<string> => {
   const storeOwnerId = order?.store_owner_id;
   if (!storeOwnerId) return DEFAULT_FOOTER;
 
   try {
-    const { data: planData, error: planError } = await supabase.rpc("get_effective_store_plan", {
+    const { data: planData, error: planError } = await client.rpc("get_effective_store_plan", {
       p_store_id: storeOwnerId,
     });
     if (planError || !planData) return DEFAULT_FOOTER;
@@ -33,7 +33,7 @@ const resolveFooterText = async (order: { store_owner_id?: string | null }): Pro
 
     if (!hasActivePaidPlan) return DEFAULT_FOOTER;
 
-    const { data: profile } = await supabase
+    const { data: profile } = await client
       .from("profiles")
       .select("store_name")
       .eq("id", storeOwnerId)
@@ -94,6 +94,7 @@ interface StoreData {
 }
 
 interface PrintOrderParams {
+  client?: typeof supabase;
   order: OrderData;
   store: StoreData;
   customer?: CustomerData;
@@ -110,7 +111,7 @@ const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
     : { r: 106, g: 27, b: 154 }; // Default purple
 };
 
-export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams) => {
+export const printOrderA4 = async ({ order, store, customer, client = supabase }: PrintOrderParams) => {
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -565,7 +566,7 @@ export const printOrderA4 = async ({ order, store, customer }: PrintOrderParams)
 
   // ==================== FOOTER (todas as páginas) ====================
 
-  const footerText = await resolveFooterText(order);
+  const footerText = await resolveFooterText(order, client);
   const totalPages = pdf.getNumberOfPages();
 
   for (let page = 1; page <= totalPages; page += 1) {
