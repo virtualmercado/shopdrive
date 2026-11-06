@@ -1,5 +1,13 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Gerenciamento seguro multiloja MARCA — 2026-11-06
+
+- [ ] Auditar autorização usuário → loja e eventual membership/contexto de tenant antes de habilitar qualquer troca.
+- [ ] Minha Rede → Minhas Lojas e cabeçalho Trocar loja somente para lojas legitimamente autorizadas; troca server-side, limpeza de estado/cache e Dashboard da loja escolhida.
+- [ ] Garantir isolamento de produtos/pedidos/clientes/financeiro/gateway/configurações/domínio e Seu Link da loja ativa.
+- [ ] Validar aviso MARCA e histórico no Financeiro preparado, segurança/idempotência da função administrativa de cancelamento, e 217 produtos ativos sem alterar dados reais.
+- [ ] Executar somente testes necessários ao delta; não publicar, cobrar ou alterar infraestrutura/entitlements/registros financeiros.
+
 ## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06
 
 - [x] Auditoria somente leitura: principal MARCA direto ativo (`d98b895f`, período até 11/11), conta `b1f7437d` com apenas slot 1; Varejo PREMIUM direto ativo (`825c1194`, até 20/11), preapproval `c4536ee702544c568b6179a514ab7b6d`; ambas com 217 produtos ativos, Varejo com 2 pedidos, perfis elegíveis sem origem de template.
