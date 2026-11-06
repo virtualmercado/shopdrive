@@ -53,3 +53,8 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] PostgreSQL 17 descartável em localhost: dez cenários de SQL/concorrência passaram; oito claims/renovações simultâneos aplicam uma vez, rollback e eventos antigos preservam estado. Digests das quatro funções financeiras testadas iguais aos implantados. Cluster encerrado; nenhum dado financeiro real escrito.
 - [x] Simulador oficial não executado: requer acesso à aplicação/conta Mercado Pago, indisponível sem usar credenciais reais. Aceitação assinada/reconciliação aprovadas apenas com fixtures isoladas, não por evento oficial em produção. Configuração e rejeições confirmadas na função real; logs consultados contêm só inicialização e nenhum segredo.
 - [x] Comparação agregada antes/depois: pagamentos (32), invoices (32), assinaturas (34), receipts (0) e applications (0) mantiveram contagens/digests idênticos; nenhuma mudança de código funcional, deploy, configuração ou cobrança.
+
+## Transição AROMA Varejo PREMIUM → 2ª loja MARCA — 2026-11-06
+- [x] Regras de vínculo/precedência/desvinculação ajustadas (migration 0075); Varejo vinculada (vaga 2); PREMIUM próprio até 20/11, depois MARCA herdado (simulação desfeita confirmou MARCA, 0 produtos desativados, nova assinatura própria bloqueada).
+- [x] Recorrência Mercado Pago cancelada após o vínculo (authorized → cancelled, reconsulta confirmou); faturas/pagamentos/histórico intactos.
+- [x] Financeiro: loja vinculada vê aviso MARCA, sem planos/pagamento próprio; histórico de faturas mantido. Publicação do frontend pendente de autorização.

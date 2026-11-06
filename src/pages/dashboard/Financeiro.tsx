@@ -13,6 +13,7 @@ import { MarcaScheduledUpgradeCard } from "@/components/financeiro/MarcaSchedule
 import { MarcaCommercialFlow, useMarcaOffer, marcaBlockedMessage } from "@/components/financeiro/MarcaPlanOffer";
 import { toast } from "sonner";
 import { Crown } from "lucide-react";
+import { useMerchantPlan } from "@/hooks/useMerchantPlan";
 
 interface SubscriptionInfo {
   id: string;
@@ -48,6 +49,8 @@ const Financeiro = () => {
   const [searchParams] = useSearchParams();
   const paymentSectionRef = useRef<HTMLDivElement>(null);
   const { data: marcaOffer } = useMarcaOffer();
+  const { ownedStoreRole } = useMerchantPlan();
+  const linkedToMarca = ownedStoreRole === "secondary";
   const [marcaOpen, setMarcaOpen] = useState(false);
 
   // Read contextual highlight from URL parameter (e.g., ?highlight=premium)
@@ -193,8 +196,20 @@ const Financeiro = () => {
 
         <MarcaScheduledUpgradeCard />
 
+        {linkedToMarca && (
+          <Card className="p-6">
+            <div className="flex items-center gap-2">
+              <Crown className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">Plano MARCA</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Esta loja está vinculada ao Plano MARCA da empresa. A assinatura é gerenciada pela loja principal.
+            </p>
+          </Card>
+        )}
+
         {/* Status Alert - Show at the top if there's an issue */}
-        {subscription && (
+        {!linkedToMarca && subscription && (
           <SubscriptionStatusAlert
             status={subscription.status}
             declineType={subscription.declineType}
@@ -210,6 +225,7 @@ const Financeiro = () => {
         )}
 
         {/* Plans Card Container */}
+        {!linkedToMarca && (<>
         <Card className="p-6">
           {/* Header for Plans Section */}
           <div className="space-y-1 mb-6">
@@ -246,6 +262,7 @@ const Financeiro = () => {
             />
           </Card>
         )}
+        </>)}
 
         {/* Invoice History Card Container */}
         <Card className="p-6">
