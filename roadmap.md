@@ -2,17 +2,13 @@
 
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 
-- [ ] Novo pedido 03:07 UTC: implementar membership explícito, contexto central e troca nos módulos Dashboard/Produtos/Pedidos/Clientes/Minha Loja/Personalizar/Gateway/Financeiro; preservar identidade, Master, encerramento e auditoria. Corrigir cancelamento com claim transacional e regressões concorrentes; não publicar.
-
-- [x] Auditoria: vínculo MARCA é financeiro, não membership; AuthContext, consultas, RLS e funções derivam tenant de auth.uid/user.id. Não existe contexto de loja ativa. Duas lojas e 217 produtos ativos em cada uma confirmados em leitura.
-- [x] Plano de autorização explícita e migração coordenada aprovado; identidade real permanece separada da loja escolhida e seletor só será habilitado após verificações de isolamento.
-- [ ] Minha Rede → Minhas Lojas e cabeçalho Trocar loja somente para lojas legitimamente autorizadas; troca server-side, limpeza de estado/cache e Dashboard da loja escolhida.
-- [ ] Garantir isolamento de produtos/pedidos/clientes/financeiro/gateway/configurações/domínio e Seu Link da loja ativa.
-- [x] Financeiro: InvoiceHistorySection oculta próxima fatura virtual e pagamento/renovação própria na secundária e enquanto contexto é desconhecido; histórico real preservado. Regra unitária e navegador desktop/mobile com sessão/dados fictícios e tráfego externo bloqueado.
-- [x] Cancelamento validado com o handler real e transporte fictício: sem JWT/claims → 401, proprietário sem role admin → 403, repetição sequencial sem novo PUT, período preservado e nenhum token em logs/respostas; nenhuma chamada real.
-- [ ] BLOQUEADOR confirmado: duas chamadas administrativas simultâneas fazem dois PUTs de cancelamento; registro de conclusão pode duplicar. Teste esperado-falhar mantido como release blocker; função financeira não alterada nem reimplantada.
-- [ ] BLOQUEADOR de implementação: ainda não há membership/resolução de loja ativa nem cobertura coordenada de RLS/RPCs/arquivos/funções. Inventário concluído; nenhuma autorização cross-tenant foi aplicada e seletor não foi exposto. Não declarar gerenciamento multiloja implementado.
-- [x] Executados somente testes do delta; compilação automática OK. Duas lojas e 217 produtos ativos em cada uma reconfirmados em leitura; nada publicado, cobrado ou alterado em infraestrutura/entitlements/registros financeiros.
+- [x] Membership explícito com aprovação independente; só as duas lojas AROMA solicitadas aprovadas. Actor/JWT intactos; header validado pelo servidor.
+- [x] Contexto central, Minha Rede/Minhas Lojas, Trocar loja, cache isolado e navegação Dashboard; teste de navegador com provider/seletor/hooks reais e fixtures, sem hosted writes.
+- [x] Migração dos módulos nomeados e dependências principais; projeções operacionais impedem acesso delegado a campos de conta, credenciais e assinatura mutável. URLs preservadas, credenciais/IA não delegadas.
+- [x] Cancelamento com claim transacional/fencing, estado incerto somente GET; função implantada. Seis testes sintéticos incluindo concorrência passaram; nenhuma chamada financeira real.
+- [x] Doze testes unitários relacionados, cinco cenários financeiros desktop/mobile e teste SQL descartável de projeções/negação de secrets/conta passaram; compilação automática OK.
+- [ ] Release gate: falta regressão ponta a ponta completa dos oito módulos, incluindo criação/edição de produtos, pedidos, clientes/endereço e configurações com projeções reais. Não certificar pronto para publicação sem essa cobertura; execução depende de fixtures locais completas desses módulos.
+- [x] Nada publicado; sem cobrança, alteração de produtos/pedidos/faturas/assinaturas, domínio global ou Cloudflare.
 
 ## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06
 
