@@ -45,7 +45,7 @@ export const supabase={
 
 async def check(browser, role, open_invoice=False, mobile=False):
     context = await browser.new_context(viewport={"width": 390, "height": 844} if mobile else {"width": 1280, "height": 1800})
-    source = await (await context.request.get(ORIGIN + "/src/contexts/AuthContext.tsx")).text()
+    source = await (await context.request.get(ORIGIN + "/src/contexts/AuthContext.tsx")).text() + await (await context.request.get(ORIGIN + "/src/components/financeiro/InvoiceHistorySection.tsx")).text()
     main = MAIN
     for path, version in re.findall(r'(/node_modules/\.vite/deps/[^"?]+)\?v=([^"\s]+)', source):
         main = main.replace(path + "'", path + "?v=" + version + "'")
