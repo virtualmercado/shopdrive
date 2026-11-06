@@ -37,4 +37,11 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Corrigir HMAC oficial (ts/v1, query data.id case-preserved conforme SDK oficial PR #439 de 23/06/2026, manifesto, WebCrypto.verify, 401); nunca registrar payloads/segredos.
 - [x] Migration 0074: receipts com lease/token, applications por pagamento e RPCs service-only; dedup após assinatura/parse e antes dos GETs; conciliação transacional com fatura exata, guardas MARCA existentes, renovações sem sobrescrever primeira fatura e eventos antigos sem rebaixar plano atual. Deploy somente `master-subscription-webhook`; sem executar DML financeiro no backend real.
 - [x] 17 testes do handler real + banco PostgreSQL local: oito claims simultâneos, aprovação e invoice exatamente uma vez, eventos distintos, falhas atômicas e retry, renovações concorrentes, eventos antigos e recuperação de pagamento já paid incompleto; Deno check limpo, build OK. Novas tabelas em produção vazias, grants service-only confirmados; sem cobrança ou publicação frontend.
-- [ ] BLOQUEADO (configuração manual): administrador deve configurar a chave autêntica do Mercado Pago em `master_payment_gateways.mercadopago_webhook_secret` do gateway ativo/padrão; o formulário Master atual não oferece esse campo e Secrets de ambiente não são lidos pela função.
+- [x] Configuração manual confirmada por consulta agregada: um gateway Master ativo/padrão com chave webhook e Access Token configurados; nenhum valor secreto lido.
+
+## Validação objetiva do webhook — 2026-11-06
+
+- [ ] Confirmar 401 sem assinatura e com assinatura inválida na função implantada, sem reivindicar eventos nem alterar dados financeiros.
+- [ ] Reexecutar handler real com assinatura sintética e transporte isolado: aceite, deduplicação, approved e ausência de segredos em logs/respostas.
+- [ ] Reexecutar conciliação/concorrência com migration real somente em PostgreSQL local descartável; confirmar invoice/pagamento uma vez.
+- [ ] Verificar possibilidade do simulador oficial sem credenciais reais e relatar precisamente o alcance da validação.
