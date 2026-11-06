@@ -3789,6 +3789,58 @@ export type Database = {
           },
         ]
       }
+      merchant_store_memberships: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          permission: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_store_memberships_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_store_memberships_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_store_memberships_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_support_ticket_messages: {
         Row: {
           created_at: string
@@ -8136,6 +8188,7 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      _managed_store_json: { Args: { p_store_id: string }; Returns: Json }
       _marca_assert_owner_eligible: {
         Args: { p_uid: string }
         Returns: undefined
@@ -8371,6 +8424,10 @@ export type Database = {
         Args: { p_version_id: string }
         Returns: undefined
       }
+      admin_set_marca_store_membership: {
+        Args: { p_active: boolean; p_store_id: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_set_onboarding_exempt: {
         Args: { p_exempt: boolean; p_store_id: string }
         Returns: Json
@@ -8517,6 +8574,11 @@ export type Database = {
         Args: { p_path: string }
         Returns: boolean
       }
+      can_actor_manage_marca_store: {
+        Args: { p_actor: string; p_store_id: string }
+        Returns: boolean
+      }
+      can_manage_owned_store: { Args: { p_store_id: string }; Returns: boolean }
       cancel_account_deletion_request: {
         Args: { p_request_id: string }
         Returns: Json
@@ -8880,9 +8942,12 @@ export type Database = {
       get_my_catalog_editorial_access: { Args: never; Returns: boolean }
       get_my_current_catalog_state: { Args: never; Returns: Json }
       get_my_custom_domain_v2: { Args: never; Returns: Json }
+      get_my_managed_marca_stores: { Args: never; Returns: Json }
       get_my_marca_offer: { Args: never; Returns: Json }
       get_my_marca_upgrade: { Args: never; Returns: Json }
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
+      get_my_selected_store_domain: { Args: never; Returns: Json }
+      get_my_store_context: { Args: { p_store_id?: string }; Returns: Json }
       get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
       get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
       get_referral_stats: {
@@ -8981,6 +9046,7 @@ export type Database = {
         Args: { _message: string; _ticket_id: string }
         Returns: string
       }
+      merchant_request_store_id: { Args: never; Returns: string }
       normalize_custom_domain: { Args: { p_input: string }; Returns: string }
       normalize_custom_domain_hostname: {
         Args: { p_hostname: string }
