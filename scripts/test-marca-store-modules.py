@@ -190,6 +190,14 @@ async def main():
                 assert await page.get_by_text(forbidden, exact=True).count() == 0, (path, forbidden)
             print("PASS", PAGES[path], "shows only store B")
 
+        await goto("/lojista/products")
+        await page.get_by_role("switch").first.click()
+        await page.wait_for_timeout(400)
+        await goto("/lojista/customers")
+        await page.get_by_role("button", name="Criar grupo").first.click()
+        await page.get_by_placeholder("Ex: Clientes VIP").fill("Grupo B")
+        await page.get_by_role("dialog").get_by_role("button", name="Criar grupo").click()
+        await page.wait_for_timeout(400)
         await goto("/lojista/customize")
         await page.get_by_role("button", name="Salvar Alterações").click()
         await goto("/lojista/store")
@@ -210,6 +218,10 @@ async def main():
         assert all(["eq", "id", B] in e["filters"] for e in profile_writes), profile_writes
         assert all(not ({"email", "store_slug"} & set(e["payload"] or {})) for e in profile_writes), profile_writes
         assert payment_writes and all(not any("token" in k or "secret" in k for k in (e["payload"] or {})) for e in payment_writes)
+        group_writes = [e for e in writes if e["name"] == "customer_groups"]
+        assert group_writes and all(e["payload"]["user_id"] == B for e in group_writes), group_writes
+        toggles = [e for e in log if e["kind"] == "rpc" and e["name"] == "activate_product_with_plan_validation"]
+        assert toggles and all(e["client"] == "scoped" and e["store"] == B and "bbbbbbbb" in e["args"]["p_product_id"] for e in toggles), toggles
         problems = violations(log)
         account_calls = sorted({e["kind"] + ":" + e["name"] for e in log if e["client"] == "base" and A in json.dumps(e)})
         print("Account-scoped calls kept on the real actor:", account_calls)
