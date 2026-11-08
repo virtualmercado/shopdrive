@@ -61,6 +61,25 @@ export function canAccessPixPayment(
   return false;
 }
 
+export type SelectedStoreHeader =
+  | { kind: "own"; storeId: string }
+  | { kind: "delegated"; storeId: string }
+  | { kind: "invalid" };
+
+const STORE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Interpret the optional `x-shopdrive-store-id` header of the merchant scoped client.
+ * Absent/own id keeps the caller's own store; another id must still be authorized
+ * server-side with `can_actor_manage_marca_store` (approved membership); malformed fails closed.
+ */
+export function parseSelectedStoreHeader(value: string | null, actorId: string): SelectedStoreHeader {
+  const chosen = value?.trim() ?? "";
+  if (!chosen || chosen.toLowerCase() === actorId.toLowerCase()) return { kind: "own", storeId: actorId };
+  if (!STORE_UUID.test(chosen)) return { kind: "invalid" };
+  return { kind: "delegated", storeId: chosen.toLowerCase() };
+}
+
 export interface OrderItemRow {
   product_name: string;
   quantity: number;
