@@ -7,6 +7,7 @@
 - [x] Migração dos módulos nomeados e dependências principais; projeções operacionais impedem acesso delegado a campos de conta, credenciais e assinatura mutável. URLs preservadas, credenciais/IA não delegadas.
 - [x] Cancelamento com claim transacional/fencing, estado incerto somente GET; função implantada. Seis testes sintéticos incluindo concorrência passaram; nenhuma chamada financeira real.
 - [x] Doze testes unitários relacionados, cinco cenários financeiros desktop/mobile e teste SQL descartável de projeções/negação de secrets/conta passaram; compilação automática OK.
+- [ ] 08/11 01:43 UTC: usuário autorizou continuar até finalizar.
 - [ ] Release gate: falta regressão ponta a ponta completa dos oito módulos, incluindo criação/edição de produtos, pedidos, clientes/endereço e configurações com projeções reais. Não certificar pronto para publicação sem essa cobertura; execução depende de fixtures locais completas desses módulos.
 - [x] Nada publicado; sem cobrança, alteração de produtos/pedidos/faturas/assinaturas, domínio global ou Cloudflare.
 
