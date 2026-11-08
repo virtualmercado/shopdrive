@@ -7,8 +7,8 @@
 - [x] Migração dos módulos nomeados e dependências principais; projeções operacionais impedem acesso delegado a campos de conta, credenciais e assinatura mutável. URLs preservadas, credenciais/IA não delegadas.
 - [x] Cancelamento com claim transacional/fencing, estado incerto somente GET; função implantada. Seis testes sintéticos incluindo concorrência passaram; nenhuma chamada financeira real.
 - [x] Doze testes unitários relacionados, cinco cenários financeiros desktop/mobile e teste SQL descartável de projeções/negação de secrets/conta passaram; compilação automática OK.
-- [ ] 08/11 01:43 UTC: usuário autorizou continuar até finalizar.
-- [ ] Release gate: falta regressão ponta a ponta completa dos oito módulos, incluindo criação/edição de produtos, pedidos, clientes/endereço e configurações com projeções reais. Não certificar pronto para publicação sem essa cobertura; execução depende de fixtures locais completas desses módulos.
+- [x] 08/11 01:43 UTC: usuário autorizou continuar até finalizar.
+- [x] Release gate: navegador com rota/provider/layout/páginas reais dos oito módulos na loja B (186 chamadas capturadas, só B; ativar produto, criar grupo, salvar Personalizar/Minha Loja/Gateway por projeções; rota de conta negada; alerta de cobrança da conta oculto). Migrations reais 0076–0079 em PostgreSQL descartável: link sem aprovação negado, header manipulado negado, segredos/conta protegidos, revogação e cancelamento concorrente único.
 - [x] Nada publicado; sem cobrança, alteração de produtos/pedidos/faturas/assinaturas, domínio global ou Cloudflare.
 
 ## Migração controlada AROMA Varejo → segunda loja MARCA — 2026-11-06

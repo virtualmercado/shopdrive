@@ -642,7 +642,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </header>
 
         {/* Global Billing Alert - Appears below header (hide in template mode) */}
-        {!isTemplateEditorMode && <GlobalBillingAlert />}
+        {!isTemplateEditorMode && !delegated && <GlobalBillingAlert />}
 
         {/* Page Content */}
         <main className="p-6 page-enter" data-page-content style={{ paddingBottom: "calc(1.5rem + var(--cookie-banner-height, 0px) + env(safe-area-inset-bottom, 0px))" }}>
