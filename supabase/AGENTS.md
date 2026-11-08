@@ -16,3 +16,4 @@
 
 - Selected-store authorization requires owner identity or independently approved active membership under the direct MARCA owner; operational views bind request headers to that permission, while profiles, gateway secrets and subscriptions remain actor-owned. Why: tenant management must not delegate account identity or credentials.
 - Recurrence cancellation claims are row-locked and token-fenced; sent/unknown/expired claims permit reconciliation GET only and never another PUT. Why: ambiguous external outcomes cannot safely be retried.
+- Merchant AI functions treat `x-shopdrive-store-id` as the selected store only after `can_actor_manage_marca_store`/`can_manage_owned_store`; product references and logs are bound to that store. Why: linked MARCA stores keep their AI entitlement without cross-tenant attribution.

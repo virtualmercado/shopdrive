@@ -69,3 +69,5 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Regras de vínculo/precedência/desvinculação ajustadas (migration 0075); Varejo vinculada (vaga 2); PREMIUM próprio até 20/11, depois MARCA herdado (simulação desfeita confirmou MARCA, 0 produtos desativados, nova assinatura própria bloqueada).
 - [x] Recorrência Mercado Pago cancelada após o vínculo (authorized → cancelled, reconsulta confirmou); faturas/pagamentos/histórico intactos.
 - [x] Financeiro: loja vinculada vê aviso MARCA, sem planos/pagamento próprio; histórico de faturas mantido. Publicação do frontend pendente de autorização.
+
+- [x] 08/11 gate final: IA da loja vinculada liberada (texto de produto e paleta) com loja selecionada validada no servidor; auditoria de credenciais da Varejo concluída (rotação recomendada, não executada). Sem publicação.
