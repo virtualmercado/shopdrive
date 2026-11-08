@@ -28,7 +28,7 @@ TENANT_TABLES = {
 routes = "".join(
     f"h(Route,{{path:'{path}',element:h(MerchantRoute,null,h({name}))}}),"
     for path, name in PAGES.items()
-)
+) + "h(Route,{path:'/lojista/settings',element:h(MerchantRoute,null,h('p',null,'account-only child'))}),"
 imports = "".join(f"import {name} from '/src/pages/dashboard/{name}.tsx';" for name in PAGES.values())
 MAIN = (
     "import '/src/index.css';import React from '/node_modules/.vite/deps/react.js';"
@@ -166,13 +166,20 @@ async def main():
         page = await context.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        log = []
+
+        async def goto(path):
+            if page.url.startswith(ORIGIN):
+                log.extend(await page.evaluate("window.__log || []"))
+            await page.goto(ORIGIN + path)
+
         await page.goto(ORIGIN + "/lojista")
         await page.evaluate("([a,b]) => sessionStorage.setItem('shopdrive_selected_store:'+a, b)", [A, B])
 
         expectations = {"/lojista/products": "Produto B", "/lojista/orders": "Cliente B", "/lojista/customers": "Cliente B",
                         "/lojista/financeiro": "Esta loja está vinculada ao Plano MARCA da empresa."}
         for path in PAGES:
-            await page.goto(ORIGIN + path)
+            await goto(path)
             await expect(page.get_by_text("Seu Link:")).to_be_visible(timeout=15000)
             await expect(page.get_by_role("link", name=re.compile(r"fixture-b$")).first).to_be_visible()
             if path in expectations:
@@ -182,18 +189,19 @@ async def main():
                 assert await page.get_by_text(forbidden, exact=True).count() == 0, (path, forbidden)
             print("PASS", PAGES[path], "shows only store B")
 
-        await page.goto(ORIGIN + "/lojista/customize")
+        await goto("/lojista/customize")
         await page.get_by_role("button", name="Salvar Alterações").click()
-        await page.goto(ORIGIN + "/lojista/store")
+        await goto("/lojista/store")
         await page.get_by_role("button", name=re.compile("Salvar")).last.click()
-        await page.goto(ORIGIN + "/lojista/payment-methods")
+        await goto("/lojista/payment-methods")
         await page.get_by_role("button", name="Salvar Configurações").click()
         await page.wait_for_timeout(800)
-        await page.goto(ORIGIN + "/lojista/settings")
+        await goto("/lojista/settings")
         await expect(page.get_by_text("Esta área pertence à conta principal.")).to_be_visible()
+        assert await page.get_by_text("account-only child").count() == 0
         await page.screenshot(path="/tmp/browser/marca/delegated-denied.png")
 
-        log = await page.evaluate("window.__log")
+        log.extend(await page.evaluate("window.__log || []"))
         writes = [e for e in log if e.get("write")]
         profile_writes = [e for e in writes if e["name"] == "merchant_store_profiles"]
         payment_writes = [e for e in writes if e["name"] == "merchant_store_payment_settings"]
