@@ -76,4 +76,5 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Backend: limite de 2 lojas, pedido único com chave idempotente, conclusão atômica, sem contas órfãs (0080 + função implantada)
 - [x] Tela: "Criar segunda loja" com 1 loja; "Limite de 2 lojas do Plano MARCA atingido." com 2 (AROMA)
 - [x] Testes: handler sintético, banco descartável (concorrência/limite/órfãos), navegador simulado, regressões MULTILOJA
-- [ ] Publicação — aguardando autorização do usuário
+- [x] Publicação autorizada e feita; AROMA validada em produção com limite e ação desativada
+- [ ] Teste real de criação + e-mail + senha — aguardando conta MARCA interna com uma só loja (usuário)
