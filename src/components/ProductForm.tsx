@@ -168,7 +168,7 @@ interface ProductFormProps {
 }
 
 export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPersisted }: ProductFormProps) => {
-  const { storeId, client: supabase, delegated } = useMerchantStore();
+  const { storeId, client: supabase } = useMerchantStore();
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price.toString() || "");
@@ -1327,7 +1327,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
                 className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
                 onClick={() => {
                   setAiGenerateTitle(true);
-                  if (!delegated) setAiAssistantOpen(true);
+                  setAiAssistantOpen(true);
                 }}
               >
                 <Sparkles className="h-3 w-3" />
@@ -1387,7 +1387,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
               className={`w-full mb-2 gap-2 ${buttonRadius} border-primary text-primary hover:bg-primary hover:text-primary-foreground`}
               onClick={() => {
                 setAiGenerateTitle(false);
-                if (!delegated) setAiAssistantOpen(true);
+                setAiAssistantOpen(true);
               }}
             >
               <Bot className="h-4 w-4" />
@@ -2026,7 +2026,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
     )}
 
     {/* AI Product Assistant Modal */}
-    {!delegated && <AIProductAssistantModal
+    <AIProductAssistantModal
       open={aiAssistantOpen}
       onOpenChange={setAiAssistantOpen}
       currentCategory={categories.find(c => c.id === categoryId)?.name || ""}
@@ -2041,7 +2041,7 @@ export const ProductForm = ({ open, onOpenChange, product, onSuccess, onImagesPe
           setDescription(result.description);
         }
       }}
-    />}
+    />
     {/* Plan block modal for image editor */}
     <PlanFeatureBlockModal
       open={imageEditorBlockOpen}

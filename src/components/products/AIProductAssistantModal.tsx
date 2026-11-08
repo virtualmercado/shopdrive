@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Loader2, Copy, RefreshCw, ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
