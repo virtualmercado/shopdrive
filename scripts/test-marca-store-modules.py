@@ -214,7 +214,8 @@ async def main():
         await page.wait_for_timeout(400)
         await goto("/lojista/customize")
         # AI palette refinement stays available in the linked store.
-        await page.locator("button[title=\"Verde Natural\"]").first.click()
+        await page.screenshot(path="/tmp/browser/marca/customize-b.png")
+        await page.locator("button[title=\"Verde Natural\"]").first.click(timeout=8000)
         await page.get_by_placeholder(re.compile("Deixar mais elegante")).fill("Mais contraste")
         await page.get_by_role("button", name="Refinar paleta com IA").click()
         await page.wait_for_timeout(500)
