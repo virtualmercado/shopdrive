@@ -26,7 +26,7 @@ for _ in range(30):
     time.sleep(0.2)
 
 def sql(q, fail=False):
-    p = subprocess.run(["psql", DSN, "-X", "-v", "ON_ERROR_STOP=1", "-At", "-c", q], env=ENV, capture_output=True, text=True)
+    p = subprocess.run(["psql", DSN, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-At", "-c", q], env=ENV, capture_output=True, text=True)
     if fail:
         assert p.returncode != 0, "expected rejection: " + q; return p.stderr
     if p.returncode: raise AssertionError(p.stderr)
