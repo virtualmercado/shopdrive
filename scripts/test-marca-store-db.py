@@ -14,12 +14,16 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = Path("/tmp/marca-store-db")
 PORT = "55441"
 ENV = {k: v for k, v in os.environ.items() if not k.startswith("PG")}
+# Use the PostgreSQL installation's own binaries so initdb finds its extension libraries.
+_bins = sorted(Path("/nix/store").glob("*-postgresql-17*/bin/initdb"))
+if _bins:
+    ENV["PATH"] = str(_bins[0].parent) + ":" + ENV.get("PATH", "")
 DSN = f"postgresql://nobody@127.0.0.1:{PORT}/marca_test?sslmode=disable"
 ADMIN = f"postgresql://nobody@127.0.0.1:{PORT}/postgres?sslmode=disable"
 
 
 def as_nobody(*cmd):
-    return subprocess.run(["runuser", "-u", "nobody", "--", *cmd], env=ENV, capture_output=True, text=True)
+    return subprocess.run(["runuser", "-u", "nobody", "--", "env", "PATH=" + ENV["PATH"], *cmd], env=ENV, capture_output=True, text=True)
 
 
 def start_cluster():
