@@ -175,6 +175,7 @@ async def main():
 
         await page.goto(ORIGIN + "/lojista")
         await page.evaluate("([a,b]) => sessionStorage.setItem('shopdrive_selected_store:'+a, b)", [A, B])
+        await page.evaluate("window.__log = []")  # owner-mode calls before selection are legitimate
 
         expectations = {"/lojista/products": "Produto B", "/lojista/orders": "Cliente B", "/lojista/customers": "Cliente B",
                         "/lojista/financeiro": "Esta loja está vinculada ao Plano MARCA da empresa."}
