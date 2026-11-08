@@ -46,7 +46,7 @@ function harness(file: string, opts: { approved?: boolean } = {}) {
     },
   };
   const aiResponse = file.includes("palette")
-    ? { choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify({ primary: "#111111", secondary: "#222222", headerBg: "#333333", headerText: "#ffffff", buttonBg: "#444444", buttonText: "#ffffff", footerBg: "#555555", footerText: "#ffffff", topBarBg: "#666666", topBarText: "#ffffff", explanation: "ok" }) } }] } }] }
+    ? { choices: [{ message: { tool_calls: [{ function: { name: "generate_color_palette", arguments: JSON.stringify({ primary: "#111111", secondary: "#222222", headerBg: "#333333", headerText: "#ffffff", buttonBg: "#444444", buttonText: "#ffffff", footerBg: "#555555", footerText: "#ffffff", topBarBg: "#666666", topBarText: "#ffffff", explanation: "ok" }) } }] } }] }
     : { choices: [{ message: { content: JSON.stringify({ description_long: "Descrição sintética" }) } }] };
   const context = {
     Request, Response, JSON,
