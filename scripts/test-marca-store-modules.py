@@ -194,6 +194,7 @@ async def main():
         await page.get_by_role("switch").first.click()
         await page.wait_for_timeout(400)
         await goto("/lojista/customers")
+        await page.get_by_role("tab", name="Grupos").click()
         await page.get_by_role("button", name="Criar grupo").first.click()
         await page.get_by_placeholder("Ex: Clientes VIP").fill("Grupo B")
         await page.get_by_role("dialog").get_by_role("button", name="Criar grupo").click()
