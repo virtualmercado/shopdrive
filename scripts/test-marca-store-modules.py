@@ -214,10 +214,12 @@ async def main():
         account_calls = sorted({e["kind"] + ":" + e["name"] for e in log if e["client"] == "base" and A in json.dumps(e)})
         print("Account-scoped calls kept on the real actor:", account_calls)
         assert not problems, json.dumps(problems[:5], indent=1)
-        assert not blocked, blocked
+        # index.html static font/SDK script GETs are aborted too; anything else is a failure.
+        unexpected = [b for b in blocked if b not in {"GET https://fonts.googleapis.com/css2", "GET https://sdk.mercadopago.com/js/v2"}]
+        assert not unexpected, unexpected
         assert not errors, errors
         print(f"PASS {len(log)} captured backend calls: store B only, account data/credentials never delegated, "
-              "settings saved through operational projections, unsupported route denied, zero hosted requests")
+              "settings saved through operational projections, unsupported route denied, no backend request left the browser")
         await browser.close()
 
 
