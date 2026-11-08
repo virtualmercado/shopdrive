@@ -561,6 +561,13 @@
       "when": 1793935396966,
       "tag": "0079_marca_explicit_access_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1794175386211,
+      "tag": "0080_marca_second_store_creation",
+      "breakpoints": true
     }
   ]
 }

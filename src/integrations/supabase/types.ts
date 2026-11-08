@@ -3180,6 +3180,65 @@ export type Database = {
           },
         ]
       }
+      marca_store_creation_requests: {
+        Row: {
+          actor_id: string
+          attempt_token: string
+          brand_account_id: string
+          created_at: string
+          email_normalized: string
+          failure_code: string | null
+          id: string
+          idempotency_key: string
+          lease_expires_at: string
+          owner_name: string
+          status: string
+          store_id: string | null
+          store_name: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id: string
+          attempt_token?: string
+          brand_account_id: string
+          created_at?: string
+          email_normalized: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key: string
+          lease_expires_at?: string
+          owner_name: string
+          status?: string
+          store_id?: string | null
+          store_name: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string
+          attempt_token?: string
+          brand_account_id?: string
+          created_at?: string
+          email_normalized?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          lease_expires_at?: string
+          owner_name?: string
+          status?: string
+          store_id?: string | null
+          store_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marca_store_creation_requests_brand_account_id_fkey"
+            columns: ["brand_account_id"]
+            isOneToOne: false
+            referencedRelation: "brand_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_settings: {
         Row: {
           created_at: string
@@ -8851,6 +8910,8 @@ export type Database = {
         Args: { p_uid: string }
         Returns: undefined
       }
+      _marca_creation_account: { Args: { p_actor: string }; Returns: string }
+      _marca_creation_user: { Args: { p_request_id: string }; Returns: string }
       activate_marca_scheduled_upgrade: {
         Args: {
           p_payment_id: string
@@ -9216,6 +9277,16 @@ export type Database = {
         Args: { _expected_updated_at: string; _idempotency_key: string }
         Returns: Json
       }
+      begin_marca_second_store_creation: {
+        Args: {
+          p_actor: string
+          p_email: string
+          p_key: string
+          p_owner_name: string
+          p_store_name: string
+        }
+        Returns: Json
+      }
       begin_my_catalog_preview: {
         Args: { _expected_revision: number }
         Returns: Json
@@ -9356,6 +9427,14 @@ export type Database = {
           p_before: string
           p_subscription_id: string
           p_token: string
+        }
+        Returns: Json
+      }
+      complete_marca_second_store_creation: {
+        Args: {
+          p_attempt_token: string
+          p_request_id: string
+          p_user_id: string
         }
         Returns: Json
       }
@@ -9504,6 +9583,10 @@ export type Database = {
         Args: { p_subscription_id: string; p_token: string }
         Returns: undefined
       }
+      fail_marca_second_store_creation: {
+        Args: { p_attempt_token: string; p_code: string; p_request_id: string }
+        Returns: boolean
+      }
       finalize_custom_domain_revoke: {
         Args: {
           p_actor: string
@@ -9619,6 +9702,7 @@ export type Database = {
       get_my_custom_domain_v2: { Args: never; Returns: Json }
       get_my_managed_marca_stores: { Args: never; Returns: Json }
       get_my_marca_offer: { Args: never; Returns: Json }
+      get_my_marca_store_slots: { Args: never; Returns: Json }
       get_my_marca_upgrade: { Args: never; Returns: Json }
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
       get_my_selected_store_domain: { Args: never; Returns: Json }

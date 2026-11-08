@@ -10,7 +10,7 @@ import { flushCatalogBeforeLeave } from "@/lib/catalog-v2/editorial/navigationSa
 interface StoreContext {
   storeId: string | null; store: ManagedStore | null; stores: ManagedStore[]; client: typeof supabase;
   actorId: string | null; delegated: boolean; loading: boolean; error: boolean; switching: boolean;
-  switchStore: (id: string) => Promise<boolean>; retry: () => void;
+  switchStore: (id: string) => Promise<boolean>; retry: () => void; refreshStores: () => Promise<void>;
 }
 const MerchantStoreContext = createContext<StoreContext | null>(null);
 
@@ -68,11 +68,18 @@ export function MerchantStoreProvider({ children }: { children: ReactNode }) {
     } catch { return false; }
     finally { busy.current = false; setSwitching(false); }
   }, [actorId, navigate, queryClient]);
+  const refreshStores = useCallback(async () => {
+    if (!actorId) return;
+    const { data, error: listError } = await supabase.rpc("get_my_managed_marca_stores" as never);
+    const listData: unknown = data;
+    if (listError || !Array.isArray(listData) || actorRef.current !== actorId) return;
+    setStores(listData.map(parseManagedStore));
+  }, [actorId]);
   const readyStore = resolvedActor === actorId ? store : null;
   const client = useMemo(() => actorId && readyStore ? createMerchantScopedClient(actorId, readyStore.storeId) : supabase, [actorId, readyStore?.storeId]);
   return <MerchantStoreContext.Provider value={{ storeId: readyStore?.storeId ?? null, store: readyStore, stores: readyStore ? stores : [], client,
     actorId, delegated: !!readyStore && readyStore.storeId !== actorId, loading: loading || authLoading || (!!actorId && !readyStore && !error),
-    error, switching, switchStore, retry: () => setRevision((r) => r + 1) }}>{children}</MerchantStoreContext.Provider>;
+    error, switching, switchStore, retry: () => setRevision((r) => r + 1), refreshStores }}>{children}</MerchantStoreContext.Provider>;
 }
 
 export const useMerchantStoreContext = () => useContext(MerchantStoreContext);

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { CreateSecondStore } from "./CreateSecondStore";
 
 export function StoreSwitcher() {
   const { stores, storeId, switchStore, switching } = useMerchantStore();
@@ -24,5 +25,5 @@ export function ManagedStores() {
       <a className="inline-flex items-start gap-1 text-sm text-primary break-all" href={store.publicUrl} target="_blank" rel="noopener noreferrer">{store.publicUrl}<ExternalLink className="h-3.5 w-3.5 shrink-0 mt-0.5" /></a>
       <p className="text-sm">{store.paidUntil ? `${store.plan.toUpperCase()} até ${new Date(store.paidUntil).toLocaleDateString("pt-BR", { timeZone: "UTC" })} → MARCA` : store.plan.toUpperCase()}</p>
       <Button variant="outline" disabled={switching} onClick={() => { void switchStore(store.storeId).then((ok) => { if (!ok) toast.error("Não foi possível acessar esta loja."); }); }}>Acessar painel</Button>
-    </article>)}</div></section>;
+    </article>)}<CreateSecondStore /></div></section>;
 }

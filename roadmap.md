@@ -71,3 +71,9 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Financeiro: loja vinculada vê aviso MARCA, sem planos/pagamento próprio; histórico de faturas mantido. Publicação do frontend pendente de autorização.
 
 - [x] 08/11 gate final: IA da loja vinculada liberada (texto de produto e paleta) com loja selecionada validada no servidor; auditoria de credenciais da Varejo concluída (rotação recomendada, não executada). Sem publicação.
+
+## Criação segura da segunda loja MARCA (Minha Rede → Minhas Lojas) — 2026-11-08
+- [x] Backend: limite de 2 lojas, pedido único com chave idempotente, conclusão atômica, sem contas órfãs (0080 + função implantada)
+- [x] Tela: "Criar segunda loja" com 1 loja; "Limite de 2 lojas do Plano MARCA atingido." com 2 (AROMA)
+- [x] Testes: handler sintético, banco descartável (concorrência/limite/órfãos), navegador simulado, regressões MULTILOJA
+- [ ] Publicação — aguardando autorização do usuário
