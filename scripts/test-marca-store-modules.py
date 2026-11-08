@@ -93,7 +93,10 @@ export function makeClient(client,store){{
    return {{data:null,error:null}};}},
   storage:{{from:bucket=>({{upload:async(p)=>{{window.__log.push({{client,store,kind:'storage',name:bucket,payload:p}});return {{data:{{path:p}},error:null}}}},
    getPublicUrl:p=>({{data:{{publicUrl:'https://fixture.invalid/'+p}}}}),remove:async()=>({{data:null,error:null}}),list:async()=>({{data:[],error:null}})}})}},
-  functions:{{invoke:async(name,o)=>{{window.__log.push({{client,store,kind:'invoke',name,args:o?.body??null}});return {{data:null,error:null}}}}}},
+  functions:{{invoke:async(name,o)=>{{window.__log.push({{client,store,kind:'invoke',name,args:o?.body??null}});
+   if(name==='ai-product-writer')return {{data:{{description_long:'Descrição sintética B'}},error:null}};
+   if(name==='refine-color-palette')return {{data:{{colors:{{primary:'#123456',secondary:'#654321',headerBg:'#ffffff',headerText:'#000000',buttonBg:'#123456',buttonText:'#ffffff',footerBg:'#111111',footerText:'#ffffff',topBarBg:'#123456',topBarText:'#ffffff'}}}},error:null}};
+   return {{data:null,error:null}}}}}},
   channel:()=>{{const c={{on(){{return c}},subscribe(){{return c}}}};return c}},removeChannel:()=>{{}},
   auth:{{getSession:async()=>({{data:{{session:{{user:{{id:A}},access_token:'synthetic-not-real'}}}},error:null}}),
    getUser:async()=>({{data:{{user:{{id:A}}}},error:null}}),onAuthStateChange:()=>({{data:{{subscription:{{unsubscribe(){{}}}}}}}}),
@@ -193,6 +196,16 @@ async def main():
         await goto("/lojista/products")
         await page.get_by_role("switch").first.click()
         await page.wait_for_timeout(400)
+        # AI product text stays available in the linked store and runs through the scoped client.
+        await page.get_by_role("button", name="Novo Produto").first.click()
+        await page.get_by_role("button", name="Criar descrição profissional com IA").click()
+        ai = page.get_by_role("dialog").last
+        await ai.get_by_role("button", name="Próximo").click()
+        await ai.get_by_role("button", name="Gerar agora").click()
+        await expect(page.get_by_text("Descrição sintética B").first).to_be_visible()
+        await page.screenshot(path="/tmp/browser/marca/ai-product-b.png")
+        await page.keyboard.press("Escape")
+        await page.keyboard.press("Escape")
         await goto("/lojista/customers")
         await page.get_by_role("tab", name="Grupos").click()
         await page.get_by_role("button", name="Criar grupo").first.click()
@@ -200,6 +213,11 @@ async def main():
         await page.get_by_role("dialog").get_by_role("button", name="Criar grupo").click()
         await page.wait_for_timeout(400)
         await goto("/lojista/customize")
+        # AI palette refinement stays available in the linked store.
+        await page.locator("button[title]").filter(has_text=re.compile(".")).first.click()
+        await page.get_by_placeholder(re.compile("Deixar mais elegante")).fill("Mais contraste")
+        await page.get_by_role("button", name="Refinar paleta com IA").click()
+        await page.wait_for_timeout(500)
         await page.get_by_role("button", name="Salvar Alterações").click()
         await goto("/lojista/store")
         await page.get_by_role("button", name=re.compile("Salvar")).last.click()
@@ -223,6 +241,13 @@ async def main():
         assert group_writes and all(e["payload"]["user_id"] == B for e in group_writes), group_writes
         toggles = [e for e in log if e["kind"] == "rpc" and e["name"] == "activate_product_with_plan_validation"]
         assert toggles and all(e["client"] == "scoped" and e["store"] == B and "bbbbbbbb" in e["args"]["p_product_id"] for e in toggles), toggles
+        ai_calls = [e for e in log if e["kind"] == "invoke" and e["name"] in {"ai-product-writer", "refine-color-palette"}]
+        assert {e["name"] for e in ai_calls} == {"ai-product-writer", "refine-color-palette"}, ai_calls
+        assert all(e["client"] == "scoped" and e["store"] == B for e in ai_calls), ai_calls
+        print("PASS AI product text and AI palette available in store B via the selected-store client")
+        credential_reads = [e for e in log if e["kind"] == "from" and e["name"] == "merchant_store_payment_settings"
+                            and e["client"] == "scoped" and e["store"] == B]
+        assert credential_reads and await page.locator("text=synthetic-secret").count() == 0
         problems = violations(log)
         account_calls = sorted({e["kind"] + ":" + e["name"] for e in log if e["client"] == "base" and A in json.dumps(e)})
         print("Account-scoped calls kept on the real actor:", account_calls)
