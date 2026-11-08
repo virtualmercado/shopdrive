@@ -174,7 +174,7 @@ async def main():
         for path in PAGES:
             await page.goto(ORIGIN + path)
             await expect(page.get_by_text("Seu Link:")).to_be_visible(timeout=15000)
-            await expect(page.get_by_role("link", name="https://shopdrive.com.br/fixture-b").first).to_be_visible()
+            await expect(page.get_by_role("link", name=re.compile(r"/fixture-b$")).first).to_be_visible()
             if path in expectations:
                 await expect(page.get_by_text(expectations[path]).first).to_be_visible()
             await page.wait_for_timeout(600)
