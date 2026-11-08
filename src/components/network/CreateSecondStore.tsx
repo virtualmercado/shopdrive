@@ -114,7 +114,7 @@ export function CreateSecondStore() {
           <DialogTitle>Criar segunda loja</DialogTitle>
           <DialogDescription>A nova loja nasce vazia, com conta própria e endereço próprio na ShopDrive. Nenhum dado da loja atual é copiado.</DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+        <form noValidate className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           {([
             ["ownerName", "Nome do responsável", "text"],
             ["email", "E-mail da conta da nova loja", "email"],
