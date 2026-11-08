@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { Loader2, Copy, RefreshCw, ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -75,6 +75,8 @@ export const AIProductAssistantModal = ({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIGenerationResult | null>(null);
   const { toast } = useToast();
+  // Scoped client: AI text is attributed to the selected store, authorized again on the server.
+  const { client: supabase } = useMerchantStore();
   const { buttonBgColor, buttonTextColor, buttonBorderStyle } = useTheme();
   
   const buttonRadius = buttonBorderStyle === 'rounded' ? 'rounded-full' : 'rounded-none';

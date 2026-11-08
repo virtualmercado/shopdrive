@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { parseSelectedStoreHeader } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-shopdrive-store-id",
 };
 
 interface ColorPalette {
@@ -53,6 +54,23 @@ serve(async (req) => {
         JSON.stringify({ error: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // A selected linked store must be authorized; no store data is read or written here.
+    const actorId = String(claimsData.claims.sub ?? "");
+    const selected = parseSelectedStoreHeader(req.headers.get("x-shopdrive-store-id"), actorId);
+    if (!actorId || selected.kind === "invalid") {
+      return new Response(JSON.stringify({ error: "Store access denied" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (selected.kind === "delegated") {
+      const { data: allowed, error: accessError } = await supabase.rpc("can_manage_owned_store", { p_store_id: selected.storeId });
+      if (accessError || allowed !== true) {
+        return new Response(JSON.stringify({ error: "Store access denied" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { basePalette, paletteName, refinementPrompt } = await req.json() as RefineRequest;

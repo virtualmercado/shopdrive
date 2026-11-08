@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parseSelectedStoreHeader } from "../_shared/authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-shopdrive-store-id",
 };
 
 interface AIProductRequest {
@@ -57,7 +58,47 @@ serve(async (req) => {
       });
     }
 
+    // Store context: own store by default; a selected linked store needs an approved membership.
+    const selected = parseSelectedStoreHeader(req.headers.get("x-shopdrive-store-id"), user.id);
+    if (selected.kind === "invalid") {
+      return new Response(JSON.stringify({ error: "Acesso à loja negado." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (selected.kind === "delegated") {
+      const { data: allowed, error: accessError } = await supabase.rpc("can_actor_manage_marca_store", {
+        p_actor: user.id,
+        p_store_id: selected.storeId,
+      });
+      if (accessError || allowed !== true) {
+        return new Response(JSON.stringify({ error: "Acesso à loja negado." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    const storeId = selected.storeId;
+
     const body: AIProductRequest = await req.json();
+
+    // A product reference is only kept when it belongs to the store in context.
+    let productId: string | null = null;
+    if (typeof body.product_id === "string" && /^[0-9a-f-]{36}$/i.test(body.product_id)) {
+      const { data: product } = await supabase
+        .from("products")
+        .select("id")
+        .eq("id", body.product_id)
+        .eq("user_id", storeId)
+        .maybeSingle();
+      if (!product) {
+        return new Response(JSON.stringify({ error: "Produto não pertence à loja selecionada." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      productId = product.id;
+    }
 
     // Build the prompt based on the request
     const toneDescriptions: Record<string, string> = {
@@ -131,8 +172,8 @@ Retorne APENAS o JSON, sem formatação markdown, sem blocos de código.`;
         // Log the error
         await supabase.from("ai_product_logs").insert({
           user_id: user.id,
-          store_id: user.id,
-          product_id: body.product_id || null,
+          store_id: storeId,
+          product_id: productId,
           category: body.category,
           product_type: body.product_type,
           target_audience: body.target_audience,
@@ -185,8 +226,8 @@ Retorne APENAS o JSON, sem formatação markdown, sem blocos de código.`;
     // Log successful generation
     await supabase.from("ai_product_logs").insert({
       user_id: user.id,
-      store_id: user.id,
-      product_id: body.product_id || null,
+      store_id: storeId,
+      product_id: productId,
       category: body.category,
       product_type: body.product_type,
       target_audience: body.target_audience,

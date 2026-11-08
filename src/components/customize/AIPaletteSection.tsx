@@ -57,7 +57,7 @@ export const AIPaletteSection = ({
   userId,
   onApplyPalette,
 }: AIPaletteSectionProps) => {
-  const { storeId, client: supabase, delegated } = useMerchantStore();
+  const { storeId, client: supabase } = useMerchantStore();
   const { toast } = useToast();
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette | null>(null);
   const [previewPalette, setPreviewPalette] = useState<ColorPalette | null>(null);
@@ -111,7 +111,6 @@ export const AIPaletteSection = ({
   };
 
   const handleRefineWithAI = async () => {
-    if (delegated) return;
     if (!selectedPalette || !refinementPrompt.trim()) {
       toast({
         title: "Atenção",

@@ -6,6 +6,7 @@ import {
   canAccessPixPayment,
   buildCheckoutItemsFromOrder,
   resolveOrderChargeAmount,
+  parseSelectedStoreHeader,
 } from "../../supabase/functions/_shared/authorization";
 
 const STORE_A = "11111111-1111-1111-1111-111111111111";
@@ -109,5 +110,19 @@ describe("resolveOrderChargeAmount (valor sempre do pedido)", () => {
     expect(() => resolveOrderChargeAmount(0)).toThrow();
     expect(() => resolveOrderChargeAmount(-5)).toThrow();
     expect(() => resolveOrderChargeAmount(NaN)).toThrow();
+  });
+});
+
+describe("parseSelectedStoreHeader (AI functions in selected store)", () => {
+  it("keeps the caller's own store when the header is absent or equal", () => {
+    expect(parseSelectedStoreHeader(null, STORE_A)).toEqual({ kind: "own", storeId: STORE_A });
+    expect(parseSelectedStoreHeader(STORE_A.toUpperCase(), STORE_A)).toEqual({ kind: "own", storeId: STORE_A });
+  });
+  it("marks another store as delegated, still requiring server authorization", () => {
+    expect(parseSelectedStoreHeader(STORE_B, STORE_A)).toEqual({ kind: "delegated", storeId: STORE_B });
+  });
+  it("fails closed for malformed store ids", () => {
+    expect(parseSelectedStoreHeader("../profiles", STORE_A)).toEqual({ kind: "invalid" });
+    expect(parseSelectedStoreHeader(`${STORE_B},${STORE_A}`, STORE_A)).toEqual({ kind: "invalid" });
   });
 });
