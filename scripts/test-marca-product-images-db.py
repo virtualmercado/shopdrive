@@ -49,7 +49,7 @@ def actor(a, query, store=None, fail=False):
 
 def put(a, path, store=None, fail=False, upsert=False):
     tail = " ON CONFLICT (bucket_id,name) DO UPDATE SET owner_id=excluded.owner_id" if upsert else ""
-    return actor(a, f"INSERT INTO storage.objects(bucket_id,name) VALUES('product-images','{path}'){tail} RETURNING name", store, fail)
+    return actor(a, f"WITH x AS (INSERT INTO storage.objects(bucket_id,name) VALUES('product-images','{path}'){tail} RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", store, fail)
 
 
 img = lambda store, n: f"brands/{store}/products/p1/{n}.jpg"
@@ -64,7 +64,7 @@ sql(FIX.read_text())
 assert put(B, img(B, "direct")) == img(B, "direct")
 assert put(B, img(B, "direct-self"), B) == img(B, "direct-self")
 assert put(B, img(B, "direct"), upsert=True) == img(B, "direct")
-assert actor(B, f"DELETE FROM storage.objects WHERE name='{img(B, 'direct-self')}' RETURNING name") == img(B, "direct-self")
+assert actor(B, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(B, 'direct-self')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x") == img(B, "direct-self")
 put(B, img(A, "direct-cross"), fail=True)
 print("PASS direct owner: add, replace (upsert), remove own images; other store folder rejected")
 
@@ -72,7 +72,7 @@ print("PASS direct owner: add, replace (upsert), remove own images; other store 
 assert put(A, img(B, "delegated"), B) == img(B, "delegated")
 assert put(A, f"brands/{B}/products/draft/new.jpg", B) == f"brands/{B}/products/draft/new.jpg"
 assert put(A, img(B, "delegated"), B, upsert=True) == img(B, "delegated")
-assert actor(A, f"DELETE FROM storage.objects WHERE name='{img(B, 'delegated')}' RETURNING name", B) == img(B, "delegated")
+assert actor(A, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(B, 'delegated')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B) == img(B, "delegated")
 assert put(A, img(A, "principal"), A) == img(A, "principal"), "principal store still works"
 print("PASS delegated: create-with-image (draft), add, replace (upsert), remove in selected store; principal unaffected")
 
@@ -81,8 +81,8 @@ put(A, img(C, "forged"), C, fail=True)
 put(A, img(C, "foreign-path"), B, fail=True)
 put(A, img(A, "wrong-folder"), B, fail=True)
 sql(f"INSERT INTO storage.objects(bucket_id,name,owner_id) VALUES('product-images','{img(C, 'victim')}','{C}')")
-assert actor(A, f"DELETE FROM storage.objects WHERE name='{img(C, 'victim')}' RETURNING name", B) == ""
-assert actor(A, f"UPDATE storage.objects SET owner_id='{A}' WHERE name='{img(C, 'victim')}' RETURNING name", B) == ""
+assert actor(A, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(C, 'victim')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B) == ""
+assert actor(A, f"WITH x AS (UPDATE storage.objects SET owner_id='{A}' WHERE name='{img(C, 'victim')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B) == ""
 assert sql(f"SELECT count(*) FROM storage.objects WHERE name='{img(C, 'victim')}' AND owner_id='{C}'") == "1"
 print("PASS cross-store: forged store_id, foreign Storage path and foreign files rejected/untouched")
 
@@ -96,7 +96,7 @@ print("PASS revoked authorization: upload/delete rejected immediately")
 # Scenario 5 — unrelated authenticated user.
 put(C, img(B, "intruder"), B, fail=True)
 put(C, img(B, "intruder2"), fail=True)
-assert actor(C, f"DELETE FROM storage.objects WHERE name='{img(B, 'direct')}' RETURNING name") == ""
+assert actor(C, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(B, 'direct')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x") == ""
 assert put(C, img(C, "own")) == img(C, "own")
 print("PASS unauthorized user cannot write store B images; still manages own store")
 print("ALL PASS")
