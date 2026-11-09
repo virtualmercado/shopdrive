@@ -4,11 +4,13 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Truck, Store, Package, Loader2 } from "lucide-react";
+import { findQuote, unavailableLabel, type CorreiosServiceKey, type ServiceStatus } from "@/lib/shippingQuotes";
 
 type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
 
 interface MelhorEnvioQuote {
   id: number;
+  service_key?: CorreiosServiceKey;
   name: string;
   company: string;
   price: number;
@@ -52,7 +54,8 @@ interface DeliveryColumnProps {
   melhorEnvioEnabled?: boolean;
   motoboyFee?: number | null;
   motoboyAvailable?: boolean;
-  miniEnviosAvailable?: boolean;
+  /** Status individual de cada serviço Correios, como retornado pela cotação real. */
+  melhorEnvioServices?: ServiceStatus[];
   genericDeliveryAvailable?: boolean;
   genericDeliveryFee?: number;
   /** Requisitos obrigatórios pendentes (mesma fonte de validação do botão). */
@@ -78,7 +81,7 @@ export const DeliveryColumn = ({
   melhorEnvioEnabled = false,
   motoboyFee = null,
   motoboyAvailable = false,
-  miniEnviosAvailable = true,
+  melhorEnvioServices = [],
   genericDeliveryAvailable = false,
   genericDeliveryFee = 0,
   pendingRequirements = [],
@@ -135,11 +138,10 @@ export const DeliveryColumn = ({
     return parts.length > 0 ? parts.join(" | ") : null;
   };
 
-  // Find Melhor Envio quotes by service ID
-  // Melhor Envio API returns: ID 1 = PAC, ID 2 = SEDEX, ID 17 = Mini Envios
-  const getSedexQuote = () => melhorEnvioQuotes.find(q => q.id === 2 || q.name?.toUpperCase().includes('SEDEX'));
-  const getPacQuote = () => melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
-  const getMiniEnviosQuote = () => melhorEnvioQuotes.find(q => q.id === 17 || q.name?.toUpperCase().includes('MINI'));
+  // Seleção pela mesma normalização usada no backend (ID estável + confirmação por nome).
+  const getSedexQuote = () => findQuote(melhorEnvioQuotes, "sedex");
+  const getPacQuote = () => findQuote(melhorEnvioQuotes, "pac");
+  const getMiniEnviosQuote = () => findQuote(melhorEnvioQuotes, "mini_envios");
 
   const formatDeliveryTime = (quote: MelhorEnvioQuote | undefined) => {
     if (!quote) return "";
@@ -284,7 +286,7 @@ export const DeliveryColumn = ({
                     ) : sedexQuote ? (
                       formatDeliveryTime(sedexQuote)
                     ) : (
-                      "Não disponível para este CEP"
+                      unavailableLabel(melhorEnvioServices, "sedex")
                     )}
                   </p>
                 </div>
@@ -335,7 +337,7 @@ export const DeliveryColumn = ({
                     ) : pacQuote ? (
                       formatDeliveryTime(pacQuote)
                     ) : (
-                      "Não disponível para este CEP"
+                      unavailableLabel(melhorEnvioServices, "pac")
                     )}
                   </p>
                 </div>
@@ -356,11 +358,11 @@ export const DeliveryColumn = ({
           {showDeliveryOptions && melhorEnvioEnabled && (
             <div 
               className={`flex items-center justify-between p-3 border rounded-lg transition-all ${
-                !hasCep || melhorEnvioLoading || !miniEnviosQuote || !miniEnviosAvailable ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                !hasCep || melhorEnvioLoading || !miniEnviosQuote ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
               } ${deliveryMethod === "mini_envios" ? "border-2" : "border-border"}`}
               style={deliveryMethod === "mini_envios" ? { borderColor: primaryColor } : {}}
               onClick={() => {
-                if (hasCep && miniEnviosQuote && !melhorEnvioLoading && miniEnviosAvailable) {
+                if (hasCep && miniEnviosQuote && !melhorEnvioLoading) {
                   onDeliveryMethodChange("mini_envios");
                 }
               }}
@@ -369,7 +371,7 @@ export const DeliveryColumn = ({
                 <RadioGroupItem 
                   value="mini_envios" 
                   id="mini_envios" 
-                  disabled={!hasCep || melhorEnvioLoading || !miniEnviosQuote || !miniEnviosAvailable}
+                  disabled={!hasCep || melhorEnvioLoading || !miniEnviosQuote}
                 />
                 <div>
                   <Label htmlFor="mini_envios" className="font-medium cursor-pointer">
@@ -383,12 +385,10 @@ export const DeliveryColumn = ({
                       </span>
                     ) : !hasCep ? (
                       "Informe o CEP"
-                    ) : !miniEnviosAvailable ? (
-                      "Peso ou dimensões excedem o limite"
                     ) : miniEnviosQuote ? (
                       formatDeliveryTime(miniEnviosQuote)
                     ) : (
-                      "Não disponível para este CEP"
+                      unavailableLabel(melhorEnvioServices, "mini_envios")
                     )}
                   </p>
                 </div>
@@ -396,7 +396,7 @@ export const DeliveryColumn = ({
               <span className="font-semibold text-sm">
                 {melhorEnvioLoading ? (
                   "--"
-                ) : miniEnviosQuote && miniEnviosAvailable ? (
+                ) : miniEnviosQuote ? (
                   `R$ ${(miniEnviosQuote.custom_price || miniEnviosQuote.price).toFixed(2)}`
                 ) : (
                   "--"

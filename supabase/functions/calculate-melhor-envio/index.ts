@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  REQUESTED_SERVICES,
+  buildShippingProducts,
+  maskCep,
+  normalizeMelhorEnvioResponse,
+} from "../_shared/melhorEnvioQuotes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,8 +70,6 @@ serve(async (req) => {
       );
     }
 
-    console.log("Calculating shipping for store:", store_user_id);
-    console.log("From:", from_postal_code, "To:", to_postal_code);
 
     // Fetch Melhor Envio settings for this store
     const { data: settings, error: settingsError } = await supabase
@@ -89,36 +93,19 @@ serve(async (req) => {
       );
     }
 
-    console.log("Melhor Envio settings found, environment:", settings.environment);
-
     // Determine API URL based on environment
     const apiUrl = settings.environment === "production"
       ? "https://melhorenvio.com.br/api/v2/me/shipment/calculate"
       : "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate";
 
-    // Prepare the request body for Melhor Envio API
     const requestBody = {
-      from: {
-        postal_code: from_postal_code.replace(/\D/g, ""),
-      },
-      to: {
-        postal_code: to_postal_code.replace(/\D/g, ""),
-      },
-      products: products.map(p => ({
-        id: p.id,
-        width: p.width || 11,
-        height: p.height || 2,
-        length: p.length || 16,
-        weight: p.weight || 0.3,
-        insurance_value: p.insurance_value || 0,
-        quantity: p.quantity || 1,
-      })),
-      services: "1,2,17", // SEDEX (1), PAC (2), Mini Envios (17)
+      from: { postal_code: from_postal_code.replace(/\D/g, "") },
+      to: { postal_code: to_postal_code.replace(/\D/g, "") },
+      products: buildShippingProducts(products),
+      services: REQUESTED_SERVICES,
     };
 
-    console.log("Calling Melhor Envio API:", apiUrl);
-    console.log("Request body:", JSON.stringify(requestBody));
-
+    const startedAt = Date.now();
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -129,55 +116,52 @@ serve(async (req) => {
       },
       body: JSON.stringify(requestBody),
     });
+    const elapsedMs = Date.now() - startedAt;
 
     const responseText = await response.text();
-    console.log("Melhor Envio response status:", response.status);
-    console.log("Melhor Envio response:", responseText);
+    const logBase = {
+      store_id: store_user_id,
+      environment: settings.environment,
+      from: maskCep(requestBody.from.postal_code),
+      to: maskCep(requestBody.to.postal_code),
+      requested: REQUESTED_SERVICES,
+      items: requestBody.products.length,
+      units: requestBody.products.reduce((n, p) => n + p.quantity, 0),
+      elapsed_ms: elapsedMs,
+    };
 
     if (!response.ok) {
-      console.error("Melhor Envio API error:", responseText);
+      console.error("melhor_envio_quote", JSON.stringify({ ...logBase, http_status: response.status }));
       return new Response(
-        JSON.stringify({ 
-          error: "Erro ao calcular frete", 
-          quotes: [] 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-
-    const data = JSON.parse(responseText);
-    
-    if (!data || !Array.isArray(data)) {
-      console.error("Melhor Envio returned unexpected data:", typeof data);
-      return new Response(
-        JSON.stringify({ quotes: [] }),
+        JSON.stringify({ error: "Erro ao calcular frete", quotes: [], services: [] }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Map the response to our format
-    const quotes = data
-      .filter((quote: any) => !quote.error)
-      .map((quote: any) => ({
-        id: quote.id,
-        name: quote.name,
-        company: quote.company?.name || quote.name,
-        price: parseFloat(quote.price) || 0,
-        custom_price: parseFloat(quote.custom_price) || parseFloat(quote.price) || 0,
-        discount: parseFloat(quote.discount) || 0,
-        delivery_time: quote.delivery_time || 0,
-        delivery_range: quote.delivery_range || { min: quote.delivery_time, max: quote.delivery_time },
-        currency: quote.currency || "R$",
-        error: quote.error || null,
-      }));
+    let data: unknown = null;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = null;
+    }
 
-    console.log("Processed quotes:", JSON.stringify(quotes));
+    if (!Array.isArray(data)) {
+      console.error("melhor_envio_quote", JSON.stringify({ ...logBase, http_status: response.status, unexpected: typeof data }));
+      return new Response(
+        JSON.stringify({ quotes: [], services: [] }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { quotes, services } = normalizeMelhorEnvioResponse(data);
+    console.log("melhor_envio_quote", JSON.stringify({
+      ...logBase,
+      http_status: response.status,
+      services: services.map((s) => ({ key: s.service_key, ok: s.available, reason: s.reason })),
+    }));
 
     return new Response(
-      JSON.stringify({ quotes }),
+      JSON.stringify({ quotes, services }),
       { 
         status: 200, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
