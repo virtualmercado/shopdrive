@@ -81,7 +81,7 @@ put(A, img(C, "forged"), C, fail=True)
 put(A, img(C, "foreign-path"), B, fail=True)
 put(A, img(A, "wrong-folder"), B, fail=True)
 sql(f"INSERT INTO storage.objects(bucket_id,name,owner_id) VALUES('product-images','{img(C, 'victim')}','{C}')")
-assert actor(A, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(C, 'victim')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B) == ""
+r = actor(A, f"WITH x AS (DELETE FROM storage.objects WHERE name='{img(C, 'victim')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B); print("DBG", repr(r)); assert r == ""
 assert actor(A, f"WITH x AS (UPDATE storage.objects SET owner_id='{A}' WHERE name='{img(C, 'victim')}' RETURNING name) SELECT coalesce(string_agg(name,','),'') FROM x", B) == ""
 assert sql(f"SELECT count(*) FROM storage.objects WHERE name='{img(C, 'victim')}' AND owner_id='{C}'") == "1"
 print("PASS cross-store: forged store_id, foreign Storage path and foreign files rejected/untouched")
