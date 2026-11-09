@@ -21,6 +21,7 @@ import { PixPayment } from "@/components/checkout/PixPayment";
 import { OrderSummaryHeader } from "@/components/checkout/OrderSummaryHeader";
 import { CustomerColumn } from "@/components/checkout/CustomerColumn";
 import { DeliveryColumn } from "@/components/checkout/DeliveryColumn";
+import { findQuote, type CorreiosServiceKey, type ServiceStatus } from "@/lib/shippingQuotes";
 import { PaymentColumn, CardTokenData } from "@/components/checkout/PaymentColumn";
 
 type DeliveryMethod = "retirada" | "entrega" | "motoboy" | "sedex" | "pac" | "mini_envios";
