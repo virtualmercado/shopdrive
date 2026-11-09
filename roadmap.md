@@ -85,3 +85,9 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Checkout: Mini Envios decidido só pela cotação real; motivo real exibido; visual mantido
 - [x] Testes unitários + navegador visitante/logado no preview
 - [ ] Publicar a parte do checkout — aguardando autorização do usuário
+
+## Hotfix imagens de produtos na loja vinculada (MULTILOJA) — 2026-11-09
+- [x] Causa raiz: regra de envio da pasta `brands/<loja>` ainda comparava com a conta logada (pulada pela 0076)
+- [x] Correção 0081 (só essa regra), aplicada; testes em banco descartável, armazenamento real e navegador
+- [ ] Limpeza de arquivo enviado quando o salvamento do produto falha — comportamento antigo mantido, aguardando decisão do usuário
+- [ ] Mesma lacuna no envio de ícones de categoria na loja vinculada — fora do escopo, aguardando decisão do usuário

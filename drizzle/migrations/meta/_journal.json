@@ -568,6 +568,13 @@
       "when": 1794175386211,
       "tag": "0080_marca_second_store_creation",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794262425513,
+      "tag": "0081_marca_delegated_product_image_upload",
+      "breakpoints": true
     }
   ]
 }
