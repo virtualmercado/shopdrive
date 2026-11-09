@@ -78,3 +78,10 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Testes: handler sintético, banco descartável (concorrência/limite/órfãos), navegador simulado, regressões MULTILOJA
 - [x] Publicação autorizada e feita; AROMA validada em produção com limite e ação desativada
 - [ ] Teste real de criação + e-mail + senha — aguardando conta MARCA interna com uma só loja (usuário)
+
+## Hotfix frete Correios (PAC / Mini Envios)
+- [x] Auditoria com cotações reais (AROMA + outra loja), causa raiz identificada
+- [x] Normalização única por serviço, valor segurado por unidade, logs resumidos (função implantada)
+- [x] Checkout: Mini Envios decidido só pela cotação real; motivo real exibido; visual mantido
+- [x] Testes unitários + navegador visitante/logado no preview
+- [ ] Publicar a parte do checkout — aguardando autorização do usuário
