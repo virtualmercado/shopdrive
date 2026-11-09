@@ -87,7 +87,6 @@ const CheckoutContent = () => {
   const [deliveryFeeDefined, setDeliveryFeeDefined] = useState(false);
   const [motoboyFee, setMotoboyFee] = useState<number | null>(null);
   const [motoboyAvailable, setMotoboyAvailable] = useState(false);
-  const [miniEnviosAvailable, setMiniEnviosAvailable] = useState(true);
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingRules, setShippingRules] = useState<any[]>([]);
   const [deliveryOption, setDeliveryOption] = useState<string>("delivery_only");
@@ -167,6 +166,7 @@ const CheckoutContent = () => {
   // Melhor Envio quotes
   interface MelhorEnvioQuote {
     id: number;
+    service_key?: CorreiosServiceKey;
     name: string;
     company: string;
     price: number;
@@ -178,6 +178,7 @@ const CheckoutContent = () => {
     error: string | null;
   }
   const [melhorEnvioQuotes, setMelhorEnvioQuotes] = useState<MelhorEnvioQuote[]>([]);
+  const [melhorEnvioServices, setMelhorEnvioServices] = useState<ServiceStatus[]>([]);
   const [melhorEnvioLoading, setMelhorEnvioLoading] = useState(false);
   const [melhorEnvioEnabled, setMelhorEnvioEnabled] = useState(false);
 
@@ -366,6 +367,7 @@ const CheckoutContent = () => {
       const cepClean = formData.cep.replace(/\D/g, "");
       if (!melhorEnvioEnabled || !storeData || cepClean.length !== 8) {
         setMelhorEnvioQuotes([]);
+        setMelhorEnvioServices([]);
         return;
       }
 
@@ -385,7 +387,8 @@ const CheckoutContent = () => {
           height: item.height || 2,
           length: item.length || 16,
           weight: (item.shipping_weight && item.shipping_weight > 0 ? item.shipping_weight : item.weight) || 0.3,
-          insurance_value: (item.promotional_price || item.price) * item.quantity,
+          // Valor segurado por unidade: o Melhor Envio multiplica pela quantidade.
+          insurance_value: item.promotional_price || item.price,
           quantity: item.quantity,
         }));
 
@@ -401,13 +404,15 @@ const CheckoutContent = () => {
         if (error) {
           console.error("Error fetching Melhor Envio quotes:", error);
           setMelhorEnvioQuotes([]);
+          setMelhorEnvioServices([]);
         } else if (data?.quotes) {
-          console.log("Melhor Envio quotes received:", data.quotes);
           setMelhorEnvioQuotes(data.quotes);
+          setMelhorEnvioServices(Array.isArray(data.services) ? data.services : []);
         }
       } catch (error) {
         console.error("Error calling Melhor Envio:", error);
         setMelhorEnvioQuotes([]);
+        setMelhorEnvioServices([]);
       } finally {
         setMelhorEnvioLoading(false);
       }
@@ -496,83 +501,15 @@ const CheckoutContent = () => {
     }
   }, [formData.neighborhood, formData.city, formData.cep, shippingRules, storeData]);
 
-  // Mini Envios validation rules based on official Correios specifications
-  // Min dimensions: 1cm height, 8cm width, 13cm length
-  // Max dimensions: 4cm height, 16cm width, 24cm length
-  // Max weight: 300g (0.3kg)
-  const validateMiniEnvios = (): boolean => {
-    if (cart.length === 0) return false;
-
-    // Calculate consolidated package dimensions
-    // For multiple items, we need to estimate package size
-    let totalWeight = 0;
-    let maxHeight = 0;
-    let maxWidth = 0;
-    let maxLength = 0;
-
-    for (const item of cart) {
-      const effectiveWeight = (item.shipping_weight && item.shipping_weight > 0 ? item.shipping_weight : item.weight) || 0.3;
-      const itemWeight = effectiveWeight * item.quantity;
-      const itemHeight = item.height || 2;
-      const itemWidth = item.width || 11;
-      const itemLength = item.length || 16;
-
-      totalWeight += itemWeight;
-      
-      // For stacked items, we sum heights and take max of width/length
-      maxHeight += itemHeight * item.quantity;
-      maxWidth = Math.max(maxWidth, itemWidth);
-      maxLength = Math.max(maxLength, itemLength);
-    }
-
-    // Validate weight (max 300g = 0.3kg)
-    if (totalWeight > 0.3) {
-      console.log("Mini Envios: Weight exceeds 300g limit", totalWeight);
-      return false;
-    }
-
-    // Validate minimum dimensions
-    if (maxHeight < 1) {
-      console.log("Mini Envios: Height below 1cm minimum", maxHeight);
-      return false;
-    }
-    if (maxWidth < 8) {
-      console.log("Mini Envios: Width below 8cm minimum", maxWidth);
-      return false;
-    }
-    if (maxLength < 13) {
-      console.log("Mini Envios: Length below 13cm minimum", maxLength);
-      return false;
-    }
-
-    // Validate maximum dimensions
-    if (maxHeight > 4) {
-      console.log("Mini Envios: Height exceeds 4cm maximum", maxHeight);
-      return false;
-    }
-    if (maxWidth > 16) {
-      console.log("Mini Envios: Width exceeds 16cm maximum", maxWidth);
-      return false;
-    }
-    if (maxLength > 24) {
-      console.log("Mini Envios: Length exceeds 24cm maximum", maxLength);
-      return false;
-    }
-
-    return true;
-  };
-
-  // Update Mini Envios availability whenever cart changes
+  // Mini Envios: a elegibilidade (peso, dimensões, valor segurado e trecho) é
+  // decidida exclusivamente pela cotação real do provedor. Se a cotação atual
+  // não trouxer Mini Envios, limpar a seleção sem escolher outra modalidade.
   useEffect(() => {
-    const isValid = validateMiniEnvios();
-    setMiniEnviosAvailable(isValid);
-    
-    // Se o Mini Envios deixou de ser válido, limpar a seleção (sem escolher outra
-    // modalidade automaticamente) para não herdar frete de uma opção inválida.
-    if (formData.delivery_method === "mini_envios" && !isValid) {
+    if (melhorEnvioLoading) return;
+    if (formData.delivery_method === "mini_envios" && !findQuote(melhorEnvioQuotes, "mini_envios")) {
       setFormData(prev => ({ ...prev, delivery_method: "" }));
     }
-  }, [cart, formData.delivery_method, melhorEnvioEnabled, melhorEnvioQuotes, motoboyAvailable, deliveryOption]);
+  }, [formData.delivery_method, melhorEnvioQuotes, melhorEnvioLoading]);
 
   // Loja apenas com retirada: única situação em que a modalidade é definida
   // automaticamente, pois não existe alternativa.
@@ -621,20 +558,10 @@ const CheckoutContent = () => {
       return;
     }
 
-    // Check Melhor Envio quotes for SEDEX, PAC, Mini Envios
-    // Use same matching logic as DeliveryColumn: ID 1 = PAC, ID 2 = SEDEX, ID 17 = Mini Envios
-    // Also match by name to handle variations
+    // Cotações SEDEX, PAC e Mini Envios: mesma classificação do backend.
     if (["sedex", "pac", "mini_envios"].includes(formData.delivery_method)) {
-      let quote: typeof melhorEnvioQuotes[0] | undefined;
-      
-      if (formData.delivery_method === "sedex") {
-        quote = melhorEnvioQuotes.find(q => q.id === 2 || q.name?.toUpperCase().includes('SEDEX'));
-      } else if (formData.delivery_method === "pac") {
-        quote = melhorEnvioQuotes.find(q => q.id === 1 || q.name?.toUpperCase().includes('PAC'));
-      } else if (formData.delivery_method === "mini_envios") {
-        quote = melhorEnvioQuotes.find(q => q.id === 17 || q.name?.toUpperCase().includes('MINI'));
-      }
-      
+      const quote = findQuote(melhorEnvioQuotes, formData.delivery_method as CorreiosServiceKey);
+
       if (quote) {
         setDeliveryFee(quote.custom_price || quote.price);
         setDeliveryFeeDefined(true);
@@ -1435,7 +1362,7 @@ const CheckoutContent = () => {
             melhorEnvioEnabled={melhorEnvioEnabled}
             motoboyFee={motoboyFee}
             motoboyAvailable={motoboyAvailable}
-            miniEnviosAvailable={miniEnviosAvailable}
+            melhorEnvioServices={melhorEnvioServices}
             genericDeliveryAvailable={genericDeliveryAvailable}
             genericDeliveryFee={checkFreeShippingEligibility() ? 0 : (storeData?.shipping_fixed_fee ?? 0)}
           />
