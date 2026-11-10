@@ -12,12 +12,12 @@ A = "11111111-1111-4111-8111-111111111111"
 C = "33333333-3333-4333-8333-333333333333"
 K1, K2, K3 = "a0000000-0000-4000-8000-000000000001", "a0000000-0000-4000-8000-000000000002", "a0000000-0000-4000-8000-000000000003"
 MAIN = (
-    "import '/src/index.css';import React from '/node_modules/.vite/deps/react.js';"
-    "import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';"
-    "import {BrowserRouter,Routes,Route} from '/node_modules/.vite/deps/react-router-dom.js';"
+    "import '/src/index.css';import * as React from '@@REACT@@';"
+    "import {createRoot} from '@@REACTDOM@@';"
+    "import {BrowserRouter,Routes,Route} from '@@ROUTER@@';"
     "import CustomerDetail from '/src/pages/dashboard/CustomerDetail.tsx';"
     "import {Toaster} from '/src/components/ui/toaster.tsx';"
-    "const h=React.createElement;ReactDOM.createRoot(document.getElementById('root')).render("
+    "const h=React.createElement;createRoot(document.getElementById('root')).render("
     "h(BrowserRouter,null,h(Routes,null,h(Route,{path:'/lojista/customers/:customerId',element:h(CustomerDetail)})),h(Toaster)));"
 )
 AUTH = f"""
@@ -72,15 +72,17 @@ export const supabase={{
 """
 
 async def stamped_main(context):
+    """Resolve the dev server's dependency URLs (Vite or oj) from the real served modules."""
     sources = ""
-    for path in ["/src/pages/dashboard/CustomerDetail.tsx", "/src/components/ui/toaster.tsx"]:
+    for path in ["/src/main.tsx", "/src/pages/dashboard/CustomerDetail.tsx"]:
         sources += await (await context.request.get(ORIGIN + path)).text()
-    main = MAIN
-    for path, version in set(re.findall(r'(/node_modules/\.vite/deps/[^"?]+)\?v=([^"\s]+)', sources)):
-        main = main.replace(path + "'", path + "?v=" + version + "'")
-    for path, stamp in set(re.findall(r'(/src/[^"?]+)\?t=(\d+)', sources)):
-        main = main.replace(path + "'", path + "?t=" + stamp + "'")
-    return main
+    def dep(pattern):
+        found = re.search(r'from "([^"]*' + pattern + r'[^"]*)"', sources)
+        assert found, pattern
+        return found.group(1)
+    return (MAIN.replace("@@REACT@@", dep(r"/react(__oj_named)?\.m?js"))
+                .replace("@@REACTDOM@@", dep(r"/react-dom_client"))
+                .replace("@@ROUTER@@", dep(r"/react-router-dom")))
 
 
 def rpc_calls(log):
