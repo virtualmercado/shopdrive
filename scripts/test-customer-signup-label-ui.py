@@ -149,12 +149,12 @@ async def main():
         fields = dialog.locator("input")
         await dialog.get_by_placeholder("Nome do cliente").fill("Cliente Manual Teste")
         await dialog.get_by_placeholder("email@exemplo.com").fill("manual@example.invalid")
-        await dialog.get_by_placeholder("00000-000").fill("69005010")
-        assert await dialog.get_by_placeholder("00000-000").input_value() == "69005-010"
+        await dialog.get_by_placeholder("00000-000", exact=True).fill("69005010")
+        assert await dialog.get_by_placeholder("00000-000", exact=True).input_value() == "69005-010"
         await dialog.get_by_placeholder("Rua, Avenida, etc.").fill("Rua Cadastro")
-        await dialog.get_by_placeholder("123").fill("12")
-        await dialog.get_by_placeholder("Bairro").fill("Centro")
-        await dialog.get_by_placeholder("Cidade").fill("Manaus")
+        await dialog.get_by_placeholder("123", exact=True).fill("12")
+        await dialog.get_by_placeholder("Bairro", exact=True).fill("Centro")
+        await dialog.get_by_placeholder("Cidade", exact=True).fill("Manaus")
         await dialog.get_by_placeholder("UF").fill("XX")
         await dialog.get_by_role("button", name="Cadastrar cliente").click()
         await expect(page.get_by_text("Use a sigla de um estado brasileiro (ex.: AM).").first).to_be_visible()
