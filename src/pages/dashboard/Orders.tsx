@@ -335,12 +335,13 @@ const Orders = () => {
 
       // The label prints ONLY the address copy stored on the order at purchase time, so later
       // edits to the customer's registration never change a historical label or reprint.
-      let customer: LabelRecipient = labelRecipientFromOrder(order) ?? { full_name: order.customer_name };
+      const snapshotRecipient = labelRecipientFromOrder(order);
+      let customer: LabelRecipient = snapshotRecipient ?? { full_name: order.customer_name };
 
       // LEGACY FALLBACK: only for orders without a usable address copy (pickup, "a combinar"
       // or old/incomplete records). Keeps the previous behaviour of reading the customer's
       // current primary address, restricted to the one this store shows (never another store's).
-      if (!labelRecipientFromOrder(order) && order.customer_id) {
+      if (!snapshotRecipient && order.customer_id) {
         const { data: customerData } = await supabase
           .from("customer_profiles")
           .select("*")
