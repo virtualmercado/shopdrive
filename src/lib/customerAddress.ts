@@ -100,3 +100,18 @@ export function addressSaveErrorMessage(error: unknown): string {
   if (text.includes("customer_not_found") || text.includes("store_access_denied")) return "Este cliente não pertence à loja atual.";
   return "Não foi possível salvar o endereço. Seus dados foram mantidos; tente novamente.";
 }
+
+/** Arguments for `merchant_save_customer_primary_address`; shared by the detail page and manual signup. */
+export function primaryAddressRpcArgs(customerId: string, form: CustomerAddressForm) {
+  return {
+    p_customer_id: customerId,
+    p_recipient_name: form.recipient_name,
+    p_cep: form.cep,
+    p_street: form.street,
+    p_number: form.number,
+    p_complement: form.complement,
+    p_neighborhood: form.neighborhood,
+    p_city: form.city,
+    p_state: form.state,
+  };
+}
