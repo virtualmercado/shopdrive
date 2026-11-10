@@ -175,7 +175,7 @@ async def main():
         print("PASS address failure: customer created once, dialog stays open with honest message, no success toast")
 
         await dialog.get_by_role("button", name="Salvar endereço").click()
-        await expect(page.get_by_text("Cliente cadastrado com sucesso!")).to_be_visible()
+        await expect(page.get_by_text("Cliente cadastrado com sucesso!").first).to_be_visible()
         await expect(dialog).to_be_hidden()
         l = await log()
         assert len(calls(l, "create_manual_store_customer")) == 1, "retry must not create the customer again"
