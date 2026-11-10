@@ -138,6 +138,7 @@ save(A, K_C, store="not-a-uuid", fail=True)   # invalid header
 save(B, K_C, fail=True)                       # another merchant
 save(K_AUTH, K_AUTH, fail=True)               # a customer calling the function
 sql(f"SET ROLE anon; SELECT merchant_save_customer_primary_address('{K_C}','x','69000000','r','1',null,'b','c','AM')", fail=True)
+actor(A, f"INSERT INTO customer_addresses(customer_id,store_owner_id,recipient_name,cep,street,number,neighborhood,city,state) VALUES('{K_C}','{A}','x','1','x','1','x','x','AM')", fail=True)
 actor(A, f"UPDATE customer_addresses SET street='hack' WHERE customer_id='{K_C}' RETURNING id")
 actor(A, f"UPDATE customer_addresses SET street='hack' WHERE customer_id='{K_OWN}' RETURNING id")
 assert rows(K_C) == c_before and rows(K_OWN) == own_rows_before
