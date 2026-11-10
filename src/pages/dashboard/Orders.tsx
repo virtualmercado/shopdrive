@@ -398,7 +398,7 @@ const Orders = () => {
           if (addressData) {
             const cepDigits = (addressData.cep ?? "").replace(/\D/g, "");
             fallback = {
-              full_name: customerData.full_name || order.customer_name || "",
+              full_name: (order.customer_name ?? "").trim() || customerData.full_name || "",
               street: addressData.street,
               number: addressData.number,
               complement: addressData.complement ?? undefined,
