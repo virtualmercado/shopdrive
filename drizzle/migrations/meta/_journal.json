@@ -575,6 +575,13 @@
       "when": 1794262425513,
       "tag": "0081_marca_delegated_product_image_upload",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794275773354,
+      "tag": "0082_marca_delegated_category_icon_upload",
+      "breakpoints": true
     }
   ]
 }
