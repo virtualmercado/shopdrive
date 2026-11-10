@@ -90,4 +90,4 @@ Spec: IMPLEMENTAÇÃO ESTRUTURAL — CUSTOM DOMAINS V2 (upload 2026-10-31). Flag
 - [x] Causa raiz: regra de envio da pasta `brands/<loja>` ainda comparava com a conta logada (pulada pela 0076)
 - [x] Correção 0081 (só essa regra), aplicada; testes em banco descartável, armazenamento real e navegador
 - [ ] Limpeza de arquivo enviado quando o salvamento do produto falha — comportamento antigo mantido, aguardando decisão do usuário
-- [ ] Mesma lacuna no envio de ícones de categoria na loja vinculada — fora do escopo, aguardando decisão do usuário
+- [x] Ícones de categoria na loja vinculada: política INSERT "Users can upload category icons" alinhada a `merchant_request_store_id()` (migration 0082); validado em banco descartável, Storage real e navegador
