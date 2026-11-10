@@ -131,7 +131,7 @@ save(A, K_SHARED, street="Rua da Loja A")
 assert sql(f"SELECT street FROM customer_addresses WHERE customer_id='{K_SHARED}' AND store_owner_id='{C}'") == shared_c
 assert sql(f"SELECT is_default FROM customer_addresses WHERE customer_id='{K_SHARED}' AND store_owner_id='{A}'") == "f"
 print("PASS customer shared with store C: store C address unchanged, store A edits only its own copy")
-c_before = rows(K_C)
+c_before, own_rows_before = rows(K_C), rows(K_OWN)
 save(A, K_C, fail=True)                       # customer of another store
 save(A, K_C, store=C, fail=True)              # forged store header
 save(A, K_C, store="not-a-uuid", fail=True)   # invalid header
@@ -140,7 +140,7 @@ save(K_AUTH, K_AUTH, fail=True)               # a customer calling the function
 sql(f"SET ROLE anon; SELECT merchant_save_customer_primary_address('{K_C}','x','69000000','r','1',null,'b','c','AM')", fail=True)
 actor(A, f"UPDATE customer_addresses SET street='hack' WHERE customer_id='{K_C}' RETURNING id")
 actor(A, f"UPDATE customer_addresses SET street='hack' WHERE customer_id='{K_OWN}' RETURNING id")
-assert rows(K_C) == c_before and sql(f"SELECT street FROM customer_addresses WHERE id='{own_id}'") == "Rua Um"
+assert rows(K_C) == c_before and rows(K_OWN) == own_rows_before
 print("PASS other store's customer, forged/invalid header, other merchant, customer, anon and direct table writes all rejected")
 
 # MULTILOJA: A manages B only through the approved selection, and only B's customers.
