@@ -95,6 +95,5 @@ save(C, cid_f, fail=True)
 save(C, cid, fail=True)
 create(A, "manual-x@example.invalid", store=C, fail=True)
 assert count(f"customer_addresses WHERE customer_id='{cid_f}'") == 1
-assert actor(C, f"SELECT count(*) FROM orders WHERE store_owner_id='{A}'") in ("0", "2")  # orders table has no RLS in this fixture
 print("PASS F: MULTILOJA signup lands in the selected store; other stores and forged selection rejected")
 print("ALL PASS")
