@@ -92,10 +92,10 @@ print("PASS direct owner: add, replace (upsert), remove own icons; other store f
 assert put(A, icon(B, "delegated"), B) == icon(B, "delegated")
 assert put(A, icon(B, "delegated"), B, upsert=True) == icon(B, "delegated")
 assert put(A, icon(B, "delegated-2"), B) == icon(B, "delegated-2")
-cat = actor(A, f"INSERT INTO product_categories(user_id,name,icon_url) VALUES('{B}','Cat B','{icon(B, 'delegated')}') RETURNING id", B)
-assert actor(A, f"UPDATE product_categories SET icon_url='{icon(B, 'delegated-2')}' WHERE id='{cat}' RETURNING user_id", B) == B
+cat = actor(A, f"WITH x AS (INSERT INTO product_categories(user_id,name,icon_url) VALUES('{B}','Cat B','{icon(B, 'delegated')}') RETURNING id) SELECT id FROM x", B)
+assert actor(A, f"WITH x AS (UPDATE product_categories SET icon_url='{icon(B, 'delegated-2')}' WHERE id='{cat}' RETURNING user_id) SELECT user_id FROM x", B) == B
 assert rm(A, icon(B, "delegated"), B) == icon(B, "delegated")
-assert actor(A, f"UPDATE product_categories SET icon_url=NULL WHERE id='{cat}' RETURNING coalesce(icon_url,'<null>')", B) == "<null>"
+assert actor(A, f"WITH x AS (UPDATE product_categories SET icon_url=NULL WHERE id='{cat}' RETURNING icon_url) SELECT coalesce(icon_url,'<null>') FROM x", B) == "<null>"
 actor(A, f"INSERT INTO product_categories(user_id,name) VALUES('{A}','Wrong store')", B, fail=True)
 assert sql(f"SELECT name FROM storage.objects WHERE name LIKE 'categories/{B}/delegated%' ORDER BY name") == icon(B, "delegated-2")
 assert put(A, icon(A, "principal"), A) == icon(A, "principal"), "principal store still works"
