@@ -146,6 +146,8 @@ async def main():
         await busy.click(force=True)  # second click while saving must not send another request
         await expect(page.get_by_text("Endereço adicionado com sucesso.").first).to_be_visible(timeout=5000)
         await expect(page.get_by_role("dialog")).to_have_count(0)
+        await page.screenshot(path="/tmp/browser/address/dbg-after-add.png")
+        print(await page.inner_text("body"))
         await expect(card().get_by_text("Av. Teste, 100")).to_be_visible()
         await expect(card().get_by_text("CEP: 69005-010")).to_be_visible()
         calls = rpc_calls(await page.evaluate("window.__log"))
