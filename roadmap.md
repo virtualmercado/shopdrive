@@ -1,5 +1,14 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Edição manual do endereço principal do cliente — 2026-11-10
+
+- [ ] Auditar tabelas, gravação manual/checkout, guest e autenticado.
+- [ ] Função segura no servidor: só cliente vinculado à loja atual; só endereço da própria loja; nunca toca pedidos, perfil ou login.
+- [ ] Janela Adicionar/Editar no card "Endereço Principal" com campos e validações do cadastro manual.
+- [ ] Testes: banco à parte (isolamento, pedidos, guest, validação, falha) + navegador + unitários.
+- [ ] Não publicar sem autorização.
+
+
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 
 - [x] Membership explícito com aprovação independente; só as duas lojas AROMA solicitadas aprovadas. Actor/JWT intactos; header validado pelo servidor.
