@@ -141,7 +141,9 @@ async def main():
         await dialog.get_by_label("Estado *").fill("am")
         save = dialog.get_by_role("button", name="Salvar endereço")
         await save.click()
-        await save.click(force=True)  # double click must save once
+        busy = dialog.get_by_role("button", name="Salvando...")
+        await expect(busy).to_be_disabled()
+        await busy.click(force=True)  # second click while saving must not send another request
         await expect(page.get_by_text("Endereço adicionado com sucesso.")).to_be_visible(timeout=5000)
         await expect(page.get_by_role("dialog")).to_have_count(0)
         await expect(card().get_by_text("Av. Teste, 100")).to_be_visible()
