@@ -9810,6 +9810,20 @@ export type Database = {
         Returns: string
       }
       merchant_request_store_id: { Args: never; Returns: string }
+      merchant_save_customer_primary_address: {
+        Args: {
+          p_cep: string
+          p_city: string
+          p_complement: string
+          p_customer_id: string
+          p_neighborhood: string
+          p_number: string
+          p_recipient_name: string
+          p_state: string
+          p_street: string
+        }
+        Returns: Json
+      }
       normalize_custom_domain: { Args: { p_input: string }; Returns: string }
       normalize_custom_domain_hostname: {
         Args: { p_hostname: string }
