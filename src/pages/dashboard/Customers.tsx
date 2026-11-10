@@ -1,7 +1,9 @@
 import { csvQuoted, escapeHtml } from "@/lib/safeOutput";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { ADMIN_PAGE_SIZE, fetchAllRows } from "@/lib/adminPagination";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { addressSaveErrorMessage, formatCep, primaryAddressRpcArgs, validateAddressForm, type CustomerAddressForm } from '@/lib/customerAddress';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -128,6 +130,10 @@ const Customers = () => {
     state: ''
   });
   const [addingCustomer, setAddingCustomer] = useState(false);
+  // Customer already created by this dialog whose address still has to be saved (retry only the address).
+  const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
+  const [addressRetryError, setAddressRetryError] = useState<string | null>(null);
+  const addCustomerInFlight = useRef(false);
   
   // Customer codes and origins map
   const [customerCodes, setCustomerCodes] = useState<Map<string, string>>(new Map());
@@ -421,90 +427,121 @@ const Customers = () => {
     fetchGroups();
   };
 
-  // Add new customer manually
+  const EMPTY_NEW_CUSTOMER: NewCustomerData = {
+    full_name: '', email: '', phone: '', cpf: '', group_id: '', recipient_name: '',
+    cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
+  };
+
+  const resetAddCustomerForm = () => {
+    setNewCustomerData(EMPTY_NEW_CUSTOMER);
+    setCreatedCustomerId(null);
+    setAddressRetryError(null);
+  };
+
+  const handleAddCustomerOpenChange = (open: boolean) => {
+    setShowAddCustomerModal(open);
+    // A customer created without address stays in the list; the address can be added on its page.
+    if (!open && createdCustomerId) resetAddCustomerForm();
+  };
+
+  // Add new customer manually: create the customer (secure RPC), then save the address through the
+  // same server function used on the customer page. On address failure only the address is retried.
   const handleAddCustomer = async () => {
-    if (!storeId) return;
-    
-    // Validate required fields
-    if (!newCustomerData.full_name.trim() || !newCustomerData.email.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Nome e e-mail são obrigatórios.',
-        variant: 'destructive'
-      });
-      return;
-    }
+    if (!storeId || addCustomerInFlight.current) return;
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newCustomerData.email)) {
-      toast({
-        title: 'Erro',
-        description: 'E-mail inválido.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validate address required fields
-    if (!newCustomerData.cep.trim() || !newCustomerData.street.trim() || 
-        !newCustomerData.number.trim() || !newCustomerData.neighborhood.trim() ||
-        !newCustomerData.city.trim() || !newCustomerData.state.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Todos os campos de endereço são obrigatórios (exceto complemento).',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setAddingCustomer(true);
-    try {
-      // Create the customer profile and the store link server-side (secure RPC)
-      const { data: newCustomerId, error: rpcError } = await supabase.rpc(
-        'create_manual_store_customer',
-        {
-          p_full_name: newCustomerData.full_name.trim(),
-          p_email: newCustomerData.email.trim().toLowerCase(),
-          p_phone: newCustomerData.phone.trim() || null,
-          p_cpf: newCustomerData.cpf.trim() || null,
-        }
-      );
-
-      if (rpcError) {
-        if (rpcError.code === '23505' || rpcError.code === '23515') {
-          toast({
-            title: 'Erro',
-            description: 'Já existe um cliente com este e-mail.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        throw rpcError;
+    if (!createdCustomerId) {
+      // Validate required fields
+      if (!newCustomerData.full_name.trim() || !newCustomerData.email.trim()) {
+        toast({
+          title: 'Erro',
+          description: 'Nome e e-mail são obrigatórios.',
+          variant: 'destructive'
+        });
+        return;
       }
 
-      const customerId = newCustomerId as string;
-
-
-      // Create customer address
-      const { error: addressError } = await supabase
-        .from('customer_addresses')
-        .insert({
-          customer_id: customerId,
-          store_owner_id: storeId,
-          recipient_name: newCustomerData.recipient_name.trim() || newCustomerData.full_name.trim(),
-          cep: newCustomerData.cep.trim(),
-          street: newCustomerData.street.trim(),
-          number: newCustomerData.number.trim(),
-          complement: newCustomerData.complement.trim() || null,
-          neighborhood: newCustomerData.neighborhood.trim(),
-          city: newCustomerData.city.trim(),
-          state: newCustomerData.state.trim().toUpperCase(),
-          is_default: true,
-          address_type: 'delivery'
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newCustomerData.email)) {
+        toast({
+          title: 'Erro',
+          description: 'E-mail inválido.',
+          variant: 'destructive'
         });
+        return;
+      }
+    }
 
-      if (addressError) throw addressError;
+    const addressForm: CustomerAddressForm = {
+      recipient_name: newCustomerData.recipient_name.trim() || newCustomerData.full_name.trim(),
+      cep: newCustomerData.cep,
+      street: newCustomerData.street,
+      number: newCustomerData.number,
+      complement: newCustomerData.complement,
+      neighborhood: newCustomerData.neighborhood,
+      city: newCustomerData.city,
+      state: newCustomerData.state,
+    };
+    // Same address rules as the customer page, checked before anything is created.
+    const addressErrors = Object.values(validateAddressForm(addressForm));
+    if (addressErrors.length > 0) {
+      toast({
+        title: 'Erro',
+        description: addressErrors[0] || 'Todos os campos de endereço são obrigatórios (exceto complemento).',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    addCustomerInFlight.current = true;
+    setAddingCustomer(true);
+    try {
+      let customerId = createdCustomerId;
+      if (!customerId) {
+        // Create the customer profile and the store link server-side (secure RPC)
+        const { data: newCustomerId, error: rpcError } = await supabase.rpc(
+          'create_manual_store_customer',
+          {
+            p_full_name: newCustomerData.full_name.trim(),
+            p_email: newCustomerData.email.trim().toLowerCase(),
+            p_phone: newCustomerData.phone.trim() || null,
+            p_cpf: newCustomerData.cpf.trim() || null,
+          }
+        );
+
+        if (rpcError) {
+          if (rpcError.code === '23505' || rpcError.code === '23515') {
+            toast({
+              title: 'Erro',
+              description: 'Já existe um cliente com este e-mail.',
+              variant: 'destructive'
+            });
+            return;
+          }
+          throw rpcError;
+        }
+
+        customerId = newCustomerId as string;
+        setCreatedCustomerId(customerId);
+        fetchCustomers();
+      }
+
+      // Primary address: same secure server function as Clientes → detalhe (store resolved server-side).
+      const { error: addressError } = await supabase.rpc(
+        'merchant_save_customer_primary_address',
+        primaryAddressRpcArgs(customerId, addressForm)
+      );
+
+      if (addressError) {
+        const message = addressSaveErrorMessage(addressError);
+        setAddressRetryError(message);
+        toast({
+          title: 'Cliente criado, mas o endereço não foi salvo',
+          description: 'Revise o endereço e clique em "Salvar endereço" para tentar de novo.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Assign to group if selected
       if (newCustomerData.group_id) {
@@ -527,21 +564,7 @@ const Customers = () => {
       });
 
       // Reset form and close modal
-      setNewCustomerData({
-        full_name: '',
-        email: '',
-        phone: '',
-        cpf: '',
-        group_id: '',
-        recipient_name: '',
-        cep: '',
-        street: '',
-        number: '',
-        complement: '',
-        neighborhood: '',
-        city: '',
-        state: ''
-      });
+      resetAddCustomerForm();
       setShowAddCustomerModal(false);
       
       // Refresh customer list
@@ -556,6 +579,7 @@ const Customers = () => {
         variant: 'destructive'
       });
     } finally {
+      addCustomerInFlight.current = false;
       setAddingCustomer(false);
     }
   };
@@ -1337,7 +1361,7 @@ const Customers = () => {
       </Dialog>
 
       {/* Add Customer Modal */}
-      <Dialog open={showAddCustomerModal} onOpenChange={setShowAddCustomerModal}>
+      <Dialog open={showAddCustomerModal} onOpenChange={handleAddCustomerOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Incluir cadastro</DialogTitle>
@@ -1351,6 +1375,7 @@ const Customers = () => {
                   <label className="text-sm font-medium text-foreground">Nome completo *</label>
                   <Input
                     value={newCustomerData.full_name}
+                    disabled={!!createdCustomerId}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, full_name: e.target.value }))}
                     placeholder="Nome do cliente"
                     className="transition-colors focus:border-primary focus:ring-primary"
@@ -1361,6 +1386,7 @@ const Customers = () => {
                   <Input
                     type="email"
                     value={newCustomerData.email}
+                    disabled={!!createdCustomerId}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="email@exemplo.com"
                     className="transition-colors focus:border-primary focus:ring-primary"
@@ -1370,6 +1396,7 @@ const Customers = () => {
                   <label className="text-sm font-medium text-foreground">Telefone</label>
                   <Input
                     value={newCustomerData.phone}
+                    disabled={!!createdCustomerId}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(00) 00000-0000"
                     className="transition-colors focus:border-primary focus:ring-primary"
@@ -1379,6 +1406,7 @@ const Customers = () => {
                   <label className="text-sm font-medium text-foreground">CPF</label>
                   <Input
                     value={newCustomerData.cpf}
+                    disabled={!!createdCustomerId}
                     onChange={(e) => setNewCustomerData(prev => ({ ...prev, cpf: e.target.value }))}
                     placeholder="000.000.000-00"
                     className="transition-colors focus:border-primary focus:ring-primary"
@@ -1388,6 +1416,7 @@ const Customers = () => {
                   <label className="text-sm font-medium text-foreground">Grupo do cliente</label>
                   <Select 
                     value={newCustomerData.group_id} 
+                    disabled={!!createdCustomerId}
                     onValueChange={(value) => setNewCustomerData(prev => ({ ...prev, group_id: value === 'none' ? '' : value }))}
                   >
                     <SelectTrigger className="w-full focus:border-primary focus:ring-primary">
@@ -1404,6 +1433,15 @@ const Customers = () => {
                 </div>
               </div>
             </div>
+
+            {createdCustomerId && addressRetryError && (
+              <Alert variant="destructive" role="alert">
+                <AlertTitle>Cliente criado, mas o endereço não foi salvo</AlertTitle>
+                <AlertDescription>
+                  {addressRetryError} Revise o endereço e clique em "Salvar endereço" para tentar de novo — o cliente não será cadastrado outra vez. Se preferir, feche e adicione o endereço depois, na página do cliente.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Address Section */}
             <div className="space-y-4">
@@ -1423,7 +1461,7 @@ const Customers = () => {
                   <Input
                     value={newCustomerData.cep}
                     onChange={(e) => {
-                      const value = e.target.value;
+                      const value = formatCep(e.target.value);
                       setNewCustomerData(prev => ({ ...prev, cep: value }));
                       if (value.replace(/\D/g, '').length === 8) {
                         handleCepLookup(value);
@@ -1498,21 +1536,7 @@ const Customers = () => {
               variant="outline" 
               onClick={() => {
                 setShowAddCustomerModal(false);
-                setNewCustomerData({
-                  full_name: '',
-                  email: '',
-                  phone: '',
-                  cpf: '',
-                  group_id: '',
-                  recipient_name: '',
-                  cep: '',
-                  street: '',
-                  number: '',
-                  complement: '',
-                  neighborhood: '',
-                  city: '',
-                  state: ''
-                });
+                resetAddCustomerForm();
               }}
               className="transition-colors border-primary text-primary hover:bg-primary hover:text-white"
             >
@@ -1523,7 +1547,9 @@ const Customers = () => {
               disabled={addingCustomer}
               className="text-white bg-primary hover:bg-primary/90"
             >
-              {addingCustomer ? 'Cadastrando...' : 'Cadastrar cliente'}
+              {createdCustomerId
+                ? (addingCustomer ? 'Salvando...' : 'Salvar endereço')
+                : (addingCustomer ? 'Cadastrando...' : 'Cadastrar cliente')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMerchantStore } from '@/hooks/useMerchantStore';
 import CustomerAddressDialog from '@/components/customers/CustomerAddressDialog';
-import { formatCep, pickPrimaryAddress, type CustomerAddressForm, type CustomerAddressRow } from '@/lib/customerAddress';
+import { formatCep, pickPrimaryAddress, primaryAddressRpcArgs, type CustomerAddressForm, type CustomerAddressRow } from '@/lib/customerAddress';
 import { ArrowLeft, Pencil, Save, X, User, MapPin, Users, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -182,17 +182,7 @@ const CustomerDetail = () => {
 
   const handleSaveAddress = async (form: CustomerAddressForm) => {
     if (!customerId) throw new Error('customer_not_found');
-    const { data, error } = await storeClient.rpc('merchant_save_customer_primary_address', {
-      p_customer_id: customerId,
-      p_recipient_name: form.recipient_name,
-      p_cep: form.cep,
-      p_street: form.street,
-      p_number: form.number,
-      p_complement: form.complement,
-      p_neighborhood: form.neighborhood,
-      p_city: form.city,
-      p_state: form.state,
-    });
+    const { data, error } = await storeClient.rpc('merchant_save_customer_primary_address', primaryAddressRpcArgs(customerId, form));
     if (error || !data) throw error ?? new Error('save_failed');
     const wasEdit = !!address;
     setAddress(data as unknown as CustomerAddress);

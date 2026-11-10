@@ -6,9 +6,10 @@
 - [x] Migration 0083: função segura `merchant_save_customer_primary_address` (só cliente vinculado à loja atual; só endereço da própria loja; nunca toca pedidos, perfil ou login).
 - [x] Janela Adicionar/Editar no card "Endereço Principal" com campos e validações do cadastro manual.
 - [x] Testes: banco à parte (14 cenários), navegador com dados fictícios (7), unitários (7; suíte 600), recusas reais em produção sem gravação.
-- [ ] Decisão do usuário: etiqueta de envio de pedidos antigos lê o endereço atual do cadastro (comportamento anterior).
-- [ ] Decisão do usuário: cadastro manual de cliente não consegue gravar o endereço pelas regras atuais.
-- [ ] Publicar a tela somente com autorização.
+- [x] Etiqueta de envio lê só a cópia do endereço gravada no pedido; cadastro atual só como reserva para pedidos sem cópia utilizável (retirada, "a combinar", incompletos).
+- [x] Cadastro manual grava o endereço pela mesma função segura; falha do endereço avisa e tenta de novo só o endereço (sem duplicar cliente).
+- [x] Testes: banco descartável (A–F), navegador fictício (cadastro + etiquetas), unitários 604.
+- [ ] Publicar (autorizado em 10/11) e conferir versão nova servida.
 
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 

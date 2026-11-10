@@ -16,6 +16,8 @@ import { printOrderA4 } from "@/components/orders/OrderPrintA4";
 import PrintFormatDialog from "@/components/orders/PrintFormatDialog";
 import ThermalReceiptPrintDialog from "@/components/orders/ThermalReceiptPrintDialog";
 import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
+import { labelRecipientFromOrder, type LabelRecipient } from "@/lib/orderAddressSnapshot";
+import { pickPrimaryAddress, type CustomerAddressRow } from "@/lib/customerAddress";
 import { WhatsAppOrderModal } from "@/components/orders/WhatsAppOrderModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -331,39 +333,33 @@ const Orders = () => {
       // Fetch store data
       const store = await fetchStoreData();
 
-      // Initialize customer with full_name
-      let customer: {
-        full_name: string;
-        street?: string;
-        number?: string;
-        complement?: string;
-        neighborhood?: string;
-        city?: string;
-        state?: string;
-        cep?: string;
-      } = { full_name: order.customer_name };
-      
-      if (order.customer_id) {
+      // The label prints ONLY the address copy stored on the order at purchase time, so later
+      // edits to the customer's registration never change a historical label or reprint.
+      const snapshotRecipient = labelRecipientFromOrder(order);
+      let customer: LabelRecipient = snapshotRecipient ?? { full_name: order.customer_name };
+
+      // LEGACY FALLBACK: only for orders without a usable address copy (pickup, "a combinar"
+      // or old/incomplete records). Keeps the previous behaviour of reading the customer's
+      // current primary address, restricted to the one this store shows (never another store's).
+      if (!snapshotRecipient && order.customer_id) {
         const { data: customerData } = await supabase
           .from("customer_profiles")
           .select("*")
           .eq("id", order.customer_id)
-          .single();
-        
+          .maybeSingle();
+
         if (customerData) {
-          // Get customer's default address
-          const { data: addressData } = await supabase
+          const { data: addressRows } = await supabase
             .from("customer_addresses")
             .select("*")
-            .eq("customer_id", order.customer_id)
-            .eq("is_default", true)
-            .single();
-          
+            .eq("customer_id", order.customer_id);
+          const addressData = pickPrimaryAddress((addressRows ?? []) as CustomerAddressRow[], storeId);
+
           customer = {
             full_name: customerData.full_name,
             street: addressData?.street,
             number: addressData?.number,
-            complement: addressData?.complement,
+            complement: addressData?.complement ?? undefined,
             neighborhood: addressData?.neighborhood,
             city: addressData?.city,
             state: addressData?.state,
