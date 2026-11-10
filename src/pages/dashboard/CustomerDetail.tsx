@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useMerchantStore } from '@/hooks/useMerchantStore';
+import CustomerAddressDialog from '@/components/customers/CustomerAddressDialog';
+import { formatCep, pickPrimaryAddress, type CustomerAddressForm, type CustomerAddressRow } from '@/lib/customerAddress';
 import { ArrowLeft, Pencil, Save, X, User, MapPin, Users, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -20,18 +23,7 @@ interface CustomerProfile {
   created_at: string;
 }
 
-interface CustomerAddress {
-  id: string;
-  recipient_name: string;
-  cep: string;
-  street: string;
-  number: string;
-  complement: string | null;
-  neighborhood: string;
-  city: string;
-  state: string;
-  is_default: boolean;
-}
+type CustomerAddress = CustomerAddressRow;
 
 interface CustomerGroup {
   id: string;
@@ -42,6 +34,8 @@ const CustomerDetail = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  // Address reads/writes go through the store-scoped client; the server resolves the store.
+  const { storeId, client: storeClient } = useMerchantStore();
   
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
   const [address, setAddress] = useState<CustomerAddress | null>(null);
@@ -53,9 +47,8 @@ const CustomerDetail = () => {
   const [isActive, setIsActive] = useState(true);
   
   const [editingProfile, setEditingProfile] = useState(false);
-  const [editingAddress, setEditingAddress] = useState(false);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [editedCustomer, setEditedCustomer] = useState<Partial<CustomerProfile>>({});
-  const [editedAddress, setEditedAddress] = useState<Partial<CustomerAddress>>({});
 
   useEffect(() => {
     if (user && customerId) {
@@ -110,17 +103,13 @@ const CustomerDetail = () => {
   };
 
   const fetchAddress = async () => {
-    const { data } = await supabase
+    if (!customerId) return;
+    const { data } = await storeClient
       .from('customer_addresses')
       .select('*')
-      .eq('customer_id', customerId)
-      .eq('is_default', true)
-      .maybeSingle();
+      .eq('customer_id', customerId);
 
-    if (data) {
-      setAddress(data);
-      setEditedAddress(data);
-    }
+    setAddress(pickPrimaryAddress((data || []) as CustomerAddress[], storeId));
   };
 
   const fetchGroups = async () => {
@@ -191,35 +180,24 @@ const CustomerDetail = () => {
     fetchCustomer();
   };
 
-  const handleSaveAddress = async () => {
-    if (!address?.id) return;
-
-    const { error } = await supabase
-      .from('customer_addresses')
-      .update({
-        recipient_name: editedAddress.recipient_name,
-        cep: editedAddress.cep,
-        street: editedAddress.street,
-        number: editedAddress.number,
-        complement: editedAddress.complement,
-        neighborhood: editedAddress.neighborhood,
-        city: editedAddress.city,
-        state: editedAddress.state
-      })
-      .eq('id', address.id);
-
-    if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o endereço.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    toast({ title: 'Sucesso', description: 'Endereço atualizado com sucesso!' });
-    setEditingAddress(false);
-    fetchAddress();
+  const handleSaveAddress = async (form: CustomerAddressForm) => {
+    if (!customerId) throw new Error('customer_not_found');
+    const { data, error } = await storeClient.rpc('merchant_save_customer_primary_address', {
+      p_customer_id: customerId,
+      p_recipient_name: form.recipient_name,
+      p_cep: form.cep,
+      p_street: form.street,
+      p_number: form.number,
+      p_complement: form.complement,
+      p_neighborhood: form.neighborhood,
+      p_city: form.city,
+      p_state: form.state,
+    });
+    if (error || !data) throw error ?? new Error('save_failed');
+    const wasEdit = !!address;
+    setAddress(data as unknown as CustomerAddress);
+    setAddressDialogOpen(false);
+    toast({ description: wasEdit ? 'Endereço atualizado com sucesso.' : 'Endereço adicionado com sucesso.' });
   };
 
   const handleChangeGroup = async () => {
@@ -461,112 +439,52 @@ const CustomerDetail = () => {
               <MapPin className="h-5 w-5" style={{ color: primaryColor }} />
               Endereço Principal
             </CardTitle>
-            {address && !editingAddress ? (
+            {address ? (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setEditingAddress(true)}
+                aria-label="Editar endereço"
+                onClick={() => setAddressDialogOpen(true)}
                 style={{ color: primaryColor }}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
-            ) : address && editingAddress ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setEditingAddress(false);
-                    setEditedAddress(address);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSaveAddress}
-                  style={{ color: primaryColor }}
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-              </div>
             ) : null}
           </CardHeader>
           <CardContent>
             {!address ? (
-              <p className="text-muted-foreground">Nenhum endereço cadastrado.</p>
-            ) : editingAddress ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="text-sm text-muted-foreground">Rua</label>
-                  <Input
-                    value={editedAddress.street || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, street: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Número</label>
-                  <Input
-                    value={editedAddress.number || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, number: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Complemento</label>
-                  <Input
-                    value={editedAddress.complement || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, complement: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Bairro</label>
-                  <Input
-                    value={editedAddress.neighborhood || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, neighborhood: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Cidade</label>
-                  <Input
-                    value={editedAddress.city || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, city: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Estado</label>
-                  <Input
-                    value={editedAddress.state || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, state: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">CEP</label>
-                  <Input
-                    value={editedAddress.cep || ''}
-                    onChange={(e) => setEditedAddress({ ...editedAddress, cep: e.target.value })}
-                    style={{ borderColor: primaryColor }}
-                  />
-                </div>
+              <div className="flex flex-col items-start gap-3">
+                <p className="text-muted-foreground">Nenhum endereço cadastrado.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => setAddressDialogOpen(true)}
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  Adicionar endereço
+                </Button>
               </div>
             ) : (
               <div>
+                {address.recipient_name && <p className="text-sm text-muted-foreground">{address.recipient_name}</p>}
                 <p className="font-medium">{address.street}, {address.number}</p>
                 {address.complement && <p className="text-sm text-muted-foreground">{address.complement}</p>}
                 <p className="text-sm text-muted-foreground">
                   {address.neighborhood} - {address.city}/{address.state}
                 </p>
-                <p className="text-sm text-muted-foreground">CEP: {address.cep}</p>
+                <p className="text-sm text-muted-foreground">CEP: {formatCep(address.cep)}</p>
               </div>
             )}
           </CardContent>
         </Card>
+        {addressDialogOpen && (
+          // Mounted per opening so every opening starts from the saved address.
+          <CustomerAddressDialog
+            open={addressDialogOpen}
+            onOpenChange={setAddressDialogOpen}
+            address={address}
+            onSave={handleSaveAddress}
+          />
+        )}
 
         {/* Customer Group */}
         <Card>
