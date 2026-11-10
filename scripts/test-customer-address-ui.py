@@ -184,7 +184,8 @@ async def main():
         print("PASS failure: dialog stays open with typed data and clear message; card keeps previous address")
         await page.get_by_role("button", name="Editar endereço").click()
         dialog = page.get_by_role("dialog")
-        assert await dialog.get_by_label("Número *").input_value() == "10"  # reopened from saved data
+        v = await dialog.get_by_label("Número *").input_value(); print("VALUE", repr(v), await dialog.count())
+        assert v == "10"  # reopened from saved data
         await dialog.get_by_label("Número *").fill("250")
         await dialog.get_by_label("Complemento").fill("Apto 3")
         await dialog.get_by_role("button", name="Salvar alterações").click()
