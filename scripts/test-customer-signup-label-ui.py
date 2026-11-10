@@ -102,7 +102,7 @@ async def stamped_main(context):
     return (MAIN.replace("@@REACT@@", dep(r"/react(__oj_named)?\.m?js"))
                 .replace("@@REACTDOM@@", dep(r"/react-dom_client"))
                 .replace("@@ROUTER@@", dep(r"/react-router-dom"))
-                .replace("@@RQ@@", dep(r"/@tanstack_react-query")))
+                .replace("@@RQ@@", dep(r"tanstack_react-query")))
 
 
 async def label_text(page, order_number):
