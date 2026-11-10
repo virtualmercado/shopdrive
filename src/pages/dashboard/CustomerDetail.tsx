@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMerchantStore } from '@/hooks/useMerchantStore';
 import CustomerAddressDialog from '@/components/customers/CustomerAddressDialog';
-import { formatCep, pickPrimaryAddress, type CustomerAddressForm, type CustomerAddressRow } from '@/lib/customerAddress';
+import { formatCep, pickPrimaryAddress, primaryAddressRpcArgs, type CustomerAddressForm, type CustomerAddressRow } from '@/lib/customerAddress';
 import { ArrowLeft, Pencil, Save, X, User, MapPin, Users, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
