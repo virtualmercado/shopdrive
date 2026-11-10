@@ -109,7 +109,8 @@ async def main():
         page = await context.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
-        card = lambda: page.locator("div.rounded-lg", has=page.get_by_text("Endereço Principal", exact=True)).first
+        # The address card's own content (CardTitle -> CardHeader -> Card).
+        card = lambda: page.get_by_text("Endereço Principal", exact=True).locator("xpath=ancestor::div[contains(@class,'border')][1]")
 
         # 1) Customer without address: add.
         await page.goto(f"{ORIGIN}/lojista/customers/{K1}")
@@ -146,8 +147,6 @@ async def main():
         await busy.click(force=True)  # second click while saving must not send another request
         await expect(page.get_by_text("Endereço adicionado com sucesso.").first).to_be_visible(timeout=5000)
         await expect(page.get_by_role("dialog")).to_have_count(0)
-        await page.screenshot(path="/tmp/browser/address/dbg-after-add.png")
-        print(await page.inner_text("body"))
         await expect(card().get_by_text("Av. Teste, 100")).to_be_visible()
         await expect(card().get_by_text("CEP: 69005-010")).to_be_visible()
         calls = rpc_calls(await page.evaluate("window.__log"))
