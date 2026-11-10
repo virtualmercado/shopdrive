@@ -31,12 +31,11 @@ CREATE POLICY "Customers can insert their own addresses" ON public.customer_addr
 CREATE POLICY "Customers can update their own addresses" ON public.customer_addresses FOR UPDATE TO authenticated USING (auth.uid()=customer_id);
 CREATE TABLE public.orders(id uuid primary key default gen_random_uuid(), store_owner_id uuid, customer_id uuid, customer_address text);
 GRANT SELECT ON public.customer_profiles, public.orders TO authenticated;
-GRANT SELECT,INSERT,UPDATE,DELETE ON public.store_customers TO authenticated;
-ALTER TABLE public.store_customers ENABLE ROW LEVEL SECURITY;
 """)
 for migration in ["0076_marca_explicit_store_authorization", "0077_marca_recurrence_cancellation_single_flight",
                   "0078_marca_scoped_private_data_containment", "0079_marca_explicit_access_approval"]:
     sql(next(MIG.glob(f"{migration}.sql")).read_text())
+sql("GRANT SELECT,INSERT,UPDATE,DELETE ON public.store_customers TO authenticated; ALTER TABLE public.store_customers ENABLE ROW LEVEL SECURITY")
 sql('CREATE POLICY "Merchants can manage their own store customers" ON public.store_customers USING (public.merchant_request_store_id()=store_owner_id)')
 sql(FIX.read_text())
 print("PASS real migrations 0076-0079 + address migration applied to disposable PostgreSQL")
