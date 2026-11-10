@@ -144,7 +144,7 @@ async def main():
         busy = dialog.get_by_role("button", name="Salvando...")
         await expect(busy).to_be_disabled()
         await busy.click(force=True)  # second click while saving must not send another request
-        await expect(page.get_by_text("Endereço adicionado com sucesso.")).to_be_visible(timeout=5000)
+        await expect(page.get_by_text("Endereço adicionado com sucesso.").first).to_be_visible(timeout=5000)
         await expect(page.get_by_role("dialog")).to_have_count(0)
         await expect(card().get_by_text("Av. Teste, 100")).to_be_visible()
         await expect(card().get_by_text("CEP: 69005-010")).to_be_visible()
@@ -186,7 +186,7 @@ async def main():
         await dialog.get_by_label("Número *").fill("250")
         await dialog.get_by_label("Complemento").fill("Apto 3")
         await dialog.get_by_role("button", name="Salvar alterações").click()
-        await expect(page.get_by_text("Endereço atualizado com sucesso.")).to_be_visible(timeout=5000)
+        await expect(page.get_by_text("Endereço atualizado com sucesso.").first).to_be_visible(timeout=5000)
         await expect(card().get_by_text("Rua Um, 250")).to_be_visible()
         await expect(card().get_by_text("Apto 3")).to_be_visible()
         await page.screenshot(path="/tmp/browser/address/4-edited.png")
