@@ -29,7 +29,8 @@ export const useAuthContext=()=>({{user,session:{{user,access_token:'synthetic-n
 LAYOUT = "export default function DashboardLayout({children}){return children}"
 FAKE = f"""
 const A='{A}',C='{C}';
-window.__log=window.__log||[];
+window.__log=JSON.parse(sessionStorage.getItem('__log')||'[]');
+const __push=e=>{{window.__log.push(e);sessionStorage.setItem('__log',JSON.stringify(window.__log))}};
 const seed={{customers:[
   {{id:'{K1}',full_name:'Cliente Sem Endereco',email:'k1@example.invalid',phone:'(92) 90000-0001',cpf:'000.000.000-01',created_at:'2026-01-01T00:00:00Z'}},
   {{id:'{K2}',full_name:'Cliente Com Endereco',email:'k2@example.invalid',phone:'(92) 90000-0002',cpf:'000.000.000-02',created_at:'2026-01-01T00:00:00Z'}},
@@ -48,14 +49,14 @@ function table(name,filters){{
 }}
 export const supabase={{
   from:t=>{{const f=[];let one=false,write=null;
-   const q={{then:(res,rej)=>{{window.__log.push({{kind:write?'write':'read',name:t,write}});
+   const q={{then:(res,rej)=>{{__push({{kind:write?'write':'read',name:t,write}});
      if(write)return Promise.resolve({{data:null,error:{{message:'blocked in test'}}}}).then(res,rej);
      const rows=table(t,f);return Promise.resolve({{data:one?(rows[0]??null):rows,error:null}}).then(res,rej);}}}};
    q.select=()=>q;q.order=()=>q;q.limit=()=>q;q.in=()=>q;q.eq=(k,v)=>{{f.push([k,v]);return q}};
    q.maybeSingle=()=>{{one=true;return q}};q.single=()=>{{one=true;return q}};
    for(const op of ['update','insert','delete','upsert']) q[op]=(v)=>{{write={{op,v}};return q}};
    return q;}},
-  rpc:async(name,args)=>{{window.__log.push({{kind:'rpc',name,args}});
+  rpc:async(name,args)=>{{__push({{kind:'rpc',name,args}});
    await new Promise(r=>setTimeout(r,300));
    if(name!=='merchant_save_customer_primary_address')return {{data:null,error:null}};
    if(sessionStorage.getItem('__fail')){{sessionStorage.removeItem('__fail');return {{data:null,error:{{message:'customer_not_found',code:'42501'}}}}}}
@@ -67,7 +68,7 @@ export const supabase={{
    put(d);return {{data:row,error:null}};}},
   channel:()=>{{const c={{on(){{return c}},subscribe(){{return c}}}};return c}},removeChannel:()=>{{}},
   auth:{{getSession:async()=>({{data:{{session:null}},error:null}}),onAuthStateChange:()=>({{data:{{subscription:{{unsubscribe(){{}}}}}}}}),
-   resetPasswordForEmail:async()=>{{window.__log.push({{kind:'auth'}});return {{error:null}}}}}},
+   resetPasswordForEmail:async()=>{{__push({{kind:'auth'}});return {{error:null}}}}}},
 }};
 """
 
