@@ -12,6 +12,7 @@ OUT = Path("/tmp/browser/signup-label"); OUT.mkdir(parents=True, exist_ok=True)
 A = "11111111-1111-4111-8111-111111111111"
 C = "33333333-3333-4333-8333-333333333333"
 K = "a0000000-0000-4000-8000-000000000001"
+L = "a0000000-0000-4000-8000-000000000002"
 MAIN = (
     "import '/src/index.css';import * as React from '@@REACT@@';"
     "import {createRoot} from '@@REACTDOM@@';"
@@ -33,11 +34,13 @@ export const useAuthContext=()=>({{user,session:{{user,access_token:'synthetic-n
 """
 LAYOUT = "export default function DashboardLayout({children}){return children}"
 FAKE = f"""
-const A='{A}',C='{C}',K='{K}';
+const A='{A}',C='{C}',K='{K}',L='{L}';
 window.__log=[];
 const db={{
- customer_profiles:[{{id:K,full_name:'Cliente Nome Atual',email:'k@example.invalid',phone:null,cpf:null,created_at:'2026-01-01T00:00:00Z'}}],
- store_customers:[{{id:'sc-k',store_owner_id:A,customer_id:K,is_active:true,customer_code:'0001',origin:'store',created_at:'2026-01-01T00:00:00Z'}}],
+ customer_profiles:[{{id:K,full_name:'Cliente Nome Atual',email:'k@example.invalid',phone:null,cpf:null,created_at:'2026-01-01T00:00:00Z'}},
+  {{id:L,full_name:'Cliente Sem Endereco',email:'l@example.invalid',phone:null,cpf:null,created_at:'2026-01-01T00:00:00Z'}}],
+ store_customers:[{{id:'sc-k',store_owner_id:A,customer_id:K,is_active:true,customer_code:'0001',origin:'store',created_at:'2026-01-01T00:00:00Z'}},
+  {{id:'sc-l',store_owner_id:A,customer_id:L,is_active:true,customer_code:'0002',origin:'store',created_at:'2026-01-01T00:00:00Z'}}],
  customer_addresses:[
   {{id:'addr-b',customer_id:K,store_owner_id:A,recipient_name:'Cliente',cep:'69000002',street:'Rua B Atual',number:'2',complement:null,neighborhood:'Bairro B',city:'Manaus',state:'AM',is_default:false,updated_at:'2026-11-10T00:00:00Z'}},
   {{id:'addr-c',customer_id:K,store_owner_id:C,recipient_name:'Cliente',cep:'20000000',street:'Rua Outra Loja',number:'9',complement:null,neighborhood:'Centro',city:'Rio de Janeiro',state:'RJ',is_default:true,updated_at:'2026-11-10T00:00:00Z'}}],
@@ -50,7 +53,19 @@ const db={{
     status:'pending',payment_method:'pix',notes:null,created_at:'2026-11-10T00:00:00Z',updated_at:'2026-11-10T00:00:00Z',order_source:'store',store_owner_id:A}},
   {{id:'o-legacy',order_number:'#000100',customer_id:K,customer_name:'Cliente Nome Antigo',customer_email:null,customer_phone:null,
     customer_address:'A combinar pelo WhatsApp',total_amount:10,subtotal:10,delivery_fee:0,delivery_method:null,
-    status:'pending',payment_method:'pix',notes:null,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z',order_source:'store',store_owner_id:A}}],
+    status:'pending',payment_method:'pix',notes:null,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z',order_source:'store',store_owner_id:A}},
+  {{id:'o-nocep',order_number:'#000099',customer_id:K,customer_name:'Cliente Nome Antigo',customer_email:null,customer_phone:null,
+    customer_address:'Rua A Antiga, 1, Bairro A, Manaus - AM',total_amount:10,subtotal:10,delivery_fee:0,delivery_method:'entrega',
+    status:'pending',payment_method:'pix',notes:null,created_at:'2025-12-01T00:00:00Z',updated_at:'2025-12-01T00:00:00Z',order_source:'store',store_owner_id:A}},
+  {{id:'o-pickup',order_number:'#000098',customer_id:K,customer_name:'Cliente Nome Antigo',customer_email:null,customer_phone:null,
+    customer_address:'Loja Fixture, 10, Centro, Manaus - AM, CEP: 69000-000',total_amount:10,subtotal:10,delivery_fee:0,delivery_method:'retirada',
+    status:'pending',payment_method:'pix',notes:null,created_at:'2025-11-01T00:00:00Z',updated_at:'2025-11-01T00:00:00Z',order_source:'store',store_owner_id:A}},
+  {{id:'o-noaddr',order_number:'#000097',customer_id:L,customer_name:'Cliente Sem Endereco',customer_email:null,customer_phone:null,
+    customer_address:null,total_amount:10,subtotal:10,delivery_fee:0,delivery_method:'entrega',
+    status:'pending',payment_method:'pix',notes:null,created_at:'2025-10-01T00:00:00Z',updated_at:'2025-10-01T00:00:00Z',order_source:'store',store_owner_id:A}},
+  {{id:'o-guest',order_number:'#000096',customer_id:null,customer_name:'Visitante',customer_email:null,customer_phone:null,
+    customer_address:'',total_amount:10,subtotal:10,delivery_fee:0,delivery_method:'entrega',
+    status:'pending',payment_method:'pix',notes:null,created_at:'2025-09-01T00:00:00Z',updated_at:'2025-09-01T00:00:00Z',order_source:'store',store_owner_id:A}}],
  profiles:[{{id:A,store_name:'Loja Fixture',store_slug:'fixture-a'}}],
 }};
 window.__db=db;
@@ -105,17 +120,38 @@ async def stamped_main(context):
                 .replace("@@RQ@@", dep(r"tanstack_react-query")))
 
 
-async def label_text(page, order_number):
+async def open_label(page, order_number):
     row = page.locator("div.border, div").filter(has_text=order_number).filter(has=page.get_by_role("combobox")).last
     await row.get_by_role("combobox").first.click()
     await page.get_by_role("option", name=re.compile("Imprimir etiqueta")).click()
+
+
+async def accept_dce(page):
     dialog = page.get_by_role("alertdialog")
     await dialog.get_by_role("checkbox").click()
-    async with page.expect_download() as dl:
-        await dialog.get_by_role("button", name="Confirmar e imprimir etiqueta").click()
+    await dialog.get_by_role("button", name="Confirmar e imprimir etiqueta").click()
+
+
+async def save_pdf(page, dl, order_number):
     path = OUT / f"label-{order_number.strip('#')}.pdf"
     await (await dl.value).save_as(path)
     return path.read_bytes().decode("latin-1")
+
+
+async def label_text(page, order_number):
+    await open_label(page, order_number)
+    async with page.expect_download() as dl:
+        await accept_dce(page)
+    return await save_pdf(page, dl, order_number)
+
+
+async def legacy_dialog(page, order_number):
+    """Opens the label for an order without historical address; returns the confirmation dialog."""
+    await open_label(page, order_number)
+    await accept_dce(page)
+    dialog = page.get_by_role("alertdialog").filter(has_text="Confirme o endereço da etiqueta")
+    await expect(dialog).to_be_visible()
+    return dialog
 
 
 async def main():
@@ -210,11 +246,62 @@ async def main():
         new = await label_text(page, "#000102")
         assert "RUA B ATUAL" in new and "69000-002" in new and "RUA A ANTIGA" not in new
         print("PASS new order label prints address B")
-        legacy = await label_text(page, "#000100")
-        assert "RUA B ATUAL" in legacy and "OUTRA LOJA" not in legacy, "legacy fallback uses this store's address only"
-        print("PASS legacy order without address copy falls back to this store's registered address (never another store's)")
+        downloads = []
+        page.on("download", lambda d: downloads.append(d))
+
+        # 2/3. Old delivery order without CEP: warning + current address shown, nothing printed until confirmed.
+        dialog = await legacy_dialog(page, "#000099")
+        await expect(dialog.get_by_text("Este pedido antigo não possui um endereço de entrega completo gravado no histórico.", exact=False)).to_be_visible()
+        box = dialog.get_by_test_id("legacy-label-address")
+        await expect(box).to_contain_text("Rua B Atual"); await expect(box).to_contain_text("69000-002")
+        await expect(box).not_to_contain_text("Outra Loja")
+        await page.wait_for_timeout(500)
+        assert not downloads, "must not print before confirmation"
+        await page.screenshot(path=str(OUT / "3-legacy-confirm.png"))
+        await dialog.get_by_role("button", name="Cancelar").click()
+        await expect(dialog).to_be_hidden(); await page.wait_for_timeout(500)
+        assert not downloads, "cancel must not print"
+        print("PASS old order without CEP: warning + current address shown; cancel prints nothing")
+        dialog = await legacy_dialog(page, "#000099")
+        async with page.expect_download() as dl:
+            await dialog.get_by_role("button", name="Confirmar e imprimir").click()
+        txt = await save_pdf(page, dl, "#000099")
+        assert "RUA B ATUAL" in txt and "OUTRA LOJA" not in txt
+        print("PASS confirmed legacy label prints only this store's current address")
+
+        # 4. "A combinar pelo WhatsApp": specific warning, requires confirmation.
+        downloads.clear()
+        dialog = await legacy_dialog(page, "#000100")
+        await expect(dialog.get_by_text("A combinar pelo WhatsApp", exact=False)).to_be_visible()
+        await expect(dialog.get_by_text("pode não ser o que foi combinado na época", exact=False)).to_be_visible()
+        await page.wait_for_timeout(500); assert not downloads
+        async with page.expect_download() as dl:
+            await dialog.get_by_role("button", name="Confirmar e imprimir").click()
+        assert "RUA B ATUAL" in await save_pdf(page, dl, "#000100")
+        print("PASS 'A combinar' order prints only after explicit confirmation")
+
+        # 5. Pickup: no delivery label, no DC-e dialog.
+        downloads.clear()
+        await open_label(page, "#000098")
+        await expect(page.get_by_text("Este pedido foi registrado como Retirada no local e não possui endereço de entrega.").first).to_be_visible()
+        assert not await page.get_by_role("alertdialog").count()
+        await page.wait_for_timeout(500); assert not downloads
+        print("PASS pickup order: label blocked with the pickup message")
+
+        # 6. No snapshot and no registered address (customer without address, and guest without customer).
+        for num in ("#000097", "#000096"):
+            await open_label(page, num); await accept_dce(page)
+            await expect(page.get_by_text("Não há endereço de entrega suficiente para gerar esta etiqueta.").first).to_be_visible()
+            assert not await page.get_by_role("alertdialog").filter(has_text="Confirme o endereço").count()
+            await page.wait_for_timeout(400); assert not downloads, num
+        print("PASS orders without any usable address are blocked with a clear message")
+
+        l = await log()
+        assert not [e for e in l if e["kind"] == "write"], "label flow must never write orders or addresses"
+        print("PASS no order/address writes during the label flow")
 
         await page.screenshot(path=str(OUT / "2-orders.png"))
+        downloads_final = len(downloads)
         assert not errors, errors
         assert not [b for b in blocked if "supabase" in b], blocked  # fonts/SDK/viacep/collector are aborted, never reached
         print("PASS no page errors; no hosted writes or external calls")
