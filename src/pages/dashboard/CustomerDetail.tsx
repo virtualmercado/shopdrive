@@ -476,12 +476,15 @@ const CustomerDetail = () => {
             )}
           </CardContent>
         </Card>
-        <CustomerAddressDialog
-          open={addressDialogOpen}
-          onOpenChange={setAddressDialogOpen}
-          address={address}
-          onSave={handleSaveAddress}
-        />
+        {addressDialogOpen && (
+          // Mounted per opening so every opening starts from the saved address.
+          <CustomerAddressDialog
+            open={addressDialogOpen}
+            onOpenChange={setAddressDialogOpen}
+            address={address}
+            onSave={handleSaveAddress}
+          />
+        )}
 
         {/* Customer Group */}
         <Card>
