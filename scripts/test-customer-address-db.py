@@ -79,7 +79,7 @@ def save(a, customer, store=None, fail=False, **over):
 
 
 def rows(customer):
-    return sql(f"SELECT coalesce(json_agg(row_to_json(x) ORDER BY store_owner_id NULLS FIRST, created_at),'[]') FROM (SELECT store_owner_id,street,number,complement,cep,state,is_default,recipient_name FROM customer_addresses WHERE customer_id='{customer}') x")
+    return sql(f"SELECT coalesce(jsonb_agg(to_jsonb(x) - 'created_at' ORDER BY x.store_owner_id NULLS FIRST, x.created_at),'[]') FROM (SELECT store_owner_id,street,number,complement,cep,state,is_default,recipient_name,created_at FROM customer_addresses WHERE customer_id='{customer}') x")
 
 
 snapshot = lambda: sql("SELECT md5(string_agg(row_to_json(t)::text, ',' ORDER BY id)) FROM (SELECT id,full_name,email,phone,cpf FROM customer_profiles) t") + \
