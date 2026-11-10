@@ -166,6 +166,8 @@ async def main():
         await dialog.get_by_role("button", name="Cadastrar cliente").click()
         await dialog.get_by_role("button", name="Cadastrando...").click(force=True)  # double click while busy
         await expect(dialog.get_by_text("Cliente criado, mas o endereço não foi salvo")).to_be_visible()
+        await expect(dialog.get_by_text("Não foi possível salvar o endereço.", exact=False)).to_be_visible()
+        await expect(dialog.get_by_role("button", name="Salvar endereço")).to_be_enabled()
         await expect(dialog).to_be_visible()
         assert await dialog.get_by_placeholder("Nome do cliente").is_disabled()
         assert not await page.get_by_text("Cliente cadastrado com sucesso!").count()

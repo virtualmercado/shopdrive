@@ -1434,7 +1434,7 @@ const Customers = () => {
               </div>
             </div>
 
-            {createdCustomerId && (
+            {createdCustomerId && addressRetryError && (
               <Alert variant="destructive" role="alert">
                 <AlertTitle>Cliente criado, mas o endereço não foi salvo</AlertTitle>
                 <AlertDescription>
