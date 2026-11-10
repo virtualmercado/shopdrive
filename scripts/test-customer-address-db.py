@@ -175,9 +175,9 @@ assert sql("SELECT count(*) FROM customer_addresses WHERE customer_id='a0000000-
 print("PASS 8 concurrent saves create exactly one address")
 
 # Never touches profiles, orders or store links; no new customers.
-assert snapshot().replace("", "") == before.replace(sql("SELECT count(*) FROM store_customers"), "") + sql("SELECT count(*) FROM store_customers") or True
+assert int(sql("SELECT count(*) FROM store_customers")) == int(before[64:]) + 1  # only the fixture added above
 assert sql("SELECT md5(string_agg(row_to_json(t)::text, ',' ORDER BY id)) FROM (SELECT id,full_name,email,phone,cpf FROM customer_profiles WHERE full_name<>'Concorrente') t") \
-    == before[:32] or True
+    == before[:32]
 prof = sql("SELECT string_agg(full_name||'|'||coalesce(email,'')||'|'||coalesce(phone,'')||'|'||coalesce(cpf,''), ';' ORDER BY id) FROM customer_profiles WHERE full_name<>'Concorrente'")
 assert "Sem Endereco|none@example.invalid|11|111" in prof and "Com Endereco|own@example.invalid|22|222" in prof and "Conta Propria|auth@example.invalid|44|444" in prof
 assert sql("SELECT md5(string_agg(row_to_json(o)::text, ',' ORDER BY id)) FROM orders o") == before[32:64]
