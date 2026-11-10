@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { labelRecipientFromOrder, parseOrderAddressSnapshot } from "./orderAddressSnapshot";
+import {
+  labelRecipientFromOrder, parseOrderAddressSnapshot, planShippingLabel, isDeliverableRecipient,
+  confirmationWarning, LABEL_LEGACY_WARNING, LABEL_TO_BE_AGREED_WARNING,
+} from "./orderAddressSnapshot";
 
 describe("shipping label uses the address stored on the order", () => {
   it("reads every field from a checkout snapshot", () => {
@@ -34,5 +37,36 @@ describe("shipping label uses the address stored on the order", () => {
     expect(labelRecipientFromOrder({ customer_address: "A combinar pelo WhatsApp", delivery_method: null })).toBeNull();
     expect(labelRecipientFromOrder({ customer_address: "Rua sem cidade nem CEP", delivery_method: "entrega" })).toBeNull();
     expect(labelRecipientFromOrder({ customer_address: null, delivery_method: "entrega" })).toBeNull();
+  });
+});
+
+describe("legacy label plan never presents the current registration as historical", () => {
+  it("prints directly from a complete snapshot", () => {
+    const plan = planShippingLabel({ customer_name: "C", customer_address: "Rua A, 1, Bairro, Manaus - AM, CEP: 69000-001", delivery_method: "entrega" });
+    expect(plan.kind).toBe("snapshot");
+  });
+
+  it("requires confirmation for an old delivery order without CEP in the copy", () => {
+    expect(planShippingLabel({ customer_address: "Rua A, 1, Bairro, Manaus - AM", delivery_method: "entrega" }))
+      .toEqual({ kind: "needs_confirmation", reason: "incomplete" });
+    expect(confirmationWarning("incomplete")).toBe(LABEL_LEGACY_WARNING);
+  });
+
+  it("requires confirmation for 'A combinar pelo WhatsApp' with its own warning", () => {
+    expect(planShippingLabel({ customer_address: "A combinar pelo WhatsApp", delivery_method: null }))
+      .toEqual({ kind: "needs_confirmation", reason: "to_be_agreed" });
+    expect(confirmationWarning("to_be_agreed")).toBe(LABEL_TO_BE_AGREED_WARNING);
+  });
+
+  it("never plans a delivery label for pickup, even with a complete-looking copy", () => {
+    expect(planShippingLabel({ customer_address: "Loja, 10, Centro, Manaus - AM, CEP: 69000-000", delivery_method: "retirada" }))
+      .toEqual({ kind: "pickup" });
+  });
+
+  it("blocks when no deliverable fallback address exists", () => {
+    expect(isDeliverableRecipient(null)).toBe(false);
+    expect(isDeliverableRecipient({ full_name: "C", street: "Rua", city: "Manaus", state: "AM", cep: "" })).toBe(false);
+    expect(isDeliverableRecipient({ full_name: "C", street: "", city: "Manaus", state: "AM", cep: "69000-001" })).toBe(false);
+    expect(isDeliverableRecipient({ full_name: "C", street: "Rua", city: "Manaus", state: "AM", cep: "69000-001" })).toBe(true);
   });
 });
