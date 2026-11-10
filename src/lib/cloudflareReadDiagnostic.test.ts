@@ -87,3 +87,33 @@ describe("cloudflare read diagnostic", () => {
     expect((await runDiagnostic("jwt", d)).body).toMatchObject({ ok: false, structure_valid: false, total_count: null });
   });
 });
+describe("provisioning credential read check", () => {
+  const NEW = "new-provisioning-token";
+  const routed = () => vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+    const u = String(url);
+    const body = u.endsWith("/user/tokens/verify") ? { success: true, result: { status: "active" } }
+      : u.includes("/custom_hostnames") ? { success: true, result: [{ status: "active", ssl: { status: "active" } }], result_info: { total_count: 1 } }
+      : { success: true, result: { name: "shopdrive.com.br" } };
+    return new Response(JSON.stringify(body), { status: 200 });
+  });
+  const env = (n: string) => ({ CLOUDFLARE_API_TOKEN: TOKEN, CLOUDFLARE_ZONE_ID: ZONE, CLOUDFLARE_CUSTOM_HOSTNAMES_TOKEN: NEW } as Record<string, string>)[n];
+
+  it("uses only GET, reports active token, count and zone match, never the token", async () => {
+    const fetchImpl = routed();
+    const r = await runDiagnostic("jwt", { getUserId: async () => "u1", isAdmin: async () => true, env, fetchImpl });
+    expect(r.body.provisioning_credential).toMatchObject({ configured: true, token_status: "active", custom_hostnames_ok: true, custom_hostnames_total: 1, zone_name_matches_expected: true, zone_id_masked: "0123…cdef" });
+    for (const c of fetchImpl.mock.calls) expect(c[1]?.method).toBe("GET");
+    const out = JSON.stringify(r);
+    expect(out).not.toContain(NEW);
+    expect(out).not.toContain(TOKEN);
+    expect(out).not.toContain(ZONE);
+  });
+
+  it("non-admin never touches the provisioning token", async () => {
+    const fetchImpl = routed();
+    const envSpy = vi.fn(env);
+    expect((await runDiagnostic("jwt", { getUserId: async () => "u1", isAdmin: async () => false, env: envSpy, fetchImpl })).status).toBe(403);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(envSpy).not.toHaveBeenCalled();
+  });
+});

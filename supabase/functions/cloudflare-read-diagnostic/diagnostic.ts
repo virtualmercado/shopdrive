@@ -68,9 +68,13 @@ export async function runDiagnostic(bearer: string | null, deps: DiagnosticDeps)
   const category = success ? null : (classify(res.status, codes) ?? "resource_unavailable");
   const agg = (k: (h: { status?: string; ssl?: { status?: string } }) => string | undefined, allowed: string[]) =>
     rows.reduce<Record<string, number>>((a, h) => { const raw = k(h); const v = raw && allowed.includes(raw) ? raw : "unknown"; a[v] = (a[v] ?? 0) + 1; return a; }, {});
+  const provisioning = (deps.env(PROVISIONING_TOKEN) ?? "").trim()
+    ? await checkProvisioningCredential(deps, zone)
+    : { configured: false };
   return {
     status: 200,
     body: {
+      provisioning_credential: provisioning,
       ok: success,
       reachable: true,
       http_status: res.status,
@@ -85,6 +89,75 @@ export async function runDiagnostic(bearer: string | null, deps: DiagnosticDeps)
       error_message: category ? SAFE_ERRORS[category] : null,
       classification: category,
     },
+  };
+}
+
+const PROVISIONING_TOKEN = "CLOUDFLARE_CUSTOM_HOSTNAMES_TOKEN";
+const EXPECTED_ZONE_NAME = "shopdrive.com.br";
+
+export function maskZoneId(zone: string): string {
+  return `${zone.slice(0, 4)}…${zone.slice(-4)}`;
+}
+
+async function cfGetJson(deps: DiagnosticDeps, path: string, token: string): Promise<{ status: number; body: Record<string, unknown> | null }> {
+  try {
+    const res = await deps.fetchImpl(`${CLOUDFLARE_API}${path}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
+    });
+    return { status: res.status, body: await res.json().catch(() => null) };
+  } catch {
+    return { status: 0, body: null };
+  }
+}
+
+const codesOf = (b: Record<string, unknown> | null) =>
+  (Array.isArray(b?.errors) ? b.errors as Array<{ code?: number }> : []).map((e) => Number(e?.code)).filter((c) => Number.isInteger(c) && c >= 0 && c <= 99999);
+
+// Read-only check of the dedicated provisioning credential: three fixed GETs, aggregate output only.
+export async function checkProvisioningCredential(deps: DiagnosticDeps, zone: string): Promise<Record<string, unknown>> {
+  const token = (deps.env(PROVISIONING_TOKEN) ?? "").trim();
+  const legacy = (deps.env("CLOUDFLARE_API_TOKEN") ?? "").trim();
+
+  const verify = await cfGetJson(deps, "/user/tokens/verify", token);
+  const verifyResult = verify.body?.result as { status?: string } | undefined;
+  const tokenStatus = typeof verifyResult?.status === "string" && ["active", "disabled", "expired"].includes(verifyResult.status) ? verifyResult.status : null;
+
+  const list = await cfGetJson(deps, `/zones/${encodeURIComponent(zone)}/custom_hostnames?per_page=50`, token);
+  const listOk = list.status === 200 && list.body?.success === true && Array.isArray(list.body?.result);
+  const info = list.body?.result_info as { total_count?: number } | undefined;
+  const rows = listOk ? (list.body!.result as unknown[]).length : 0;
+  const total = listOk ? (typeof info?.total_count === "number" && Number.isSafeInteger(info.total_count) && info.total_count >= rows ? info.total_count : rows) : null;
+  const listCodes = codesOf(list.body);
+
+  // Zone name: try the provisioning token, then the existing read token; only a boolean leaves here.
+  let zoneNameMatches: boolean | null = null;
+  let zoneCheckedWith: "provisioning_token" | "existing_read_token" | null = null;
+  for (const [label, t] of [["provisioning_token", token], ["existing_read_token", legacy]] as const) {
+    if (!t) continue;
+    const z = await cfGetJson(deps, `/zones/${encodeURIComponent(zone)}`, t);
+    const name = (z.body?.result as { name?: string } | undefined)?.name;
+    if (z.status === 200 && typeof name === "string") {
+      zoneNameMatches = name.toLowerCase() === EXPECTED_ZONE_NAME;
+      zoneCheckedWith = label;
+      break;
+    }
+  }
+
+  return {
+    configured: true,
+    zone_id_masked: maskZoneId(zone),
+    token_verify_http_status: verify.status || null,
+    token_status: tokenStatus,
+    custom_hostnames_http_status: list.status || null,
+    custom_hostnames_ok: listOk,
+    custom_hostnames_total: total,
+    custom_hostnames_error_code: listCodes[0] ?? null,
+    custom_hostnames_classification: listOk ? null : (classify(list.status, listCodes) ?? "resource_unavailable"),
+    zone_name_matches_expected: zoneNameMatches,
+    zone_checked_with: zoneCheckedWith,
   };
 }
 
