@@ -2,12 +2,13 @@
 
 ## Edição manual do endereço principal do cliente — 2026-11-10
 
-- [ ] Auditar tabelas, gravação manual/checkout, guest e autenticado.
-- [ ] Função segura no servidor: só cliente vinculado à loja atual; só endereço da própria loja; nunca toca pedidos, perfil ou login.
-- [ ] Janela Adicionar/Editar no card "Endereço Principal" com campos e validações do cadastro manual.
-- [ ] Testes: banco à parte (isolamento, pedidos, guest, validação, falha) + navegador + unitários.
-- [ ] Não publicar sem autorização.
-
+- [x] Auditoria: endereço em `customer_addresses` (por cliente, marcado com a loja); pedidos guardam cópia própria; guests sem endereço salvo; edição antiga em linha não salvava (lojista sem permissão de escrita).
+- [x] Migration 0083: função segura `merchant_save_customer_primary_address` (só cliente vinculado à loja atual; só endereço da própria loja; nunca toca pedidos, perfil ou login).
+- [x] Janela Adicionar/Editar no card "Endereço Principal" com campos e validações do cadastro manual.
+- [x] Testes: banco à parte (14 cenários), navegador com dados fictícios (7), unitários (7; suíte 600), recusas reais em produção sem gravação.
+- [ ] Decisão do usuário: etiqueta de envio de pedidos antigos lê o endereço atual do cadastro (comportamento anterior).
+- [ ] Decisão do usuário: cadastro manual de cliente não consegue gravar o endereço pelas regras atuais.
+- [ ] Publicar a tela somente com autorização.
 
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 
