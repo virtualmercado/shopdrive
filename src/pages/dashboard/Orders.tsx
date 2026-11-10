@@ -16,7 +16,15 @@ import { printOrderA4 } from "@/components/orders/OrderPrintA4";
 import PrintFormatDialog from "@/components/orders/PrintFormatDialog";
 import ThermalReceiptPrintDialog from "@/components/orders/ThermalReceiptPrintDialog";
 import { printShippingLabel } from "@/components/orders/ShippingLabelPrint";
-import { labelRecipientFromOrder, type LabelRecipient } from "@/lib/orderAddressSnapshot";
+import {
+  planShippingLabel,
+  isDeliverableRecipient,
+  confirmationWarning,
+  recipientLines,
+  LABEL_PICKUP_MESSAGE,
+  LABEL_NO_ADDRESS_MESSAGE,
+  type LabelRecipient,
+} from "@/lib/orderAddressSnapshot";
 import { pickPrimaryAddress, type CustomerAddressRow } from "@/lib/customerAddress";
 import { WhatsAppOrderModal } from "@/components/orders/WhatsAppOrderModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +79,14 @@ const Orders = () => {
   const [dceModalOpen, setDceModalOpen] = useState(false);
   const [dceConfirmed, setDceConfirmed] = useState(false);
   const [dcePendingOrder, setDcePendingOrder] = useState<any>(null);
+  // Legacy orders without a historical address: the current registration is only printed after
+  // the merchant confirms it is NOT the address stored on the order.
+  const [legacyLabel, setLegacyLabel] = useState<{
+    order: any;
+    store: any;
+    recipient: LabelRecipient;
+    reason: "to_be_agreed" | "incomplete";
+  } | null>(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -212,6 +228,10 @@ const Orders = () => {
     // Check if it's the print shipping label action
     if (newStatus === "print_shipping_label") {
       const order = orders?.find((o) => o.id === orderId);
+      if (order && planShippingLabel(order).kind === "pickup") {
+        toast({ title: "Etiqueta indisponível", description: LABEL_PICKUP_MESSAGE, variant: "destructive" });
+        return;
+      }
       if (order) {
         setDcePendingOrder(order);
         setDceConfirmed(false);
@@ -328,20 +348,41 @@ const Orders = () => {
     if (!printOrder) return;
     setThermalPrintOrderId(printOrder.id);
   };
+  const printLabel = (order: any, store: any, customer: LabelRecipient) => {
+    printShippingLabel({
+      order: {
+        id: order.id,
+        order_number: order.order_number,
+        created_at: order.created_at,
+      },
+      store: store || {},
+      customer,
+    });
+    toast({ title: "Sucesso", description: "Etiqueta de envio gerada com sucesso!" });
+  };
+
   const handlePrintShippingLabel = async (order: any) => {
     try {
-      // Fetch store data
+      const plan = planShippingLabel(order);
+      if (plan.kind === "pickup") {
+        toast({ title: "Etiqueta indisponível", description: LABEL_PICKUP_MESSAGE, variant: "destructive" });
+        return;
+      }
+
       const store = await fetchStoreData();
 
       // The label prints ONLY the address copy stored on the order at purchase time, so later
       // edits to the customer's registration never change a historical label or reprint.
-      const snapshotRecipient = labelRecipientFromOrder(order);
-      let customer: LabelRecipient = snapshotRecipient ?? { full_name: order.customer_name };
+      if (plan.kind === "snapshot") {
+        printLabel(order, store, plan.recipient);
+        return;
+      }
 
-      // LEGACY FALLBACK: only for orders without a usable address copy (pickup, "a combinar"
-      // or old/incomplete records). Keeps the previous behaviour of reading the customer's
-      // current primary address, restricted to the one this store shows (never another store's).
-      if (!snapshotRecipient && order.customer_id) {
+      // LEGACY: no usable address copy on the order. The customer's current primary address (only
+      // the one this store shows, never another store's) may be printed, but never silently as if it
+      // were the historical address: the merchant must confirm it first. Nothing is written back.
+      let fallback: LabelRecipient | null = null;
+      if (order.customer_id) {
         const { data: customerData } = await supabase
           .from("customer_profiles")
           .select("*")
@@ -354,31 +395,40 @@ const Orders = () => {
             .select("*")
             .eq("customer_id", order.customer_id);
           const addressData = pickPrimaryAddress((addressRows ?? []) as CustomerAddressRow[], storeId);
-
-          customer = {
-            full_name: customerData.full_name,
-            street: addressData?.street,
-            number: addressData?.number,
-            complement: addressData?.complement ?? undefined,
-            neighborhood: addressData?.neighborhood,
-            city: addressData?.city,
-            state: addressData?.state,
-            cep: addressData?.cep,
-          };
+          if (addressData) {
+            const cepDigits = (addressData.cep ?? "").replace(/\D/g, "");
+            fallback = {
+              full_name: customerData.full_name || order.customer_name || "",
+              street: addressData.street,
+              number: addressData.number,
+              complement: addressData.complement ?? undefined,
+              neighborhood: addressData.neighborhood,
+              city: addressData.city,
+              state: addressData.state,
+              cep: cepDigits.length === 8 ? `${cepDigits.slice(0, 5)}-${cepDigits.slice(5)}` : addressData.cep,
+            };
+          }
         }
       }
 
-      printShippingLabel({
-        order: {
-          id: order.id,
-          order_number: order.order_number,
-          created_at: order.created_at,
-        },
-        store: store || {},
-        customer,
-      });
+      if (!isDeliverableRecipient(fallback)) {
+        toast({ title: "Etiqueta indisponível", description: LABEL_NO_ADDRESS_MESSAGE, variant: "destructive" });
+        return;
+      }
 
-      toast({ title: "Sucesso", description: "Etiqueta de envio gerada com sucesso!" });
+      setLegacyLabel({ order, store, recipient: fallback, reason: plan.reason });
+    } catch (error) {
+      console.error("Error printing shipping label:", error);
+      toast({ title: "Erro", description: "Erro ao gerar etiqueta de envio.", variant: "destructive" });
+    }
+  };
+
+  const confirmLegacyLabel = () => {
+    const pending = legacyLabel;
+    setLegacyLabel(null);
+    if (!pending) return;
+    try {
+      printLabel(pending.order, pending.store, pending.recipient);
     } catch (error) {
       console.error("Error printing shipping label:", error);
       toast({ title: "Erro", description: "Erro ao gerar etiqueta de envio.", variant: "destructive" });
@@ -849,6 +899,31 @@ const Orders = () => {
             >
               Confirmar e imprimir etiqueta
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!legacyLabel} onOpenChange={(open) => { if (!open) setLegacyLabel(null); }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg">Confirme o endereço da etiqueta</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  {legacyLabel ? confirmationWarning(legacyLabel.reason) : ""}
+                </p>
+                {legacyLabel && (
+                  <div className="rounded-md border bg-muted/40 p-3 text-sm text-foreground" data-testid="legacy-label-address">
+                    {recipientLines(legacyLabel.recipient).map((line, i) => (
+                      <p key={i} className={i === 0 ? "font-semibold" : undefined}>{line}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLegacyLabel}>Confirmar e imprimir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
