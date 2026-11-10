@@ -9,7 +9,7 @@
 - [x] Etiqueta de envio lê só a cópia do endereço gravada no pedido; cadastro atual só como reserva para pedidos sem cópia utilizável (retirada, "a combinar", incompletos).
 - [x] Cadastro manual grava o endereço pela mesma função segura; falha do endereço avisa e tenta de novo só o endereço (sem duplicar cliente).
 - [x] Testes: banco descartável (A–F), navegador fictício (cadastro + etiquetas), unitários 604.
-- [ ] Publicar (autorizado em 10/11) e conferir versão nova servida.
+- [x] Publicado em 10/11 (versão index-D0C6bMp8.js); Clientes, detalhe e Pedidos conferidos em produção só leitura.
 
 ## Gerenciamento seguro multiloja MARCA — 2026-11-06
 
