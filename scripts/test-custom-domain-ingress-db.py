@@ -18,14 +18,23 @@ sql += '\n'.join(fns[k].rstrip() + ';' for k in order) + '\n'
 sql += (root / 'drizzle/migrations/0084_custom_hostname_write_kill_switch.sql').read_text().replace('--> statement-breakpoint', '') + '\n'
 sql += (root / 'supabase/tests/custom-domain-ingress.sql').read_text()
 env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
+bins = sorted(Path('/nix/store').glob('*-postgresql-17*/bin/initdb'))
+if bins:
+    env['PATH'] = str(bins[0].parent) + ':' + env.get('PATH', '')
+nobody = (lambda *c: subprocess.run(['runuser', '-u', 'nobody', '--', 'env', 'PATH=' + env['PATH'], *c], env=env, capture_output=True, text=True)) \
+    if os.geteuid() == 0 else (lambda *c: subprocess.run(list(c), env=env, capture_output=True, text=True))
 data = tempfile.mkdtemp(prefix='pgi-')
+if os.geteuid() == 0:
+    shutil.chown(data, 'nobody')
 try:
-    subprocess.run(['initdb', '-D', data, '-U', 'nobody', '-A', 'trust'], check=True, env=env, capture_output=True)
-    subprocess.run(['pg_ctl', '-D', data, '-o', f'-p {a.port} -k /tmp -c listen_addresses=127.0.0.1', '-w', 'start', '-l', f'{data}/log'], check=True, env=env, capture_output=True)
+    r0 = nobody('initdb', '-D', data, '-U', 'nobody', '--auth=trust')
+    assert r0.returncode == 0, r0.stderr
+    r0 = nobody('pg_ctl', '-D', data, '-l', f'{data}/log', '-w', '-o', f'-p {a.port} -k /tmp -c listen_addresses=127.0.0.1', 'start')
+    assert r0.returncode == 0, r0.stderr
     r = subprocess.run(['psql', '-X', '-h', '127.0.0.1', '-p', str(a.port), '-U', 'nobody', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'],
                        input=sql, text=True, env=env, capture_output=True)
     print(r.stderr.replace('psql:<stdin>', '').strip())
     raise SystemExit(r.returncode)
 finally:
-    subprocess.run(['pg_ctl', '-D', data, '-m', 'immediate', 'stop'], env=env, capture_output=True)
+    nobody('pg_ctl', '-D', data, '-m', 'immediate', 'stop')
     shutil.rmtree(data, ignore_errors=True)
