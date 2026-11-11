@@ -7,6 +7,7 @@
  * inside the application. This Worker has no database dependency, no merchant
  * hostname hardcoded and never identifies a store by slug/querystring.
  *
+ * Single-file module (only the default export, so it can be pasted into the Cloudflare editor).
  * Protected hosts: ShopDrive's own/internal hostnames (RESERVED_DOMAIN_SUFFIXES,
  * kept identical to supabase/functions/_shared/customDomainCore.ts by a unit test)
  * are passed through untouched, so a zone wildcard route can never capture or
@@ -20,7 +21,7 @@
 const UPSTREAM_ORIGIN = "https://shopdrive.com.br";
 const LOOP_HEADER = "x-shopdrive-custom-domain";
 
-export const PROTECTED_HOST_SUFFIXES = [
+const PROTECTED_HOST_SUFFIXES = [
   "shopdrive.com.br",
   "virtualmercado.com.br",
   "lovable.app",
@@ -31,7 +32,7 @@ export const PROTECTED_HOST_SUFFIXES = [
   "supabase.com",
 ];
 
-export function isProtectedHost(host: string): boolean {
+function isProtectedHost(host: string): boolean {
   return PROTECTED_HOST_SUFFIXES.some((r) => host === r || host.endsWith(`.${r}`));
 }
 
@@ -48,7 +49,7 @@ const HOP_BY_HOP = [
 ];
 
 /** lowercase, no port, no trailing dot, valid DNS name; null when empty/invalid. */
-export function normalizeIngressHostname(input: string): string | null {
+function normalizeIngressHostname(input: string): string | null {
   let h = (input ?? "").trim().toLowerCase();
   h = h.replace(/:\d+$/, "").replace(/\.$/, "");
   if (!h || h.length > 253) return null;
