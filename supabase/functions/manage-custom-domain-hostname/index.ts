@@ -12,15 +12,18 @@ import {
 import {
   CLOUDFLARE_API_BASE,
   CUSTOM_HOSTNAME_TARGET,
-  buildCustomHostnameCreatePayload,
-  classifyDeleteStatus,
-  classifyHostnameConflict,
   computeBackoffMinutes,
-  decideCreateAction,
   externalHostnameForDomain,
   mapCloudflareStatuses,
   sanitizeCloudflareError,
 } from "../_shared/customDomainProvisioning.ts";
+import {
+  ensureCustomHostname,
+  provisioningAuditLine,
+  removeCustomHostname,
+  writePolicyFromConfig,
+  type CfCall,
+} from "../_shared/customHostnameWrites.ts";
 
 const Body = z.object({
   action: z.enum(["create", "status", "retry", "delete"]),
@@ -52,6 +55,10 @@ async function cfRequest(env: CfEnv, method: string, path: string, body?: unknow
   } finally {
     clearTimeout(timer);
   }
+}
+
+function cfCall(env: CfEnv): CfCall {
+  return (method, path, body) => cfRequest(env, method, path, body);
 }
 
 function cfResult(body: unknown): { id?: string; hostname?: string; status?: string; ssl?: { status?: string } } | null {
@@ -103,6 +110,7 @@ Deno.serve(async (req) => {
     }
 
     const env = cfEnv();
+    const policy = writePolicyFromConfig(cfg);
 
     // ---- DELETE: block the internal resolver first (fail-closed), then remove the external object.
     if (action === "delete") {
@@ -118,24 +126,31 @@ Deno.serve(async (req) => {
         return json(fin);
       }
       if (!env) return json({ error: "credential_not_configured", state: "revoking" }, 503);
-      let del: { status: number; body: unknown };
-      try {
-        del = await cfRequest(env, "DELETE", `/zones/${env.zoneId}/custom_hostnames/${d.external_hostname_id}`);
-      } catch {
-        return json({ error: "cloudflare_unavailable", state: "revoking" }, 502);
+      // Kill switch + protected ids + hostname match are enforced before any DELETE.
+      const removal = await removeCustomHostname({
+        policy, zoneId: env.zoneId, externalId: d.external_hostname_id, expectedHostname: externalHostname,
+        cf: cfCall(env),
+      });
+      console.log(provisioningAuditLine({ event: `delete_${removal.kind}`, store_id: storeId, hostname: externalHostname,
+        internal_state: "revoking", external_hostname_id: d.external_hostname_id,
+        error: removal.kind === "blocked" ? removal.reason : null }));
+      if (removal.kind === "blocked") {
+        // Internal resolver is already revoked (fail-closed); external removal waits for the switch.
+        return json({ error: "cloudflare_writes_disabled", reason: removal.reason, state: "revoking" }, 503);
       }
-      const outcome = classifyDeleteStatus(del.status);
-      if (outcome === "removed") {
+      if (removal.kind === "removed") {
         const { data: fin, error: finError } = await admin.rpc("finalize_custom_domain_revoke", {
           p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: revoked.updated_at,
         });
         if (finError || !fin) return json({ error: "finalize_failed" }, 500);
         return json(fin);
       }
-      const sanitized = sanitizeCloudflareError(del.status, del.body);
+      const sanitized = removal.kind === "mismatch" ? "external_hostname_mismatch"
+        : removal.status ? sanitizeCloudflareError(removal.status, removal.body) : "cf_timeout:delete";
       await admin.rpc("fail_custom_domain_provisioning", {
         p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: revoked.updated_at,
-        p_error: sanitized, p_next_retry_at: new Date(Date.now() + computeBackoffMinutes(1) * 60_000).toISOString(),
+        p_error: sanitized,
+        p_next_retry_at: removal.kind === "retry" ? new Date(Date.now() + computeBackoffMinutes(1) * 60_000).toISOString() : null,
       });
       return json({ error: "delete_failed", state: "revoking" }, 502);
     }
@@ -163,48 +178,51 @@ Deno.serve(async (req) => {
       return json({ error: "cname_not_verified", expected_cname: CUSTOM_HOSTNAME_TARGET, verification }, 409);
     }
 
-    if (action === "create" && decideCreateAction(d.external_hostname_id) === "create") {
+    if (action === "create" && !d.external_hostname_id) {
       if (!env) return json({ error: "credential_not_configured" }, 503);
-      let created: { status: number; body: unknown };
-      try {
-        created = await cfRequest(env, "POST", `/zones/${env.zoneId}/custom_hostnames`, buildCustomHostnameCreatePayload(externalHostname));
-      } catch {
-        return json({ error: "cloudflare_unavailable" }, 502);
-      }
-      let externalId = cfResult(created.body)?.id ?? null;
-      if (!externalId) {
-        // Hostname may already exist externally: reconcile only a known binding, otherwise stop.
-        const list = await cfRequest(env, "GET", `/zones/${env.zoneId}/custom_hostnames?hostname=${encodeURIComponent(externalHostname)}`).catch(() => null);
-        const existing = ((list?.body as { result?: Array<{ id: string; hostname: string }> } | null)?.result ?? []) as Array<{ id: string; hostname: string }>;
-        const conflict = classifyHostnameConflict(existing, externalHostname, d.external_hostname_id);
-        if (conflict.kind === "conflict_unknown") {
-          await admin.rpc("fail_custom_domain_provisioning", {
-            p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
-            p_error: sanitizeCloudflareError(created.status, created.body), p_next_retry_at: null,
-          });
-          return json({ error: "external_hostname_conflict" }, 409);
-        }
-        if (conflict.kind === "reconcile") externalId = conflict.id;
-        if (!externalId) {
-          await admin.rpc("fail_custom_domain_provisioning", {
-            p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
-            p_error: sanitizeCloudflareError(created.status, created.body),
-            p_next_retry_at: new Date(Date.now() + computeBackoffMinutes((d.provision_attempts ?? 0) + 1) * 60_000).toISOString(),
-          });
-          return json({ error: "provision_failed" }, 502);
-        }
-      }
-      const r = cfResult(created.body);
-      const mapped = mapCloudflareStatuses(r?.status ?? "pending", r?.ssl?.status ?? "pending");
-      const state = nextV2State({ current: (d.v2_state ?? "dns_verified") as V2State, result: verification as VerificationResult,
-        routingStatus: mapped.routingStatus, sslStatus: mapped.sslStatus });
-      const { data: saved, error: saveError } = await admin.rpc("complete_custom_domain_provisioning", {
-        p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
-        p_external_hostname_id: externalId, p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus,
-        p_state: state, p_error: null,
+      const outcome = await ensureCustomHostname({
+        policy, zoneId: env.zoneId, hostname: externalHostname, knownId: d.external_hostname_id,
+        cf: cfCall(env),
+        isIdClaimedElsewhere: async (id) => {
+          const { count, error } = await admin.from("merchant_domains").select("id", { count: "exact", head: true })
+            .eq("external_hostname_id", id).neq("id", d.id);
+          return !!error || (count ?? 0) > 0; // lookup failure counts as claimed (fail-closed)
+        },
       });
-      if (saveError || !saved) return json({ error: "provision_not_saved" }, saveError?.code === "40001" ? 409 : 500);
-      return json(saved);
+      console.log(provisioningAuditLine({ event: `create_${outcome.kind}`, store_id: storeId, hostname: externalHostname,
+        internal_state: d.v2_state, external_hostname_id: "id" in outcome ? outcome.id : null,
+        cloudflare_status: "result" in outcome ? outcome.result?.status ?? null : null,
+        ssl_status: "result" in outcome ? outcome.result?.ssl?.status ?? null : null,
+        error: outcome.kind === "blocked" || outcome.kind === "conflict" ? outcome.reason : null }));
+      if (outcome.kind === "blocked") return json({ error: "cloudflare_writes_disabled", reason: outcome.reason }, 503);
+      if (outcome.kind === "conflict") {
+        await admin.rpc("fail_custom_domain_provisioning", {
+          p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
+          p_error: `external_hostname_conflict:${outcome.reason}`, p_next_retry_at: null,
+        });
+        return json({ error: "external_hostname_conflict" }, 409);
+      }
+      if (outcome.kind === "unavailable" || outcome.kind === "failed") {
+        await admin.rpc("fail_custom_domain_provisioning", {
+          p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
+          p_error: outcome.kind === "failed" ? sanitizeCloudflareError(outcome.status, outcome.body) : `cf_timeout:${outcome.stage}`,
+          p_next_retry_at: new Date(Date.now() + computeBackoffMinutes((d.provision_attempts ?? 0) + 1) * 60_000).toISOString(),
+        });
+        return json({ error: outcome.kind === "failed" ? "provision_failed" : "cloudflare_unavailable" }, 502);
+      }
+      if (outcome.kind === "created" || outcome.kind === "adopted") {
+        // Activation depends only on the real Cloudflare statuses, never on POST success alone.
+        const mapped = mapCloudflareStatuses(outcome.result?.status ?? "pending", outcome.result?.ssl?.status ?? "pending");
+        const state = nextV2State({ current: (d.v2_state ?? "dns_verified") as V2State, result: verification as VerificationResult,
+          routingStatus: mapped.routingStatus, sslStatus: mapped.sslStatus });
+        const { data: saved, error: saveError } = await admin.rpc("complete_custom_domain_provisioning", {
+          p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
+          p_external_hostname_id: outcome.id, p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus,
+          p_state: state, p_error: null,
+        });
+        if (saveError || !saved) return json({ error: "provision_not_saved" }, saveError?.code === "40001" ? 409 : 500);
+        return json(saved);
+      }
     }
 
     // ---- STATUS / RETRY / CREATE-with-existing-id: reconcile the external object.
