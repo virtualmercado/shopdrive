@@ -97,6 +97,28 @@ export async function runInfrastructureAudit(deps: DiagnosticDeps, zone: string)
     ? (scriptsR.result as Array<Record<string, unknown>>).map((w) => ({ id: s(w?.id, SCRIPT), modified_on: s(w?.modified_on, ISO) }))
     : null;
 
+  // Rulesets that can steer custom-hostname traffic (origin/host overrides), snippets, Worker custom domains.
+  const rsR = await firstOk(deps, `/zones/${z}/rulesets`, tokens);
+  const rulesets = Array.isArray(rsR.result)
+    ? (rsR.result as Array<Record<string, unknown>>).map((r) => ({ id: s(r?.id, ID), phase: s(r?.phase, STATUS), kind: s(r?.kind, STATUS) }))
+    : null;
+  const originR = await firstOk(deps, `/zones/${z}/rulesets/phases/http_request_origin/entrypoint`, tokens);
+  const originRules = Array.isArray((originR.result as { rules?: unknown[] } | null)?.rules)
+    ? ((originR.result as { rules: Array<Record<string, any>> }).rules).map((r) => ({
+        enabled: r?.enabled !== false,
+        action: s(r?.action, STATUS),
+        expression: typeof r?.expression === "string" ? r.expression.replace(/[^\x20-\x7e]/g, "").slice(0, 300) : null,
+        host_header: host(r?.action_parameters?.host_header),
+        origin_host: host(r?.action_parameters?.origin?.host),
+        sni: host(r?.action_parameters?.sni?.value),
+      }))
+    : null;
+  const snipR = await firstOk(deps, `/zones/${z}/snippets`, tokens);
+  const wdR = accountId ? await firstOk(deps, `/accounts/${accountId}/workers/domains`, tokens) : { statuses: {}, readWith: null, result: null };
+  const workerDomains = Array.isArray(wdR.result)
+    ? (wdR.result as Array<Record<string, unknown>>).map((d) => ({ hostname: host(d?.hostname), service: s(d?.service, SCRIPT) }))
+    : null;
+
   // Permission groups of each credential (names only) when the token may read itself.
   const permissions: Record<string, unknown> = {};
   for (const t of tokens) {
@@ -117,6 +139,10 @@ export async function runInfrastructureAudit(deps: DiagnosticDeps, zone: string)
     worker_routes: { read_status: routesR.statuses, read_with: routesR.readWith, items: routes },
     worker_scripts: { read_status: scriptsR.statuses, items: scripts },
     dns_records: { read_status: dnsR.statuses, items: dns },
+    rulesets: { read_status: rsR.statuses, items: rulesets },
+    origin_rules: { read_status: originR.statuses, items: originRules },
+    snippets: { read_status: snipR.statuses, count: Array.isArray(snipR.result) ? (snipR.result as unknown[]).length : null },
+    worker_custom_domains: { read_status: wdR.statuses, items: workerDomains },
     credential_permissions: permissions,
   };
 }
