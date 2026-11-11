@@ -1,5 +1,14 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Ingresso global de domínios próprios (sem piloto) — 2026-11-11
+
+- [x] Auditoria só leitura: 1 Custom Hostname (AROMA, ativo, protegido), fallback `saas-origin.shopdrive.com.br`, nenhum Worker na conta; rotas/regras/DNS não legíveis (403).
+- [x] Kill switch no banco (migration 0084), DELETE mais restrito, id da AROMA protegido; criação idempotente (consulta antes do POST) e remoção só explícita com GET de confirmação.
+- [x] Worker deixa hosts internos passarem intactos; runbook e rollback em `docs/custom-domain-global-ingress.md`.
+- [x] Testes A–H (28 unitários + banco descartável), funções implantadas, produção conferida sem mudanças.
+- [ ] BLOQUEADO (admin, painel Cloudflare): publicar o Worker e a rota `*/*`; depois conferência + `ingress_ready`/escritas.
+- [ ] Decisão do usuário: liberação global hoje ainda exige registro de acesso por loja (`custom_domain_v2_access`).
+
 ## Edição manual do endereço principal do cliente — 2026-11-10
 
 - [x] Auditoria: endereço em `customer_addresses` (por cliente, marcado com a loja); pedidos guardam cópia própria; guests sem endereço salvo; edição antiga em linha não salvava (lojista sem permissão de escrita).

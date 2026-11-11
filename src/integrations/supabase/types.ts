@@ -1718,6 +1718,8 @@ export type Database = {
       custom_domain_platform_config: {
         Row: {
           challenge_ttl_hours: number
+          cloudflare_deletes_enabled: boolean
+          cloudflare_writes_enabled: boolean
           dns_strategy: string
           domain_purchase_url: string | null
           feature_enabled: boolean
@@ -1726,6 +1728,7 @@ export type Database = {
           ingress_hostname: string | null
           ingress_ips: string[]
           ingress_ready: boolean
+          protected_external_hostname_ids: string[]
           revalidation_failure_threshold: number
           root_record_type: string
           root_record_value: string | null
@@ -1737,6 +1740,8 @@ export type Database = {
         }
         Insert: {
           challenge_ttl_hours?: number
+          cloudflare_deletes_enabled?: boolean
+          cloudflare_writes_enabled?: boolean
           dns_strategy?: string
           domain_purchase_url?: string | null
           feature_enabled?: boolean
@@ -1745,6 +1750,7 @@ export type Database = {
           ingress_hostname?: string | null
           ingress_ips?: string[]
           ingress_ready?: boolean
+          protected_external_hostname_ids?: string[]
           revalidation_failure_threshold?: number
           root_record_type?: string
           root_record_value?: string | null
@@ -1756,6 +1762,8 @@ export type Database = {
         }
         Update: {
           challenge_ttl_hours?: number
+          cloudflare_deletes_enabled?: boolean
+          cloudflare_writes_enabled?: boolean
           dns_strategy?: string
           domain_purchase_url?: string | null
           feature_enabled?: boolean
@@ -1764,6 +1772,7 @@ export type Database = {
           ingress_hostname?: string | null
           ingress_ips?: string[]
           ingress_ready?: boolean
+          protected_external_hostname_ids?: string[]
           revalidation_failure_threshold?: number
           root_record_type?: string
           root_record_value?: string | null
