@@ -7,14 +7,33 @@
  * inside the application. This Worker has no database dependency, no merchant
  * hostname hardcoded and never identifies a store by slug/querystring.
  *
- * Deploy note (manual admin step): publish keeping the AROMA-specific route,
- * validate, add the zone wildcard route `*/*`, validate again, only then remove
- * the `www.redearoma.com.br/*` route. Rollback: remove the wildcard, keep the
- * AROMA route.
+ * Protected hosts: ShopDrive's own/internal hostnames (RESERVED_DOMAIN_SUFFIXES,
+ * kept identical to supabase/functions/_shared/customDomainCore.ts by a unit test)
+ * are passed through untouched, so a zone wildcard route can never capture or
+ * rewrite them.
+ *
+ * Deploy note (manual admin step, see docs/custom-domain-global-ingress.md):
+ * publish the Worker, add the wildcard route, validate internal hosts and the
+ * existing Custom Hostname. Rollback: delete only the wildcard route.
  */
 
 const UPSTREAM_ORIGIN = "https://shopdrive.com.br";
 const LOOP_HEADER = "x-shopdrive-custom-domain";
+
+export const PROTECTED_HOST_SUFFIXES = [
+  "shopdrive.com.br",
+  "virtualmercado.com.br",
+  "lovable.app",
+  "lovable.dev",
+  "lovableproject.com",
+  "supabase.co",
+  "supabase.in",
+  "supabase.com",
+];
+
+export function isProtectedHost(host: string): boolean {
+  return PROTECTED_HOST_SUFFIXES.some((r) => host === r || host.endsWith(`.${r}`));
+}
 
 const HOP_BY_HOP = [
   "connection",
@@ -29,7 +48,7 @@ const HOP_BY_HOP = [
 ];
 
 /** lowercase, no port, no trailing dot, valid DNS name; null when empty/invalid. */
-function normalizeIngressHostname(input: string): string | null {
+export function normalizeIngressHostname(input: string): string | null {
   let h = (input ?? "").trim().toLowerCase();
   h = h.replace(/:\d+$/, "").replace(/\.$/, "");
   if (!h || h.length > 253) return null;
@@ -48,6 +67,11 @@ export default {
     const host = normalizeIngressHostname(url.hostname);
     if (!host) {
       return new Response("invalid hostname", { status: 400 });
+    }
+
+    // Internal ShopDrive hosts are never rerouted: forward the original request unchanged.
+    if (isProtectedHost(host)) {
+      return fetch(request);
     }
 
     // Fixed upstream only: path and query preserved, never a client-supplied target.
