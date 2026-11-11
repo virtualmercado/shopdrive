@@ -163,8 +163,19 @@ export async function checkProvisioningCredential(deps: DiagnosticDeps, zone: st
 
 export async function handleDiagnostic(req: Request, deps: DiagnosticDeps): Promise<{ status: number; body: Record<string, unknown> }> {
   if (req.method !== "GET") return { status: 405, body: { error: "method_not_allowed" } };
-  if (new URL(req.url).search) return { status: 400, body: { error: "parameters_not_allowed" } };
+  const search = new URL(req.url).search;
+  const infrastructure = search === "?scope=infrastructure";
+  if (search && !infrastructure) return { status: 400, body: { error: "parameters_not_allowed" } };
   const auth = req.headers.get("Authorization") ?? "";
   const bearer = /^Bearer\s+\S+$/i.test(auth) ? auth.replace(/^Bearer\s+/i, "") : null;
-  return runDiagnostic(bearer, deps);
+  if (!infrastructure) return runDiagnostic(bearer, deps);
+  // Same identity/admin/secret gates as the base diagnostic, then the fixed GET-only audit.
+  if (!bearer) return { status: 401, body: { error: "not_authenticated" } };
+  const userId = await deps.getUserId(bearer);
+  if (!userId) return { status: 401, body: { error: "not_authenticated" } };
+  if (!(await deps.isAdmin(userId))) return { status: 403, body: { error: "forbidden" } };
+  const zone = (deps.env("CLOUDFLARE_ZONE_ID") ?? "").trim();
+  if (!/^[a-f0-9]{32}$/i.test(zone)) return { status: 200, body: { ok: false, missing_secrets: ["CLOUDFLARE_ZONE_ID"] } };
+  const { runInfrastructureAudit } = await import("./infrastructureAudit.ts");
+  return { status: 200, body: { ok: true, audit: await runInfrastructureAudit(deps, zone) } };
 }
