@@ -4,23 +4,30 @@ import { nextV2State, type V2State, type VerificationResult } from "../_shared/c
 import {
   CLOUDFLARE_API_BASE,
   PROVISIONING_BATCH_LIMIT,
-  classifyDeleteStatus,
   computeBackoffMinutes,
+  externalHostnameForDomain,
   isSyncableDomain,
   mapCloudflareStatuses,
   sanitizeCloudflareError,
 } from "../_shared/customDomainProvisioning.ts";
+import {
+  isExplicitRemoval,
+  provisioningAuditLine,
+  removeCustomHostname,
+  writePolicyFromConfig,
+  type CfCall,
+} from "../_shared/customHostnameWrites.ts";
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const JOB = "sync-custom-domain-provisioning";
 
-async function cfGet(zoneId: string, token: string, path: string): Promise<{ status: number; body: unknown }> {
+async function cfFetch(token: string, method: "GET" | "POST" | "DELETE", path: string): Promise<{ status: number; body: unknown }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const res = await fetch(`${CLOUDFLARE_API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal });
+    const res = await fetch(`${CLOUDFLARE_API_BASE}${path}`, { method, headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal });
     return { status: res.status, body: await res.json().catch(() => null) };
   } finally {
     clearTimeout(timer);
@@ -53,31 +60,41 @@ Deno.serve(async (req) => {
     const cfToken = Deno.env.get("CLOUDFLARE_CUSTOM_HOSTNAMES_TOKEN");
     if (!zoneId || !cfToken) return json({ error: "credential_not_configured", pending: pending.length }, 503);
 
+    const { data: cfg, error: cfgErr } = await admin.from("custom_domain_platform_config").select("*").eq("id", true).maybeSingle();
+    // Config unavailable → policy defaults to no writes (fail-closed); status GETs continue.
+    const policy = writePolicyFromConfig(cfgErr ? null : cfg);
+    const cf: CfCall = (method, path) => cfFetch(cfToken, method, path);
+
     let processed = 0;
     let errors = 0;
     for (const d of pending) {
       const retryAt = () => new Date(Date.now() + computeBackoffMinutes((d.provision_attempts ?? 0) + 1) * 60_000).toISOString();
       try {
-        if (d.routing_status === "removing" && d.external_hostname_id) {
-          const del = await cfGet(zoneId, cfToken, `/zones/${zoneId}/custom_hostnames/${d.external_hostname_id}`)
-            .then(async (r) => r.status === 200
-              ? await fetch(`${CLOUDFLARE_API_BASE}/zones/${zoneId}/custom_hostnames/${d.external_hostname_id}`,
-                  { method: "DELETE", headers: { Authorization: `Bearer ${cfToken}` } })
-                  .then((x) => ({ status: x.status, body: null })).catch(() => ({ status: 0, body: null }))
-              : r);
-          if (classifyDeleteStatus(del.status) === "removed") {
+        if (d.routing_status === "removing") {
+          // DELETE only for an explicit, internally revoked disconnect; never after transient errors.
+          if (!isExplicitRemoval(d)) continue;
+          const expected = externalHostnameForDomain(d.normalized_domain ?? "");
+          if (!expected) continue;
+          const removal = await removeCustomHostname({ policy, zoneId, externalId: d.external_hostname_id, expectedHostname: expected, cf });
+          console.log(provisioningAuditLine({ event: `sync_delete_${removal.kind}`, store_id: d.merchant_id, hostname: expected,
+            internal_state: d.v2_state, external_hostname_id: d.external_hostname_id,
+            error: removal.kind === "blocked" ? removal.reason : null }));
+          if (removal.kind === "blocked") continue; // kill switch/protection: no external call, no state churn
+          if (removal.kind === "removed") {
             await admin.rpc("finalize_custom_domain_revoke", { p_actor: d.merchant_id, p_domain_id: d.id, p_expected_updated_at: d.updated_at });
             processed++;
           } else {
             await admin.rpc("fail_custom_domain_provisioning", { p_actor: d.merchant_id, p_domain_id: d.id,
-              p_expected_updated_at: d.updated_at, p_error: del.status ? sanitizeCloudflareError(del.status, del.body) : "cf_timeout:delete",
-              p_next_retry_at: retryAt() });
+              p_expected_updated_at: d.updated_at,
+              p_error: removal.kind === "mismatch" ? "external_hostname_mismatch"
+                : removal.status ? sanitizeCloudflareError(removal.status, removal.body) : "cf_timeout:delete",
+              p_next_retry_at: removal.kind === "retry" ? retryAt() : null });
             errors++;
           }
           continue;
         }
         if (!d.external_hostname_id) continue; // nothing external yet; merchant action required
-        const got = await cfGet(zoneId, cfToken, `/zones/${zoneId}/custom_hostnames/${d.external_hostname_id}`);
+        const got = await cf("GET", `/zones/${zoneId}/custom_hostnames/${d.external_hostname_id}`);
         const r = (got.body as { result?: { status?: string; ssl?: { status?: string } } } | null)?.result;
         if (!r) {
           await admin.rpc("fail_custom_domain_provisioning", { p_actor: d.merchant_id, p_domain_id: d.id,
