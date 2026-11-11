@@ -64,7 +64,7 @@ export async function ensureCustomHostname(deps: {
 }): Promise<EnsureOutcome> {
   if (deps.knownId) return { kind: "reconcile", id: deps.knownId };
   const guard = evaluateCloudflareWrite(deps.policy, "create", { hostname: deps.hostname });
-  if (!guard.allowed) return { kind: "blocked", reason: guard.reason };
+  if ("reason" in guard) return { kind: "blocked", reason: guard.reason };
 
   const lookup = async (): Promise<EnsureOutcome | null | "unavailable"> => {
     let r: { status: number; body: unknown };
@@ -122,7 +122,7 @@ export async function removeCustomHostname(deps: {
   policy: WritePolicy; zoneId: string; externalId: string; expectedHostname: string; cf: CfCall;
 }): Promise<RemoveOutcome> {
   const guard = evaluateCloudflareWrite(deps.policy, "delete", { externalId: deps.externalId });
-  if (!guard.allowed) return { kind: "blocked", reason: guard.reason };
+  if ("reason" in guard) return { kind: "blocked", reason: guard.reason };
   let got: { status: number; body: unknown };
   try {
     got = await deps.cf("GET", `/zones/${deps.zoneId}/custom_hostnames/${deps.externalId}`);
