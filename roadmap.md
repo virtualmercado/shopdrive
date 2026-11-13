@@ -1,5 +1,13 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Worker global de domínios próprios (mesmo Worker, sem `*/*`) — 2026-11-13
+
+- [x] Código piloto substituído por roteador global sem hostname fixo; resolução pela regra já existente do backend; 421/503 fail-closed; hosts internos intactos; redirects para o hostname atual; métodos do piloto preservados.
+- [x] Testes A–J (unitários), banco descartável com a regra real, simulador oficial da Cloudflare com AROMA/backend reais (só leitura); suíte 667.
+- [ ] BLOQUEADO (admin, painel Cloudflare): colar o código no Worker `shopdrive-custom-domain-router` e publicar (credenciais do agente não publicam Workers; conexão Cloudflare do workspace com token inválido).
+- [ ] Após publicação: validar AROMA só leitura (home, categoria, produto, carrinho, checkout antes de gravar); regressão → rollback para `a241104b`.
+- [ ] Depois: rota `*/*` (manual, etapa separada).
+
 ## Ingresso global de domínios próprios (sem piloto) — 2026-11-11
 
 - [x] Auditoria só leitura: 1 Custom Hostname (AROMA, ativo, protegido), fallback `saas-origin.shopdrive.com.br`, nenhum Worker na conta; rotas/regras/DNS não legíveis (403).
