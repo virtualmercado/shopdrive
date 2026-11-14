@@ -49,13 +49,32 @@ O arquivo do repositório é JavaScript puro (colar direto no editor do painel).
 3. Avisar o agente para validar a AROMA (home, categoria, produto, carrinho, checkout até antes de gravar). Rollback:
    Deployments → deployment `a241104b` → Rollback.
 
-## Passo manual 2 (admin) — rota global, somente após o passo 1 validado
+## Passo manual 2 (admin) — rotas, somente após o passo 1 validado
 
-1. Antes de mudar: anotar/printar Workers Routes e Rules > Origin Rules atuais da zona (base do rollback).
-2. Adicionar a rota `*/*` → `shopdrive-custom-domain-router`. Não remover a rota/regra atual da AROMA.
-3. Validar: `https://shopdrive.com.br`, `https://www.shopdrive.com.br`, `/login`, painel, uma loja padrão
-   (`https://shopdrive.com.br/<slug>`), checkout abrindo, `https://www.redearoma.com.br` e ausência de loop/redirecionamento.
-4. Avisar o agente para conferir (GET + HTTP) e só então marcar `ingress_ready=true`.
+Alvo CNAME oficial dos lojistas: `domains.shopdrive.com.br` (`CUSTOM_HOSTNAME_TARGET`). Fallback origin:
+`saas-origin.shopdrive.com.br`. Upstream do Worker: `https://shopdrive.com.br` (DNS sem proxy → hospedagem do app).
+
+Sem reentrada: (1) `shopdrive.com.br`/`www` são DNS-only, então nenhuma rota da zona roda para eles; (2) a Cloudflare
+documenta que subrequisições `fetch()` para a mesma zona vão direto à origem e nunca reexecutam Workers de rota;
+(3) o caminho é atribuído a uma URL já fixa no upstream (nunca `new URL(path, origin)`), então `//outro.host` não troca
+o destino.
+
+Ordem (anotar/printar Workers Routes antes; não remover nada existente):
+
+| Padrão | Worker | Finalidade |
+| --- | --- | --- |
+| `www.redearoma.com.br/*` | shopdrive-custom-domain-router | já existe; manter |
+| `shopdrive.com.br/*` | Nenhum | defesa caso o proxy seja ligado no futuro |
+| `www.shopdrive.com.br/*` | Nenhum | idem |
+| `*/*` | shopdrive-custom-domain-router | todos os domínios de lojistas (com ou sem proxy Cloudflare do cliente) |
+
+Não criar `*.shopdrive.com.br/*`, `domains.shopdrive.com.br/*` nem `saas-origin.shopdrive.com.br/*` como Nenhum: com
+proxy laranja do cliente a Cloudflare casa a rota pelo alvo CNAME e essa exclusão tiraria a loja do Worker (522).
+Backend/login/pagamentos ficam em outras zonas (supabase.co, lovable.app, Mercado Pago) e não precisam de rota.
+
+Validar depois: `https://shopdrive.com.br`, `https://www.shopdrive.com.br`, `/login`, painel, uma loja padrão
+(`https://shopdrive.com.br/<slug>`), checkout abrindo, `https://www.redearoma.com.br` e ausência de loop. Avisar o
+agente para conferir (GET + HTTP) e só então marcar `ingress_ready=true`.
 
 Custo: Workers cobra por requisição (plano Free 100 mil/dia; acima disso plano pago).
 

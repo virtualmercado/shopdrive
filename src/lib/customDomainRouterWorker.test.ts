@@ -60,6 +60,19 @@ describe("A — www.redearoma.com.br is authorized like any other active hostnam
     expect(upstreamCalls()[0].url).toBe("https://shopdrive.com.br/produto/x?ref=1");
     expect(r.headers.get("set-cookie")).toBeNull();
   });
+  it.each(["//evil.example/x?q=1", "/%2F%2Fevil.example/x?q=1", "/\\evil.example/x?q=1"])(
+    "path %s can never switch the upstream host", async (path) => {
+      await worker.fetch(new Request(`https://${AROMA}${path}`));
+      expect(calls.filter((c) => !c.url.includes("/rpc/")).every((c) => new URL(c.url).origin === "https://shopdrive.com.br")).toBe(true);
+      expect(upstreamCalls()).toHaveLength(1);
+    });
+  it("POST keeps method, path, query and body on the fixed upstream", async () => {
+    await worker.fetch(new Request(`https://${AROMA}/checkout?step=2`, { method: "POST", body: "payload-1" }));
+    const c = upstreamCalls()[0];
+    expect(c.url).toBe("https://shopdrive.com.br/checkout?step=2");
+    expect(c.init!.method).toBe("POST");
+    expect(await new Response(c.init!.body as BodyInit).text()).toBe("payload-1");
+  });
   it("resolver call only uses options supported by the Workers runtime", async () => {
     await worker.fetch(new Request(`https://${AROMA}/`));
     const init = resolverCalls()[0].init!;

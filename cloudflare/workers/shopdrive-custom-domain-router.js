@@ -190,8 +190,16 @@ export default {
       return plain(503, "Serviço temporariamente indisponível.", { "retry-after": "30" });
     }
 
-    // Fixed upstream only: path and query preserved, never a client-supplied target.
-    const upstream = new URL(url.pathname + url.search, UPSTREAM_ORIGIN);
+    // Fixed upstream only: path and query preserved, never a client-supplied target. The path is assigned to a
+    // URL already bound to UPSTREAM_ORIGIN (never resolved relative to it), so "//other.host/x" or "/\\other.host"
+    // stays a path on the upstream instead of becoming another host.
+    const upstream = new URL(UPSTREAM_ORIGIN);
+    upstream.pathname = url.pathname;
+    upstream.search = url.search;
+    if (upstream.origin !== UPSTREAM_ORIGIN) {
+      log(host, 400, started, "upstream_target_rejected");
+      return plain(400, "Endereço inválido.");
+    }
     const headers = new Headers();
     for (const name of FORWARDED_REQUEST_HEADERS) {
       const v = request.headers.get(name);
