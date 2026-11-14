@@ -34,6 +34,8 @@ export interface CustomDomainV2 {
   needs_reverification: boolean;
   released: boolean;
   active: boolean;
+  /** Optional server flag: domain administered by ShopDrive (merchant verify/disconnect refused server-side). */
+  managed_by_platform?: boolean;
 }
 
 export interface CustomDomainOverview {

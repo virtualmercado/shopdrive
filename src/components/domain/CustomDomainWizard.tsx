@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info, Circle, ExternalLink, Unplug, Lock } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, ShieldCheck, AlertTriangle, Info, Circle, ExternalLink, Unplug, Lock, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -9,29 +9,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
 import { normalizeCustomDomain } from "../../../supabase/functions/_shared/customDomainCore";
 import { toast } from "sonner";
-import { customDomainUnavailableCopy } from "@/lib/customDomainStatus";
+import { customDomainCardView, customDomainUnavailableCopy } from "@/lib/customDomainStatus";
+import { Badge } from "@/components/ui/badge";
+import { DomainCopyRow } from "./DomainCopyRow";
+import { DomainProgress } from "./DomainProgress";
 
 interface Props { open: boolean; onOpenChange: (open: boolean) => void }
 
 export const EMAIL_PRESERVATION_NOTICE =
   "Importante: altere somente os registros indicados pela ShopDrive. Não remova registros MX, SPF, DKIM, DMARC ou outros TXT existentes caso utilize e-mail profissional no domínio.";
 
-const CopyRow = ({ label, value }: { label: string; value: string }) => {
-  const [done, setDone] = useState(false);
-  return (
-    <div className="flex items-center justify-between gap-2 rounded border bg-background p-2">
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-mono text-sm break-all">{value}</p>
-      </div>
-      <Button size="icon" variant="ghost" aria-label={`Copiar ${label}`} onClick={async () => {
-        await navigator.clipboard.writeText(value); setDone(true); setTimeout(() => setDone(false), 1500);
-      }}>
-        {done ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      </Button>
-    </div>
-  );
-};
+const CopyRow = DomainCopyRow;
 
 const Step = ({ n, title, done, children }: { n: number; title: string; done?: boolean; children: React.ReactNode }) => (
   <section className="space-y-3 border-t pt-4">
@@ -49,7 +37,11 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
   const { overview, presentation, isLoading, loadError, tutorials, claimDomain, regenerateChallenge, verify, disconnect } = useMerchantDomain();
   const [input, setInput] = useState("");
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
-  const { domain: d, hostname, address, connected, stateLabel, checklist } = presentation;
+  const { domain: d, hostname, address, connected, managed, stateLabel, checklist } = presentation;
+  const view = customDomainCardView(overview, loadError);
+  // Server finishes routing/SSL automatically: verifying again only refreshes the status.
+  const automatic = view.kind === "processing" && !!view.automatic;
+  const headline = view.kind === "processing" ? view.title : stateLabel;
   const owned = !!d?.ownership_verified_at;
   const expired = !!d && !owned && !!d.verification_expires_at && new Date(d.verification_expires_at) < new Date();
   const provider = d?.last_result?.provider ?? null;
@@ -93,13 +85,15 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
           catch { toast.error("Não foi possível copiar o endereço."); }
         }}><Copy className="h-4 w-4" /> Copiar endereço</Button>
       </>}
-      <Button variant={connected ? "outline" : "default"} onClick={() => verify.mutate()} disabled={busy}>
-        {verify.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-        Verificar novamente
-      </Button>
-      <Button variant="outline" onClick={() => setConfirmDisconnect(true)} disabled={busy}>
-        <Unplug className="h-4 w-4" /> {connected ? "Desconectar domínio" : "Cancelar este domínio"}
-      </Button>
+      {!managed && <>
+        <Button variant={connected || automatic ? "outline" : "default"} onClick={() => verify.mutate()} disabled={busy}>
+          {verify.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {automatic ? "Atualizar status" : "Verificar novamente"}
+        </Button>
+        <Button variant="outline" onClick={() => setConfirmDisconnect(true)} disabled={busy}>
+          <Unplug className="h-4 w-4" /> {connected ? "Desconectar domínio" : "Cancelar este domínio"}
+        </Button>
+      </>}
     </div>
   );
 
@@ -168,7 +162,7 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
                     <div key={r.purpose} className="grid gap-2 sm:grid-cols-3">
                       <CopyRow label="Tipo" value={r.type} />
                       <CopyRow label="Nome / Host" value={r.host} />
-                      <CopyRow label="Valor" value={r.value} />
+                      <CopyRow label="Destino" value={r.value} />
                     </div>
                   ))}
                 </div>
@@ -206,10 +200,13 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
 
           {d && (
             <Step n={4} title="Verificar e conectar" done={connected}>
-              <p className="text-sm">{stateLabel}</p>
+              <p className="text-sm">{headline}</p>
               {statusChecklist}
-              {!connected && (d.ownership_verified_at || d.dns_verified_at) && (
-                <p className="text-xs text-muted-foreground">Estamos configurando a conexão segura da sua loja.</p>
+              {view.kind === "processing" && (
+                <p className="flex items-start gap-2 text-xs text-muted-foreground" aria-live="polite">
+                  {automatic && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+                  {view.description}
+                </p>
               )}
               {!connected && verificationStatus}
               {connected && (
@@ -229,8 +226,12 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Domínio próprio</DialogTitle>
-          <DialogDescription>{d ? stateLabel : "Informe o domínio que deseja conectar à sua loja."}</DialogDescription>
+          <DialogDescription>{d ? headline : "Informe o domínio que deseja conectar à sua loja."}</DialogDescription>
         </DialogHeader>
+
+        {!isLoading && !loadError && overview?.available && view.step && (
+          <DomainProgress step={view.step} connected={connected} />
+        )}
 
         {isLoading ? <p role="status" className="text-sm text-muted-foreground">Carregando domínio…</p> : loadError ? (
           <p className="text-sm text-muted-foreground">Não foi possível carregar o domínio próprio agora. Tente novamente mais tarde.</p>
@@ -245,8 +246,12 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
         ) : connected ? (
           <div className="space-y-5">
             <div className="space-y-2">
-              <p className="flex items-center gap-2 text-sm font-medium"><ShieldCheck className="h-5 w-5 text-primary" /> {stateLabel}</p>
-              <p className="font-mono text-base break-all">{hostname}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />Conectado</Badge>
+                {managed && <Badge variant="outline" className="gap-1 font-medium"><ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />Gerenciado pela ShopDrive</Badge>}
+              </div>
+              <p className="font-mono text-base font-semibold break-all">{hostname}</p>
+              <p className="text-sm text-muted-foreground">{managed ? "Este domínio possui configuração administrada pela ShopDrive." : "Seu domínio está ativo e direcionando corretamente para esta loja."}</p>
             </div>
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">Status</h3>

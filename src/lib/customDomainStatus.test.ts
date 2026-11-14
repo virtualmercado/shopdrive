@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  customDomainCtaLabel, customDomainDisplayHostname, customDomainChecklist, isCustomDomainConnected, customDomainPresentation,
+  customDomainCtaLabel, customDomainDisplayHostname, customDomainChecklist, isCustomDomainConnected, customDomainPresentation, customDomainCardView,
 } from "./customDomainStatus";
 
 const activeDomain = {
@@ -75,5 +75,40 @@ describe("shared domain presentation", () => {
     const view = customDomainPresentation({ ...activeDomain, state: "ssl_provisioning", active: false });
     expect(view.connected).toBe(false);
     expect(view.checklist.find((item) => item.key === "publication")?.done).toBe(false);
+  });
+});
+
+describe("customDomainCardView (merchant card states map only server states)", () => {
+  const ov = (domain: Record<string, unknown> | null, extra: Record<string, unknown> = {}) => ({ available: true, domain, ...extra });
+  it("Free/Pro (plan reason) shows the upgrade state", () => {
+    const v = customDomainCardView({ available: false, unavailable_reason: "plan", domain: null });
+    expect(v).toMatchObject({ kind: "upgrade", step: null, title: "Use o endereço da sua própria marca" });
+  });
+  it("individual block never shows setup", () =>
+    expect(customDomainCardView({ available: false, unavailable_reason: "blocked", domain: null }).kind).toBe("blocked"));
+  it("unavailable wins even when a domain record exists", () =>
+    expect(customDomainCardView({ available: false, unavailable_reason: "feature", domain: activeDomain }).kind).toBe("unavailable"));
+  it("load error is reported before anything else", () =>
+    expect(customDomainCardView(ov(activeDomain), new Error("x")).kind).toBe("load_error"));
+  it("eligible store without domain starts at step 1", () =>
+    expect(customDomainCardView(ov(null))).toMatchObject({ kind: "empty", step: 1, title: "Conecte seu domínio próprio" }));
+  it("DNS pending is step 2 setup", () =>
+    expect(customDomainCardView(ov({ ...activeDomain, active: false, state: "dns_pending" }))).toMatchObject({ kind: "setup", step: 2 }));
+  it("DNS verified is step 3 and never connected", () =>
+    expect(customDomainCardView(ov({ ...activeDomain, active: false, state: "dns_verified" }))).toMatchObject({ kind: "processing", step: 3, title: "DNS verificado", automatic: false }));
+  it("SSL provisioning waits for the certificate automatically", () =>
+    expect(customDomainCardView(ov({ ...activeDomain, active: false, state: "ssl_provisioning" }))).toMatchObject({ kind: "processing", step: 3, title: "Aguardando certificado de segurança", automatic: true }));
+  it("routing provisioning reads as configuring the domain", () =>
+    expect(customDomainCardView(ov({ ...activeDomain, active: false, state: "routing_provisioning" })).title).toBe("Configurando domínio"));
+  it("server errors map to the human attention state", () => {
+    const v = customDomainCardView(ov({ ...activeDomain, active: false, state: "dns_error" }));
+    expect(v).toMatchObject({ kind: "attention", step: 2, title: "Não conseguimos confirmar a configuração do domínio." });
+    expect(customDomainCardView(ov({ ...activeDomain, active: false, state: "ssl_error" })).step).toBe(3);
+  });
+  it("active domain is connected at step 4", () =>
+    expect(customDomainCardView(ov(activeDomain))).toMatchObject({ kind: "connected", step: 4 }));
+  it("only the server flag marks a connected domain as managed by ShopDrive", () => {
+    expect(customDomainCardView(ov({ ...activeDomain, managed_by_platform: true })).kind).toBe("managed");
+    expect(customDomainCardView(ov({ ...activeDomain, managed_by_platform: "true" })).kind).toBe("connected");
   });
 });

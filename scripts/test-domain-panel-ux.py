@@ -67,18 +67,22 @@ export const supabase={
 """
 
 
-async def mount(context, mode):
+def overview_for(mode):
     domain = dict(ACTIVE) if mode not in ("empty", "unavailable") else None
     if mode == "pending":
         domain.update(state="dns_pending", active=False, dns_verified_at=None, routing_status="not_started", ssl_status="pending")
+    return {"available": mode != "unavailable", "ingress_ready": False, "records": [], "domain": domain,
+            "purchase_url": "https://registrar.example.invalid"}
+
+
+async def mount(context, mode):
+    overview = mode if isinstance(mode, dict) else overview_for(mode)
     auth_source = await (await context.request.get(ORIGIN + "/src/contexts/AuthContext.tsx")).text()
     layout_source = await (await context.request.get(ORIGIN + "/src/components/layout/DashboardLayout.tsx")).text()
     deps = dict(re.findall(r'(/node_modules/\.vite/deps/[^"?]+)\?v=([^"\s]+)', auth_source + layout_source))
     main = MAIN
     for path, version in deps.items():
         main = main.replace(path + "\'", path + "?v=" + version + "\'")
-    overview = {"available": mode != "unavailable", "ingress_ready": False, "records": [], "domain": domain,
-                "purchase_url": "https://registrar.example.invalid"}
     async def intercept(route):
         request = route.request
         if not request.url.startswith(ORIGIN + "/") or request.method not in ("GET", "HEAD"):
@@ -113,7 +117,7 @@ async def check_active(browser):
     await page.goto(ORIGIN + "/lojista/store")
     await expect(page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True, include_hidden=True)).to_have_count(1)
     await expect(page.locator("main").get_by_text("www.redearoma.com.br", exact=True)).to_be_visible()
-    await expect(page.locator("main").get_by_role("link", name="Visitar", exact=True)).to_have_attribute("href", "https://www.redearoma.com.br")
+    await expect(page.locator("main").get_by_role("link", name="Visitar domínio", exact=True)).to_have_attribute("href", "https://www.redearoma.com.br")
     await page.wait_for_timeout(500)
     await page.screenshot(path=str(OUTPUT / "active-panel.png"))
     await page.locator("header").get_by_role("button", name="Gerenciar domínio", exact=True).click()
@@ -184,6 +188,125 @@ async def check_other(browser, mode, label):
     await context.close()
 
 
+CNAME = {"purpose": "www", "type": "CNAME", "host": "www", "value": "domains.shopdrive.com.br"}
+ROOT_NULL = {"purpose": "root", "type": "A", "host": "@", "value": None}
+
+
+def domain_in(state, **extra):
+    d = dict(ACTIVE)
+    d.update(state=state, active=False, routing_status="not_started", ssl_status="pending",
+             domain="sualoja.com.br", display_hostname="www.sualoja.com.br")
+    d.update(extra)
+    return d
+
+
+def state_overview(name):
+    base = {"available": True, "ingress_ready": True, "records": [ROOT_NULL, CNAME],
+            "purchase_url": "https://registrar.example.invalid", "domain": None}
+    if name in ("free", "pro"):
+        return {**base, "available": False, "unavailable_reason": "plan", "records": []}
+    if name == "blocked":
+        return {**base, "available": False, "unavailable_reason": "blocked", "records": []}
+    if name in ("premium-empty", "marca-empty"):
+        return base
+    if name == "dns-pending":
+        return {**base, "domain": domain_in("dns_pending", ownership_verified_at=None, dns_verified_at=None,
+                txt_host="_shopdrive-verification.sualoja.com.br", txt_value="shopdrive=fixture-token")}
+    if name == "dns-verified":
+        return {**base, "domain": domain_in("dns_verified")}
+    if name == "ssl-provisioning":
+        return {**base, "domain": domain_in("ssl_provisioning", routing_status="active")}
+    if name == "error":
+        return {**base, "domain": domain_in("dns_error", dns_verified_at=None)}
+    if name == "connected":
+        return {**base, "domain": {**ACTIVE, "domain": "sualoja.com.br", "display_hostname": "www.sualoja.com.br"}}
+    if name == "managed":
+        return {**base, "domain": {**ACTIVE, "managed_by_platform": True}}
+    raise ValueError(name)
+
+
+async def check_states(browser):
+    names = ["free", "pro", "premium-empty", "marca-empty", "dns-pending", "dns-verified", "ssl-provisioning",
+             "connected", "managed", "blocked", "error"]
+    for name in names:
+        for label, viewport in (("desktop", {"width": 1280, "height": 1800}), ("mobile", {"width": 390, "height": 844})):
+            context = await browser.new_context(viewport=viewport, reduced_motion="reduce")
+            await mount(context, state_overview(name))
+            page = await context.new_page()
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            await page.goto(ORIGIN + "/lojista/store")
+            card = page.locator("section[aria-labelledby=custom-domain-title]")
+            await expect(card.get_by_role("heading", name="Domínio próprio")).to_be_visible()
+            if name in ("free", "pro"):
+                await expect(card.get_by_text("Use o endereço da sua própria marca", exact=True)).to_be_visible()
+                await expect(card.get_by_text("Disponível no Premium e MARCA", exact=True)).to_be_visible()
+                await expect(card.get_by_role("button", name="Ver planos com domínio próprio")).to_be_visible()
+                await expect(card.get_by_role("link", name="Já quer registrar seu domínio?")).to_be_visible()
+                await expect(card.get_by_role("textbox")).to_have_count(0)
+                await expect(card.get_by_role("button", name="Conectar meu domínio")).to_have_count(0)
+            elif name.endswith("-empty"):
+                await expect(card.get_by_role("button", name="Conectar meu domínio")).to_be_visible()
+                await expect(card.get_by_text("domains.shopdrive.com.br")).to_have_count(0)
+                await card.get_by_role("button", name="Como funciona?").click()
+                await expect(card.get_by_text("informe o endereço com www", exact=False)).to_be_visible()
+            elif name == "dns-pending":
+                await expect(card.locator("[aria-current=step]")).to_contain_text("DNS")
+                await expect(card.get_by_text("domains.shopdrive.com.br", exact=True)).to_be_visible()
+                await expect(card.get_by_text("@", exact=True)).to_have_count(0)
+                await expect(card.get_by_text("Utilize o endereço com www.", exact=True)).to_be_visible()
+                await card.get_by_role("button", name="Copiar Destino").click()
+                assert await page.evaluate("window.__copied") == "domains.shopdrive.com.br"
+            elif name == "dns-verified":
+                await expect(card.locator("[aria-current=step]")).to_contain_text("Verificação")
+                await expect(card.get_by_text("DNS verificado", exact=True)).to_be_visible()
+                await expect(card.get_by_text("Domínio conectado")).to_have_count(0)
+            elif name == "ssl-provisioning":
+                await expect(card.get_by_text("Aguardando certificado de segurança", exact=True)).to_be_visible()
+                await expect(card.get_by_text("Você não precisa alterar o DNS novamente", exact=False)).to_be_visible()
+                await expect(card.get_by_text("Domínio conectado")).to_have_count(0)
+            elif name == "connected":
+                await expect(card.get_by_text("Conectado", exact=True)).to_be_visible()
+                await expect(card.get_by_role("link", name="Visitar domínio")).to_have_attribute("href", "https://www.sualoja.com.br")
+                await expect(card.get_by_role("button", name="Gerenciar domínio")).to_be_visible()
+            elif name == "managed":
+                await expect(card.get_by_text("Gerenciado pela ShopDrive", exact=True)).to_be_visible()
+                await expect(card.get_by_role("link", name="Visitar domínio")).to_have_attribute("href", "https://www.redearoma.com.br")
+                if label == "desktop":
+                    await card.get_by_role("button", name="Ver detalhes").click()
+                    dialog = page.get_by_role("dialog")
+                    await expect(dialog.get_by_text("Gerenciado pela ShopDrive", exact=True)).to_be_visible()
+                    await expect(dialog.get_by_role("button", name="Verificar novamente")).to_have_count(0)
+                    await expect(dialog.get_by_role("button", name="Desconectar domínio")).to_have_count(0)
+                    await dialog.screenshot(path=str(OUTPUT / "state-managed-dialog.png"))
+                    await page.keyboard.press("Escape")
+            elif name == "blocked":
+                await expect(card.get_by_text("Domínio próprio indisponível para esta loja", exact=True)).to_be_visible()
+                await expect(card.get_by_role("textbox")).to_have_count(0)
+                await expect(card.get_by_role("button")).to_have_count(0)
+                await expect(card.get_by_text("domains.shopdrive.com.br")).to_have_count(0)
+            elif name == "error":
+                await expect(card.get_by_text("Não conseguimos confirmar a configuração do domínio.", exact=True)).to_be_visible()
+                if label == "desktop":
+                    await card.get_by_role("button", name="Verificar novamente").click()
+                    await expect(card.get_by_role("button", name="Verificar novamente")).to_be_disabled()
+                    calls = await page.evaluate("window.__calls.filter(x=>x.fn)")
+                    assert calls == [{"fn": "verify-custom-domain-dns", "body": {}}], calls
+                    await page.evaluate("window.__finishVerify(false)")
+                    await expect(card.get_by_role("button", name="Verificar novamente")).to_be_enabled()
+            if name != "error":
+                assert await page.evaluate("window.__calls.filter(x=>x.fn).length") == 0
+            assert await page.evaluate("window.__forbidden") == []
+            overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            card_overflow = await card.evaluate("e => e.scrollWidth - e.clientWidth")
+            assert card_overflow <= 0, (name, label, card_overflow)
+            await page.wait_for_timeout(200)
+            await card.screenshot(path=str(OUTPUT / f"state-{name}-{label}.png"))
+            assert errors == [], errors
+            print("PASS state", name, label, "page overflow", overflow)
+            await context.close()
+
+
 async def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as playwright:
@@ -192,6 +315,7 @@ async def main():
         await check_other(browser, "empty", "Conectar domínio próprio")
         await check_other(browser, "pending", "Continuar configuração")
         await check_other(browser, "unavailable", "Conectar domínio próprio")
+        await check_states(browser)
         await browser.close()
 
 
