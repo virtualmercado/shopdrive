@@ -88,6 +88,32 @@ export function sanitizeCloudflareError(status: number, body: unknown): string {
   return `cf_${status}:${msg.replace(/[A-Za-z0-9_-]{32,}/g, "[redacted]").slice(0, 180)}`;
 }
 
+const STATUS_RE = /^[a-z_]{1,40}$/;
+const clean = (v: unknown) => (typeof v === "string" && STATUS_RE.test(v) ? v : null);
+const cleanMsg = (v: unknown) => (typeof v === "string" && v ? v.replace(/[A-Za-z0-9_-]{32,}/g, "[redacted]").slice(0, 180) : null);
+
+/**
+ * Sanitized observation of a Custom Hostname: allow-listed status words and redacted, truncated error
+ * messages only. Never stores ids, DCV tokens/TXT values, certificates or the raw payload.
+ */
+export function summarizeCustomHostnameObservation(result: unknown, observedAt = new Date()): Record<string, unknown> {
+  const r = (result && typeof result === "object" ? result : {}) as {
+    status?: unknown; verification_errors?: unknown;
+    ssl?: { status?: unknown; method?: unknown; type?: unknown; validation_errors?: unknown } | null;
+  };
+  const list = (v: unknown, pick: (x: unknown) => unknown) =>
+    (Array.isArray(v) ? v.slice(0, 5).map((x) => cleanMsg(pick(x))).filter((x): x is string => !!x) : []);
+  return {
+    observed_at: observedAt.toISOString(),
+    hostname_status: clean(r.status),
+    ssl_status: clean(r.ssl?.status),
+    ssl_method: clean(r.ssl?.method),
+    ssl_type: clean(r.ssl?.type),
+    verification_errors: list(r.verification_errors, (x) => x),
+    ssl_validation_errors: list(r.ssl?.validation_errors, (x) => (x as { message?: unknown } | null)?.message),
+  };
+}
+
 /** States the automatic sync routine is allowed to touch. Active domains are never polled. */
 export const SYNCABLE_V2_STATES = ["routing_provisioning", "ssl_provisioning"] as const;
 export const SYNCABLE_ROUTING_STATUSES = ["provisioning", "removing"] as const;

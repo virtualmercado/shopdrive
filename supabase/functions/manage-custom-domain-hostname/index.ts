@@ -16,6 +16,7 @@ import {
   externalHostnameForDomain,
   mapCloudflareStatuses,
   sanitizeCloudflareError,
+  summarizeCustomHostnameObservation,
 } from "../_shared/customDomainProvisioning.ts";
 import {
   ensureCustomHostname,
@@ -102,11 +103,21 @@ Deno.serve(async (req) => {
     const externalHostname = externalHostnameForDomain(norm.domain);
     if (!externalHostname) return json({ error: "invalid_domain" }, 400);
 
-    // Access gate: global rollout OR the exact pilot hostname authorized for this store.
+    // Access gate: the exact legacy pilot hostname, or the global rollout for a server-eligible store
+    // (active store, entitled effective plan, not individually blocked). Never decided by the browser.
     const pilotNorm = access?.enabled && access.pilot_hostname ? normalizeCustomDomain(access.pilot_hostname) : null;
     const pilotAuthorized = !!(pilotNorm && pilotNorm.ok && pilotNorm.domain === norm.domain);
-    if (!isAdmin && !(access?.enabled && (cfg.feature_enabled || pilotAuthorized))) {
+    const { data: eligible, error: eligibleError } = await admin.rpc("_custom_domain_store_eligible", { p_store: storeId });
+    if (eligibleError) return json({ error: "authorization_unavailable" }, 503);
+    const globalAuthorized = !access?.pilot_hostname && eligible === true && !!cfg.feature_enabled &&
+      !!cfg.ingress_ready && !!cfg.infrastructure_provider;
+    const authorized = pilotAuthorized || globalAuthorized;
+    // Creation is never admin-bypassed; status/removal remain available to the Master.
+    if (action === "create" || action === "retry" ? !authorized : !(isAdmin || authorized)) {
       return json({ error: "feature_unavailable" }, 403);
+    }
+    if (d.v2_state === "inactive" || d.v2_state === "released") {
+      if (action !== "delete") return json({ error: "domain_inactive" }, 409);
     }
 
     const env = cfEnv();
@@ -114,6 +125,13 @@ Deno.serve(async (req) => {
 
     // ---- DELETE: block the internal resolver first (fail-closed), then remove the external object.
     if (action === "delete") {
+      // Protected hostnames are never revoked or removed by automation.
+      if (d.external_hostname_id && policy.protectedIds.includes(d.external_hostname_id)) {
+        return json({ error: "protected_hostname" }, 409);
+      }
+      if (d.v2_state === "inactive" && d.routing_status === "removing") {
+        return json({ state: "revoking", external_removal: "pending_admin" }, 202);
+      }
       const { data: revoked, error: revokeError } = await admin.rpc("revoke_custom_domain_internal", {
         p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
       });
@@ -125,7 +143,16 @@ Deno.serve(async (req) => {
         if (finError || !fin) return json({ error: "finalize_failed" }, 500);
         return json(fin);
       }
-      if (!env) return json({ error: "credential_not_configured", state: "revoking" }, 503);
+      const markPending = async (reason: string) => {
+        const { error: markError } = await admin.rpc("mark_custom_domain_removal_pending", {
+          p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: revoked.updated_at, p_reason: reason,
+        });
+        console.log(provisioningAuditLine({ event: "delete_pending_admin", store_id: storeId, hostname: externalHostname,
+          internal_state: "inactive", external_hostname_id: d.external_hostname_id, error: markError ? "mark_failed" : reason }));
+        // Internal resolver is already revoked (fail-closed); the external object waits for an explicit admin removal.
+        return json({ state: "revoking", external_removal: "pending_admin", reason }, 202);
+      };
+      if (!env) return await markPending("credential_not_configured");
       // Kill switch + protected ids + hostname match are enforced before any DELETE.
       const removal = await removeCustomHostname({
         policy, zoneId: env.zoneId, externalId: d.external_hostname_id, expectedHostname: externalHostname,
@@ -135,8 +162,8 @@ Deno.serve(async (req) => {
         internal_state: "revoking", external_hostname_id: d.external_hostname_id,
         error: removal.kind === "blocked" ? removal.reason : null }));
       if (removal.kind === "blocked") {
-        // Internal resolver is already revoked (fail-closed); external removal waits for the switch.
-        return json({ error: "cloudflare_writes_disabled", reason: removal.reason, state: "revoking" }, 503);
+        if (removal.reason === "writes_disabled" || removal.reason === "deletes_disabled") return await markPending(removal.reason);
+        return json({ error: removal.reason, state: "revoking" }, 409);
       }
       if (removal.kind === "removed") {
         const { data: fin, error: finError } = await admin.rpc("finalize_custom_domain_revoke", {
@@ -218,7 +245,7 @@ Deno.serve(async (req) => {
         const { data: saved, error: saveError } = await admin.rpc("complete_custom_domain_provisioning", {
           p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
           p_external_hostname_id: outcome.id, p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus,
-          p_state: state, p_error: null,
+          p_state: state, p_error: null, p_observation: summarizeCustomHostnameObservation(outcome.result),
         });
         if (saveError || !saved) return json({ error: "provision_not_saved" }, saveError?.code === "40001" ? 409 : 500);
         return json(saved);
@@ -262,7 +289,7 @@ Deno.serve(async (req) => {
     const { data: saved, error: saveError } = await admin.rpc("complete_custom_domain_provisioning", {
       p_actor: u.user.id, p_domain_id: d.id, p_expected_updated_at: d.updated_at,
       p_external_hostname_id: d.external_hostname_id, p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus,
-      p_state: state, p_error: null,
+      p_state: state, p_error: null, p_observation: summarizeCustomHostnameObservation(r),
     });
     if (saveError || !saved) return json({ error: "provision_not_saved" }, saveError?.code === "40001" ? 409 : 500);
     return json(saved);

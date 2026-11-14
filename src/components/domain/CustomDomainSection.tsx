@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
 import { CustomDomainWizard } from "./CustomDomainWizard";
+import { customDomainUnavailableCopy } from "@/lib/customDomainStatus";
 
 export const CustomDomainSection = () => {
   const [open, setOpen] = useState(false);
@@ -19,6 +20,7 @@ export const CustomDomainSection = () => {
   }
 
   const available = !!overview?.available;
+  const unavailable = customDomainUnavailableCopy(overview?.unavailable_reason);
   const { domain, connected, hostname, address, ctaLabel, stateLabel } = presentation;
   const hasDomain = !!domain;
   const purchaseUrl = overview?.purchase_url;
@@ -40,10 +42,8 @@ export const CustomDomainSection = () => {
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="space-y-1">
-                <p className="text-sm font-medium">Domínio próprio temporariamente indisponível</p>
-                <p className="text-xs text-muted-foreground">
-                  Estamos preparando a conexão segura de domínios. Sua loja continua funcionando normalmente no endereço ShopDrive.
-                </p>
+                <p className="text-sm font-medium">{unavailable.title}</p>
+                <p className="text-xs text-muted-foreground">{unavailable.body}</p>
               </div>
             </div>
           ) : connected ? (

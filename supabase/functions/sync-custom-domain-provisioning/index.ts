@@ -9,6 +9,7 @@ import {
   isSyncableDomain,
   mapCloudflareStatuses,
   sanitizeCloudflareError,
+  summarizeCustomHostnameObservation,
 } from "../_shared/customDomainProvisioning.ts";
 import {
   isExplicitRemoval,
@@ -111,7 +112,8 @@ Deno.serve(async (req) => {
           routingStatus: mapped.routingStatus, sslStatus: mapped.sslStatus });
         await admin.rpc("complete_custom_domain_provisioning", { p_actor: d.merchant_id, p_domain_id: d.id,
           p_expected_updated_at: d.updated_at, p_external_hostname_id: d.external_hostname_id,
-          p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus, p_state: state, p_error: null });
+          p_routing_status: mapped.routingStatus, p_ssl_status: mapped.sslStatus, p_state: state, p_error: null,
+          p_observation: summarizeCustomHostnameObservation(r) });
         processed++;
       } catch {
         await admin.rpc("fail_custom_domain_provisioning", { p_actor: d.merchant_id, p_domain_id: d.id,

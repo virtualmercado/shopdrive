@@ -37,8 +37,14 @@ Deno.serve(async (req) => {
     const { data: cfg, error: cfgError } = await admin.from("custom_domain_platform_config").select("*").eq("id", true).maybeSingle();
     const { data: access, error: accessError } = await admin.from("custom_domain_v2_access").select("*").eq("store_id", storeId).maybeSingle();
     if (cfgError || accessError || !cfg) return json({ error: "authorization_unavailable" }, 503);
+    // Eligibility is server-owned: active store, entitled effective plan, not individually blocked.
+    const { data: eligible, error: eligibleError } = await admin.rpc("_custom_domain_store_eligible", { p_store: storeId });
+    if (eligibleError) return json({ error: "authorization_unavailable" }, 503);
+    const storeEligible = eligible === true;
     if (!isAdmin) {
-      if (!cfg?.feature_enabled || !access?.enabled) return json({ error: "feature_unavailable" }, 403);
+      // Legacy exact pilot stores are verified only by the Master.
+      if (access?.pilot_hostname) return json({ error: "feature_unavailable" }, 403);
+      if (!cfg?.feature_enabled || !storeEligible) return json({ error: "feature_unavailable" }, 403);
     }
 
     const { data: d, error: domainError } = await admin.from("merchant_domains").select("*").eq("merchant_id", storeId)
@@ -52,7 +58,7 @@ Deno.serve(async (req) => {
     const pilotHostname = d.flow_version === 2 ? getPilotVerificationHostname({ isAdmin: isAdmin === true,
       storeId, domainMerchantId: d.merchant_id, canonicalDomain: norm.domain, access }) : null;
     const ingressReady = !!cfg.ingress_ready && !!cfg.infrastructure_provider &&
-      (d.flow_version !== 2 || (!!cfg.feature_enabled && !!access?.enabled));
+      (d.flow_version !== 2 || (!!cfg.feature_enabled && storeEligible));
     const result = await verifyDomain({
       domain: norm.domain,
       token: d.flow_version === 2 ? d.verification_token : null,

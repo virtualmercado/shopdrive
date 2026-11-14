@@ -129,10 +129,16 @@ export interface VerificationResult {
   observed: { txt: number; root: string[]; www: string[] };
   notes: string[];
   pilotHostname?: string;
+  /** Set only by the server when the platform publishes no apex target: only `www.<domain>` is routed. */
+  wwwOnlyHostname?: string;
 }
 
 export function areDnsRecordsVerified(result: VerificationResult): boolean {
   if (result.pilotHostname) return normalizeExactDomainHostname(result.pilotHostname) === result.pilotHostname && result.root === "not_required" && result.www === "ok";
+  if (result.wwwOnlyHostname) {
+    const exact = normalizeExactDomainHostname(result.wwwOnlyHostname);
+    return exact === result.wwwOnlyHostname && exact.startsWith("www.") && result.root === "not_required" && result.www === "ok";
+  }
   return result.root === "ok" && result.www === "ok";
 }
 
@@ -184,6 +190,7 @@ export async function verifyDomain(opts: {
   let www: RecordStatus = "not_configured";
   let rootSeen: string[] = [];
   let wwwSeen: string[] = [];
+  let wwwOnlyHostname: string | null = null;
   const exact = normalizeExactDomainHostname(opts.pilotHostname ?? "");
   const canonical = exact ? normalizeCustomDomain(exact) : null;
   const pilotHostname = exact && exact === opts.pilotHostname && canonical?.ok && canonical.domain === opts.domain ? exact : null;
@@ -197,6 +204,13 @@ export async function verifyDomain(opts: {
       www = w.s; wwwSeen = w.seen;
     }
     notes.push("exact_pilot_hostname");
+  } else if (opts.config.ingressReady && !opts.config.rootValue && opts.config.wwwType.toUpperCase() === "CNAME") {
+    // CNAME-only ingress: the platform publishes no apex target, so only www.<domain> is checked and routed.
+    root = "not_required";
+    wwwOnlyHostname = `www.${opts.domain}`;
+    const w = await checkRecord(opts.resolve, wwwOnlyHostname, "CNAME", opts.config.wwwValue);
+    www = w.s; wwwSeen = w.seen;
+    notes.push("www_only_ingress");
   } else if (opts.config.ingressReady) {
     const r = await checkRecord(opts.resolve, opts.domain, opts.config.rootType, opts.config.rootValue);
     const w = await checkRecord(opts.resolve, `www.${opts.domain}`, opts.config.wwwType, opts.config.wwwValue);
@@ -205,7 +219,7 @@ export async function verifyDomain(opts: {
     notes.push("ingress_not_configured");
   }
   return { checkedAt: now.toISOString(), ownership, nameservers, provider, root, www, observed: { txt: txtCount, root: rootSeen, www: wwwSeen }, notes,
-    ...(pilotHostname ? { pilotHostname } : {}) };
+    ...(pilotHostname ? { pilotHostname } : {}), ...(wwwOnlyHostname ? { wwwOnlyHostname } : {}) };
 }
 
 export type V2State =

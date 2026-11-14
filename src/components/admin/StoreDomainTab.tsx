@@ -31,6 +31,8 @@ export const StoreDomainTab = ({ storeId }: StoreDomainTabProps) => {
 
   const isV2 = domain?.flow_version === 2;
   const state = isV2 ? domain?.v2_state : "needs_reverification";
+  const observation = ((domain as { external_observation?: unknown } | null | undefined)?.external_observation ?? null) as
+    { hostname_status?: string | null; ssl_status?: string | null } | null;
   const result = (domain?.last_verification_result ?? null) as { provider?: { name: string } | null; ownership?: string; root?: string; www?: string } | null;
 
   return (
@@ -43,8 +45,9 @@ export const StoreDomainTab = ({ storeId }: StoreDomainTabProps) => {
         </div>
         <label className="flex items-center gap-3 text-sm">
           <Switch checked={!!access?.storeEnabled} onCheckedChange={(v) => setPilotAccess.mutate(v)} disabled={setPilotAccess.isPending} />
-          Liberar domínio próprio para esta loja (piloto)
+          Permitir domínio próprio nesta loja
         </label>
+        <p className="text-xs text-muted-foreground">Lojas com plano Premium ou MARCA podem configurar domínio próprio automaticamente. Desligue para bloquear somente esta loja.</p>
         {!access?.featureEnabled && <p className="text-xs text-muted-foreground">Enquanto o recurso global estiver desligado, a loja continua vendo "Domínio próprio temporariamente indisponível".</p>}
       </div>
 
@@ -74,6 +77,9 @@ export const StoreDomainTab = ({ storeId }: StoreDomainTabProps) => {
             <Field label="Nameservers"><span className="font-mono text-xs">{(domain.detected_nameservers ?? []).join(", ") || "-"}</span></Field>
             <Field label="Falhas consecutivas">{domain.consecutive_dns_failures}</Field>
             <Field label="Desconectado">{fmt(domain.disconnected_at)}</Field>
+            <Field label="Cloudflare (último status)">{observation ? `hostname: ${observation.hostname_status ?? "-"} · SSL: ${observation.ssl_status ?? "-"}` : "-"}</Field>
+            <Field label="Última consulta Cloudflare">{fmt(domain.external_last_check_at)}</Field>
+            <Field label="Pendência / último erro"><span className="text-xs break-all">{domain.external_error ?? "-"}</span></Field>
           </div>
 
           <div className="flex flex-wrap gap-2">

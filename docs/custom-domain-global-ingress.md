@@ -14,6 +14,24 @@ Estado registrado em 2026-11-11 (somente leitura, antes de qualquer mudança):
   provoca 508), então existe uma regra/rota específica configurada manualmente que precisa ser preservada.
 - Flags: `feature_enabled=false`, `ingress_ready=false`, `cloudflare_writes_enabled=false`, `cloudflare_deletes_enabled=false`.
 
+## Ativação global — 2026-11-14
+
+- Worker global (deployment `2bd4b3cf`) e rota wildcard publicados e validados manualmente pelo admin.
+- Flags atuais: `feature_enabled=true`, `ingress_ready=true`, `cloudflare_writes_enabled=true`, `cloudflare_deletes_enabled=false`.
+- Elegibilidade (somente servidor, `_custom_domain_store_eligible`): loja ativa com slug + plano efetivo Premium ou MARCA
+  (`get_effective_store_plan`) + sem bloqueio individual. Bloqueio individual = linha em `custom_domain_v2_access` com
+  `enabled=false` (switch do Master). Sem linha = permitido. A linha piloto da AROMA (`enabled=true` + `pilot_hostname`)
+  mantém a semântica antiga e não depende de plano.
+- DNS do lojista: só `CNAME www → domains.shopdrive.com.br` + TXT `_shopdrive-verification`. Sem alvo para a raiz
+  (`root_record_value` nulo), a verificação exige o escopo exato `wwwOnlyHostname = www.<domínio>`; a raiz não é roteada.
+- Criação do Custom Hostname: somente quando o lojista clica em "Verificar" e o DNS fica `dns_verified`; o painel chama
+  `manage-custom-domain-hostname` (`create`, consulta antes do POST, idempotente). Ligar flags não cria nada sozinho.
+- Desconexão de domínio já criado: o resolver é revogado na hora; com DELETE desligado a remoção externa fica pendente
+  (`external_error = external_removal_pending:<motivo>`, `routing_status=removing`) para ação explícita do admin.
+  A loja não pode cadastrar outro domínio enquanto houver remoção pendente. A AROMA (id protegido) recusa desconexão automática.
+- Observação sanitizada da Cloudflare (status, método SSL, erros redigidos) em `merchant_domains.external_observation`.
+- Contagem de Custom Hostnames antes e depois da ativação: 1 (AROMA, ativo).
+
 ## Hostnames internos protegidos
 
 Sufixos reservados (iguais no banco, nas funções do backend e no Worker):
@@ -81,5 +99,6 @@ Custo: Workers cobra por requisição (plano Free 100 mil/dia; acima disso plano
 ## Rollback
 
 1. Remover somente a rota `*/*` (a rota/regra da AROMA continua).
-2. `UPDATE custom_domain_platform_config SET ingress_ready=false, cloudflare_writes_enabled=false, cloudflare_deletes_enabled=false WHERE id;`
+2. `UPDATE custom_domain_platform_config SET feature_enabled=false, ingress_ready=false, cloudflare_writes_enabled=false, cloudflare_deletes_enabled=false WHERE id;`
+   (a AROMA segue pela linha piloto; lojas genéricas deixam de resolver na hora).
 3. Não apagar Custom Hostnames, registros de lojas nem histórico.

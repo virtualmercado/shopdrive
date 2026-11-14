@@ -77,3 +77,19 @@ export const customDomainPresentation = <T extends DomainLike>(record: T | null 
     checklist: customDomainChecklist(domain),
   };
 };
+
+/** Copy for the server-reported reason the feature is unavailable to this store. */
+export const customDomainUnavailableCopy = (reason?: string | null) => {
+  if (reason === "plan") return {
+    title: "Domínio próprio disponível nos planos Premium e MARCA",
+    body: "Faça upgrade do seu plano para usar seu próprio domínio. Sua loja continua funcionando normalmente no endereço ShopDrive.",
+  };
+  if (reason === "blocked") return {
+    title: "Domínio próprio indisponível para esta loja",
+    body: "Fale com o suporte ShopDrive para mais informações. Sua loja continua funcionando normalmente no endereço ShopDrive.",
+  };
+  return {
+    title: "Domínio próprio temporariamente indisponível",
+    body: "Estamos preparando a conexão segura de domínios. Sua loja continua funcionando normalmente no endereço ShopDrive.",
+  };
+};

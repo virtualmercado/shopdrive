@@ -3875,6 +3875,7 @@ export type Database = {
           external_error: string | null
           external_hostname_id: string | null
           external_last_check_at: string | null
+          external_observation: Json | null
           flow_version: number
           id: string
           infrastructure_provider: string | null
@@ -3918,6 +3919,7 @@ export type Database = {
           external_error?: string | null
           external_hostname_id?: string | null
           external_last_check_at?: string | null
+          external_observation?: Json | null
           flow_version?: number
           id?: string
           infrastructure_provider?: string | null
@@ -3961,6 +3963,7 @@ export type Database = {
           external_error?: string | null
           external_hostname_id?: string | null
           external_last_check_at?: string | null
+          external_observation?: Json | null
           flow_version?: number
           id?: string
           infrastructure_provider?: string | null
@@ -8893,12 +8896,20 @@ export type Database = {
       }
       _custom_domain_access_state: { Args: { p_store: string }; Returns: Json }
       _custom_domain_norm_or_null: { Args: { p: string }; Returns: string }
+      _custom_domain_pilot_matches: {
+        Args: { p_normalized_domain: string; p_store: string }
+        Returns: boolean
+      }
       _custom_domain_provisioning_authz: {
         Args: {
           p_actor: string
           p_merchant_id: string
           p_normalized_domain: string
         }
+        Returns: boolean
+      }
+      _custom_domain_store_eligible: {
+        Args: { p_store: string }
         Returns: boolean
       }
       _custom_domain_ui_available: {
@@ -9424,6 +9435,7 @@ export type Database = {
           p_error: string
           p_expected_updated_at: string
           p_external_hostname_id: string
+          p_observation?: Json
           p_routing_status: string
           p_ssl_status: string
           p_state: string
@@ -9809,6 +9821,15 @@ export type Database = {
       mark_brand_network_report_queued: {
         Args: { p_email_queue_id: string; p_run_id: string }
         Returns: undefined
+      }
+      mark_custom_domain_removal_pending: {
+        Args: {
+          p_actor: string
+          p_domain_id: string
+          p_expected_updated_at: string
+          p_reason: string
+        }
+        Returns: Json
       }
       mark_marca_recurrence_cancellation_sent: {
         Args: { p_subscription_id: string; p_token: string }

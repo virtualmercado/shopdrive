@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useMerchantDomain } from "@/hooks/useMerchantDomain";
 import { normalizeCustomDomain } from "../../../supabase/functions/_shared/customDomainCore";
 import { toast } from "sonner";
+import { customDomainUnavailableCopy } from "@/lib/customDomainStatus";
 
 interface Props { open: boolean; onOpenChange: (open: boolean) => void }
 
@@ -237,8 +238,8 @@ export const CustomDomainWizard = ({ open, onOpenChange }: Props) => {
           <div className="flex items-start gap-3">
             <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
             <div className="space-y-1">
-              <p className="text-sm font-medium">Domínio próprio temporariamente indisponível</p>
-              <p className="text-sm text-muted-foreground">Estamos preparando a conexão segura de domínios. Sua loja continua funcionando normalmente no endereço ShopDrive.</p>
+              <p className="text-sm font-medium">{customDomainUnavailableCopy(overview?.unavailable_reason).title}</p>
+              <p className="text-sm text-muted-foreground">{customDomainUnavailableCopy(overview?.unavailable_reason).body}</p>
             </div>
           </div>
         ) : connected ? (

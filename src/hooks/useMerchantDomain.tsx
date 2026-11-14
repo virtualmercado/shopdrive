@@ -38,6 +38,8 @@ export interface CustomDomainV2 {
 
 export interface CustomDomainOverview {
   available: boolean;
+  /** Server-computed reason when unavailable: global feature off, plan without the entitlement, or individual block. */
+  unavailable_reason?: "feature" | "plan" | "blocked" | null;
   ingress_ready: boolean;
   purchase_url: string | null;
   records: CustomDomainRecord[];
@@ -61,6 +63,16 @@ const ERRORS: Record<string, string> = {
   disconnect_active_domain_first: "Desconecte o domínio atual antes de cadastrar outro.",
   ownership_already_verified: "A propriedade deste domínio já foi confirmada.",
   infrastructure_removal_required: "Este domínio precisa ser removido da infraestrutura antes de desconectar.",
+  infrastructure_removal_pending: "A remoção do domínio anterior ainda está sendo concluída pela equipe ShopDrive. Tente novamente mais tarde.",
+  protected_hostname: "Este domínio é gerenciado pela equipe ShopDrive. Fale com o suporte para alterá-lo.",
+  cname_not_verified: "O registro CNAME do www ainda não aponta para domains.shopdrive.com.br. Confira o DNS e tente novamente.",
+  resolver_unavailable: "O serviço de consulta DNS não respondeu. Tente novamente em alguns minutos.",
+  cloudflare_writes_disabled: "A ativação de novos domínios está pausada no momento. Tente novamente mais tarde.",
+  cloudflare_unavailable: "A configuração de segurança não respondeu agora. Tente novamente em alguns minutos.",
+  credential_not_configured: "A configuração de segurança não está disponível agora. Tente novamente mais tarde.",
+  provision_failed: "Não foi possível configurar o domínio agora. Tente novamente em alguns minutos.",
+  external_hostname_conflict: "Este domínio já está configurado em outro lugar. Fale com o suporte.",
+  domain_inactive: "Este domínio foi desconectado.",
   domain_not_found: "Nenhum domínio cadastrado.",
   store_not_found: "Loja não encontrada.",
 };
@@ -80,6 +92,34 @@ async function invokeVerify(storeId?: string) {
   }
   return data;
 }
+
+async function invokeHostname(action: "create" | "status" | "delete", storeId?: string) {
+  const { data, error } = await supabase.functions.invoke("manage-custom-domain-hostname", {
+    body: storeId ? { action, store_id: storeId } : { action },
+  });
+  if (error) {
+    let code = "";
+    try { code = (await (error as { context?: Response }).context?.json())?.error ?? ""; } catch { /* ignore */ }
+    throw new Error(code || error.message);
+  }
+  return data as { state?: string; v2_state?: string; external_removal?: string } | null;
+}
+
+/**
+ * After the merchant explicitly verifies: once DNS is verified the server creates (idempotently) the
+ * Custom Hostname; while routing/SSL are provisioning it only re-reads the real status.
+ */
+export async function verifyAndProvision(storeId?: string) {
+  const verified = (await invokeVerify(storeId)) as { state?: string } | null;
+  if (verified?.state === "dns_verified") return invokeHostname("create", storeId);
+  if (verified?.state === "routing_provisioning" || verified?.state === "ssl_provisioning") return invokeHostname("status", storeId);
+  return verified;
+}
+
+const disconnectMessage = (r: { external_removal?: string } | null | undefined) =>
+  r?.external_removal === "pending_admin"
+    ? "Domínio desconectado da loja. A remoção final na infraestrutura será concluída pela equipe ShopDrive."
+    : "Domínio desconectado. Sua loja segue no endereço ShopDrive.";
 
 export const useMerchantDomain = () => {
   const { storeId: userId, client, delegated, loading } = useMerchantStore();
@@ -130,7 +170,7 @@ export const useMerchantDomain = () => {
   });
 
   const verify = useMutation({
-    mutationFn: () => { if (delegated) throw new Error("feature_unavailable"); return invokeVerify(); },
+    mutationFn: () => { if (delegated) throw new Error("feature_unavailable"); return verifyAndProvision(); },
     onSuccess: () => refresh(),
     onError,
   });
@@ -139,9 +179,12 @@ export const useMerchantDomain = () => {
     mutationFn: async () => {
       if (delegated) throw new Error("feature_unavailable");
       const { error } = await supabase.rpc("disconnect_custom_domain");
-      if (error) throw error;
+      if (!error) return null;
+      // A provisioned Custom Hostname is retired server-side (resolver revoked first, removal per policy).
+      if (error.message?.includes("infrastructure_removal_required")) return invokeHostname("delete");
+      throw error;
     },
-    onSuccess: () => { refresh(); toast.success("Domínio desconectado. Sua loja segue no endereço ShopDrive."); },
+    onSuccess: (r) => { refresh(); toast.success(disconnectMessage(r)); },
     onError,
   });
 
@@ -182,7 +225,8 @@ export const useAdminDomains = (storeId?: string) => {
         supabase.from("custom_domain_v2_access").select("enabled").eq("store_id", storeId!).maybeSingle(),
         supabase.from("custom_domain_platform_config").select("feature_enabled, ingress_ready, infrastructure_provider").eq("id", true).maybeSingle(),
       ]);
-      return { storeEnabled: !!a?.enabled, featureEnabled: !!c?.feature_enabled, ingressReady: !!c?.ingress_ready && !!c?.infrastructure_provider, provider: c?.infrastructure_provider ?? null };
+      // Eligible stores are allowed by default; only an explicit row with enabled=false blocks the store.
+      return { storeEnabled: a ? !!a.enabled : true, featureEnabled: !!c?.feature_enabled, ingressReady: !!c?.ingress_ready && !!c?.infrastructure_provider, provider: c?.infrastructure_provider ?? null };
     },
   });
 
@@ -213,9 +257,11 @@ export const useAdminDomains = (storeId?: string) => {
   const disconnect = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("admin_disconnect_custom_domain", { p_store_id: storeId! });
-      if (error) throw error;
+      if (!error) return null;
+      if (error.message?.includes("infrastructure_removal_required")) return invokeHostname("delete", storeId);
+      throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Domínio desconectado"); },
+    onSuccess: (r) => { invalidate(); toast.success(disconnectMessage(r)); },
     onError,
   });
 
@@ -224,7 +270,7 @@ export const useAdminDomains = (storeId?: string) => {
       const { error } = await supabase.rpc("admin_set_store_custom_domains_v2", { p_store_id: storeId!, p_enabled: enabled });
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Liberação atualizada"); },
+    onSuccess: (_r, enabled) => { invalidate(); toast.success(enabled ? "Domínio próprio permitido para esta loja" : "Domínio próprio bloqueado para esta loja"); },
     onError,
   });
 

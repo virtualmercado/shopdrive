@@ -1,5 +1,14 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Ativação do ingresso global de domínios próprios — 2026-11-14
+
+- [x] Elegibilidade automática no servidor (Premium/MARCA, loja ativa) com bloqueio individual pelo Master; linha piloto da AROMA preservada (migrations 0085–0086).
+- [x] DNS só com CNAME do www (raiz sem alvo) com escopo exato; criação do domínio na Cloudflare só após "Verificar" com DNS confirmado; desconexão revoga na hora e deixa remoção externa pendente (DELETE desligado).
+- [x] Testes: banco descartável (56 casos A–J + AROMA), unitários (692), sem criar domínio real; funções implantadas.
+- [x] Flags ligadas: recurso, ingresso e criações; remoção automática desligada. Custom Hostnames antes/depois: 1 (AROMA). AROMA conferida só leitura.
+- [ ] Primeiro lojista real: acompanhar o primeiro domínio (CNAME www → domains.shopdrive.com.br) e o certificado.
+- [ ] Interface do painel (textos de plano/bloqueio e Master) ainda não publicada.
+
 ## Worker global de domínios próprios (mesmo Worker, sem `*/*`) — 2026-11-13
 
 - [x] Código piloto substituído por roteador global sem hostname fixo; resolução pela regra já existente do backend; 421/503 fail-closed; hosts internos intactos; redirects para o hostname atual; métodos do piloto preservados.
@@ -15,7 +24,7 @@
 - [x] Worker deixa hosts internos passarem intactos; runbook e rollback em `docs/custom-domain-global-ingress.md`.
 - [x] Testes A–H (28 unitários + banco descartável), funções implantadas, produção conferida sem mudanças.
 - [ ] BLOQUEADO (admin, painel Cloudflare): publicar o Worker e a rota `*/*`; depois conferência + `ingress_ready`/escritas.
-- [ ] Decisão do usuário: liberação global hoje ainda exige registro de acesso por loja (`custom_domain_v2_access`).
+- [x] Decisão do usuário: liberação automática para lojas elegíveis, salvo bloqueio individual (2026-11-14).
 
 ## Edição manual do endereço principal do cliente — 2026-11-10
 
