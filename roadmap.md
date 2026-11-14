@@ -7,7 +7,7 @@
 - [x] Testes: banco descartável (56 casos A–J + AROMA), unitários (692), sem criar domínio real; funções implantadas.
 - [x] Flags ligadas: recurso, ingresso e criações; remoção automática desligada. Custom Hostnames antes/depois: 1 (AROMA). AROMA conferida só leitura.
 - [ ] Primeiro lojista real: acompanhar o primeiro domínio (CNAME www → domains.shopdrive.com.br) e o certificado.
-- [ ] Interface do painel (textos de plano/bloqueio e Master) ainda não publicada.
+- [x] Interface do painel publicada em 14/11 (versão index-B3a-gZsD.js); conferida sem criar domínio real.
 
 ## Worker global de domínios próprios (mesmo Worker, sem `*/*`) — 2026-11-13
 
