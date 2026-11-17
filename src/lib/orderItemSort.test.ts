@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { presentOrderItems, sortOrderItems, isPositionedOrder } from "./orderItemSort";
+import { presentOrderItems, sortOrderItems, isPositionedOrder, frozenNameCode } from "./orderItemSort";
 
 const item = (id: string, pos: number | null, name: string, extra: Record<string, unknown> = {}) => ({
   id, item_position: pos, product_name: name, product_id: `prod-${name}`, quantity: 1, product_price: 10, subtotal: 10, ...extra,
@@ -63,5 +63,47 @@ describe("order item presentation order", () => {
     const many = Array.from({ length: 25 }, (_, i) => item(`i${i + 1}`, i + 1, `Produto ${25 - i}`)).reverse();
     expect(ids(sortOrderItems(many, "insertion"))).toEqual(Array.from({ length: 25 }, (_, i) => `i${i + 1}`));
     expect(sortOrderItems(many, "product").map((i) => i.product_name)[0]).toBe("Produto 1"); // numeric-aware
+  });
+
+  // Shape of order #001253: no variant SKU, the code lives in the frozen name, same base added twice apart.
+  const real = [
+    item("r1", 1, "SABONETE VEGETAL HIDRATANTE SAFRA AMAZÔNICA - 60G - CÓD: 2446", { product_id: "p2446" }),
+    item("r2", 2, "ESFOLIANTE CORPORAL DE ARGILA BRANCA - 250G - CÓD: 0719", { product_id: "p0719" }),
+    item("r4", 4, "SABONETE LÍQUIDO ESFOLIANTE CREMOSO - 330ml - CÓD: 0760", { product_id: "p0760" }),
+    item("r5", 5, "SABONETE LÍQUIDO ESFOLIANTE CREMOSO - 330ml - CÓD: 0760", { product_id: "p0760", variations: { AROMA: "Tucumã" } }),
+    item("r6", 6, "SABONETE LÍQUIDO USO ÍNTIMO - 250ml - CÓD: 2038", { product_id: "p2038" }),
+    item("r7", 7, "SABONETE VEGETAL HIDRATANTE SAFRA AMAZÔNICA - 60G - CÓD: 2446", { product_id: "p2446", variations: { AROMA: "Cupuaçu" } }),
+    item("r8", 8, "ÓLEO VEGETAL ROSA MOSQUETA - 30ml - CÓD: 2258", { product_id: "p2258" }),
+  ];
+
+  it("reads the code frozen in the item name", () => {
+    expect(frozenNameCode("SABONETE - 60G - CÓD: 2446")).toBe("2446");
+    expect(frozenNameCode("Kit COD 0760")).toBe("0760");
+    expect(frozenNameCode("Óleo de Copaíba")).toBe("");
+    expect(frozenNameCode("Ovos de Codorna 12 un")).toBe("");
+    expect(frozenNameCode("Código: SAB-01")).toBe("SAB-01");
+  });
+
+  it("Inserção keeps 2446 at positions 1 and 7 (separate, as inserted)", () => {
+    expect(ids(sortOrderItems([...real].reverse(), "insertion"))).toEqual(["r1", "r2", "r4", "r5", "r6", "r7", "r8"]);
+  });
+
+  it("Produto puts both 2446 lines together by product_id, as two lines", () => {
+    const out = sortOrderItems(real, "product");
+    expect(ids(out)).toEqual(["r2", "r8", "r4", "r5", "r6", "r1", "r7"]);
+    expect(out).toHaveLength(7);
+  });
+
+  it("Código orders by the code frozen in the name when there is no SKU", () => {
+    expect(ids(sortOrderItems([...real].reverse(), "code"))).toEqual(["r2", "r4", "r5", "r6", "r8", "r1", "r7"]);
+  });
+
+  it("Produto groups by the frozen code when product_id is missing", () => {
+    const noPid = [
+      item("n1", 1, "Sabonete - CÓD: 2446", { product_id: null }),
+      item("n2", 2, "Chá - CÓD: 0100", { product_id: null }),
+      item("n3", 3, "Sabonete Cupuaçu - CÓD: 2446", { product_id: null, variations: { AROMA: "Cupuaçu" } }),
+    ];
+    expect(ids(sortOrderItems(noPid, "product"))).toEqual(["n2", "n1", "n3"]);
   });
 });

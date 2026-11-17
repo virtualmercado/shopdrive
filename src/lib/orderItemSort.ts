@@ -52,12 +52,24 @@ const compareText = (a: string, b: string): number => {
 
 const text = (v: unknown) => String(v ?? "").trim();
 
-const frozenCode = (item: SortableOrderItem) => text(item.variant_sku);
+/** "CÓD: 2446" / "COD 0760" / "Código: X-1" written inside the name frozen on the item. */
+const NAME_CODE = /(?<![\p{L}\p{N}])C[ÓóOo][Dd](?:[Ii][Gg][Oo])?(?:\.?\s*:\s*|\.\s*|\s+)([0-9A-Za-z._/-]*[0-9][0-9A-Za-z._/-]*)/gu;
 
-/** Product-base identity frozen on the item: product_id, else the frozen name. */
+/** Code from the frozen name (last occurrence), never from the current catalog. */
+export const frozenNameCode = (name: unknown): string => {
+  const matches = [...text(name).matchAll(NAME_CODE)];
+  return matches.length ? matches[matches.length - 1][1] : "";
+};
+
+/** Frozen code: the variation SKU stored on the item, else the code inside the frozen name. */
+const frozenCode = (item: SortableOrderItem) => text(item.variant_sku) || frozenNameCode(item.product_name);
+
+/** Product-base identity frozen on the item: product_id, else the code in the frozen name, else the frozen name. */
 const productGroupKey = (item: SortableOrderItem) => {
   const pid = text(item.product_id);
-  return pid ? `p:${pid}` : `n:${text(item.product_name).toLocaleLowerCase("pt-BR")}`;
+  if (pid) return `p:${pid}`;
+  const code = frozenNameCode(item.product_name);
+  return code ? `c:${code.toLocaleLowerCase("pt-BR")}` : `n:${text(item.product_name).toLocaleLowerCase("pt-BR")}`;
 };
 
 interface Entry<T> {
@@ -73,7 +85,8 @@ const byPosition = <T>(a: Entry<T>, b: Entry<T>) =>
  * Deterministic order for format-2 items.
  * - insertion: item_position ASC.
  * - product: groups by product base (alphabetical by frozen name), variations by text, then position.
- * - code: frozen code ASC (items without code last), then name, variation, position.
+ * - code: frozen code ASC (variant SKU, else the code inside the frozen name; items without code last),
+ *   then name, variation, position.
  * Items without a position yet (new lines while editing) follow the positioned ones in their current order.
  */
 export const sortOrderItems = <T extends SortableOrderItem>(items: readonly T[], mode: OrderItemSortMode): T[] => {

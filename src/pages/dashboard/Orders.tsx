@@ -277,6 +277,20 @@ const Orders = () => {
   const handlePrintClick = (order: any) => {
     setPrintOrder(order);
     setPrintDialogOpen(true);
+    // The sort selector follows the order's current format as stored (same source the PDF uses),
+    // not only the copy kept in the list. Read-only, scoped to the current store.
+    void supabase
+      .from("orders")
+      .select("id, order_format_version")
+      .eq("id", order.id)
+      .eq("store_owner_id", storeId ?? "")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setPrintOrder((current: any) =>
+          current?.id === data.id ? { ...current, order_format_version: data.order_format_version } : current,
+        );
+      });
   };
 
   const handlePrintA4 = async (sortMode: OrderItemSortMode) => {
