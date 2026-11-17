@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_ORDER_ITEM_SORT_MODE, isOrderItemSortMode, presentOrderItems, type OrderItemSortMode } from "@/lib/orderItemSort";
 
 interface OrderItem {
   product_name: string;
@@ -11,6 +12,7 @@ interface OrderItem {
 
 interface ThermalReceipt80mmProps {
   orderId: string;
+  sortMode?: OrderItemSortMode;
 }
 
 const separator = "--------------------------------";
@@ -55,7 +57,7 @@ const getPaymentLabel = (method: string | null) => {
   return labels[method] || method;
 };
 
-const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
+const ThermalReceipt80mm = ({ orderId, sortMode = DEFAULT_ORDER_ITEM_SORT_MODE }: ThermalReceipt80mmProps) => {
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [store, setStore] = useState<any>(null);
@@ -92,7 +94,7 @@ const ThermalReceipt80mm = ({ orderId }: ThermalReceipt80mmProps) => {
         .eq("order_id", orderId);
 
       if (cancelled) return;
-      setItems(itemsData || []);
+      setItems(presentOrderItems(orderData, itemsData, isOrderItemSortMode(sortMode) ? sortMode : DEFAULT_ORDER_ITEM_SORT_MODE));
 
       if (orderData.store_owner_id) {
         const { data: storeData } = await supabase

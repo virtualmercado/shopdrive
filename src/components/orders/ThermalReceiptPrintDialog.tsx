@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMerchantStore } from "@/hooks/useMerchantStore";
+import { presentOrderItems, type OrderItemSortMode } from "@/lib/orderItemSort";
 
 interface OrderItem {
   product_name: string;
@@ -10,6 +11,7 @@ interface OrderItem {
 
 interface ThermalReceiptPrintDialogProps {
   orderId: string;
+  sortMode?: OrderItemSortMode;
   onClose: () => void;
 }
 
@@ -41,7 +43,7 @@ const getPaymentLabel = (method: string | null) => {
 
 const separator = "--------------------------------";
 
-const ThermalReceiptPrintDialog = ({ orderId, onClose }: ThermalReceiptPrintDialogProps) => {
+const ThermalReceiptPrintDialog = ({ orderId, sortMode = "insertion", onClose }: ThermalReceiptPrintDialogProps) => {
   const { storeId, client: supabase } = useMerchantStore();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -70,7 +72,7 @@ const ThermalReceiptPrintDialog = ({ orderId, onClose }: ThermalReceiptPrintDial
         .from("order_items")
         .select("*")
         .eq("order_id", orderId);
-      setItems(itemsData || []);
+      setItems(presentOrderItems(orderData, itemsData, sortMode));
 
       if (orderData.store_owner_id) {
         const { data: storeData } = await supabase

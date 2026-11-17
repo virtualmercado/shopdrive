@@ -27,6 +27,7 @@ import {
 } from "@/lib/orderAddressSnapshot";
 import { pickPrimaryAddress, type CustomerAddressRow } from "@/lib/customerAddress";
 import { WhatsAppOrderModal } from "@/components/orders/WhatsAppOrderModal";
+import { isPositionedOrder, presentOrderItems, type OrderItemSortMode } from "@/lib/orderItemSort";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
@@ -278,7 +279,7 @@ const Orders = () => {
     setPrintDialogOpen(true);
   };
 
-  const handlePrintA4 = async () => {
+  const handlePrintA4 = async (sortMode: OrderItemSortMode) => {
     const order = printOrder;
     if (!order) return;
     try {
@@ -330,7 +331,9 @@ const Orders = () => {
 
       await printOrderA4({
         client: supabase,
-        order: { ...orderData, order_items: itemsData || [] },
+        // Legacy orders keep the query order above; positioned orders use the shared rule, once,
+        // on the whole list before the PDF distributes it across pages.
+        order: { ...orderData, order_items: presentOrderItems(orderData, itemsData, sortMode) },
         store: store || {},
         customer,
       });
@@ -343,9 +346,11 @@ const Orders = () => {
   };
 
   const [thermalPrintOrderId, setThermalPrintOrderId] = useState<string | null>(null);
+  const [thermalSortMode, setThermalSortMode] = useState<OrderItemSortMode>("insertion");
 
-  const handlePrintThermal = () => {
+  const handlePrintThermal = (sortMode: OrderItemSortMode) => {
     if (!printOrder) return;
+    setThermalSortMode(sortMode);
     setThermalPrintOrderId(printOrder.id);
   };
   const printLabel = (order: any, store: any, customer: LabelRecipient) => {
@@ -800,11 +805,13 @@ const Orders = () => {
         onOpenChange={setPrintDialogOpen}
         onSelectA4={handlePrintA4}
         onSelectThermal={handlePrintThermal}
+        showSortOptions={isPositionedOrder(printOrder)}
       />
 
       {thermalPrintOrderId && (
         <ThermalReceiptPrintDialog
           orderId={thermalPrintOrderId}
+          sortMode={thermalSortMode}
           onClose={() => setThermalPrintOrderId(null)}
         />
       )}

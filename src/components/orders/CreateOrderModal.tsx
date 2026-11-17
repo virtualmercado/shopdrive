@@ -11,6 +11,13 @@ import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { loadVariantMatrix, comboKey, type VariantOptionGroup, type ProductVariantRow } from "@/lib/productVariants";
+import { OrderItemSortSelect } from "@/components/orders/OrderItemSortSelect";
+import {
+  DEFAULT_ORDER_ITEM_SORT_MODE,
+  isPositionedOrder,
+  sortOrderItems,
+  type OrderItemSortMode,
+} from "@/lib/orderItemSort";
 
 interface Product {
   id: string;
@@ -53,6 +60,8 @@ interface OrderItem {
   variant_sku?: string | null;
   variations?: Record<string, string> | null;
   max_stock?: number | null;
+  /** Original position (orders with positions only). New lines have none until saved. */
+  item_position?: number | null;
 }
 
 interface PaymentSettings {
@@ -114,7 +123,14 @@ export const CreateOrderModal = ({
     variants: ProductVariantRow[];
     selected: Record<string, string>;
   } | null>(null);
+  // Presentation only (orders with item positions); never persisted.
+  const [sortMode, setSortMode] = useState<OrderItemSortMode>(DEFAULT_ORDER_ITEM_SORT_MODE);
+  const positioned = !!editOrder && isPositionedOrder(editOrder);
   
+  useEffect(() => {
+    if (open) setSortMode(DEFAULT_ORDER_ITEM_SORT_MODE);
+  }, [open, editOrder]);
+
   useEffect(() => {
     if (open && storeId) {
       fetchData();
@@ -141,6 +157,7 @@ export const CreateOrderModal = ({
           variant_id: item.variant_id ?? null,
           variant_sku: item.variant_sku ?? null,
           variations: item.variations && typeof item.variations === "object" ? item.variations : null,
+          item_position: item.item_position ?? null,
         })));
       }
     } else if (!editOrder && open) {
@@ -394,7 +411,14 @@ export const CreateOrderModal = ({
       subtotal: item.subtotal,
       variant_id: item.variant_id ?? null,
       variations: item.variations ?? null,
+      // Existing lines keep their original position; the server validates it and gives new lines the next one.
+      ...(positioned && item.item_position ? { item_position: item.item_position } : {}),
     }));
+
+  const itemRows = (() => {
+    const rows = orderItems.map((item, index) => ({ ...item, rowIndex: index }));
+    return positioned ? sortOrderItems(rows, sortMode) : rows;
+  })();
 
   const handleSubmit = async () => {
     if (!selectedCustomerId) {
@@ -629,6 +653,11 @@ export const CreateOrderModal = ({
               {/* Order Items */}
               {orderItems.length > 0 && (
                 <div className="space-y-2 mt-4">
+                  {positioned && (
+                    <div className="flex justify-end">
+                      <OrderItemSortSelect value={sortMode} onChange={setSortMode} id="edit-order-item-sort" />
+                    </div>
+                  )}
                   <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-2">
                     <div className="col-span-5">Produto</div>
                     <div className="col-span-2 text-center">Qtd</div>
@@ -636,7 +665,7 @@ export const CreateOrderModal = ({
                     <div className="col-span-2 text-right">Subtotal</div>
                     <div className="col-span-1"></div>
                   </div>
-                  {orderItems.map((item, index) => (
+                  {itemRows.map(({ rowIndex: index, ...item }) => (
                     <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 bg-muted/30 rounded-lg">
                       <div className="col-span-5 min-w-0">
                         <p className="font-medium truncate">{item.product_name}</p>

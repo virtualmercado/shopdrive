@@ -10,6 +10,9 @@ export interface OrderItem {
   quantity: number;
   subtotal: number;
   variations?: any;
+  product_id?: string | null;
+  variant_sku?: string | null;
+  item_position?: number | null;
 }
 
 export interface Order {
@@ -30,6 +33,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_source: 'manual' | 'store' | 'catalog';
+  order_format_version?: number | null;
   order_items?: OrderItem[];
 }
 
@@ -60,7 +64,8 @@ export const useOrders = () => {
           notes,
           created_at,
           updated_at,
-          order_source
+          order_source,
+          order_format_version
         `)
         .eq("store_owner_id", storeId)
         .order("created_at", { ascending: false })
@@ -79,6 +84,7 @@ export const useOrderDetails = (orderId: string) => {
         .from("orders")
         .select("*")
         .eq("id", orderId)
+        .eq("store_owner_id", storeId ?? "")
         .single();
 
       if (orderError) throw orderError;

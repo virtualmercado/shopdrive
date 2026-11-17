@@ -617,6 +617,13 @@
       "when": 1794696596037,
       "tag": "0087_custom_domain_managed_by_platform_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794940256794,
+      "tag": "0088_order_item_presentation_position",
+      "breakpoints": true
     }
   ]
 }

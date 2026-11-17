@@ -4,6 +4,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useEffect, useState } from "react";
+import { OrderItemSortSelect } from "@/components/orders/OrderItemSortSelect";
+import {
+  DEFAULT_ORDER_ITEM_SORT_MODE,
+  isPositionedOrder,
+  presentOrderItems,
+  type OrderItemSortMode,
+} from "@/lib/orderItemSort";
 
 interface OrderDetailsDialogProps {
   orderId: string | null;
@@ -13,8 +21,12 @@ interface OrderDetailsDialogProps {
 
 export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetailsDialogProps) => {
   const { data: order, isLoading } = useOrderDetails(orderId || "");
+  const [sortMode, setSortMode] = useState<OrderItemSortMode>(DEFAULT_ORDER_ITEM_SORT_MODE);
+  useEffect(() => setSortMode(DEFAULT_ORDER_ITEM_SORT_MODE), [orderId]);
 
   if (!orderId) return null;
+  const positioned = isPositionedOrder(order);
+  const items = presentOrderItems(order, order?.order_items, sortMode);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,9 +67,12 @@ export const OrderDetailsDialog = ({ orderId, open, onOpenChange }: OrderDetails
             <Separator />
 
             <div>
-              <h3 className="font-semibold mb-3">Itens do Pedido</h3>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="font-semibold">Itens do Pedido</h3>
+                {positioned && <OrderItemSortSelect value={sortMode} onChange={setSortMode} id="order-details-item-sort" />}
+              </div>
               <div className="space-y-3">
-                {order.order_items?.map((item: any) => {
+                {items.map((item: any) => {
                   const variations =
                     item.variations && typeof item.variations === "object" ? item.variations : null;
                   return (

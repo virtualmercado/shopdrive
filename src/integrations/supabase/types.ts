@@ -4195,6 +4195,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          item_position: number | null
           order_id: string
           product_id: string | null
           product_name: string
@@ -4208,6 +4209,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          item_position?: number | null
           order_id: string
           product_id?: string | null
           product_name: string
@@ -4221,6 +4223,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          item_position?: number | null
           order_id?: string
           product_id?: string | null
           product_name?: string
@@ -4381,7 +4384,9 @@ export type Database = {
           delivery_method: string | null
           id: string
           is_guest_order: boolean
+          last_item_position: number | null
           notes: string | null
+          order_format_version: number | null
           order_number: string | null
           order_source: string
           payment_method: string | null
@@ -4416,7 +4421,9 @@ export type Database = {
           delivery_method?: string | null
           id?: string
           is_guest_order?: boolean
+          last_item_position?: number | null
           notes?: string | null
+          order_format_version?: number | null
           order_number?: string | null
           order_source?: string
           payment_method?: string | null
@@ -4451,7 +4458,9 @@ export type Database = {
           delivery_method?: string | null
           id?: string
           is_guest_order?: boolean
+          last_item_position?: number | null
           notes?: string | null
+          order_format_version?: number | null
           order_number?: string | null
           order_source?: string
           payment_method?: string | null
