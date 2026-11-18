@@ -178,27 +178,35 @@ serve(async (req) => {
           const mpPayment = await mpResponse.json();
           console.log("MP payment status:", mpPayment.status);
 
-          if (mpPayment.status === "approved" && pendingPayment.status !== "paid") {
-            await supabase
-              .from("master_subscription_payments")
-              .update({
-                status: "paid",
-                gateway_status: mpPayment.status,
-                paid_at: mpPayment.date_approved || new Date().toISOString(),
-              })
-              .eq("id", pendingPayment.id);
-
-            await activateSubscription(pendingPayment.id, mpPayment);
-            pendingPayment.status = "paid";
-          } else if (mpPayment.status === "rejected") {
-            await supabase
-              .from("master_subscription_payments")
-              .update({ status: "failed", gateway_status: mpPayment.status, decline_code: mpPayment.status_detail })
-              .eq("id", pendingPayment.id);
-
-            pendingPayment.status = "failed";
-            pendingPayment.gateway_status = mpPayment.status;
-            pendingPayment.decline_code = mpPayment.status_detail;
+          if (["approved", "rejected", "cancelled"].includes(mpPayment.status) && pendingPayment.status !== "paid") {
+            // Settlement goes only through the same atomic RPC used by the signed webhook:
+            // payment, invoice (paid/paid_at) and subscription commit together, once.
+            if (String(mpPayment.id) !== String(pendingPayment.gateway_payment_id)) throw new Error("provider_resource_mismatch");
+            const eventKey = `payment:${mpPayment.id}:status-poll:${mpPayment.status}`;
+            const { data: claim, error: claimError } = await supabase.rpc("claim_master_subscription_webhook", {
+              p_event_key: eventKey, p_resource_id: String(mpPayment.id), p_topic: "payment",
+            });
+            if (!claimError && claim?.claimed) {
+              const resource = {
+                id: String(mpPayment.id), status: mpPayment.status, status_detail: mpPayment.status_detail ?? null,
+                transaction_amount: mpPayment.transaction_amount, currency_id: mpPayment.currency_id,
+                date_approved: mpPayment.date_approved ?? null, external_reference: mpPayment.external_reference ?? null,
+                payment_method_id: mpPayment.payment_method_id ?? null, preapproval_id: null, next_payment_date: null,
+                hard_decline: false, user_message: "O pagamento não foi aprovado.",
+              };
+              const { error: applyError } = await supabase.rpc("apply_master_subscription_webhook", {
+                p_event_key: eventKey, p_claim_token: claim.token, p_kind: "payment", p_resource: resource,
+              });
+              if (applyError) {
+                await supabase.rpc("release_master_subscription_webhook", { p_event_key: eventKey, p_claim_token: claim.token });
+                console.error("Poll reconciliation failed");
+              }
+            }
+            // Re-read the authoritative state written by the shared reconciliation.
+            const { data: fresh } = await supabase.from("master_subscriptions").select("status").eq("id", subscription.id).maybeSingle();
+            const { data: freshPay } = await supabase.from("master_subscription_payments").select("status,gateway_status,decline_code").eq("id", pendingPayment.id).maybeSingle();
+            if (fresh) subscription.status = fresh.status;
+            if (freshPay) Object.assign(pendingPayment, freshPay);
           } else {
             await supabase
               .from("master_subscription_payments")
