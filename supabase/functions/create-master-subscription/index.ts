@@ -203,6 +203,16 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      // MARCA já contratado e em atraso: regulariza-se a mesma assinatura, nunca uma nova contratação (fail-closed).
+      const { data: regTerms, error: regErr } = await supabase.rpc("_subscription_regularization_terms", { p_user_id: authenticatedUserId });
+      if (regErr || !regTerms) {
+        return new Response(JSON.stringify({ error: "Não foi possível validar os dados da contratação." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (regTerms.eligible === true && regTerms.plan_id === "marca") {
+        return new Response(JSON.stringify({ error: "Sua assinatura MARCA está com pagamento pendente. Use \"Regularizar pagamento\" para quitar a mesma assinatura.", regularize: true }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       // Troca agendada PRO/PREMIUM → MARCA: resolvida só pelo servidor, a partir do login.
       const { data: up, error: upErr } = await supabase.rpc("claim_marca_upgrade_checkout", { p_user_id: authenticatedUserId });
       if (upErr) {

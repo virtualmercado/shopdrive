@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MarcaUpgradeCheckout } from "@/components/financeiro/MarcaUpgradeCheckout";
+import { SubscriptionRegularizationCheckout } from "@/components/financeiro/SubscriptionRegularizationCheckout";
+import { isRegularizationRoute } from "@/lib/subscriptionRegularization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1534,6 +1536,8 @@ const AdminSubscriptionCheckout = () => {
 // página contextual da troca agendada, que só mostra pagamento quando o servidor confirma.
 const SubscriptionCheckoutRouter = () => {
   const [searchParams] = useSearchParams();
+  // Regularização da assinatura existente (inclui links de fatura cujo plano atual é Grátis após o rebaixamento).
+  if (isRegularizationRoute(searchParams)) return <SubscriptionRegularizationCheckout />;
   if ((searchParams.get("plano") || "").toLowerCase() === "marca") return <MarcaUpgradeCheckout />;
   return <AdminSubscriptionCheckout />;
 };

@@ -12,11 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCMSContent } from "@/hooks/useCMSContent";
 import { useMarcaContract, type MarcaContract } from "@/hooks/useMarcaContract";
 import { MarcaContractContent } from "@/components/plans/MarcaContractContent";
+import { REGULARIZATION_PATH } from "@/lib/subscriptionRegularization";
 
 type Cycle = "monthly" | "annual";
 export type MarcaOffer = {
   status: "ok" | "unavailable";
-  path?: "immediate" | "scheduled" | "card_blocked" | "not_eligible" | "secondary" | "already_scheduled" | "current";
+  path?: "immediate" | "scheduled" | "card_blocked" | "not_eligible" | "secondary" | "already_scheduled" | "current" | "regularize";
   effective_at?: string;
   monthly_price?: number;
   annual_discount_percent?: number;
@@ -43,6 +44,7 @@ export function useMarcaOffer() {
 
 /** Cartão do Plano MARCA no Financeiro. Some por completo quando o servidor diz "unavailable" (flag desligada). */
 export function MarcaPlanOffer() {
+  const navigate = useNavigate();
   const { data: offer } = useMarcaOffer();
   const { data: cms } = useCMSContent();
   const [cycle, setCycle] = useState<Cycle>("monthly");
@@ -96,7 +98,9 @@ export function MarcaPlanOffer() {
       )}
 
       <div className="mt-5">
-        {offer.path === "current" ? (
+        {offer.path === "regularize" ? (
+          <Button className="w-full sm:w-auto" onClick={() => navigate(REGULARIZATION_PATH)}>Regularizar pagamento</Button>
+        ) : offer.path === "current" ? (
           <Button disabled className="w-full sm:w-auto">Plano atual</Button>
         ) : offer.path === "already_scheduled" ? (
           <p className="text-sm text-foreground">Sua troca para o Plano MARCA já está agendada para {fmtDate(offer.effective_at)}.</p>

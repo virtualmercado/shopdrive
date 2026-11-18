@@ -10,6 +10,8 @@ import { InvoiceHistorySection } from "@/components/financeiro/InvoiceHistorySec
 import { SubscriptionStatusAlert } from "@/components/financeiro/SubscriptionStatusAlert";
 import { PlanTrialBanner } from "@/components/plan/PlanTrialBanner";
 import { MarcaScheduledUpgradeCard } from "@/components/financeiro/MarcaScheduledUpgradeCard";
+import { SubscriptionRegularizationCard } from "@/components/financeiro/SubscriptionRegularizationCard";
+import { REGULARIZATION_PATH } from "@/lib/subscriptionRegularization";
 import { MarcaCommercialFlow, useMarcaOffer, marcaBlockedMessage } from "@/components/financeiro/MarcaPlanOffer";
 import { toast } from "sonner";
 import { Crown } from "lucide-react";
@@ -144,6 +146,8 @@ const Financeiro = () => {
     if (delegated || linkedToMarca) return;
     if (planId === currentPlan) return;
     if (planId === "marca") {
+      // MARCA já contratado com pagamento pendente: regulariza a mesma assinatura, sem nova contratação.
+      if (marcaOffer?.status === "ok" && marcaOffer.path === "regularize") { navigate(REGULARIZATION_PATH); return; }
       const msg = marcaBlockedMessage(marcaOffer);
       if (msg) { toast.info(msg); return; }
       setMarcaOpen(true);
@@ -196,6 +200,8 @@ const Financeiro = () => {
       <div className="space-y-6">
         {/* Temporary plan trial (no billing attached) */}
         {!delegated && <PlanTrialBanner />}
+
+        {!delegated && !linkedToMarca && <SubscriptionRegularizationCard />}
 
         {!delegated && !linkedToMarca && <MarcaScheduledUpgradeCard />}
 

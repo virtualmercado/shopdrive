@@ -158,7 +158,16 @@ serve(async (req) => {
       (p: any) => ["pending", "in_process", "processing"].includes(p.status) && p.gateway_payment_id
     );
 
-    if (pendingPayment && mpToken) {
+    // Regularization charges are reconciled only by regularize-master-subscription / the signed webhook
+    // through apply_master_subscription_webhook; this generic poll never activates them in parallel.
+    let regularizationPayment = false;
+    if (pendingPayment) {
+      const { data: reg, error: regErr } = await supabase.from("master_subscription_regularizations")
+        .select("id").eq("payment_id", pendingPayment.id).maybeSingle();
+      regularizationPayment = !!reg || !!regErr;
+    }
+
+    if (pendingPayment && mpToken && !regularizationPayment) {
       try {
         const mpResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${pendingPayment.gateway_payment_id}`,

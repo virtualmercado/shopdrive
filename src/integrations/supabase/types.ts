@@ -3549,6 +3549,101 @@ export type Database = {
           },
         ]
       }
+      master_subscription_regularizations: {
+        Row: {
+          amount: number
+          applied_at: string | null
+          billing_cycle: string
+          charge_attempts: number
+          charging_until: string | null
+          closed_at: string | null
+          created_at: string
+          gateway_payment_id: string | null
+          id: string
+          idempotency_key: string
+          invoice_id: string
+          monthly_price: number
+          payment_id: string | null
+          pix_expires_at: string
+          plan_id: string
+          status: string
+          subscription_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          applied_at?: string | null
+          billing_cycle: string
+          charge_attempts?: number
+          charging_until?: string | null
+          closed_at?: string | null
+          created_at?: string
+          gateway_payment_id?: string | null
+          id?: string
+          idempotency_key: string
+          invoice_id: string
+          monthly_price: number
+          payment_id?: string | null
+          pix_expires_at: string
+          plan_id: string
+          status?: string
+          subscription_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          applied_at?: string | null
+          billing_cycle?: string
+          charge_attempts?: number
+          charging_until?: string | null
+          closed_at?: string | null
+          created_at?: string
+          gateway_payment_id?: string | null
+          id?: string
+          idempotency_key?: string
+          invoice_id?: string
+          monthly_price?: number
+          payment_id?: string | null
+          pix_expires_at?: string
+          plan_id?: string
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_subscription_regularizations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_regularizations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "master_subscription_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_regularizations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "master_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_subscription_regularizations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       master_subscription_webhook_applications: {
         Row: {
           applied_at: string
@@ -8941,6 +9036,10 @@ export type Database = {
       }
       _marca_creation_account: { Args: { p_actor: string }; Returns: string }
       _marca_creation_user: { Args: { p_request_id: string }; Returns: string }
+      _subscription_regularization_terms: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       activate_marca_scheduled_upgrade: {
         Args: {
           p_payment_id: string
@@ -9328,6 +9427,10 @@ export type Database = {
         Args: { _expected_revision: number }
         Returns: Json
       }
+      begin_subscription_regularization: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       bind_marca_upgrade_target: {
         Args: { p_subscription_id: string; p_upgrade_id: string }
         Returns: boolean
@@ -9607,6 +9710,10 @@ export type Database = {
       }
       expire_plan_trials: { Args: never; Returns: Json }
       expire_stale_pix_payments: { Args: never; Returns: number }
+      expire_subscription_regularization: {
+        Args: { p_gateway_status: string; p_regularization_id: string }
+        Returns: Json
+      }
       fail_custom_domain_provisioning: {
         Args: {
           p_actor: string
@@ -9745,6 +9852,7 @@ export type Database = {
       get_my_marca_upgrade_checkout: { Args: never; Returns: Json }
       get_my_selected_store_domain: { Args: never; Returns: Json }
       get_my_store_context: { Args: { p_store_id?: string }; Returns: Json }
+      get_my_subscription_regularization: { Args: never; Returns: Json }
       get_product_plan_usage: { Args: { p_store_id: string }; Returns: Json }
       get_public_quote_by_token: { Args: { p_token: string }; Returns: Json }
       get_referral_stats: {
@@ -9947,9 +10055,17 @@ export type Database = {
         }
         Returns: Json
       }
+      record_subscription_regularization_charge: {
+        Args: { p_regularization_id: string; p_resource: Json }
+        Returns: Json
+      }
       regenerate_custom_domain_challenge: { Args: never; Returns: Json }
       release_master_subscription_webhook: {
         Args: { p_claim_token: string; p_event_key: string }
+        Returns: undefined
+      }
+      release_subscription_regularization_charge: {
+        Args: { p_regularization_id: string }
         Returns: undefined
       }
       render_email_campaign_html:

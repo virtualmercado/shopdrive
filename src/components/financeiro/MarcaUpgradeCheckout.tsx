@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { REGULARIZATION_PATH } from "@/lib/subscriptionRegularization";
 import { useMarcaOffer, marcaPrice } from "@/components/financeiro/MarcaPlanOffer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -185,7 +186,22 @@ export function MarcaUpgradeCheckout() {
     return shell(<div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Carregando" /></div>);
   }
 
-  if (approved || view?.state === "activated") {
+  // MARCA contratado com pagamento pendente: a mesma assinatura é regularizada, nunca recontratada.
+  if (!approved && offer?.status === "ok" && offer.path === "regularize") {
+    return <Navigate to={REGULARIZATION_PATH} replace />;
+  }
+
+  // Sucesso só com pagamento confirmado nesta sessão; uma troca concluída no passado não comprova pagamento atual.
+  if (!approved && view?.state === "activated") {
+    return shell(
+      <div className="text-center space-y-2 py-4" role="status">
+        <h1 className="text-lg font-semibold text-foreground">{offer?.status === "ok" && offer.path === "current" ? "O Plano MARCA já é o seu plano atual" : "Pagamento indisponível"}</h1>
+        <p className="text-sm text-muted-foreground">Não há uma troca para o Plano MARCA aguardando pagamento na sua conta.</p>
+      </div>
+    );
+  }
+
+  if (approved) {
     return shell(
       <div className="text-center space-y-3 py-4" role="status">
         <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center"><Check className="h-7 w-7 text-primary" aria-hidden /></div>

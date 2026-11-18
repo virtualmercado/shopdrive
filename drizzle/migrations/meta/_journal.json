@@ -638,6 +638,13 @@
       "when": 1795029438977,
       "tag": "0090_secondary_store_plan_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1795034555433,
+      "tag": "0091_subscription_regularization",
+      "breakpoints": true
     }
   ]
 }

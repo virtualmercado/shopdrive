@@ -9,6 +9,7 @@ import {
   useBillingSettings,
   BillingStatus 
 } from "@/hooks/useBillingStatus";
+import { billingCtaPath } from "@/lib/subscriptionRegularization";
 
 interface AlertConfig {
   icon: React.ElementType;
@@ -166,13 +167,9 @@ export const GlobalBillingAlert = () => {
   const isSpinning = alertKey === "processing";
 
   const handleCtaClick = () => {
-    // Fluxo A — Regularizar fatura: mantém o plano atual e abre o checkout
-    // da assinatura vigente, sem permitir troca de plano.
-    const planId = billingInfo?.planId || "pro";
-    const cycleParam = billingInfo?.billingCycle === "annual" ? "anual" : "mensal";
-    navigate(
-      `/gestor/checkout-assinatura?plano=${planId}&ciclo=${cycleParam}&origem=regularizar&flow=pay_invoice`
-    );
+    // Fluxo A — Regularizar fatura da assinatura vigente, sem troca de plano. Assinatura rebaixada
+    // (plano atual Grátis) ou MARCA vão para a regularização da mesma assinatura.
+    navigate(billingCtaPath(billingInfo?.planId, billingInfo?.billingCycle));
   };
 
   // Override CMS content for "processing" status with payment-method-specific messages
