@@ -9244,6 +9244,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_nonpayment_downgrade: {
+        Args: { p_subscription_id: string }
+        Returns: Json
+      }
       apply_template_to_existing_store: {
         Args: { p_force?: boolean; p_template_id: string; p_user_id: string }
         Returns: Json
