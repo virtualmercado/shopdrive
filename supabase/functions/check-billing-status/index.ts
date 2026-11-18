@@ -10,22 +10,14 @@ const corsHeaders = {
 const GRACE_PERIOD_DAYS_MONTHLY = 7;
 const GRACE_PERIOD_DAYS_ANNUAL = 14;
 
-async function applyConfirmedDowngrade(supabase: any, userId: string, newPlan: string): Promise<number> {
-  const { data, error } = await supabase.rpc("apply_confirmed_plan_downgrade", {
-    p_store_id: userId,
-    p_new_plan: newPlan,
-  });
-
+// Atomic, re-checked downgrade + active-product limit for one subscription (server role only).
+async function applyNonpaymentDowngrade(supabase: any, subscriptionId: string): Promise<any> {
+  const { data, error } = await supabase.rpc("apply_nonpayment_downgrade", { p_subscription_id: subscriptionId });
   if (error) {
-    console.error("Error applying confirmed downgrade:", { userId, newPlan, error });
-    return 0;
+    console.error("Error applying nonpayment downgrade:", { subscriptionId, code: error.code, message: error.message });
+    return null;
   }
-
-  const count = Number(data || 0);
-  if (count > 0) {
-    console.log("[billing][confirmed_downgrade] products deactivated", { userId, newPlan, count });
-  }
-  return count;
+  return data;
 }
 
 async function isEffectiveSubscription(supabase: any, userId: string, subscriptionId: string): Promise<boolean> {
@@ -204,57 +196,20 @@ serve(async (req) => {
       console.error("Error fetching expired grace subs:", err2);
     }
 
+    // The resolver no longer returns expired-grace subscriptions, so no isEffectiveSubscription guard here:
+    // apply_nonpayment_downgrade locks and re-checks (latest subscription, payment, linked store) itself.
     for (const sub of expiredGrace || []) {
-      if (!(await isEffectiveSubscription(supabase, sub.user_id, sub.id))) {
-        console.log("Skipping stale expired-grace subscription", { subscriptionId: sub.id, userId: sub.user_id, planId: sub.plan_id });
+      const r = await applyNonpaymentDowngrade(supabase, sub.id);
+      if (!r?.applied) {
+        if (r?.reason !== "superseded") console.log("Nonpayment downgrade skipped", { subscriptionId: sub.id, reason: r?.reason ?? "error" });
         continue;
       }
-
-      console.log(`Sub ${sub.id}: grace period expired, downgrading to FREE from ${sub.plan_id}`);
-
-      const previousPlanId = sub.plan_id;
-
-      await supabase
-        .from("master_subscriptions")
-        .update({
-          status: "active",
-          plan_id: "gratis",
-          previous_plan_id: previousPlanId,
-          downgraded_at: now.toISOString(),
-          downgrade_reason: "nonpayment",
-          monthly_price: 0,
-          total_amount: 0,
-          updated_at: now.toISOString(),
-          retry_count: 0,
-          next_retry_at: null,
-          grace_period_ends_at: null,
-          last_decline_code: null,
-          last_decline_message: null,
-          decline_type: null,
-          requires_card_update: false,
-        })
-        .eq("id", sub.id);
-
-      await supabase.from("master_subscription_logs").insert({
-        subscription_id: sub.id,
-        user_id: sub.user_id,
-        event_type: "subscription_downgraded",
-        event_description: `Downgrade automático para plano Grátis por inadimplência. Plano anterior: ${previousPlanId}`,
-        metadata: {
-          previousPlanId,
-          reason: "nonpayment",
-          gracePeriodEnd: sub.grace_period_ends_at,
-        },
-      });
-
-      const deactivatedCount = await applyConfirmedDowngrade(supabase, sub.user_id, "free");
-
       results.push({
         subscriptionId: sub.id,
         userId: sub.user_id,
         action: "downgraded_to_free",
-        previousPlan: previousPlanId,
-        productsDeactivated: deactivatedCount,
+        previousPlan: r.previousPlan,
+        productsDeactivated: r.productsDeactivated,
       });
     }
 
@@ -277,53 +232,44 @@ serve(async (req) => {
     }
 
     for (const sub of activeWithExpiredGrace || []) {
-      if (!(await isEffectiveSubscription(supabase, sub.user_id, sub.id))) {
-        console.log("Skipping stale active-with-expired-grace subscription", { subscriptionId: sub.id, userId: sub.user_id, planId: sub.plan_id });
+      const r = await applyNonpaymentDowngrade(supabase, sub.id);
+      if (!r?.applied) {
+        if (r?.reason !== "superseded") console.log("Nonpayment cleanup skipped", { subscriptionId: sub.id, reason: r?.reason ?? "error" });
         continue;
       }
-
-      console.log(`Sub ${sub.id}: active with expired grace, downgrading`);
-
-      const previousPlanId = sub.plan_id;
-
-      await supabase
-        .from("master_subscriptions")
-        .update({
-          status: "active",
-          plan_id: "gratis",
-          previous_plan_id: previousPlanId,
-          downgraded_at: now.toISOString(),
-          downgrade_reason: "nonpayment",
-          monthly_price: 0,
-          total_amount: 0,
-          updated_at: now.toISOString(),
-          retry_count: 0,
-          next_retry_at: null,
-          grace_period_ends_at: null,
-        })
-        .eq("id", sub.id);
-
-      await supabase.from("master_subscription_logs").insert({
-        subscription_id: sub.id,
-        user_id: sub.user_id,
-        event_type: "subscription_downgraded",
-        event_description: `Downgrade automático (cleanup). Plano anterior: ${previousPlanId}`,
-        metadata: { previousPlanId, reason: "nonpayment_cleanup" },
-      });
-
-      const deactivatedCount = await applyConfirmedDowngrade(supabase, sub.user_id, "free");
-
       results.push({
         subscriptionId: sub.id,
         userId: sub.user_id,
         action: "downgraded_cleanup",
-        previousPlan: previousPlanId,
-        productsDeactivated: deactivatedCount,
+        previousPlan: r.previousPlan,
+        productsDeactivated: r.productsDeactivated,
       });
     }
 
-    // No continuous product-limit enforcement here. Product deactivation is only
-    // allowed inside the confirmed downgrade branches above or by explicit manual/admin actions.
+    // ─────────────────────────────────────────────────────
+    // PHASE 4: Linked MARCA secondary stores have no subscription of their own to downgrade.
+    // When one resolves to a limited plan (own paid period over and primary MARCA lapsed),
+    // apply the same active-product limit. One store per call (one store lock per transaction).
+    // ─────────────────────────────────────────────────────
+    const { data: secondaries, error: err4 } = await supabase
+      .from("brand_account_owned_stores")
+      .select("store_profile_id")
+      .eq("store_role", "secondary");
+    if (err4) console.error("Error fetching linked secondary stores:", { code: err4.code, message: err4.message });
+
+    for (const row of secondaries || []) {
+      const { data: r, error } = await supabase.rpc("apply_lapsed_secondary_plan_limit", { p_store_id: row.store_profile_id });
+      if (error) {
+        console.error("Error applying secondary plan limit:", { storeId: row.store_profile_id, code: error.code, message: error.message });
+        continue;
+      }
+      if (r?.applied) {
+        results.push({ userId: row.store_profile_id, action: "secondary_plan_limit", plan: r.plan, productsDeactivated: r.productsDeactivated });
+      }
+    }
+
+    // No continuous product-limit enforcement beyond the branches above. Product deactivation is only
+    // allowed inside the confirmed downgrade/secondary-limit branches or by explicit manual/admin actions.
 
     console.log("=== check-billing-status completed ===", JSON.stringify(results));
 

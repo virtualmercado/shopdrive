@@ -1,5 +1,13 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Limite de 20 ativos após inadimplência — 2026-11-18
+
+- [x] AROMA principal corrigida (20/217 ativos; migration 0089).
+- [x] Rotina diária usa o rebaixamento atômico para todas as lojas vencidas (decisão do usuário: todas); implantada, vale a partir da execução das 03:00 UTC.
+- [x] Loja vinculada (Varejo): limitar a 20 ativos quando o próprio Premium terminar e a MARCA da principal estiver vencida; volta ao regularizar (migration 0090).
+- [x] Testes em banco descartável (18), rotina implantada, foto do estado atual de Bioflora/Origem/Varejo para restauração.
+- [ ] Conferir após a execução de 19/11 03:00 UTC (Bioflora, Origem) e de 20/11 03:00 UTC (Varejo).
+
 ## Ativação do ingresso global de domínios próprios — 2026-11-14
 
 - [x] Elegibilidade automática no servidor (Premium/MARCA, loja ativa) com bloqueio individual pelo Master; linha piloto da AROMA preservada (migrations 0085–0086).

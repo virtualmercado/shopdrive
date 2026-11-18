@@ -19,11 +19,17 @@ nobody = (lambda *c: subprocess.run(['runuser', '-u', 'nobody', '--', 'env', 'PA
 def migration_sql():
     if len(sys.argv) > 1:
         return Path(sys.argv[1]).read_text()
-    for f in sorted((ROOT / 'drizzle/migrations').glob('*.sql'), reverse=True):
+    # Newest migration defining each plan-limit RPC, applied in migration order.
+    picked = {}
+    for f in sorted((ROOT / 'drizzle/migrations').glob('*.sql')):
         t = f.read_text()
-        if 'FUNCTION public.apply_nonpayment_downgrade' in t:
-            return t.replace('--> statement-breakpoint', '')
-    raise SystemExit('plan-limit migration not found')
+        for fn in ('apply_nonpayment_downgrade', 'apply_lapsed_secondary_plan_limit'):
+            if f'FUNCTION public.{fn}(' in t:
+                picked[fn] = f
+    if 'apply_nonpayment_downgrade' not in picked:
+        raise SystemExit('plan-limit migration not found')
+    files = sorted(set(picked.values()))
+    return '\n'.join(f.read_text().replace('--> statement-breakpoint', '') for f in files)
 
 A, B, C = ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333')
 BRAND = '44444444-4444-4444-8444-444444444444'
@@ -217,6 +223,40 @@ def main(sql):
     rr = downgrade('99999999-0000-4000-8000-000000000009'); holder.wait()
     assert rr['applied'] is False and count(f"user_id='{C}' AND is_active") == 160, rr
     ok('payment regularized during the run: job re-checks after the lock and deactivates nothing')
+
+    # Linked secondary B (own Premium; primary A is the MARCA owner).
+    def sec(store=B): return json.loads(svc(f"SELECT apply_lapsed_secondary_plan_limit('{store}')"))
+    assert 'service_role_required' in run(f"SELECT apply_lapsed_secondary_plan_limit('{B}')", ok=False)
+    assert 'permission denied' in run(f"SELECT apply_lapsed_secondary_plan_limit('{B}')", ok=False, role='authenticated', store=B)
+    assert sec()['reason'] == 'entitled' and count(f"user_id='{B}' AND is_active") == 25
+    assert sec(C)['reason'] == 'not_linked_secondary' and sec(A)['reason'] == 'not_linked_secondary'
+    ok('secondary still inside its own paid Premium: untouched; only linked secondaries qualify; server role only')
+
+    # Primary gets a new MARCA and lets it lapse while B still runs its own Premium: B untouched.
+    svc(f"INSERT INTO master_subscriptions(id,user_id,plan_id,status,current_period_end,created_at) VALUES ('12121212-0000-4000-8000-000000000012','{A}','marca','active',now()+interval '30 day',now()+interval '2 minute')")
+    svc(f"UPDATE master_subscriptions SET status='past_due', current_period_end=now()-interval '8 day', grace_period_ends_at=now()-interval '1 hour' WHERE id='12121212-0000-4000-8000-000000000012'")
+    assert downgrade('12121212-0000-4000-8000-000000000012')['applied']
+    assert sec()['reason'] == 'entitled' and count(f"user_id='{B}' AND is_active") == 25
+    ok('primary MARCA lapses while the secondary still has its own paid Premium: secondary untouched')
+
+    # Then the secondary's own Premium ends (the Varejo case): nothing else would limit it.
+    svc(f"UPDATE master_subscriptions SET current_period_end=now()-interval '1 hour' WHERE id='{SUB_B}'")
+    eff_b = json.loads(run(f"SELECT get_effective_store_plan('{B}')"))
+    assert eff_b['plan'] == 'free' and eff_b['productLimit'] == 20 and count(f"user_id='{B}' AND is_active") == 25
+    before_b = untouched_hash()
+    rb = sec()
+    assert rb['applied'] and rb['productsDeactivated'] == 5, rb
+    assert ids(f"user_id='{B}' AND is_active") == ','.join(f'B{i}' for i in range(1, 21))
+    assert ids(f"user_id='{B}' AND inactive_reason='plan_limit' AND was_active_before_plan_restriction") == ','.join(f'B{i}' for i in range(21, 26))
+    assert count(f"user_id='{B}'") == 25 and untouched_hash() == before_b
+    assert sec()['productsDeactivated'] == 0 and run(f"SELECT count(*) FROM audit_logs WHERE action='PLAN_LIMIT_PRODUCTS_DEACTIVATED' AND entity_id='{B}'") == '1'
+    ok('then own Premium ends (primary already lapsed): secondary keeps 20 oldest, 5 marked; rerun is a no-op')
+
+    # Primary pays MARCA again -> existing propagation restores exactly the 5.
+    svc(f"INSERT INTO master_subscriptions(id,user_id,plan_id,status,current_period_end,created_at) VALUES ('13131313-0000-4000-8000-000000000013','{A}','marca','active',now()+interval '30 day',now()+interval '3 minute')")
+    assert count(f"user_id='{B}' AND is_active") == 25 and count(f"user_id='{B}' AND was_active_before_plan_restriction") == 0
+    assert json.loads(run(f"SELECT get_effective_store_plan('{B}')"))['planSource'] == 'brand_inherited' and sec()['reason'] == 'entitled'
+    ok('primary regularized: secondary inherits MARCA again and gets back exactly the 5 system-deactivated products')
 
     print(f'\n{len(passed)} PASS')
 

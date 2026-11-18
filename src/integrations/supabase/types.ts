@@ -9235,6 +9235,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_lapsed_secondary_plan_limit: {
+        Args: { p_store_id: string }
+        Returns: Json
+      }
       apply_master_subscription_webhook: {
         Args: {
           p_claim_token: string
