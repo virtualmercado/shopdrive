@@ -35,4 +35,3 @@
 - Linked-secondary invoices use marcaSecondaryBilling to hide own payment/renewal until plan context resolves. Why: history stays intact without independent billing.
 - Merchant admin keeps the real actor identity and a server-validated selected store (approved membership, scoped client, operational projections); delegated mode denies account fields, credentials and unsupported routes. Why: financial links or browser selection never grant account authority.
 - Order item order: triggers position new orders only; screens sort via `src/lib/orderItemSort.ts`. Why: PDF diverged; legacy untouched.
-- Storefront consumer persona only via `classifyPublicPersona` in `useCustomerAuth`; fail-closed. Why: admin sessions became consumers.

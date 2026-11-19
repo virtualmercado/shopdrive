@@ -1,0 +1,1 @@
+- Storefront consumer persona only via `classifyPublicPersona` in `useCustomerAuth`; fail-closed. Why: admin sessions became consumers.
