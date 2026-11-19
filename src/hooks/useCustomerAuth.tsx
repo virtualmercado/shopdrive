@@ -4,6 +4,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplatePreviewSandbox } from '@/contexts/TemplatePreviewContext';
 import { useStorePath } from '@/contexts/PublicStoreRuntime';
+import { classifyPublicPersona } from '@/lib/publicPersona';
+
+async function resolveIsConsumer(u: User): Promise<boolean> {
+  try {
+    const [roles, prof, cust] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', u.id),
+      supabase.from('profiles').select('store_slug, is_template_profile').eq('id', u.id).maybeSingle(),
+      supabase.from('customer_profiles').select('id').eq('id', u.id).maybeSingle(),
+    ]);
+    const failed = !!(roles.error || prof.error || cust.error);
+    return classifyPublicPersona({
+      roles: (roles.data ?? []).map((r: any) => String(r.role)),
+      isMerchant: !!prof.data?.store_slug || prof.data?.is_template_profile === true,
+      hasCustomerProfile: !!cust.data,
+      customerMetadata: u.user_metadata?.is_customer === true,
+      lookupFailed: failed,
+    }) === 'consumer';
+  } catch {
+    return false;
+  }
+}
 
 const PREVIEW_AUTH_ERROR = 'Autenticação desabilitada no preview do template.';
 
@@ -23,19 +44,31 @@ export const useCustomerAuth = () => {
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        setSession(nextSession);
-        setUser(nextSession?.user ?? null);
-        setLoading(false);
+    let gen = 0;
+    const apply = (nextSession: Session | null) => {
+      const my = ++gen;
+      const u = nextSession?.user ?? null;
+      if (!u) {
+        setSession(null); setUser(null); setLoading(false);
+        return;
       }
+      setLoading(true);
+      // Defer DB calls outside the auth callback.
+      setTimeout(() => {
+        void resolveIsConsumer(u).then((ok) => {
+          if (my !== gen) return;
+          setSession(ok ? nextSession : null);
+          setUser(ok ? u : null);
+          setLoading(false);
+        });
+      }, 0);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => apply(nextSession)
     );
 
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => apply(currentSession));
 
     return () => subscription.unsubscribe();
   }, [isTemplatePreview]);
@@ -177,6 +210,8 @@ export const useCustomerAuth = () => {
       return { error: new Error(PREVIEW_AUTH_ERROR) };
     }
 
+    // Only a classified consumer session may be ended from the storefront.
+    if (!user) return { error: null };
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -198,6 +233,9 @@ export const useCustomerAuth = () => {
   const updatePassword = async (newPassword: string) => {
     if (isTemplatePreview) {
       return { error: new Error(PREVIEW_AUTH_ERROR) };
+    }
+    if (!user) {
+      return { error: new Error('Sessão de cliente não encontrada.') };
     }
 
     const { error } = await supabase.auth.updateUser({

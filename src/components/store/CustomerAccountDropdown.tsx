@@ -5,6 +5,7 @@ import { User, Heart, Package, ChevronRight, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTemplatePreviewSandbox } from "@/contexts/TemplatePreviewContext";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
 interface CustomerAccountDropdownProps {
   storeSlug: string;
@@ -35,7 +36,8 @@ const CustomerAccountDropdown = ({
 }: CustomerAccountDropdownProps) => {
   const storePath = useStorePath(storeSlug);
   const [isOpen, setIsOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user: customer, signOut } = useCustomerAuth();
+  const userId = customer?.id ?? null;
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
@@ -44,21 +46,8 @@ const CustomerAccountDropdown = ({
   const closeTimeout = useRef<number | null>(null);
   const { isTemplatePreview } = useTemplatePreviewSandbox();
 
-  // Check auth state — skip entirely in template preview
-  useEffect(() => {
-    if (isTemplatePreview) {
-      setUserId(null);
-      return;
-    }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserId(session?.user?.id ?? null);
-      setLoaded(false); // reset data on auth change
-    });
-    return () => subscription.unsubscribe();
-  }, [isTemplatePreview]);
+  // Persona is decided centrally by useCustomerAuth (admin/merchant sessions => visitor).
+  useEffect(() => { setLoaded(false); }, [userId]);
 
   // Load data lazily when dropdown opens
   useEffect(() => {
@@ -138,7 +127,8 @@ const CustomerAccountDropdown = ({
 
   const handleSignOut = async () => {
     if (isTemplatePreview) return;
-    await supabase.auth.signOut();
+    if (!userId) return;
+    await signOut();
     setIsOpen(false);
   };
 
