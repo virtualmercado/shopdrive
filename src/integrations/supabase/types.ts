@@ -6570,6 +6570,7 @@ export type Database = {
           bank_account_status: string | null
           commercial_status: string | null
           created_at: string
+          creation_attempt_token: string | null
           creation_lease_expires_at: string | null
           document_status: string | null
           document_summary: Json
@@ -6592,6 +6593,7 @@ export type Database = {
           bank_account_status?: string | null
           commercial_status?: string | null
           created_at?: string
+          creation_attempt_token?: string | null
           creation_lease_expires_at?: string | null
           document_status?: string | null
           document_summary?: Json
@@ -6614,6 +6616,7 @@ export type Database = {
           bank_account_status?: string | null
           commercial_status?: string | null
           created_at?: string
+          creation_attempt_token?: string | null
           creation_lease_expires_at?: string | null
           document_status?: string | null
           document_summary?: Json
@@ -9283,6 +9286,15 @@ export type Database = {
         Args: { p_merchant_id: string }
         Returns: string
       }
+      _asaas_derive_account_status: {
+        Args: {
+          p_bank: string
+          p_commercial: string
+          p_document: string
+          p_general: string
+        }
+        Returns: string
+      }
       _assert_catalog_draft_config: {
         Args: { _config: Json; _uid: string }
         Returns: undefined
@@ -9707,6 +9719,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_asaas_account_webhook: {
+        Args: {
+          p_account_id: string
+          p_bank_account_status: string
+          p_commercial_status: string
+          p_document_status: string
+          p_event_id: string
+          p_event_type: string
+          p_general_approval_status: string
+          p_payload: Json
+          p_store_id: string
+          p_webhook_token_hash: string
+        }
+        Returns: Json
+      }
       apply_checkout_payment_result: {
         Args: { p_order_id: string }
         Returns: Json
@@ -9791,6 +9818,14 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      begin_asaas_subaccount_creation: {
+        Args: {
+          p_actor: string
+          p_store_id: string
+          p_webhook_token_hash: string
+        }
+        Returns: Json
+      }
       begin_checkout_attempt: {
         Args: { p_customer_id?: string; p_store_owner_id: string }
         Returns: Json
@@ -9845,6 +9880,17 @@ export type Database = {
       cancel_account_deletion_request: {
         Args: { p_request_id: string }
         Returns: Json
+      }
+      capture_asaas_subaccount_credentials: {
+        Args: {
+          p_account_number: string
+          p_api_key_fingerprint: string
+          p_asaas_account_id: string
+          p_attempt_token: string
+          p_encrypted_api_key: string
+          p_wallet_id: string
+        }
+        Returns: boolean
       }
       check_email_unsubscribe_token: {
         Args: { p_token: string }
@@ -9941,6 +9987,18 @@ export type Database = {
       complement_template_data_impl: {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
+      }
+      complete_asaas_subaccount_creation: {
+        Args: {
+          p_attempt_token: string
+          p_bank_account_status: string
+          p_commercial_status: string
+          p_document_status: string
+          p_general_approval_status: string
+          p_last_error_code: string
+          p_status: string
+        }
+        Returns: boolean
       }
       complete_custom_domain_provisioning: {
         Args: {
@@ -10107,6 +10165,16 @@ export type Database = {
       expire_subscription_regularization: {
         Args: { p_gateway_status: string; p_regularization_id: string }
         Returns: Json
+      }
+      fail_asaas_subaccount_creation: {
+        Args: {
+          p_account_number: string
+          p_asaas_account_id: string
+          p_attempt_token: string
+          p_error_code: string
+          p_wallet_id: string
+        }
+        Returns: boolean
       }
       fail_custom_domain_provisioning: {
         Args: {

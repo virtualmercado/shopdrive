@@ -1,5 +1,14 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 3 — Subcontas e Webhooks Asaas BaaS Sandbox — 2026-11-24
+
+- [x] Validar autorização multiloja, dados PF/PJ e e-mail institucional existente.
+- [x] Reservar subconta com lease, token com hash único e RPCs transacionais service-only.
+- [x] Implementar criação Sandbox sem retry, captura/criptografia imediata, sincronização e reconciliação fail-closed.
+- [x] Implementar Webhook autenticado, idempotente e sanitizado para situação cadastral.
+- [x] Executar 48 testes Asaas, regressões SQL das Fases 1/3 e oito tentativas concorrentes em banco descartável; checagem Deno limpa.
+- [x] Funções implantadas; acessos anônimos/token inválido recusados; zero `POST /v3/accounts` real, aguardando autorização e loja selecionada.
+
 ## Fase 2 — Infraestrutura Asaas BaaS Sandbox — 2026-11-24
 
 - [x] Criar cliente compartilhado API v3 com resolver fail-closed, timeout, sanitização e sem retry de POST.
