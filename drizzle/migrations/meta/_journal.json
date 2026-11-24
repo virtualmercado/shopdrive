@@ -645,6 +645,13 @@
       "when": 1795034555433,
       "tag": "0091_subscription_regularization",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795553041231,
+      "tag": "0092_asaas_baas_phase1_foundation",
+      "breakpoints": true
     }
   ]
 }

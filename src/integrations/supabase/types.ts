@@ -266,6 +266,84 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_webhook_events: {
+        Row: {
+          account_id: string | null
+          charge_id: string | null
+          error_code: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payload_sanitized: Json | null
+          processed_at: string | null
+          processing_status: string
+          received_at: string
+          store_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          charge_id?: string | null
+          error_code?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payload_sanitized?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          store_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          charge_id?: string | null
+          error_code?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload_sanitized?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_webhook_events_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "store_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_webhook_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_webhook_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_webhook_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_webhook_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -6483,6 +6561,322 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      store_asaas_accounts: {
+        Row: {
+          account_number: string | null
+          api_key_fingerprint: string | null
+          asaas_account_id: string | null
+          bank_account_status: string | null
+          commercial_status: string | null
+          created_at: string
+          creation_lease_expires_at: string | null
+          document_status: string | null
+          document_summary: Json
+          encrypted_api_key: string | null
+          environment: string
+          general_approval_status: string | null
+          id: string
+          last_error_code: string | null
+          last_sync_at: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          wallet_id: string | null
+          webhook_token_hash: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          api_key_fingerprint?: string | null
+          asaas_account_id?: string | null
+          bank_account_status?: string | null
+          commercial_status?: string | null
+          created_at?: string
+          creation_lease_expires_at?: string | null
+          document_status?: string | null
+          document_summary?: Json
+          encrypted_api_key?: string | null
+          environment: string
+          general_approval_status?: string | null
+          id?: string
+          last_error_code?: string | null
+          last_sync_at?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+          wallet_id?: string | null
+          webhook_token_hash?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          api_key_fingerprint?: string | null
+          asaas_account_id?: string | null
+          bank_account_status?: string | null
+          commercial_status?: string | null
+          created_at?: string
+          creation_lease_expires_at?: string | null
+          document_status?: string | null
+          document_summary?: Json
+          encrypted_api_key?: string | null
+          environment?: string
+          general_approval_status?: string | null
+          id?: string
+          last_error_code?: string | null
+          last_sync_at?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          wallet_id?: string | null
+          webhook_token_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_asaas_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_asaas_customers: {
+        Row: {
+          asaas_customer_id: string
+          cpf_cnpj_normalized: string
+          created_at: string
+          customer_profile_id: string | null
+          email: string | null
+          environment: string
+          id: string
+          name: string
+          phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          asaas_customer_id: string
+          cpf_cnpj_normalized: string
+          created_at?: string
+          customer_profile_id?: string | null
+          email?: string | null
+          environment: string
+          id?: string
+          name: string
+          phone?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          asaas_customer_id?: string
+          cpf_cnpj_normalized?: string
+          created_at?: string
+          customer_profile_id?: string | null
+          email?: string | null
+          environment?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_asaas_customers_customer_profile_id_fkey"
+            columns: ["customer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_asaas_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_charges: {
+        Row: {
+          asaas_payment_id: string | null
+          bank_slip_url: string | null
+          bar_code: string | null
+          billing_type: string
+          cancelled_at: string | null
+          confirmed_at: string | null
+          created_at: string
+          customer_profile_id: string | null
+          due_date: string
+          environment: string
+          external_reference: string
+          fee_amount: number | null
+          id: string
+          identification_field: string | null
+          invoice_url: string | null
+          last_error_code: string | null
+          net_value: number | null
+          order_id: string
+          provider: string
+          provider_status: string | null
+          settled_at: string | null
+          split_value: number | null
+          status: string
+          store_asaas_customer_id: string | null
+          store_id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          bar_code?: string | null
+          billing_type: string
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_profile_id?: string | null
+          due_date: string
+          environment: string
+          external_reference: string
+          fee_amount?: number | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          last_error_code?: string | null
+          net_value?: number | null
+          order_id: string
+          provider?: string
+          provider_status?: string | null
+          settled_at?: string | null
+          split_value?: number | null
+          status?: string
+          store_asaas_customer_id?: string | null
+          store_id: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          bar_code?: string | null
+          billing_type?: string
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_profile_id?: string | null
+          due_date?: string
+          environment?: string
+          external_reference?: string
+          fee_amount?: number | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          last_error_code?: string | null
+          net_value?: number | null
+          order_id?: string
+          provider?: string
+          provider_status?: string | null
+          settled_at?: string | null
+          split_value?: number | null
+          status?: string
+          store_asaas_customer_id?: string | null
+          store_id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_charges_asaas_customer_tenant_fkey"
+            columns: ["store_asaas_customer_id", "store_id", "environment"]
+            isOneToOne: false
+            referencedRelation: "store_asaas_customers"
+            referencedColumns: ["id", "store_id", "environment"]
+          },
+          {
+            foreignKeyName: "store_charges_customer_profile_id_fkey"
+            columns: ["customer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_clone_logs: {
         Row: {
