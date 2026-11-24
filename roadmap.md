@@ -7,7 +7,7 @@
 - [x] Criar diagnóstico administrativo somente leitura em Sandbox, sem conector/OAuth e sem escritas.
 - [x] Gerar somente a chave mestra no cofre; parar e solicitar `ASAAS_SANDBOX_API_KEY` antes do teste real.
 - [x] Executar 23 testes automatizados, Deno check e build; verificar Fase 1 intacta/vazia e implantar somente o diagnóstico autorizado.
-- [ ] BLOQUEADO até ação do usuário: cadastrar `ASAAS_SANDBOX_API_KEY` e então executar uma única chamada GET Sandbox.
+- [x] Secret Sandbox cadastrado pelo usuário; única chamada GET Sandbox autenticada com sucesso, resposta sanitizada e nenhuma escrita.
 
 ## Limite de 20 ativos após inadimplência — 2026-11-18
 
