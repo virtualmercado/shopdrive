@@ -1,5 +1,14 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 2 — Infraestrutura Asaas BaaS Sandbox — 2026-11-24
+
+- [x] Criar cliente compartilhado API v3 com resolver fail-closed, timeout, sanitização e sem retry de POST.
+- [x] Criar helpers AES-256-GCM, fingerprint, token/hash e comparação segura de Webhook.
+- [x] Criar diagnóstico administrativo somente leitura em Sandbox, sem conector/OAuth e sem escritas.
+- [x] Gerar somente a chave mestra no cofre; parar e solicitar `ASAAS_SANDBOX_API_KEY` antes do teste real.
+- [x] Executar 23 testes automatizados, Deno check e build; verificar Fase 1 intacta/vazia e implantar somente o diagnóstico autorizado.
+- [ ] BLOQUEADO até ação do usuário: cadastrar `ASAAS_SANDBOX_API_KEY` e então executar uma única chamada GET Sandbox.
+
 ## Limite de 20 ativos após inadimplência — 2026-11-18
 
 - [x] AROMA principal corrigida (20/217 ativos; migration 0089).
