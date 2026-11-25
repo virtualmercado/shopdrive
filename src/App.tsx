@@ -28,6 +28,7 @@ import AdminStoreOnboarding from "./pages/admin/AdminStoreOnboarding";
 
 import Shipping from "./pages/dashboard/Shipping";
 import PaymentMethods from "./pages/dashboard/PaymentMethods";
+import AsaasBaasActivation from "./pages/dashboard/AsaasBaasActivation";
 import Customers from "./pages/dashboard/Customers";
 import CustomerDetail from "./pages/dashboard/CustomerDetail";
 import CatalogPDF from "./pages/dashboard/CatalogPDF";
@@ -173,6 +174,7 @@ function App() {
               <Route path="/lojista/customers/:customerId" element={<MerchantRoute><CustomerDetail /></MerchantRoute>} />
               <Route path="/lojista/shipping" element={<MerchantRoute><Shipping /></MerchantRoute>} />
               <Route path="/lojista/payment-methods" element={<MerchantRoute><PaymentMethods /></MerchantRoute>} />
+              <Route path="/lojista/payment-methods/asaas" element={<MerchantRoute><AsaasBaasActivation /></MerchantRoute>} />
               <Route path="/lojista/catalog-pdf" element={<MerchantRoute><CatalogPDF /></MerchantRoute>} />
               <Route path="/lojista/customize" element={<MerchantRoute><Customize /></MerchantRoute>} />
               <Route path="/lojista/settings" element={<MerchantRoute><Settings /></MerchantRoute>} />

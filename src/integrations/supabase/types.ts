@@ -266,6 +266,59 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_baas_ui_access: {
+        Row: {
+          enabled: boolean
+          notes: string | null
+          store_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          notes?: string | null
+          store_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          notes?: string | null
+          store_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_baas_ui_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_baas_ui_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_baas_ui_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_baas_ui_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_webhook_events: {
         Row: {
           account_id: string | null
@@ -9673,6 +9726,10 @@ export type Database = {
             }
             Returns: string
           }
+      admin_set_asaas_homologation_ui_access: {
+        Args: { p_enabled: boolean; p_notes?: string; p_store_id: string }
+        Returns: Json
+      }
       admin_set_current_contract_version: {
         Args: { p_version_id: string }
         Returns: undefined
@@ -10276,6 +10333,10 @@ export type Database = {
           is_active: boolean
           user_id: string
         }[]
+      }
+      get_my_asaas_homologation_ui_access: {
+        Args: { p_store_id?: string }
+        Returns: Json
       }
       get_my_brand_network_activation_detail: {
         Args: { p_brand_account_id?: string; p_store_key: string }

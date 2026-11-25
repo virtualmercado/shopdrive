@@ -3,7 +3,8 @@ export const isStoreUuid = (value: unknown): value is string => typeof value ===
 /** Only these migrated merchant screens may mount under delegated administration. */
 export const delegatedMerchantRouteAllowed = (path: string) => [
   "/lojista", "/lojista/products", "/lojista/orders", "/lojista/customers", "/lojista/store",
-  "/lojista/customize", "/lojista/payment-methods", "/lojista/financeiro", "/lojista/minha-rede",
+  "/lojista/customize", "/lojista/payment-methods", "/lojista/payment-methods/asaas",
+  "/lojista/financeiro", "/lojista/minha-rede",
 ].includes(path);
 
 export interface ManagedStore {

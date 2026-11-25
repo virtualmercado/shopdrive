@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { AsaasPaymentGatewayCard } from "@/components/asaas/AsaasPaymentGatewayCard";
 import { 
   CreditCard, 
   QrCode, 
@@ -588,6 +589,9 @@ const PaymentMethodsContent = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Independent Asaas BaaS compliance card (server-gated per authorized store) */}
+        <AsaasPaymentGatewayCard />
 
         {/* Payment Methods Section */}
         <Card>
