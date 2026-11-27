@@ -5,7 +5,7 @@
 - [x] Diferenciar Boleto no checkout e Asaas — Serviços financeiros somente nos textos solicitados.
 - [x] Validar controles e navegação desktop/mobile com dados fictícios; 31 testes unitários, regressão multiloja e compilação automática OK.
 - [x] Conferir somente leitura: uma flag habilitada (Varejo), quatro tabelas operacionais vazias; nenhuma chamada à API Asaas.
-- [ ] Publicar somente o refinamento após validação e informar a versão.
+- [ ] Publicação solicitada para shopdrive.com.br (commit 59063a83); aguarda conclusão externa para confirmar a versão servida.
 
 ## Fase 3 — Subcontas e Webhooks Asaas BaaS Sandbox — 2026-11-24
 
