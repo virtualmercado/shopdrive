@@ -108,3 +108,19 @@ export function asaasDocumentGuidance(hasOfficialOnboardingUrl: boolean): string
     ? "O Asaas disponibilizou um endereço documental oficial validado pelo backend. O direcionamento somente será habilitado em uma etapa futura autorizada."
     : "Quando houver um endereço documental oficial, o backend deverá validar o HTTPS e o domínio do Asaas antes de qualquer direcionamento futuro.";
 }
+
+export function asaasDocumentControls(hasOfficialOnboardingUrl: boolean) {
+  return {
+    channel: hasOfficialOnboardingUrl ? "validated_future_redirect" : "awaiting_official_url",
+    redirectEnabled: false,
+    uploadEnabled: false,
+    faceRecognitionEnabled: false,
+  } as const;
+}
+
+export function resolveAsaasStatusForIdentity(
+  snapshot: { identity: string; result: AsaasMerchantStatus } | null,
+  identity: string | null,
+): AsaasMerchantStatus | null {
+  return identity && snapshot?.identity === identity ? snapshot.result : null;
+}

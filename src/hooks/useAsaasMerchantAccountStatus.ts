@@ -4,6 +4,7 @@ import { useMerchantStore } from "@/hooks/useMerchantStore";
 import {
   ASAAS_HOMOLOGATION_STORE_ID,
   parseAsaasMerchantStatus,
+  resolveAsaasStatusForIdentity,
   unavailableAsaasMerchantStatus,
   type AsaasMerchantStatus,
 } from "@/lib/asaasAccountStatus";
@@ -59,7 +60,7 @@ export function useAsaasMerchantAccountStatus(enabled: boolean) {
   }, [identity, storeId, revision]);
 
   const retry = useCallback(() => setRevision((value) => value + 1), []);
-  const result = identity && snapshot?.identity === identity ? snapshot.result : null;
+  const result = resolveAsaasStatusForIdentity(snapshot, identity);
   return {
     isHomologation,
     loading: ownerContext && (storeLoading || loading),

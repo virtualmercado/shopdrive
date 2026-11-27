@@ -2,10 +2,10 @@
 
 ## Fase 4.2 — Situação cadastral Asaas na interface do lojista — 2026-11-27
 
-- [ ] Consulta local sanitizada na função existente, exclusiva do titular da loja de homologação, sem API Asaas, polling ou ampliação da inspeção Master.
-- [ ] Reutilizar a rota e os componentes visuais; painel para estados reais e simulados, limpeza de contexto/sessão e CTA específico da homologação.
-- [ ] Habilitar somente a flag visual adicional da homologação, preservando Varejo e todas as demais lojas; sem autorização operacional.
-- [ ] Regressões das fases anteriores, responsividade e build; não publicar antes da aprovação visual.
+- [x] Consulta local sanitizada na função existente, exclusiva do titular da loja de homologação, sem API Asaas, polling ou ampliação da inspeção Master.
+- [x] Reutilizar a rota e os componentes visuais; painel para oito estados reais/simulados, limpeza de contexto/sessão e CTA específico da homologação.
+- [x] Somente duas flags visuais habilitadas: homologação e Varejo; demais lojas bloqueadas e nenhuma autorização operacional disponível.
+- [x] 83 testes Deno, 23 testes Vitest direcionados, estados simulados e fluxos reais Playwright, responsividade e build OK; função implantada, frontend não publicado. Fase encerrada para aprovação visual.
 
 ## Fase 4.1 — Onboarding e consulta documental Asaas Sandbox — 2026-11-27
 
