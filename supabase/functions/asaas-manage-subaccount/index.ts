@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { handleAsaasManageSubaccount, type AsaasProvisioningDeps } from "./provisioning.ts";
+import { createAsaasEventReconciler } from "../_shared/asaasAccountReconciliation.ts";
 
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -39,9 +40,11 @@ Deno.serve(async (req) => {
       if (error) throw new Error("ASAAS_DATABASE_ERROR");
       return typeof data?.setting_value === "string" ? data.setting_value : null;
     },
-    begin: async (actor, storeId, webhookTokenHash) =>
+    isAdmin: async (actor) => await rpc("has_role", { _user_id: actor, _role: "admin" }) === true,
+    reconcileEvents: createAsaasEventReconciler(admin, (name) => Deno.env.get(name), fetch),
+    begin: async (actor, storeId, webhookTokenHash, authorizationId) =>
       await rpc("begin_asaas_subaccount_creation", {
-        p_actor: actor, p_store_id: storeId, p_webhook_token_hash: webhookTokenHash,
+        p_actor: actor, p_store_id: storeId, p_webhook_token_hash: webhookTokenHash, p_authorization_id: authorizationId,
       }) as Awaited<ReturnType<AsaasProvisioningDeps["begin"]>>,
     capture: async (input) => await rpc("capture_asaas_subaccount_credentials", {
       p_attempt_token: input.attemptToken,

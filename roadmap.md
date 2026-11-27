@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Validação complementar Asaas Fase 3 — 2026-11-27
+
+- [x] Bloquear criação sem autorização Master independente, por loja/gestor/tentativa única; migration 0095 aplicada, zero autorizações.
+- [x] Bloquear repetição inconclusiva/lease vencido e associação cadastral ambígua; IDs de conta e wallet únicos entre lojas/ambientes.
+- [x] Recuperar eventos pendentes com status autoritativo, corte de recebimento e fencing; ação administrativa na função existente.
+- [x] 61 testes Deno, 48 assertivas SQL, fluxo integrado handlers→RPCs locais e regressões históricas Fases 1/3; duas funções implantadas, compilação automática OK; nenhuma chamada Asaas/criação/liberação ou mudança nas lojas.
+
 ## Refinamento textual Gateway / Asaas — 2026-11-27
 
 - [x] Diferenciar Boleto no checkout e Asaas — Serviços financeiros somente nos textos solicitados.

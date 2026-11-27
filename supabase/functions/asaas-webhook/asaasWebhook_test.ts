@@ -12,6 +12,7 @@ async function fixture(result: Record<string, unknown> = { state: "processed", s
   const tokenHash = await hashWebhookAuthToken(TOKEN);
   const applied: ApplyWebhookInput[] = [];
   const deps: AsaasWebhookDeps = {
+    reconcileEvents: async () => ({ state: "processed" }),
     findAccountByTokenHash: async (hash) => hash === tokenHash ? { storeId: STORE, webhookTokenHash: tokenHash } : null,
     apply: async (input) => { applied.push(input); return result; },
   };
@@ -110,4 +111,24 @@ Deno.test("webhook: only POST is accepted", async () => {
   const result = await handleAsaasWebhook(new Request("https://backend.example.test", { method: "GET" }), f.deps);
   assertEquals(result.status, 405);
   assertEquals(f.applied.length, 0);
+});
+
+Deno.test("Webhook persistence failure: never acknowledge or query provider", async () => {
+  const f = await fixture(); let reads = 0;
+  f.deps.apply = async () => { throw new Error("synthetic database failure"); };
+  f.deps.reconcileEvents = async () => { reads++; return { state: "processed" }; };
+  assertEquals((await handleAsaasWebhook(request(event()), f.deps)).status, 503);
+  assertEquals(reads, 0);
+});
+Deno.test("Unfinished duplicate: persistence is retried and status is reconciled", async () => {
+  const f = await fixture({ state: "reconciliation_required" }); let reads = 0;
+  f.deps.reconcileEvents = async () => { reads++; return { state: "processed" }; };
+  const result = await handleAsaasWebhook(request(event()), f.deps);
+  assertEquals(result.status, 200); assertEquals(result.body.processed, true); assertEquals(reads, 1);
+});
+Deno.test("Provider outage after persistence: safely deferred and recoverable", async () => {
+  const f = await fixture({ state: "reconciliation_required" });
+  f.deps.reconcileEvents = async () => { throw new Error("synthetic provider outage"); };
+  const result = await handleAsaasWebhook(request(event()), f.deps);
+  assertEquals(result.status, 200); assertEquals(result.body.deferred, true); assertEquals(result.body.processed, false);
 });

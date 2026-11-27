@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { handleAsaasWebhook, type AsaasWebhookDeps } from "./webhook.ts";
+import { createAsaasEventReconciler } from "../_shared/asaasAccountReconciliation.ts";
 
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -12,6 +13,7 @@ Deno.serve(async (req) => {
   const admin = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   const deps: AsaasWebhookDeps = {
+    reconcileEvents: createAsaasEventReconciler(admin, (name) => Deno.env.get(name), fetch),
     findAccountByTokenHash: async (hash) => {
       const { data, error } = await admin.from("store_asaas_accounts")
         .select("store_id,webhook_token_hash")

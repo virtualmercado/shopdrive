@@ -319,6 +319,71 @@ export type Database = {
           },
         ]
       }
+      asaas_subaccount_creation_authorizations: {
+        Row: {
+          actor_id: string
+          attempt_token: string
+          authorized_by: string
+          consumed_at: string | null
+          created_at: string
+          enabled: boolean
+          expires_at: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          actor_id: string
+          attempt_token?: string
+          authorized_by: string
+          consumed_at?: string | null
+          created_at?: string
+          enabled?: boolean
+          expires_at: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          actor_id?: string
+          attempt_token?: string
+          authorized_by?: string
+          consumed_at?: string | null
+          created_at?: string
+          enabled?: boolean
+          expires_at?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_subaccount_creation_authorizations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_store_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_subaccount_creation_authorizations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_subaccount_creation_authorizations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_subaccount_creation_authorizations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "public_store_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_webhook_events: {
         Row: {
           account_id: string | null
@@ -6634,6 +6699,7 @@ export type Database = {
           last_error_code: string | null
           last_sync_at: string | null
           status: string
+          status_revision: number
           store_id: string
           updated_at: string
           wallet_id: string | null
@@ -6657,6 +6723,7 @@ export type Database = {
           last_error_code?: string | null
           last_sync_at?: string | null
           status?: string
+          status_revision?: number
           store_id: string
           updated_at?: string
           wallet_id?: string | null
@@ -6680,6 +6747,7 @@ export type Database = {
           last_error_code?: string | null
           last_sync_at?: string | null
           status?: string
+          status_revision?: number
           store_id?: string
           updated_at?: string
           wallet_id?: string | null
@@ -9540,6 +9608,10 @@ export type Database = {
         Args: { p_brand_account_id: string; p_template_id: string }
         Returns: undefined
       }
+      admin_authorize_asaas_subaccount_creation: {
+        Args: { p_actor_id: string; p_expires_at: string; p_store_id: string }
+        Returns: Json
+      }
       admin_cancel_email_campaign: {
         Args: { p_campaign_id: string }
         Returns: Json
@@ -9875,14 +9947,24 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
-      begin_asaas_subaccount_creation: {
-        Args: {
-          p_actor: string
-          p_store_id: string
-          p_webhook_token_hash: string
-        }
-        Returns: Json
-      }
+      begin_asaas_subaccount_creation:
+        | {
+            Args: {
+              p_actor: string
+              p_store_id: string
+              p_webhook_token_hash: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_actor: string
+              p_authorization_id: string
+              p_store_id: string
+              p_webhook_token_hash: string
+            }
+            Returns: Json
+          }
       begin_checkout_attempt: {
         Args: { p_customer_id?: string; p_store_owner_id: string }
         Returns: Json
@@ -10549,6 +10631,20 @@ export type Database = {
       }
       recompute_store_onboarding_state: {
         Args: { p_store_id: string }
+        Returns: Json
+      }
+      reconcile_asaas_account_events: {
+        Args: {
+          p_account_id: string
+          p_bank_account_status: string
+          p_commercial_status: string
+          p_document_status: string
+          p_expected_revision: number
+          p_general_approval_status: string
+          p_store_id: string
+          p_through: string
+          p_webhook_token_hash: string
+        }
         Returns: Json
       }
       record_brand_network_report_provider_id: {

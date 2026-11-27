@@ -48,7 +48,7 @@ const PJ = {
 const APPROVED = { commercialInfo: "APPROVED", bankAccountInfo: "APPROVED", documentation: "APPROVED", general: "APPROVED" };
 
 function input(data: Record<string, unknown> = PF, storeId = STORE) {
-  return { action: "create", storeId, data };
+  return { action: "create", storeId, data, authorizationId: ATTEMPT };
 }
 
 function fixture(overrides: Partial<AsaasProvisioningDeps> = {}) {
@@ -70,6 +70,8 @@ function fixture(overrides: Partial<AsaasProvisioningDeps> = {}) {
     getUserId: async (bearer) => bearer === "valid-jwt" ? ACTOR : null,
     canManageStore: async (actor, storeId) => actor === ACTOR && managed.has(storeId),
     getInstitutionalEmail: async () => "institucional@shopdrive.example.test",
+    isAdmin: async () => false,
+    reconcileEvents: async () => ({ state: "deferred" }),
     begin: async () => ({ state: "claimed", attemptToken: ATTEMPT }),
     capture: async (value) => { captures.push(value); return true; },
     complete: async (value) => { completions.push(value); return true; },
@@ -209,7 +211,7 @@ Deno.test("status mapping: approved, rejected, pending documents and review", ()
   assertEquals(deriveAsaasAccountStatus({ ...APPROVED, general: "AWAITING_APPROVAL" }), "under_review");
 });
 
-Deno.test("timeout reconciliation: exactly one remote match records lost API key without another POST", async () => {
+Deno.test("timeout reconciliation: matching titular never attaches a remote account without another POST", async () => {
   let calls = 0;
   const f = fixture({
     fetchImpl: async (input, init) => {
@@ -220,17 +222,17 @@ Deno.test("timeout reconciliation: exactly one remote match records lost API key
     },
   });
   const result = await runAsaasSubaccountCreate(ACTOR, input(), f.deps);
-  assertEquals(calls, 2);
-  assertEquals(f.failures[0].errorCode, "ASAAS_SUBACCOUNT_CREATED_API_KEY_NOT_CAPTURED");
-  assertEquals(f.failures[0].accountId, ACCOUNT_ID);
+  assertEquals(calls, 1);
+  assertEquals(f.failures[0].errorCode, "ASAAS_RECONCILIATION_REQUIRED");
+  assertEquals(f.failures[0].accountId, undefined);
   assertEquals(result.body.state, "error");
   assert(!JSON.stringify(result).includes(SUBACCOUNT_KEY));
 });
 
-Deno.test("timeout reconciliation: zero matches is recoverable and multiple matches fail closed", async () => {
+Deno.test("timeout reconciliation: zero or multiple remote matches cannot authorize another POST", async () => {
   for (const [matches, code] of [
-    [[], "ASAAS_SUBACCOUNT_NOT_FOUND"],
-    [[{ id: ACCOUNT_ID, cpfCnpj: PF.cpfCnpj }, { id: "other", cpfCnpj: PF.cpfCnpj }], "ASAAS_SUBACCOUNT_RECONCILIATION_AMBIGUOUS"],
+    [[], "ASAAS_RECONCILIATION_REQUIRED"],
+    [[{ id: ACCOUNT_ID, cpfCnpj: PF.cpfCnpj }, { id: "other", cpfCnpj: PF.cpfCnpj }], "ASAAS_RECONCILIATION_REQUIRED"],
   ] as const) {
     let posts = 0;
     const f = fixture({
@@ -316,5 +318,45 @@ Deno.test("HTTP boundary: anonymous and malformed requests cannot start provisio
     method: "POST", headers: { Authorization: "Bearer valid-jwt" }, body: "not-json",
   }), f.deps);
   assertEquals(malformed.status, 400);
+  assertEquals(f.providerCalls.length, 0);
+});
+
+Deno.test("Master gate: UI visibility and management permission never authorize creation", async () => {
+  const f = fixture();
+  const result = await runAsaasSubaccountCreate(ACTOR, { ...input(), authorizationId: undefined, asaas_baas_ui_access: true }, f.deps);
+  assertEquals(result.status, 403);
+  assertEquals(f.providerCalls.length, 0);
+  const denied = fixture({ begin: async () => ({ state: "creation_not_authorized" }) });
+  assertEquals((await runAsaasSubaccountCreate(ACTOR, input(), denied.deps)).status, 403);
+  assertEquals(denied.providerCalls.length, 0);
+});
+Deno.test("Expired lease: blocked reservation never reaches the provider", async () => {
+  const f = fixture({ begin: async () => ({ state: "reconciliation_required" }) });
+  assertEquals((await runAsaasSubaccountCreate(ACTOR, input(), f.deps)).status, 409);
+  assertEquals(f.providerCalls.length, 0);
+});
+Deno.test("Invalid create response: no document lookup, attachment or POST retry", async () => {
+  const f = fixture({ fetchImpl: async () => new Response("not-json", { status: 200 }) });
+  await runAsaasSubaccountCreate(ACTOR, input(), f.deps);
+  assertEquals(f.failures[0].errorCode, "ASAAS_RECONCILIATION_REQUIRED");
+  assertEquals(f.failures[0].accountId, undefined);
+});
+Deno.test("Lost persistence: preserve direct response evidence but never create again", async () => {
+  const f = fixture({ capture: async () => { throw new Error("synthetic database unavailable"); } });
+  const result = await runAsaasSubaccountCreate(ACTOR, input(), f.deps);
+  assertEquals(result.status, 409);
+  assertEquals(f.failures[0].accountId, ACCOUNT_ID);
+  assertEquals(f.failures[0].errorCode, "ASAAS_SUBACCOUNT_CREATED_API_KEY_NOT_CAPTURED");
+  assertEquals(f.providerCalls.length, 1);
+});
+Deno.test("Administrative recovery: owner and delegated actor cannot request recovery", async () => {
+  let reconciliations = 0;
+  const request = () => new Request("https://backend.example.test", { method: "POST", headers: { Authorization: "Bearer valid-jwt" }, body: JSON.stringify({ action: "reconcile_events", storeId: STORE }) });
+  const f = fixture({ reconcileEvents: async () => { reconciliations++; return { state: "processed" }; } });
+  assertEquals((await handleAsaasManageSubaccount(request(), f.deps)).status, 403);
+  assertEquals(reconciliations, 0);
+  f.deps.isAdmin = async () => true;
+  assertEquals((await handleAsaasManageSubaccount(request(), f.deps)).body.state, "processed");
+  assertEquals(reconciliations, 1);
   assertEquals(f.providerCalls.length, 0);
 });

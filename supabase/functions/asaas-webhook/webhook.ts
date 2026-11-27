@@ -24,6 +24,7 @@ export interface ApplyWebhookInput {
 export interface AsaasWebhookDeps {
   findAccountByTokenHash: (hash: string) => Promise<WebhookAccount | null>;
   apply: (input: ApplyWebhookInput) => Promise<Record<string, unknown> | null>;
+  reconcileEvents: (storeId: string) => Promise<Record<string, unknown>>;
 }
 
 type Result = { status: number; body: Record<string, unknown> };
@@ -103,6 +104,11 @@ export async function handleAsaasWebhook(req: Request, deps: AsaasWebhookDeps): 
   }).catch(() => null);
   if (!result) return response(503, { received: false, error: "processing_unavailable" });
   switch (result.state) {
+    case "reconciliation_required": {
+      const finished = await deps.reconcileEvents(account.storeId).catch(() => ({ state: "deferred" }));
+      // Persistence already succeeded. An unavailable GET leaves recoverable evidence.
+      return response(200, { received: true, processed: finished.state === "processed", deferred: finished.state !== "processed" });
+    }
     case "duplicate": return response(200, { received: true, duplicate: true });
     case "deferred": return response(200, { received: true, deferred: true });
     case "processed": return response(200, { received: true, processed: true });

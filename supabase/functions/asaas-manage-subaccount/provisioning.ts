@@ -11,7 +11,6 @@ import {
   optionalIdentifier,
   parseAsaasAccountStatuses,
   sanitizeAsaasAccount,
-  type AsaasSubaccountData,
 } from "../_shared/asaasSubaccount.ts";
 
 export interface BeginResult {
@@ -48,7 +47,9 @@ export interface AsaasProvisioningDeps {
   getUserId: (bearer: string) => Promise<string | null>;
   canManageStore: (actor: string, storeId: string) => Promise<boolean>;
   getInstitutionalEmail: () => Promise<string | null>;
-  begin: (actor: string, storeId: string, webhookTokenHash: string) => Promise<BeginResult | null>;
+  begin: (actor: string, storeId: string, webhookTokenHash: string, authorizationId: string) => Promise<BeginResult | null>;
+  isAdmin: (actor: string) => Promise<boolean>;
+  reconcileEvents: (storeId: string) => Promise<Record<string, unknown>>;
   capture: (input: CaptureInput) => Promise<boolean>;
   complete: (input: CompleteInput) => Promise<boolean>;
   fail: (input: FailInput) => Promise<boolean>;
@@ -87,41 +88,6 @@ function creationIdentifiers(response: Record<string, unknown>) {
   };
 }
 
-async function reconcileLostCreation(
-  data: AsaasSubaccountData,
-  parentKey: string,
-  fetchImpl: typeof fetch,
-): Promise<{ errorCode: string; accountId?: string | null; walletId?: string | null; accountNumber?: string | null }> {
-  let response: Record<string, unknown>;
-  try {
-    response = await asaasRequest({
-      environment: "sandbox",
-      apiKey: parentKey,
-      path: `/accounts?cpfCnpj=${encodeURIComponent(data.cpfCnpj)}`,
-      method: "GET",
-      fetchImpl,
-    });
-  } catch {
-    return { errorCode: "ASAAS_RECONCILIATION_REQUIRED" };
-  }
-  if (!Array.isArray(response.data)) return { errorCode: "ASAAS_RECONCILIATION_REQUIRED" };
-  const matches = response.data.filter((candidate): candidate is Record<string, unknown> => {
-    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
-    const document = (candidate as Record<string, unknown>).cpfCnpj;
-    return (typeof document === "string" || typeof document === "number") && String(document).replace(/\D/g, "") === data.cpfCnpj;
-  });
-  if (matches.length === 0) return { errorCode: "ASAAS_SUBACCOUNT_NOT_FOUND" };
-  if (matches.length !== 1) return { errorCode: "ASAAS_SUBACCOUNT_RECONCILIATION_AMBIGUOUS" };
-  const match = matches[0];
-  if (typeof match.email === "string" && match.email.trim().toLowerCase() !== data.email) {
-    return { errorCode: "ASAAS_SUBACCOUNT_RECONCILIATION_AMBIGUOUS" };
-  }
-  if (typeof match.name === "string" && match.name.trim().toLocaleLowerCase("pt-BR") !== data.name.toLocaleLowerCase("pt-BR")) {
-    return { errorCode: "ASAAS_SUBACCOUNT_RECONCILIATION_AMBIGUOUS" };
-  }
-  return { errorCode: "ASAAS_SUBACCOUNT_CREATED_API_KEY_NOT_CAPTURED", ...creationIdentifiers(match) };
-}
-
 export async function runAsaasSubaccountCreate(
   actor: string,
   input: Record<string, unknown>,
@@ -134,6 +100,7 @@ export async function runAsaasSubaccountCreate(
   if (!isUuid(input.storeId)) return error(400, "invalid_store_id");
   const storeId = input.storeId;
   if (!(await deps.canManageStore(actor, storeId).catch(() => false))) return error(403, "forbidden");
+  if (!isUuid(input.authorizationId)) return error(403, "creation_not_authorized");
 
   try {
     assertAsaasPhase2Environment(deps.env("ASAAS_ENVIRONMENT")?.trim());
@@ -156,10 +123,12 @@ export async function runAsaasSubaccountCreate(
 
   let rawWebhookToken = generateWebhookAuthToken();
   const webhookTokenHash = await hashWebhookAuthToken(rawWebhookToken);
-  const begin = await deps.begin(actor, storeId, webhookTokenHash).catch(() => null);
+  const begin = await deps.begin(actor, storeId, webhookTokenHash, input.authorizationId).catch(() => null);
   if (!begin) return error(503, "ASAAS_RESERVATION_FAILED");
   if (begin.state === "creation_in_progress") return { status: 202, body: { ok: true, state: "creation_in_progress" } };
   if (begin.state === "forbidden") return error(403, "forbidden");
+  if (begin.state === "creation_not_authorized") return error(403, "creation_not_authorized");
+  if (begin.state === "reconciliation_required") return error(409, "ASAAS_RECONCILIATION_REQUIRED");
   if (begin.state === "existing" && begin.account) return accountResult("existing", begin.account);
   if (begin.state !== "claimed" || !isUuid(begin.attemptToken)) return error(503, "ASAAS_RESERVATION_FAILED");
   const attemptToken = begin.attemptToken;
@@ -197,8 +166,7 @@ export async function runAsaasSubaccountCreate(
     if (caught instanceof AsaasError && caught.httpStatus !== null && caught.httpStatus >= 400 && caught.httpStatus < 500 && caught.httpStatus !== 429) {
       return await fail({ attemptToken, errorCode: "ASAAS_CREATE_REJECTED" });
     }
-    const reconciliation = await reconcileLostCreation(data, parentKey, deps.fetchImpl);
-    return await fail({ attemptToken, ...reconciliation });
+    return await fail({ attemptToken, errorCode: "ASAAS_RECONCILIATION_REQUIRED" });
   }
   rawWebhookToken = "";
   webhook.authToken = "";
@@ -208,9 +176,9 @@ export async function runAsaasSubaccountCreate(
     ? created.apiKey
     : null;
   if (!identifiers.accountId || !identifiers.walletId || !rawApiKey) {
-    const reconciliation = await reconcileLostCreation(data, parentKey, deps.fetchImpl);
     rawApiKey = null;
-    return await fail({ attemptToken, ...reconciliation });
+    // A document lookup cannot distinguish two stores of the same titular.
+    return await fail({ attemptToken, errorCode: "ASAAS_RECONCILIATION_REQUIRED" });
   }
 
   let encryptedApiKey: string;
@@ -279,5 +247,13 @@ export async function handleAsaasManageSubaccount(req: Request, deps: AsaasProvi
     return error(400, "invalid_json");
   }
   if (!input || typeof input !== "object" || Array.isArray(input)) return error(400, "invalid_input");
+  const parsed = input as Record<string, unknown>;
+  if (parsed.action === "reconcile_events") {
+    if (parsed.environment !== undefined && parsed.environment !== "sandbox") return error(403, "ASAAS_PRODUCTION_BLOCKED");
+    if (!isUuid(parsed.storeId)) return error(400, "invalid_store_id");
+    if (!(await deps.isAdmin(actor).catch(() => false))) return error(403, "forbidden");
+    const result = await deps.reconcileEvents(parsed.storeId).catch(() => ({ state: "deferred" }));
+    return { status: 200, body: { ok: true, ...result } };
+  }
   return await runAsaasSubaccountCreate(actor, input as Record<string, unknown>, deps);
 }
