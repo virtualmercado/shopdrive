@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 3.1 — Primeira subconta Asaas Sandbox controlada — 2026-11-27
+
+- [ ] Localizar somente uma loja dedicada de homologação; não criar loja/usuário nem usar lojistas comerciais.
+- [ ] Apresentar loja, gestor e payload sanitizado fictício; aguardar confirmação explícita antes de autorizar ou chamar o Asaas.
+- [ ] Após confirmação: autorização Master temporária de uso único e exatamente um `create` Sandbox, sem retry.
+- [ ] Validar persistência criptografada, autenticação da subconta, webhooks reais, isolamento e consumo da autorização; relatar pendências sem fabricar evidências.
+
 ## Validação complementar Asaas Fase 3 — 2026-11-27
 
 - [x] Bloquear criação sem autorização Master independente, por loja/gestor/tentativa única; migration 0095 aplicada, zero autorizações.
