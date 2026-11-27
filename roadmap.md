@@ -2,7 +2,7 @@
 
 ## Fase 3.1 — Primeira subconta Asaas Sandbox controlada — 2026-11-27
 
-- [ ] Localizar somente uma loja dedicada de homologação; não criar loja/usuário nem usar lojistas comerciais.
+- [ ] Criar somente a loja dedicada “ShopDrive — Homologação Asaas” (`shopdrive-homologacao-asaas`, plano Grátis), autorizada pelo usuário; aguardando definição do gestor obrigatório, sem usar lojistas comerciais.
 - [ ] Apresentar loja, gestor e payload sanitizado fictício; aguardar confirmação explícita antes de autorizar ou chamar o Asaas.
 - [ ] Após confirmação: autorização Master temporária de uso único e exatamente um `create` Sandbox, sem retry.
 - [ ] Validar persistência criptografada, autenticação da subconta, webhooks reais, isolamento e consumo da autorização; relatar pendências sem fabricar evidências.
