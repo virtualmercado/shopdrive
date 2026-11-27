@@ -71,6 +71,7 @@ function fixture(overrides: Partial<AsaasProvisioningDeps> = {}) {
     canManageStore: async (actor, storeId) => actor === ACTOR && managed.has(storeId),
     getInstitutionalEmail: async () => "institucional@shopdrive.example.test",
     isAdmin: async () => false,
+    getOnboardingAccount: async () => null,
     reconcileEvents: async () => ({ state: "deferred" }),
     begin: async () => ({ state: "claimed", attemptToken: ATTEMPT }),
     capture: async (value) => { captures.push(value); return true; },

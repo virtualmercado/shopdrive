@@ -1,5 +1,13 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 4.1 — Onboarding e consulta documental Asaas Sandbox — 2026-11-27
+
+- [x] Ação `inspect_onboarding` na função existente, somente Master e restrita à loja/conta de homologação; credencial da própria subconta, intervalo de 15 segundos sem espera artificial, nenhuma migration, persistência documental ou escrita externa.
+- [x] Projeções sanitizadas para grupos aprovados/pendentes/rejeitados/em análise/CUSTOM/futuros, canal por `onboardingUrl` e Webhook; URLs individualizadas, dados pessoais e tokens fora de logs e respostas não autorizadas.
+- [x] 75 testes Asaas aprovados (14 novos), Deno check e build OK; isolamento entre lojas, Master, Production, falhas e configuração de 16 eventos cobertos.
+- [x] Exatamente três GET reais Sandbox (documentos, status e Webhooks), sem repetição: 1 grupo IDENTIFICATION APPROVED, nenhuma pendência/rejeição/URL; conta active com quatro áreas APPROVED; 1 Webhook correspondente, habilitado, sequencial, não interrompido, API v3 e 16 eventos exatos.
+- [x] Estado final preservado: 1 conta, 0 clientes, 0 cobranças, 4 eventos processados, `status_revision=5`, nenhuma autorização de criação disponível e somente a flag visual da Varejo habilitada. Fase encerrada; próxima etapa aguarda autorização.
+
 ## Fase 3.1 — Primeira subconta Asaas Sandbox controlada — 2026-11-27
 
 - [x] Loja dedicada “ShopDrive — Homologação Asaas” (`shopdrive-homologacao-asaas`, `store_id` `323c7e89-7d28-492f-b3bc-be9f7f014bf0`, plano Grátis, sem vínculo MULTILOJA) e gestor dedicado (`suporte@shopdrive.com.br`) criados pelo cadastro limpo, sem alterar lojas comerciais.

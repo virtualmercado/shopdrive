@@ -175,3 +175,132 @@ export function accountNumberFromResponse(value: unknown): string | null {
   }
   return null;
 }
+
+// Phase 4.1 read-only onboarding projections. Personal payloads and secrets stay out.
+const DOCUMENT_STATUSES = new Set(["NOT_SENT", "PENDING", "APPROVED", "REJECTED", "IGNORED"]);
+const DOCUMENT_TYPES = new Set([
+  "ALLOW_BANK_ACCOUNT_DEPOSIT_STATEMENT", "CUSTOM", "EMANCIPATION_OF_MINORS",
+  "ENTREPRENEUR_REQUIREMENT", "IDENTIFICATION_SELFIE", "IDENTIFICATION", "INVOICE",
+  "MEI_CERTIFICATE", "MINUTES_OF_CONSTITUTION", "MINUTES_OF_ELECTION",
+  "POWER_OF_ATTORNEY", "SOCIAL_CONTRACT",
+]);
+
+function safeToken(value: unknown): string | null {
+  return typeof value === "string" && /^[A-Z0-9_]{1,100}$/.test(value) ? value : null;
+}
+
+function safeText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim().replace(/[\u0000-\u001f\u007f]/g, "");
+  return text && text.length <= max ? text : null;
+}
+
+function safeOnboardingUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseAsaasDocumentGroups(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const root = value as Record<string, unknown>;
+  if (!Array.isArray(root.data)) return null;
+  const summary = { total: root.data.length, notSent: 0, pending: 0, approved: 0, rejected: 0, ignored: 0, unknown: 0 };
+  const groups: Array<Record<string, unknown>> = [];
+
+  for (const item of root.data) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const raw = item as Record<string, unknown>;
+    const id = optionalIdentifier(raw.id);
+    if (!id) return null;
+    const status = safeToken(raw.status);
+    const type = safeToken(raw.type);
+    const statusKnown = status !== null && DOCUMENT_STATUSES.has(status);
+    const typeKnown = type !== null && DOCUMENT_TYPES.has(type);
+    if (status === "NOT_SENT") summary.notSent += 1;
+    else if (status === "PENDING") summary.pending += 1;
+    else if (status === "APPROVED") summary.approved += 1;
+    else if (status === "REJECTED") summary.rejected += 1;
+    else if (status === "IGNORED") summary.ignored += 1;
+    else summary.unknown += 1;
+
+    const onboardingUrl = safeOnboardingUrl(raw.onboardingUrl);
+    const documents = Array.isArray(raw.documents) ? raw.documents.map((document) => {
+      if (!document || typeof document !== "object" || Array.isArray(document)) return null;
+      const entry = document as Record<string, unknown>;
+      const documentId = optionalIdentifier(entry.id);
+      return documentId ? { id: documentId, status: safeToken(entry.status) } : null;
+    }).filter((document) => document !== null) : [];
+    const responsibleTypes = raw.responsible && typeof raw.responsible === "object" && !Array.isArray(raw.responsible) &&
+      Array.isArray((raw.responsible as Record<string, unknown>).type)
+      ? ((raw.responsible as Record<string, unknown>).type as unknown[]).map(safeToken).filter((type) => type !== null)
+      : [];
+
+    groups.push({
+      id,
+      status,
+      statusKnown,
+      type,
+      typeKnown,
+      title: safeText(raw.title, 300),
+      description: safeText(raw.description, 1000),
+      responsibleTypes,
+      onboardingUrl,
+      onboardingUrlExpirationDate: safeText(raw.onboardingUrlExpirationDate, 64),
+      // Only an actionable rejected/not-sent group without an external URL uses the API channel.
+      apiSubmissionAllowed: onboardingUrl === null && (status === "NOT_SENT" || status === "REJECTED"),
+      documents,
+    });
+  }
+
+  return {
+    hasRejectReasons: typeof root.rejectReasons === "string" && root.rejectReasons.trim().length > 0,
+    summary,
+    groups,
+  };
+}
+
+export function parseAsaasWebhookConfiguration(value: unknown, expectedUrl: string): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const data = (value as Record<string, unknown>).data;
+  if (!Array.isArray(data)) return null;
+  const matches = data.filter((item): item is Record<string, unknown> =>
+    !!item && typeof item === "object" && !Array.isArray(item) &&
+    (item as Record<string, unknown>).url === expectedUrl
+  );
+  if (matches.length !== 1) {
+    return { matched: false, matchingCount: matches.length, configurationValid: false, expectedEventCount: ASAAS_ACCOUNT_STATUS_EVENTS.length };
+  }
+  const webhook = matches[0];
+  const events = Array.isArray(webhook.events) ? webhook.events.map(safeToken).filter((event): event is string => event !== null) : [];
+  const configured = new Set(events);
+  const expected = new Set<string>(ASAAS_ACCOUNT_STATUS_EVENTS);
+  const missingEvents = [...expected].filter((event) => !configured.has(event));
+  const unexpectedEvents = [...configured].filter((event) => !expected.has(event));
+  const enabled = webhook.enabled === true;
+  const sequential = webhook.sendType === "SEQUENTIALLY";
+  const notInterrupted = webhook.interrupted === false;
+  const apiVersion = typeof webhook.apiVersion === "number" ? webhook.apiVersion : null;
+  // The read API may omit authToken; its presence is neither required nor echoed.
+  const configurationValid = events.length === expected.size && missingEvents.length === 0 && unexpectedEvents.length === 0 &&
+    enabled && sequential && notInterrupted && apiVersion === 3;
+  return {
+    matched: true,
+    matchingCount: 1,
+    id: optionalIdentifier(webhook.id),
+    url: expectedUrl,
+    eventCount: events.length,
+    expectedEventCount: expected.size,
+    missingEvents,
+    unexpectedEvents,
+    enabled,
+    sequential,
+    notInterrupted,
+    apiVersion,
+    configurationValid,
+  };
+}

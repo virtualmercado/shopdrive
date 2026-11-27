@@ -10,6 +10,8 @@ import {
   normalizeInstitutionalEmail,
   optionalIdentifier,
   parseAsaasAccountStatuses,
+  parseAsaasDocumentGroups,
+  parseAsaasWebhookConfiguration,
   sanitizeAsaasAccount,
 } from "../_shared/asaasSubaccount.ts";
 
@@ -43,12 +45,19 @@ export interface FailInput {
   accountNumber?: string | null;
 }
 
+export interface OnboardingAccount {
+  accountId: string;
+  encryptedApiKey: string;
+  createdAt: string;
+}
+
 export interface AsaasProvisioningDeps {
   getUserId: (bearer: string) => Promise<string | null>;
   canManageStore: (actor: string, storeId: string) => Promise<boolean>;
   getInstitutionalEmail: () => Promise<string | null>;
   begin: (actor: string, storeId: string, webhookTokenHash: string, authorizationId: string) => Promise<BeginResult | null>;
   isAdmin: (actor: string) => Promise<boolean>;
+  getOnboardingAccount: (storeId: string) => Promise<OnboardingAccount | null>;
   reconcileEvents: (storeId: string) => Promise<Record<string, unknown>>;
   capture: (input: CaptureInput) => Promise<boolean>;
   complete: (input: CompleteInput) => Promise<boolean>;
@@ -231,6 +240,83 @@ export async function runAsaasSubaccountCreate(
   }
 }
 
+const PHASE_4_1_STORE_ID = "323c7e89-7d28-492f-b3bc-be9f7f014bf0";
+const PHASE_4_1_ACCOUNT_ID = "111ce0e7-8dd0-4348-97bd-4b25add64fb0";
+
+/** Three explicit reads, never a scheduled poll or a document/status write. */
+export async function runAsaasOnboardingInspection(
+  actor: string,
+  input: Record<string, unknown>,
+  deps: AsaasProvisioningDeps,
+): Promise<Result> {
+  if (input.action !== "inspect_onboarding") return error(400, "invalid_action");
+  if (input.environment !== undefined && input.environment !== "sandbox") {
+    return error(input.environment === "production" ? 403 : 400, input.environment === "production" ? "ASAAS_PRODUCTION_BLOCKED" : "ASAAS_INVALID_ENVIRONMENT");
+  }
+  if (!isUuid(input.storeId)) return error(400, "invalid_store_id");
+  if (!(await deps.isAdmin(actor).catch(() => false))) return error(403, "forbidden");
+  if (input.storeId !== PHASE_4_1_STORE_ID) return error(403, "forbidden");
+  try {
+    assertAsaasPhase2Environment(deps.env("ASAAS_ENVIRONMENT")?.trim());
+  } catch (caught) {
+    const sanitized = sanitizeAsaasError(caught);
+    return error(sanitized.code === "ASAAS_PRODUCTION_BLOCKED" ? 403 : 503, sanitized.code);
+  }
+  const expectedWebhookUrl = webhookUrl(deps.env("SUPABASE_URL"));
+  if (!expectedWebhookUrl) return error(503, "ASAAS_WEBHOOK_URL_NOT_CONFIGURED");
+
+  let key = "";
+  try {
+    const account = await deps.getOnboardingAccount(input.storeId);
+    if (!account || account.accountId !== PHASE_4_1_ACCOUNT_ID || !account.encryptedApiKey) {
+      return error(409, "ASAAS_ACCOUNT_BINDING_MISMATCH");
+    }
+    const createdAt = Date.parse(account.createdAt);
+    if (!Number.isFinite(createdAt) || createdAt > Date.now()) return error(409, "ASAAS_INVALID_ACCOUNT_CREATION_DATE");
+    if (Date.now() - createdAt < 15_000) return error(409, "ASAAS_DOCUMENTS_TOO_EARLY");
+
+    key = await decryptSubaccountApiKey(account.encryptedApiKey, deps.env("ASAAS_SUBACCOUNT_ENCRYPTION_KEY") ?? "");
+    const documentResponse = await asaasRequest({
+      environment: "sandbox", apiKey: key, path: "/myAccount/documents", method: "GET", fetchImpl: deps.fetchImpl,
+    });
+    const documents = parseAsaasDocumentGroups(documentResponse);
+    if (!documents) throw new AsaasError("ASAAS_INVALID_RESPONSE");
+
+    // The same official status parser/mapping used by creation and event reconciliation.
+    const statusResponse = await asaasRequest({
+      environment: "sandbox", apiKey: key, path: "/myAccount/status", method: "GET", fetchImpl: deps.fetchImpl,
+    });
+    const statuses = parseAsaasAccountStatuses(statusResponse);
+    if (!statuses) throw new AsaasError("ASAAS_INVALID_RESPONSE");
+
+    const webhookResponse = await asaasRequest({
+      environment: "sandbox", apiKey: key, path: "/webhooks", method: "GET", fetchImpl: deps.fetchImpl,
+    });
+    const webhook = parseAsaasWebhookConfiguration(webhookResponse, expectedWebhookUrl);
+    if (!webhook) throw new AsaasError("ASAAS_INVALID_RESPONSE");
+
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        state: "inspected",
+        environment: "sandbox",
+        storeId: input.storeId,
+        accountId: account.accountId,
+        documents,
+        officialAccount: { ...statuses, status: deriveAsaasAccountStatus(statuses) },
+        webhook,
+      },
+    };
+  } catch (caught) {
+    const sanitized = sanitizeAsaasError(caught);
+    const status = sanitized.code === "ASAAS_TIMEOUT" ? 504 : sanitized.code === "ASAAS_RATE_LIMITED" ? 429 : 502;
+    return error(status, sanitized.code);
+  } finally {
+    key = "";
+  }
+}
+
 export async function handleAsaasManageSubaccount(req: Request, deps: AsaasProvisioningDeps): Promise<Result> {
   if (req.method !== "POST") return error(405, "method_not_allowed");
   const authorization = req.headers.get("Authorization") ?? "";
@@ -248,6 +334,9 @@ export async function handleAsaasManageSubaccount(req: Request, deps: AsaasProvi
   }
   if (!input || typeof input !== "object" || Array.isArray(input)) return error(400, "invalid_input");
   const parsed = input as Record<string, unknown>;
+  if (parsed.action === "inspect_onboarding") {
+    return await runAsaasOnboardingInspection(actor, parsed, deps);
+  }
   if (parsed.action === "reconcile_events") {
     if (parsed.environment !== undefined && parsed.environment !== "sandbox") return error(403, "ASAAS_PRODUCTION_BLOCKED");
     if (!isUuid(parsed.storeId)) return error(400, "invalid_store_id");

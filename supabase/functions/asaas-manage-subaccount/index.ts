@@ -41,6 +41,14 @@ Deno.serve(async (req) => {
       return typeof data?.setting_value === "string" ? data.setting_value : null;
     },
     isAdmin: async (actor) => await rpc("has_role", { _user_id: actor, _role: "admin" }) === true,
+    getOnboardingAccount: async (storeId) => {
+      const { data, error } = await admin.from("store_asaas_accounts")
+        .select("asaas_account_id,encrypted_api_key,created_at")
+        .eq("store_id", storeId).eq("environment", "sandbox").maybeSingle();
+      if (error) throw new Error("ASAAS_DATABASE_ERROR");
+      if (!data?.asaas_account_id || !data.encrypted_api_key || !data.created_at) return null;
+      return { accountId: data.asaas_account_id, encryptedApiKey: data.encrypted_api_key, createdAt: data.created_at };
+    },
     reconcileEvents: createAsaasEventReconciler(admin, (name) => Deno.env.get(name), fetch),
     begin: async (actor, storeId, webhookTokenHash, authorizationId) =>
       await rpc("begin_asaas_subaccount_creation", {
