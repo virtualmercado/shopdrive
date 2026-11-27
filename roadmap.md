@@ -3,9 +3,11 @@
 ## Fase 3.1 — Primeira subconta Asaas Sandbox controlada — 2026-11-27
 
 - [x] Loja dedicada “ShopDrive — Homologação Asaas” (`shopdrive-homologacao-asaas`, `store_id` `323c7e89-7d28-492f-b3bc-be9f7f014bf0`, plano Grátis, sem vínculo MULTILOJA) e gestor dedicado (`suporte@shopdrive.com.br`) criados pelo cadastro limpo, sem alterar lojas comerciais.
-- [ ] Aguardando confirmação explícita do usuário sobre a loja, o gestor e o payload sanitizado fictício antes de conceder a autorização Master temporária ou chamar o Asaas.
-- [ ] Após confirmação: autorização Master temporária de uso único e exatamente um `create` Sandbox, sem retry.
-- [ ] Validar persistência criptografada, autenticação da subconta, webhooks reais, isolamento e consumo da autorização; relatar pendências sem fabricar evidências.
+- [x] Confirmação explícita recebida em 27/11: exclusivamente loja/gestor de homologação e payload fictício previamente apresentado.
+- [x] Autorização Master de 30 minutos emitida pela RPC existente e consumida atomicamente; exatamente um `create` Sandbox retornou 201/created, sem retry.
+- [x] Credencial AES-256-GCM v1 e fingerprint SHA-256 confirmados sem exposição; GET autenticado da própria subconta retornou todas as áreas APPROVED, estado active.
+- [x] Quatro webhooks reais autenticados e processados, payloads sanitizados, conta correspondente e sincronização autoritativa; 1 conta, 0 clientes, 0 cobranças, 4 eventos; nenhuma outra loja autorizada e flag visual Varejo preservada.
+- [x] Fase 3.1 encerrada com relatório; nenhuma chamada Production, alteração de código financeiro ou loja comercial. Reentrega real de evento duplicado não observada; configuração dos 16 eventos enviada na criação aceita, sem leitura independente da configuração. Fase 4 não iniciada, depende de nova autorização.
 
 ## Validação complementar Asaas Fase 3 — 2026-11-27
 
