@@ -7,6 +7,9 @@ import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { useAsaasHomologationAccess } from "@/hooks/useAsaasHomologationAccess";
 import { AsaasFinancialServicesSeal } from "@/components/asaas/AsaasFinancialServicesSeal";
 import { AsaasFinancialSupportCard } from "@/components/asaas/AsaasFinancialSupportCard";
+import { AsaasAccountStatusPanel } from "@/components/asaas/AsaasAccountStatusPanel";
+import { useAsaasMerchantAccountStatus } from "@/hooks/useAsaasMerchantAccountStatus";
+import { unavailableAsaasMerchantStatus } from "@/lib/asaasAccountStatus";
 import {
   AsaasSubaccountFormPreview,
   type AsaasStorePrefill,
@@ -37,10 +40,12 @@ export default function AsaasBaasActivation() {
   const navigate = useNavigate();
   const { storeId, client: scopedClient } = useMerchantStore();
   const { enabled, loading } = useAsaasHomologationAccess();
+  const accountStatus = useAsaasMerchantAccountStatus(enabled);
   const [prefill, setPrefill] = useState<AsaasStorePrefill>(EMPTY_PREFILL);
 
   useEffect(() => {
-    if (!enabled || !storeId) return;
+    setPrefill(EMPTY_PREFILL);
+    if (!enabled || !storeId || accountStatus.isHomologation) return;
     let active = true;
 
     void scopedClient
@@ -70,7 +75,7 @@ export default function AsaasBaasActivation() {
     return () => {
       active = false;
     };
-  }, [enabled, storeId, scopedClient]);
+  }, [enabled, storeId, scopedClient, accountStatus.isHomologation]);
 
   if (loading) {
     return (
@@ -134,39 +139,56 @@ export default function AsaasBaasActivation() {
           </CardContent>
         </Card>
 
-        {/* Visual 5-step onboarding journey (homologation preview only) */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Jornada de ativação</CardTitle>
-            <CardDescription>{ASAAS_REGULATORY_COPY.journeyStageNotice}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {ASAAS_JOURNEY_STEPS.map((item) => (
-                <li
-                  key={item.step}
-                  className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col justify-between gap-2"
-                >
-                  <div className="space-y-1">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                      {item.step}
-                    </span>
-                    <p className="text-sm font-medium text-foreground leading-snug">{item.title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                    {ASAAS_REGULATORY_COPY.journeyStageNotice}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
+        {accountStatus.isHomologation ? (
+          accountStatus.loading ? (
+            <Card>
+              <CardContent className="flex min-h-[240px] items-center justify-center">
+                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" aria-label="Consultando situação cadastral" />
+              </CardContent>
+            </Card>
+          ) : (
+            <AsaasAccountStatusPanel
+              status={accountStatus.result ?? unavailableAsaasMerchantStatus(storeId ?? undefined)}
+              onRetry={accountStatus.retry}
+            />
+          )
+        ) : (
+          <>
+            {/* Visual 5-step onboarding journey preserved for visual-only stores. */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Jornada de ativação</CardTitle>
+                <CardDescription>{ASAAS_REGULATORY_COPY.journeyStageNotice}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {ASAAS_JOURNEY_STEPS.map((item) => (
+                    <li
+                      key={item.step}
+                      className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col justify-between gap-2"
+                    >
+                      <div className="space-y-1">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          {item.step}
+                        </span>
+                        <p className="text-sm font-medium text-foreground leading-snug">{item.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
+                        {ASAAS_REGULATORY_COPY.journeyStageNotice}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
 
-        {/* Evidence form (no submission, no persistence, no external API calls) */}
-        <AsaasSubaccountFormPreview initialData={prefill} />
+            {/* Evidence form (no submission, no persistence, no external API calls) */}
+            <AsaasSubaccountFormPreview initialData={prefill} />
+          </>
+        )}
 
         {/* Reusable Asaas financial support channels */}
         <AsaasFinancialSupportCard />

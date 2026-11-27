@@ -51,6 +51,17 @@ export interface OnboardingAccount {
   createdAt: string;
 }
 
+export interface MerchantAccountRecord {
+  accountId: string;
+  status: string;
+  commercialStatus: string | null;
+  bankAccountStatus: string | null;
+  documentStatus: string | null;
+  generalApprovalStatus: string | null;
+  lastSyncAt: string | null;
+  lastErrorCode: string | null;
+}
+
 export interface AsaasProvisioningDeps {
   getUserId: (bearer: string) => Promise<string | null>;
   canManageStore: (actor: string, storeId: string) => Promise<boolean>;
@@ -58,6 +69,7 @@ export interface AsaasProvisioningDeps {
   begin: (actor: string, storeId: string, webhookTokenHash: string, authorizationId: string) => Promise<BeginResult | null>;
   isAdmin: (actor: string) => Promise<boolean>;
   getOnboardingAccount: (storeId: string) => Promise<OnboardingAccount | null>;
+  getMerchantAccount: (storeId: string) => Promise<MerchantAccountRecord | null>;
   reconcileEvents: (storeId: string) => Promise<Record<string, unknown>>;
   capture: (input: CaptureInput) => Promise<boolean>;
   complete: (input: CompleteInput) => Promise<boolean>;
@@ -243,6 +255,86 @@ export async function runAsaasSubaccountCreate(
 const PHASE_4_1_STORE_ID = "323c7e89-7d28-492f-b3bc-be9f7f014bf0";
 const PHASE_4_1_ACCOUNT_ID = "111ce0e7-8dd0-4348-97bd-4b25add64fb0";
 
+function merchantStateResult(
+  storeId: string,
+  state: string,
+  account?: Record<string, unknown>,
+): Result {
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      state,
+      environment: "sandbox",
+      storeId,
+      ...(account ? { account: sanitizeAsaasAccount(account) } : {}),
+    },
+  };
+}
+
+/** Persisted webhook state only: no credential read, provider request or status write. */
+export async function runAsaasMerchantAccountStatus(
+  actor: string,
+  input: Record<string, unknown>,
+  deps: AsaasProvisioningDeps,
+): Promise<Result> {
+  if (input.action !== "get_my_account_status") return error(400, "invalid_action");
+  if (input.environment !== undefined && input.environment !== "sandbox") {
+    return error(input.environment === "production" ? 403 : 400, input.environment === "production" ? "ASAAS_PRODUCTION_BLOCKED" : "ASAAS_INVALID_ENVIRONMENT");
+  }
+  if (!isUuid(input.storeId)) return error(400, "invalid_store_id");
+  if (input.storeId !== PHASE_4_1_STORE_ID || actor !== input.storeId) return error(403, "forbidden");
+  try {
+    assertAsaasPhase2Environment(deps.env("ASAAS_ENVIRONMENT")?.trim());
+  } catch (caught) {
+    const sanitized = sanitizeAsaasError(caught);
+    return error(sanitized.code === "ASAAS_PRODUCTION_BLOCKED" ? 403 : 503, sanitized.code);
+  }
+
+  let record: MerchantAccountRecord | null;
+  try {
+    record = await deps.getMerchantAccount(input.storeId);
+  } catch {
+    return merchantStateResult(input.storeId, "unavailable");
+  }
+  if (!record) return merchantStateResult(input.storeId, "no_account");
+  if (record.accountId !== PHASE_4_1_ACCOUNT_ID) {
+    return merchantStateResult(input.storeId, "reconciliation_required");
+  }
+
+  const statuses = parseAsaasAccountStatuses({
+    commercialInfo: record.commercialStatus,
+    bankAccountInfo: record.bankAccountStatus,
+    documentation: record.documentStatus,
+    general: record.generalApprovalStatus,
+  });
+  if (!statuses) return merchantStateResult(input.storeId, "unavailable");
+  const derivedStatus = deriveAsaasAccountStatus(statuses);
+  const lastSyncTime = record.lastSyncAt ? Date.parse(record.lastSyncAt) : Number.NaN;
+  if (!Number.isFinite(lastSyncTime) || lastSyncTime > Date.now()) {
+    return merchantStateResult(input.storeId, "unavailable");
+  }
+  const account = {
+    storeId: input.storeId,
+    environment: "sandbox",
+    status: derivedStatus,
+    commercialStatus: statuses.commercialInfo,
+    bankAccountStatus: statuses.bankAccountInfo,
+    documentStatus: statuses.documentation,
+    generalApprovalStatus: statuses.general,
+    lastSyncAt: new Date(lastSyncTime).toISOString(),
+  };
+  if (record.lastErrorCode === "ASAAS_RECONCILIATION_REQUIRED") {
+    return merchantStateResult(input.storeId, "reconciliation_required", account);
+  }
+  if (record.lastErrorCode) return merchantStateResult(input.storeId, "communication_failed", account);
+  const allAreasApproved = Object.values(statuses).every((status) => status === "APPROVED");
+  if (record.status !== derivedStatus || (derivedStatus === "active" && !allAreasApproved)) {
+    return merchantStateResult(input.storeId, "reconciliation_required", account);
+  }
+  return merchantStateResult(input.storeId, derivedStatus, account);
+}
+
 /** Three explicit reads, never a scheduled poll or a document/status write. */
 export async function runAsaasOnboardingInspection(
   actor: string,
@@ -334,6 +426,9 @@ export async function handleAsaasManageSubaccount(req: Request, deps: AsaasProvi
   }
   if (!input || typeof input !== "object" || Array.isArray(input)) return error(400, "invalid_input");
   const parsed = input as Record<string, unknown>;
+  if (parsed.action === "get_my_account_status") {
+    return await runAsaasMerchantAccountStatus(actor, parsed, deps);
+  }
   if (parsed.action === "inspect_onboarding") {
     return await runAsaasOnboardingInspection(actor, parsed, deps);
   }

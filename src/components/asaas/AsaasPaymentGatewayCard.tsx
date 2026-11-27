@@ -2,8 +2,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAsaasHomologationAccess } from "@/hooks/useAsaasHomologationAccess";
+import { useMerchantStore } from "@/hooks/useMerchantStore";
 import { AsaasFinancialServicesSeal } from "@/components/asaas/AsaasFinancialServicesSeal";
 import { ASAAS_REGULATORY_COPY } from "@/lib/asaasCompliance";
+import { ASAAS_HOMOLOGATION_STORE_ID } from "@/lib/asaasAccountStatus";
 import { ArrowRight } from "lucide-react";
 
 /**
@@ -14,6 +16,8 @@ import { ArrowRight } from "lucide-react";
 export function AsaasPaymentGatewayCard() {
   const navigate = useNavigate();
   const { enabled, loading } = useAsaasHomologationAccess();
+  const { storeId } = useMerchantStore();
+  const isHomologation = storeId === ASAAS_HOMOLOGATION_STORE_ID;
 
   if (loading || !enabled) {
     return null;
@@ -42,7 +46,7 @@ export function AsaasPaymentGatewayCard() {
           onClick={() => navigate("/lojista/payment-methods/asaas")}
           className="w-full sm:w-auto shrink-0 gap-2"
         >
-          {ASAAS_REGULATORY_COPY.cardActionLabel}
+          {isHomologation ? "Consultar situação cadastral" : ASAAS_REGULATORY_COPY.cardActionLabel}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </CardContent>

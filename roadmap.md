@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 4.2 — Situação cadastral Asaas na interface do lojista — 2026-11-27
+
+- [ ] Consulta local sanitizada na função existente, exclusiva do titular da loja de homologação, sem API Asaas, polling ou ampliação da inspeção Master.
+- [ ] Reutilizar a rota e os componentes visuais; painel para estados reais e simulados, limpeza de contexto/sessão e CTA específico da homologação.
+- [ ] Habilitar somente a flag visual adicional da homologação, preservando Varejo e todas as demais lojas; sem autorização operacional.
+- [ ] Regressões das fases anteriores, responsividade e build; não publicar antes da aprovação visual.
+
 ## Fase 4.1 — Onboarding e consulta documental Asaas Sandbox — 2026-11-27
 
 - [x] Ação `inspect_onboarding` na função existente, somente Master e restrita à loja/conta de homologação; credencial da própria subconta, intervalo de 15 segundos sem espera artificial, nenhuma migration, persistência documental ou escrita externa.

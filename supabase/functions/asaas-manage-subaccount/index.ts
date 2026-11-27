@@ -49,6 +49,23 @@ Deno.serve(async (req) => {
       if (!data?.asaas_account_id || !data.encrypted_api_key || !data.created_at) return null;
       return { accountId: data.asaas_account_id, encryptedApiKey: data.encrypted_api_key, createdAt: data.created_at };
     },
+    getMerchantAccount: async (storeId) => {
+      const { data, error } = await admin.from("store_asaas_accounts")
+        .select("asaas_account_id,status,commercial_status,bank_account_status,document_status,general_approval_status,last_sync_at,last_error_code")
+        .eq("store_id", storeId).eq("environment", "sandbox").maybeSingle();
+      if (error) throw new Error("ASAAS_DATABASE_ERROR");
+      if (!data) return null;
+      return {
+        accountId: data.asaas_account_id,
+        status: data.status,
+        commercialStatus: data.commercial_status,
+        bankAccountStatus: data.bank_account_status,
+        documentStatus: data.document_status,
+        generalApprovalStatus: data.general_approval_status,
+        lastSyncAt: data.last_sync_at,
+        lastErrorCode: data.last_error_code,
+      };
+    },
     reconcileEvents: createAsaasEventReconciler(admin, (name) => Deno.env.get(name), fetch),
     begin: async (actor, storeId, webhookTokenHash, authorizationId) =>
       await rpc("begin_asaas_subaccount_creation", {

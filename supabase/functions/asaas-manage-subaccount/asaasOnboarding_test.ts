@@ -66,6 +66,7 @@ async function fixture(options: {
         ? { accountId: ACCOUNT, encryptedApiKey, createdAt: "2026-11-27T20:00:00.000Z" }
         : options.account;
     },
+    getMerchantAccount: async () => null,
     reconcileEvents: async () => ({ state: "deferred" }),
     capture: async () => false,
     complete: async () => false,
