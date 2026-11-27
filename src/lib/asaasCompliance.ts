@@ -34,11 +34,11 @@ export const ASAAS_SUPPORT = Object.freeze({
 });
 
 export const ASAAS_REGULATORY_COPY = Object.freeze({
-  cardTitle: "Asaas — Boletos e serviços financeiros",
+  cardTitle: "Asaas — Serviços financeiros",
   cardDescription:
     "Emita e acompanhe cobranças diretamente pela ShopDrive utilizando os serviços financeiros do Asaas.",
   cardProviderNotice: "Serviços financeiros prestados pelo Asaas.",
-  cardActionLabel: "Ativar boletos Asaas",
+  cardActionLabel: "Ativar serviços financeiros Asaas",
   pageTitle: "Ativar serviços financeiros Asaas",
   pageSubtitle:
     "Conecte sua loja aos serviços financeiros do Asaas para emitir e acompanhar cobranças diretamente pela ShopDrive.",

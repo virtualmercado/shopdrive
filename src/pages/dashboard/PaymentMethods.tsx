@@ -762,8 +762,8 @@ const PaymentMethodsContent = () => {
                     <FileText className="h-6 w-6" style={{ color: primaryColor }} />
                   </div>
                   <div>
-                    <h3 className="font-medium">Boleto bancário</h3>
-                    <p className="text-sm text-muted-foreground">Pagamento via boleto</p>
+                    <h3 className="font-medium">Boleto no checkout</h3>
+                    <p className="text-sm text-muted-foreground">Permita que o cliente escolha boleto como forma de pagamento durante a compra.</p>
                   </div>
                 </div>
                 <Switch
@@ -779,7 +779,7 @@ const PaymentMethodsContent = () => {
               {boletoEnabled && (
                 <div className="space-y-4 pt-4 border-t">
                   <div className="space-y-2">
-                    <Label>Gateway para Boleto *</Label>
+                    <Label>Gateway do boleto no checkout *</Label>
                     <Select value={boletoProvider} onValueChange={setBoletoProvider}>
                       <SelectTrigger style={{ borderColor: primaryColor }}>
                         <SelectValue placeholder="Selecione o gateway" />

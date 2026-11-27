@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Refinamento textual Gateway / Asaas — 2026-11-27
+
+- [x] Diferenciar Boleto no checkout e Asaas — Serviços financeiros somente nos textos solicitados.
+- [x] Validar controles e navegação desktop/mobile com dados fictícios; 31 testes unitários, regressão multiloja e compilação automática OK.
+- [x] Conferir somente leitura: uma flag habilitada (Varejo), quatro tabelas operacionais vazias; nenhuma chamada à API Asaas.
+- [ ] Publicar somente o refinamento após validação e informar a versão.
+
 ## Fase 3 — Subcontas e Webhooks Asaas BaaS Sandbox — 2026-11-24
 
 - [x] Validar autorização multiloja, dados PF/PJ e e-mail institucional existente.
