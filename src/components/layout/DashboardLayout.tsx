@@ -52,6 +52,7 @@ const VM_PRIMARY_COLOR = '#6a1b9a';
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  pageTitle?: string;
 }
 
 interface TemplateEditorContext {
@@ -66,7 +67,7 @@ interface TemplateEditorCredentials {
   password: string;
 }
 
-const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children, pageTitle }: DashboardLayoutProps) => {
   const { storeId, client: merchantClient, delegated, stores } = useMerchantStore();
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [storeSlug, setStoreSlug] = useState<string>("");
@@ -566,7 +567,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <h1 className="text-lg md:text-2xl font-bold text-foreground pl-10 md:pl-0 truncate max-w-full">
                 {isTemplateEditorMode 
                   ? `Editando Template: ${templateName || '...'}` 
-                  : menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
+                  : pageTitle || menuItems.find(item => item.path === location.pathname)?.label || "Dashboard"
                 }
               </h1>
               {!isTemplateEditorMode && <StoreSwitcher />}

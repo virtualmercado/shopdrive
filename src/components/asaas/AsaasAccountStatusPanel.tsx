@@ -7,7 +7,7 @@ import { AlertTriangle, Check, CheckCircle2, Clock3, FileWarning, RefreshCw, Shi
 const STATUS_CONTENT = {
   active: {
     title: "Conta Asaas aprovada",
-    description: "O backend confirmou a conta ativa e a aprovação geral do cadastro.",
+    description: "Sua conta Asaas está ativa e seu cadastro foi aprovado no ambiente Sandbox.",
   },
   awaiting_documents: {
     title: "Documentação pendente",

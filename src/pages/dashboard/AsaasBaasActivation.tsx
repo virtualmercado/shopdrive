@@ -79,7 +79,7 @@ export default function AsaasBaasActivation() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Serviços financeiros Asaas">
         <div className="flex items-center justify-center min-h-[320px]">
           <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
         </div>
@@ -91,8 +91,11 @@ export default function AsaasBaasActivation() {
     return <Navigate to="/lojista/payment-methods" replace />;
   }
 
+  const isApprovedAccount =
+    accountStatus.isHomologation && !accountStatus.loading && accountStatus.result?.state === "active";
+
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Serviços financeiros Asaas">
       <div className="space-y-6 max-w-4xl">
         <div className="flex items-center justify-between gap-4">
           <Button
@@ -112,7 +115,7 @@ export default function AsaasBaasActivation() {
           <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1.5 min-w-0">
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
-                {ASAAS_REGULATORY_COPY.pageTitle}
+                {isApprovedAccount ? "Serviços financeiros Asaas" : ASAAS_REGULATORY_COPY.pageTitle}
               </h1>
               <CardDescription className="text-sm">
                 {ASAAS_REGULATORY_COPY.pageSubtitle}
