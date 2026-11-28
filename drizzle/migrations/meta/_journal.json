@@ -673,6 +673,13 @@
       "when": 1795810174265,
       "tag": "0095_asaas_phase3_complementary",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1795839790603,
+      "tag": "0096_asaas_phase51_customer_reservation",
+      "breakpoints": true
     }
   ]
 }

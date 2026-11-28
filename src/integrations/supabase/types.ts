@@ -6786,45 +6786,73 @@ export type Database = {
       }
       store_asaas_customers: {
         Row: {
-          asaas_customer_id: string
+          asaas_customer_id: string | null
+          attempt_token: string | null
           cpf_cnpj_normalized: string
           created_at: string
           customer_profile_id: string | null
           email: string | null
           environment: string
+          external_reference: string
           id: string
+          last_error_code: string | null
+          lease_expires_at: string | null
           name: string
           phone: string | null
+          reservation_state: string
+          send_started_at: string | null
+          store_asaas_account_id: string
           store_id: string
           updated_at: string
         }
         Insert: {
-          asaas_customer_id: string
+          asaas_customer_id?: string | null
+          attempt_token?: string | null
           cpf_cnpj_normalized: string
           created_at?: string
           customer_profile_id?: string | null
           email?: string | null
           environment: string
+          external_reference?: string
           id?: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
           name: string
           phone?: string | null
+          reservation_state?: string
+          send_started_at?: string | null
+          store_asaas_account_id: string
           store_id: string
           updated_at?: string
         }
         Update: {
-          asaas_customer_id?: string
+          asaas_customer_id?: string | null
+          attempt_token?: string | null
           cpf_cnpj_normalized?: string
           created_at?: string
           customer_profile_id?: string | null
           email?: string | null
           environment?: string
+          external_reference?: string
           id?: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
           name?: string
           phone?: string | null
+          reservation_state?: string
+          send_started_at?: string | null
+          store_asaas_account_id?: string
           store_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "store_asaas_customers_account_tenant_fkey"
+            columns: ["store_asaas_account_id", "store_id", "environment"]
+            isOneToOne: false
+            referencedRelation: "store_asaas_accounts"
+            referencedColumns: ["id", "store_id", "environment"]
+          },
           {
             foreignKeyName: "store_asaas_customers_customer_profile_id_fkey"
             columns: ["customer_profile_id"]
@@ -9556,6 +9584,15 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      _lock_asaas_customer_scope: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_environment: string
+          p_store_id: string
+        }
+        Returns: undefined
+      }
       _managed_store_json: { Args: { p_store_id: string }; Returns: Json }
       _marca_assert_owner_eligible: {
         Args: { p_uid: string }
@@ -10127,6 +10164,21 @@ export type Database = {
         Args: { p_template_id: string; p_user_id: string }
         Returns: Json
       }
+      complete_asaas_customer_reservation: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_attempt_token: string
+          p_customer_id: string
+          p_document: string
+          p_environment: string
+          p_external_reference: string
+          p_match_count: number
+          p_provider_id: string
+          p_store_id: string
+        }
+        Returns: Json
+      }
       complete_asaas_subaccount_creation: {
         Args: {
           p_attempt_token: string
@@ -10647,6 +10699,17 @@ export type Database = {
         }
         Returns: Json
       }
+      record_asaas_customer_unknown: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_attempt_token: string
+          p_customer_id: string
+          p_environment: string
+          p_store_id: string
+        }
+        Returns: boolean
+      }
       record_brand_network_report_provider_id: {
         Args: { p_provider_id: string; p_queue_id: string }
         Returns: undefined
@@ -10719,6 +10782,20 @@ export type Database = {
       replace_manual_order_items: {
         Args: { p_items: Json; p_order_id: string }
         Returns: undefined
+      }
+      reserve_asaas_customer: {
+        Args: {
+          p_account_id: string
+          p_actor: string
+          p_customer_profile_id?: string
+          p_document: string
+          p_email?: string
+          p_environment: string
+          p_name: string
+          p_phone?: string
+          p_store_id: string
+        }
+        Returns: Json
       }
       reserve_order_item_stock: {
         Args: {

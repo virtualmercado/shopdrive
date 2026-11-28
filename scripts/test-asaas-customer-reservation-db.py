@@ -71,7 +71,7 @@ def setup():
     """)
     base.sql_file(ROOT / 'drizzle/migrations/0092_asaas_baas_phase1_foundation.sql')
     path = os.environ.get('ASAAS_CUSTOMER_RESERVATION_SQL')
-    migration = Path(path) if path else ROOT / 'docs/asaas-phase51-reservation-review.sql'
+    migration = Path(path) if path else ROOT / 'drizzle/migrations/0096_asaas_phase51_customer_reservation.sql'
     base.sql_file(migration)
     base.sql(f"""
     INSERT INTO public.profiles(id) VALUES('{STORE}'),('{OTHER}'),('{MASTER}');
@@ -184,6 +184,17 @@ def main():
     fail(f"UPDATE public.store_asaas_customers SET customer_profile_id='{profile_b}' WHERE id='{pending['customerId']}';",'ASAAS_CUSTOMER_PROFILE_REASSIGNMENT_BLOCKED')
     check(reserve('39053344705')['asaasCustomerId']=='cus_commercial')
     fail(f"INSERT INTO public.store_asaas_customers(store_id,environment,cpf_cnpj_normalized,name,asaas_customer_id,reservation_state) VALUES('{STORE}','sandbox','12312312312','Missing account','cus_missing','linked');",'ASAAS_CUSTOMER_ACCOUNT_REQUIRED')
+    # The approved lifecycle replaces NOT NULL without permitting fabricated IDs.
+    for state,provider,token,lease,sent,error in [
+        ('linked',None,None,None,None,'store_asaas_customers_lifecycle_check'),
+        ('linked','',None,None,None,'store_asaas_customers_lifecycle_check'),
+        ('reserved','cus_fabricated',OTHER,'2030-01-01',None,'store_asaas_customers_lifecycle_check'),
+        ('reserved',None,None,'2030-01-01',None,'store_asaas_customers_attempt_check'),
+        ('sending',None,OTHER,'2030-01-01',None,'store_asaas_customers_send_check'),
+        ('unknown',None,OTHER,'2030-01-01',None,'store_asaas_customers_send_check'),
+    ]:
+        fail(f"INSERT INTO public.store_asaas_customers(store_id,environment,store_asaas_account_id,cpf_cnpj_normalized,name,reservation_state,asaas_customer_id,attempt_token,lease_expires_at,send_started_at) VALUES('{STORE}','sandbox','{ACCOUNT}','12312312312','Lifecycle fixture',{q(state)},{q(provider)},{q(token)},{q(lease)},{q(sent)});",error)
+    subprocess.run(['deno','run','--allow-run=psql','--allow-env=PATH',str(ROOT/'scripts/asaasCustomerLocalIntegration.ts'),base.DSN],env=base.ENV,check=True)
     print(f'ALL ASAAS CUSTOMER RESERVATION CHECKS PASSED ({CHECKS} checks; 8 concurrent attempts; localhost only)')
 
 

@@ -52,7 +52,7 @@ function repeated(value: string): boolean {
   return /^(\d)\1+$/.test(value);
 }
 
-function validCpf(value: string): boolean {
+export function validCpf(value: string): boolean {
   if (value.length !== 11 || repeated(value)) return false;
   const check = (length: number) => {
     let sum = 0;
@@ -63,7 +63,7 @@ function validCpf(value: string): boolean {
   return check(9) && check(10);
 }
 
-function validCnpj(value: string): boolean {
+export function validCnpj(value: string): boolean {
   if (value.length !== 14 || repeated(value)) return false;
   const check = (length: number) => {
     const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];

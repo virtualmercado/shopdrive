@@ -7,7 +7,10 @@
 - [x] Autorização mínima recebida em 28/11 para ampliar a tabela existente e criar RPCs de reserva atômica, sem chamadas reais Asaas nem liberação da Fase 5.2.
 - [x] Revisão pontual: exclusão comercial permite somente ON DELETE SET NULL legítimo, sem reassociação; subconta NOT NULL após conferência/backfill; cliente validado pelo vínculo store_customers; todas as correspondências são examinadas antes de reutilizar/reservar.
 - [x] Proposta em docs/asaas-phase51-reservation-review.sql validada em PostgreSQL descartável: 81 verificações, 8 tentativas concorrentes, exclusão comercial preservando pagador/cobrança; regressões Fase 1 e complementar (48 assertivas + handlers reais com transporte simulado) aprovadas.
-- [ ] Aplicar SQL final revisado — aguardando aprovação específica do usuário; nenhuma migration aplicada em produção, Fases 5.2/6 continuam bloqueadas.
+- [x] Aprovação explícita recebida em 28/11; SQL revisado aplicado integralmente em transação como migration 0096; Fases 5.2/6 continuam bloqueadas.
+- [x] Serviço asaas-manage-customer implantado: somente prepare autenticado Master/local; criação/reserva executável/consulta externa/reconciliação HTTP bloqueadas, sem leitura de credenciais; validadores existentes reaproveitados e payload/evidências puros.
+- [x] Regressões finais aprovadas: 105 Deno, 87 verificações PostgreSQL + fluxo handler/RPC/leitura local, Fases 1/3/complementar (48), 12 Vitest, Deno check e build OK; função implantada recusa sem sessão/JWT sintético inválido (401).
+- [x] Relatório técnico final entregue; SQL aplicado idêntico ao aprovado; 1 conta, 0 pagadores, 0 cobranças, 4 eventos, 2 flags visuais, 0 autorizações disponíveis; sem API Asaas ou publicação de frontend. Fases 5.2/6 aguardam autorização explícita.
 - [x] Lacunas de `store_charges` registradas para Fase 6, sem alteração; zero chamadas à API Asaas e operações financeiras; Fases 5.2/6 não iniciadas.
 
 ## Fase 4.2 — Situação cadastral Asaas na interface do lojista — 2026-11-27
