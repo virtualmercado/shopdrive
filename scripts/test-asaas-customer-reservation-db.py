@@ -1,4 +1,4 @@
-"""Minimal Phase 5.1 reservation regression: disposable localhost PostgreSQL only.
+"""Reviewed Phase 5.1 proposal regression: disposable localhost PostgreSQL only.
 Synthetic actors/accounts; no hosted database, credentials or external calls.
 """
 import concurrent.futures
@@ -71,7 +71,7 @@ def setup():
     """)
     base.sql_file(ROOT / 'drizzle/migrations/0092_asaas_baas_phase1_foundation.sql')
     path = os.environ.get('ASAAS_CUSTOMER_RESERVATION_SQL')
-    migration = Path(path) if path else sorted((ROOT/'drizzle/migrations').glob('*asaas_customer_reservation*.sql'))[-1]
+    migration = Path(path) if path else ROOT / 'docs/asaas-phase51-reservation-review.sql'
     base.sql_file(migration)
     base.sql(f"""
     INSERT INTO public.profiles(id) VALUES('{STORE}'),('{OTHER}'),('{MASTER}');
@@ -85,6 +85,8 @@ def setup():
 
 def main():
     setup()
+    base.sql('CREATE TABLE public.store_customers(store_owner_id uuid, customer_id uuid REFERENCES public.customer_profiles(id) ON DELETE CASCADE, UNIQUE(store_owner_id,customer_id));')
+    check(base.sql("SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='store_asaas_customers' AND column_name='store_asaas_account_id';")=='NO')
     for args,error in [
         ((OTHER,STORE,'sandbox',ACCOUNT),'ASAAS_CUSTOMER_FORBIDDEN'),
         ((MASTER,OTHER,'sandbox',OTHER_ACCOUNT),'ASAAS_CUSTOMER_SCOPE_BLOCKED'),
@@ -152,6 +154,36 @@ def main():
     fail(f"BEGIN; SELECT public.complete_asaas_customer_reservation('{MASTER}','{STORE}','sandbox','{ACCOUNT}','{pending['customerId']}','{pending['attemptToken']}','{pending['externalReference']}','11444777000161','cus_rollback',1); SELECT 1/0; COMMIT;",'division by zero')
     check(reserve('11444777000161')['state']=='reservation_exists')
     check(complete(pending,doc='11444777000161',provider='cus_rollback')['state']=='linked')
+    # Commercial isolation is enforced both in the RPC and on direct table writes.
+    profile_a='dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+    profile_b='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+    profile_other='ffffffff-ffff-4fff-8fff-ffffffffffff'
+    base.sql(f"INSERT INTO public.customer_profiles VALUES('{profile_a}'),('{profile_b}'),('{profile_other}'); INSERT INTO public.store_customers VALUES('{STORE}','{profile_a}'),('{STORE}','{profile_b}'),('{OTHER}','{profile_other}');")
+    fail(f"SELECT public.reserve_asaas_customer('{MASTER}','{STORE}','sandbox','{ACCOUNT}','39053344705','Wrong tenant','{profile_other}');",'ASAAS_CUSTOMER_COMMERCIAL_SCOPE_BLOCKED')
+    fail(f"INSERT INTO public.store_asaas_customers(store_id,environment,store_asaas_account_id,cpf_cnpj_normalized,name,asaas_customer_id,reservation_state,customer_profile_id) VALUES('{STORE}','sandbox','{ACCOUNT}','39053344705','Wrong tenant','cus_wrongtenant','linked','{profile_other}');",'ASAAS_CUSTOMER_COMMERCIAL_SCOPE_BLOCKED')
+    commercial=reserve('39053344705',profile=profile_a)
+    another=reserve('93541134780',profile=profile_b)
+    before=base.sql('SELECT count(*) FROM public.store_asaas_customers;')
+    check(reserve('39053344705',profile=profile_b)['state']=='identity_conflict')
+    check(base.sql('SELECT count(*) FROM public.store_asaas_customers;')==before)
+    check(base.sql(f"SELECT reservation_state FROM public.store_asaas_customers WHERE id='{commercial['customerId']}';")=='reserved')
+    check(base.sql(f"SELECT reservation_state FROM public.store_asaas_customers WHERE id='{another['customerId']}';")=='reserved')
+    check(complete(commercial,doc='39053344705',provider='cus_commercial')['state']=='linked')
+    fail(f"UPDATE public.store_asaas_customers SET customer_profile_id=NULL WHERE id='{commercial['customerId']}';",'ASAAS_CUSTOMER_PROFILE_REASSIGNMENT_BLOCKED')
+    fail(f"UPDATE public.store_asaas_customers SET customer_profile_id='{profile_b}' WHERE id='{commercial['customerId']}';",'ASAAS_CUSTOMER_PROFILE_REASSIGNMENT_BLOCKED')
+    order='99999999-9999-4999-8999-999999999999'
+    base.sql(f"INSERT INTO public.orders VALUES('{order}','{STORE}'); INSERT INTO public.store_charges(store_id,order_id,environment,billing_type,value,due_date,customer_profile_id,store_asaas_customer_id) VALUES('{STORE}','{order}','sandbox','BOLETO',12.34,'2030-01-01','{profile_a}','{commercial['customerId']}');")
+    history=base.sql("SELECT row(id,external_reference,store_asaas_customer_id,value,due_date,status)::text FROM public.store_charges;")
+    payer=base.sql(f"SELECT row(id,cpf_cnpj_normalized,external_reference,asaas_customer_id,store_asaas_account_id)::text FROM public.store_asaas_customers WHERE id='{commercial['customerId']}';")
+    base.sql(f"DELETE FROM public.customer_profiles WHERE id='{profile_a}';")
+    check(base.sql(f"SELECT customer_profile_id IS NULL FROM public.store_asaas_customers WHERE id='{commercial['customerId']}';")=='t')
+    check(base.sql("SELECT customer_profile_id IS NULL FROM public.store_charges;")=='t')
+    check(base.sql("SELECT row(id,external_reference,store_asaas_customer_id,value,due_date,status)::text FROM public.store_charges;")==history)
+    check(base.sql(f"SELECT row(id,cpf_cnpj_normalized,external_reference,asaas_customer_id,store_asaas_account_id)::text FROM public.store_asaas_customers WHERE id='{commercial['customerId']}';")==payer)
+    fail(f"UPDATE public.store_asaas_customers SET customer_profile_id='{profile_b}' WHERE id='{commercial['customerId']}';",'ASAAS_CUSTOMER_PROFILE_REASSIGNMENT_BLOCKED')
+    fail(f"UPDATE public.store_asaas_customers SET customer_profile_id='{profile_b}' WHERE id='{pending['customerId']}';",'ASAAS_CUSTOMER_PROFILE_REASSIGNMENT_BLOCKED')
+    check(reserve('39053344705')['asaasCustomerId']=='cus_commercial')
+    fail(f"INSERT INTO public.store_asaas_customers(store_id,environment,cpf_cnpj_normalized,name,asaas_customer_id,reservation_state) VALUES('{STORE}','sandbox','12312312312','Missing account','cus_missing','linked');",'ASAAS_CUSTOMER_ACCOUNT_REQUIRED')
     print(f'ALL ASAAS CUSTOMER RESERVATION CHECKS PASSED ({CHECKS} checks; 8 concurrent attempts; localhost only)')
 
 

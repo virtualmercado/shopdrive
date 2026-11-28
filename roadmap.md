@@ -5,7 +5,9 @@
 - [x] Publicação da Fase 4.2 confirmada (28/11 01:52:23 UTC, sem alterações pendentes); domínio oficial HTTP 200 e bundle contém o título refinado; inspeção autenticada não repetida.
 - [x] Documentação oficial de criar/listar clientes e estrutura real de pagadores/cobranças consultadas somente em leitura; 1 conta, 0 pagadores, 0 cobranças, 4 eventos, 2 flags visuais e 0 autorizações disponíveis.
 - [x] Autorização mínima recebida em 28/11 para ampliar a tabela existente e criar RPCs de reserva atômica, sem chamadas reais Asaas nem liberação da Fase 5.2.
-- [ ] Aplicar vínculo à subconta, referência imutável, ID externo ausente antes da conclusão e tentativa/lease com fencing; validar em PostgreSQL descartável e conferir estado real somente em leitura.
+- [x] Revisão pontual: exclusão comercial permite somente ON DELETE SET NULL legítimo, sem reassociação; subconta NOT NULL após conferência/backfill; cliente validado pelo vínculo store_customers; todas as correspondências são examinadas antes de reutilizar/reservar.
+- [x] Proposta em docs/asaas-phase51-reservation-review.sql validada em PostgreSQL descartável: 81 verificações, 8 tentativas concorrentes, exclusão comercial preservando pagador/cobrança; regressões Fase 1 e complementar (48 assertivas + handlers reais com transporte simulado) aprovadas.
+- [ ] Aplicar SQL final revisado — aguardando aprovação específica do usuário; nenhuma migration aplicada em produção, Fases 5.2/6 continuam bloqueadas.
 - [x] Lacunas de `store_charges` registradas para Fase 6, sem alteração; zero chamadas à API Asaas e operações financeiras; Fases 5.2/6 não iniciadas.
 
 ## Fase 4.2 — Situação cadastral Asaas na interface do lojista — 2026-11-27
