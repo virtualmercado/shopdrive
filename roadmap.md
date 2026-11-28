@@ -1,5 +1,12 @@
 # Roadmap — Custom Domains V2: provisionamento automático Cloudflare + ingress multi-hostname
 
+## Fase 5.1 — Pagadores Asaas: verificação prévia — 2026-11-28
+
+- [x] Publicação da Fase 4.2 confirmada (28/11 01:52:23 UTC, sem alterações pendentes); domínio oficial HTTP 200 e bundle contém o título refinado; inspeção autenticada não repetida.
+- [x] Documentação oficial de criar/listar clientes e estrutura real de pagadores/cobranças consultadas somente em leitura; 1 conta, 0 pagadores, 0 cobranças, 4 eventos, 2 flags visuais e 0 autorizações disponíveis.
+- [ ] BLOQUEADO — autorização prévia do usuário para ampliar `store_asaas_customers`: reserva anterior ao ID externo, vínculo à subconta, referência imutável e tentativa/lease com fencing. Nenhuma migration criada/aplicada; serviço e testes da Fase 5.1 aguardam essa autorização.
+- [x] Lacunas de `store_charges` registradas para Fase 6, sem alteração; zero chamadas à API Asaas e operações financeiras; Fases 5.2/6 não iniciadas.
+
 ## Fase 4.2 — Situação cadastral Asaas na interface do lojista — 2026-11-27
 
 - [x] Consulta local sanitizada na função existente, exclusiva do titular da loja de homologação, sem API Asaas, polling ou ampliação da inspeção Master.
